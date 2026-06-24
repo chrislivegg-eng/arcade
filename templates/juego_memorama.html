@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Memorama Kawaii</title>
+    <title>Memorama Online Kawaii</title>
 
     <link
       rel="stylesheet"
@@ -62,23 +62,36 @@
         border: 2px solid #ff3385;
       }
 
-      .estadisticas {
-        text-align: center;
-        margin-top: 20px;
-        font-size: 1.2em;
-        font-weight: bold;
+      /* Estilos específicos para las salas online */
+      .lobby-box {
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        border: 3px dashed #ff99cc;
+        max-width: 400px;
+        margin: 40px auto;
       }
 
-      #tabla-container {
-        background: #fff0f5;
-        padding: 15px;
-        border-radius: 15px;
+      .input-sala {
+        padding: 12px;
+        border-radius: 10px;
         border: 2px solid #ff99cc;
-        margin: 20px auto;
-        width: 90%;
-        max-width: 400px;
+        font-size: 1.2em;
         text-align: center;
-        box-sizing: border-box;
+        width: 80%;
+        margin-bottom: 15px;
+      }
+
+      .marcador {
+        display: flex;
+        justify-content: space-around;
+        background: #fff0f5;
+        padding: 10px;
+        border-radius: 10px;
+        margin-top: 15px;
+        font-weight: bold;
+        font-size: 1.2em;
+        border: 2px solid #ff99cc;
       }
 
       @media (max-width: 440px) {
@@ -97,147 +110,177 @@
   </head>
 
   <body>
-    <h2>Memorama Kawaii</h2>
+    <h2>💖 Memorama Online 💖</h2>
 
-    <div class="estadisticas">
-      <p>Intentos actuales: <span id="intentos">0</span></p>
+    <div id="pantalla-lobby" class="lobby-box">
+      <h3>🎮 Jugar con un amigo</h3>
+      <button
+        class="btn"
+        onclick="crearSala()"
+        style="width: 100%; margin-bottom: 20px"
+      >
+        Crear Nueva Sala
+      </button>
+
+      <hr style="border: 1px solid #ffe6f2; margin: 20px 0" />
+
+      <h3>Unirse a una sala</h3>
+      <input
+        type="text"
+        id="codigo-sala"
+        class="input-sala"
+        placeholder="CÓDIGO (Ej. X7Y2)"
+      />
+      <button class="btn" onclick="unirseSala()" style="width: 100%">
+        Unirse
+      </button>
+
+      <br /><br />
+      <a
+        href="/secreto"
+        style="color: #ff3385; font-weight: bold; text-decoration: none"
+        >Volver al menú</a
+      >
     </div>
 
-    <div class="memorama-tablero" id="tablero-memorama"></div>
+    <div id="pantalla-juego" style="display: none">
+      <h3 style="color: #ff3385; margin-bottom: 5px">
+        Sala: <span id="display-sala"></span> | Eres el JUGADOR
+        <span id="display-jugador"></span>
+      </h3>
+      <h4 id="display-turno" style="color: #cc0066; margin-top: 0">
+        Cargando turno...
+      </h4>
 
-    <div id="tabla-container">
-      <h3>🏆 Top Menor Número de Intentos</h3>
-      <table id="tabla-memorama" style="width: 100%; border-collapse: collapse">
-        <thead>
-          <tr>
-            <th style="padding-bottom: 10px; color: #ff66a3">Nombre</th>
-            <th style="padding-bottom: 10px; color: #ff66a3">Intentos</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <div class="marcador">
+        <span style="color: #0099ff">J1: <span id="pts-1">0</span> pares</span>
+        <span style="color: #ff9900">J2: <span id="pts-2">0</span> pares</span>
+      </div>
+
+      <div class="memorama-tablero" id="tablero-online"></div>
+
+      <br />
+      <a
+        href="/secreto"
+        class="btn"
+        style="background: #ccc; border-color: #999"
+        >Salir de la sala</a
+      >
     </div>
-
-    <br />
-    <button class="btn" onclick="iniciarJuego()">Reiniciar Juego</button>
-    <a href="/secreto" class="btn">Volver al Menú</a>
 
     <script>
-      const emojis = ["🎀", "🐱", "🌸", "🍓", "💖", "🍰", "🍎", "⭐"];
-      let cartas = [...emojis, ...emojis];
-      let primeraCarta = null;
-      let segundaCarta = null;
-      let bloquearTablero = false;
-      let paresEncontrados = 0;
-      let intentos = 0;
+      let miSala = "";
+      let miJugador = 0;
+      let intervalo = null;
 
-      function cargarRanking() {
-        fetch("/obtener_memorama", {
-          cache: "no-store",
-        })
+      function crearSala() {
+        // Genera un código aleatorio de 4 letras/números
+        miSala = Math.random().toString(36).substring(2, 6).toUpperCase();
+        miJugador = 1;
+        iniciarJuego();
+      }
+
+      function unirseSala() {
+        let cod = document.getElementById("codigo-sala").value.toUpperCase();
+        if (cod.length < 4) return alert("Ingresa un código válido");
+        miSala = cod;
+        miJugador = 2;
+        iniciarJuego();
+      }
+
+      function iniciarJuego() {
+        document.getElementById("pantalla-lobby").style.display = "none";
+        document.getElementById("pantalla-juego").style.display = "block";
+        document.getElementById("display-sala").innerText = miSala;
+        document.getElementById("display-jugador").innerText = miJugador;
+
+        // El celular le pregunta a Python cada 1 segundo cómo va el juego
+        intervalo = setInterval(obtenerEstado, 1000);
+        obtenerEstado();
+      }
+
+      function obtenerEstado() {
+        fetch(`/api/estado_memorama/${miSala}`)
           .then((r) => r.json())
-          .then((data) => {
-            let tbody = document.querySelector("#tabla-memorama tbody");
-            tbody.innerHTML = "";
-            let sorted = Object.entries(data).sort((a, b) => a[1] - b[1]);
-            for (let [nombre, cant] of sorted) {
-              tbody.innerHTML += `<tr><td style="padding: 5px;">${nombre}</td><td style="padding: 5px;">${cant}</td></tr>`;
+          .then((estado) => {
+            // Actualizar textos de turnos y puntos
+            let textoTurno =
+              estado.turno === miJugador
+                ? "¡ES TU TURNO! ✅"
+                : "Esperando al rival... ⏳";
+            document.getElementById("display-turno").innerText = textoTurno;
+            document.getElementById("pts-1").innerText = estado.puntos_1;
+            document.getElementById("pts-2").innerText = estado.puntos_2;
+
+            // Dibujar las cartas
+            renderizarTablero(estado);
+
+            // LOGICA MAESTRA: Si volteaste 2 cartas, te damos 1.5 segundos para que ambos
+            // las vean, y luego mandamos a Python a verificar si ganaste o fallaste.
+            if (
+              estado.cartas_seleccionadas.length === 2 &&
+              estado.turno === miJugador
+            ) {
+              setTimeout(() => {
+                fetch("/api/verificar_memorama", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ sala: miSala }),
+                }).then(() => obtenerEstado());
+              }, 1500);
+            }
+
+            // Comprobar si ya se acabaron las cartas (8 pares en total)
+            if (estado.puntos_1 + estado.puntos_2 === 8) {
+              clearInterval(intervalo);
+              let ganador =
+                estado.puntos_1 > estado.puntos_2
+                  ? 1
+                  : estado.puntos_2 > estado.puntos_1
+                    ? 2
+                    : "Empate";
+              if (ganador === "Empate") alert("¡Fue un empate!");
+              else
+                alert(
+                  ganador === miJugador
+                    ? "¡FELICIDADES, GANASTE! 🎉"
+                    : "Perdiste... 😿",
+                );
             }
           });
       }
 
-      function mezclarCartas() {
-        cartas.sort(() => Math.random() - 0.5);
-      }
-
-      function crearTablero() {
-        const tablero = document.getElementById("tablero-memorama");
+      function renderizarTablero(estado) {
+        const tablero = document.getElementById("tablero-online");
         tablero.innerHTML = "";
-        cartas.forEach((emoji) => {
-          const cartaElemento = document.createElement("div");
-          cartaElemento.classList.add("carta");
-          cartaElemento.dataset.emoji = emoji;
-          cartaElemento.innerHTML = emoji;
-          cartaElemento.addEventListener("click", voltearCarta);
-          tablero.appendChild(cartaElemento);
-        });
-      }
 
-      function voltearCarta() {
-        if (bloquearTablero) return;
-        if (this === primeraCarta) return;
-        this.classList.add("volteada");
-        if (!primeraCarta) {
-          primeraCarta = this;
-          return;
-        }
-        segundaCarta = this;
-        intentos++;
-        document.getElementById("intentos").innerText = intentos;
-        verificarPar();
-      }
+        for (let i = 0; i < 16; i++) {
+          let div = document.createElement("div");
+          div.className = "carta";
 
-      function verificarPar() {
-        let esPar = primeraCarta.dataset.emoji === segundaCarta.dataset.emoji;
-        if (esPar) {
-          deshabilitarCartas();
-        } else {
-          desvoltearCartas();
+          if (estado.visibles[i] || estado.resueltas[i]) {
+            div.classList.add("volteada");
+            div.innerText = estado.cartas[i];
+            if (estado.resueltas[i]) div.classList.add("encontrada");
+          }
+
+          div.onclick = () => voltearCarta(i, estado);
+          tablero.appendChild(div);
         }
       }
 
-      function deshabilitarCartas() {
-        primeraCarta.removeEventListener("click", voltearCarta);
-        segundaCarta.removeEventListener("click", voltearCarta);
-        primeraCarta.classList.add("encontrada");
-        segundaCarta.classList.add("encontrada");
-        paresEncontrados++;
-        resetearVariables();
+      function voltearCarta(idx, estado) {
+        if (estado.turno !== miJugador) return alert("¡No es tu turno!");
+        if (estado.cartas_seleccionadas.length >= 2) return;
+        if (estado.visibles[idx] || estado.resueltas[idx]) return;
 
-        if (paresEncontrados === emojis.length) {
-          setTimeout(() => {
-            alert(`¡Ganaste en ${intentos} intentos! 🎉`);
-            let nombre = prompt("Escribe tu nombre para guardar tu récord:");
-            if (nombre) {
-              fetch("/guardar_memorama", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  nombre: nombre,
-                  intentos: intentos,
-                }),
-              }).then(cargarRanking);
-            }
-          }, 500);
-        }
+        // Enviar el clic a Python
+        fetch("/api/jugar_memorama", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sala: miSala, jugador: miJugador, idx: idx }),
+        }).then(() => obtenerEstado()); // Refresca rápido para ver la carta
       }
-
-      function desvoltearCartas() {
-        bloquearTablero = true;
-        setTimeout(() => {
-          primeraCarta.classList.remove("volteada");
-          segundaCarta.classList.remove("volteada");
-          resetearVariables();
-        }, 1000);
-      }
-
-      function resetearVariables() {
-        [primeraCarta, segundaCarta] = [null, null];
-        bloquearTablero = false;
-      }
-
-      function iniciarJuego() {
-        paresEncontrados = 0;
-        intentos = 0;
-        document.getElementById("intentos").innerText = intentos;
-        mezclarCartas();
-        crearTablero();
-        cargarRanking();
-      }
-
-      window.onload = iniciarJuego;
     </script>
   </body>
 </html>

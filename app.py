@@ -31,9 +31,14 @@ ARCHIVO_SALAS_NAV = "salas_navales.json"
 ARCHIVO_VICTORIAS_NAV = "victorias_navales.txt"
 ARCHIVO_VICTORIAS_NAV_ONLINE = "victorias_navales_online.txt"
 
+# --- Variables Globales ---
+salas_memorama = {}
+emojis_memorama = ["🎀", "🐱", "🌸", "🍓", "💖", "🍰", "🍎", "⭐"]
+
 # --- Rutas de Gestión (Inventario) ---
 @app.route('/')
-def index(): return render_template('index.html')
+def index(): 
+    return render_template('index.html')
 
 @app.route('/agregar', methods=['GET', 'POST'])
 def agregar():
@@ -135,6 +140,8 @@ def juego_shooter(): return render_template('juego_shooter.html')
 def juego_cafe(): return render_template('juego_cafe.html')
 @app.route('/juego_vuelo')
 def juego_vuelo(): return render_template('juego_vuelo.html')
+@app.route('/memorama_online')
+def memorama_online(): return render_template('memorama_online.html')
 
 # --- Motor de Guardado (Acumulativo y Limpio) ---
 def guardar_generico(archivo, nombre, puntos, inverso=False, acumulable=False):
@@ -202,7 +209,6 @@ def guardar_victoria_c4_online(): return guardar_generico(ARCHIVO_VICTORIAS_C4_O
 def guardar_victoria_nav(): return guardar_generico(ARCHIVO_VICTORIAS_NAV, request.json['nombre'].strip().title(), 1, acumulable=True)
 @app.route('/guardar_victoria_nav_online', methods=['POST'])
 def guardar_victoria_nav_online(): return guardar_generico(ARCHIVO_VICTORIAS_NAV_ONLINE, request.json['nombre'].strip().title(), 1, acumulable=True)
-
 
 # --- APIs MULTIJUGADOR: GATO ---
 def leer_salas():
@@ -408,6 +414,23 @@ def api_disparar_nav():
 
     guardar_salas_nav(salas)
     return jsonify({"status": "ok"})
+
+# --- APIs MULTIJUGADOR: MEMORAMA ---
+@app.route('/api/estado_memorama/<sala>')
+def estado_memorama(sala):
+    if sala not in salas_memorama:
+        cartas = emojis_memorama + emojis_memorama
+        random.shuffle(cartas)
+        salas_memorama[sala] = {
+            'cartas': cartas,
+            'visibles': [False] * 16,
+            'resueltas': [False] * 16,
+            'turno': 1,
+            'puntos_1': 0,
+            'puntos_2': 0,
+            'cartas_seleccionadas': []
+        }
+    return jsonify(salas_memorama[sala])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

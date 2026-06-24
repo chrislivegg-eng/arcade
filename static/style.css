@@ -355,3 +355,40 @@ img {
   background: rgba(255, 51, 133, 0.5);
   transform: scale(0.9);
 }
+/* =======================================================
+   📱 AJUSTE DE TABLAS PARA MÓVILES (Evitar que se salgan)
+   ======================================================= */
+@media (max-width: 440px) {
+  /* Contenedor principal de las tablas */
+  .game-tables {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%; /* Asegura que no rebase la caja principal */
+    gap: 15px;
+    margin: 20px 0;
+  }
+
+  /* Tarjeta de cada tabla individual */
+  .score-table {
+    width: 100%;
+    max-width: 85vw; /* 85% del ancho de la pantalla del celular, nunca se saldrá */
+    box-sizing: border-box; /* Toma en cuenta el padding para no engordar la caja */
+    padding: 12px;
+    margin: 0 auto;
+  }
+
+  /* La tabla interna */
+  .score-table table {
+    width: 100%;
+    table-layout: fixed; /* 👈 ESTO ES LA MAGIA: Obliga a la tabla a obedecer el tamaño de su contenedor */
+  }
+
+  /* Celdas (Textos y números) */
+  .score-table td,
+  .score-table th {
+    word-wrap: break-word; /* Si alguien pone un nombre giganteeeeee, lo corta a la siguiente línea */
+    font-size: 0.9em; /* Letra un poquitito más pequeña para que todo respire mejor */
+    padding: 4px;
+  }
+}
