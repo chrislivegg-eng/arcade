@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>🚀 Kitty Space Defender - Edición Galáctica</title>
+    <title>🚀 Kitty Space Defender</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap"
       rel="stylesheet"
@@ -30,7 +30,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 20px;
+        padding: 15px;
         overflow: hidden;
       }
 
@@ -49,8 +49,8 @@
           radial-gradient(2px 2px at 90px 40px, #fff, transparent),
           radial-gradient(2px 2px at 130px 80px, #eee, transparent),
           radial-gradient(2px 2px at 160px 30px, #ddd, transparent);
-        background-size: 200px 200px;
-        opacity: 0.3;
+        background-size: 150px 150px;
+        opacity: 0.2;
         pointer-events: none;
         z-index: 0;
       }
@@ -58,57 +58,58 @@
       .container {
         position: relative;
         z-index: 1;
-        background: rgba(26, 0, 51, 0.9);
+        background: rgba(26, 0, 51, 0.92);
         backdrop-filter: blur(10px);
-        border-radius: 40px;
-        padding: 30px 25px;
-        border: 3px solid rgba(204, 51, 255, 0.3);
-        box-shadow: 0 20px 60px rgba(204, 51, 255, 0.2);
-        max-width: 600px;
+        border-radius: 30px;
+        padding: 20px 18px;
+        border: 2px solid rgba(204, 51, 255, 0.3);
+        box-shadow: 0 15px 50px rgba(204, 51, 255, 0.15);
+        max-width: 480px;
         width: 100%;
         text-align: center;
       }
 
       h1 {
-        font-size: 2.2rem;
+        font-size: 1.8rem;
         background: linear-gradient(135deg, #ff66cc, #cc33ff, #9966ff);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         text-shadow: none;
-        margin-bottom: 5px;
+        margin-bottom: 3px;
       }
 
       .subtitle {
         color: #cc99ff;
-        font-size: 0.9rem;
-        margin-bottom: 15px;
-        opacity: 0.8;
+        font-size: 0.75rem;
+        margin-bottom: 10px;
+        opacity: 0.7;
+        letter-spacing: 1px;
       }
 
       /* HUD */
       .hud-container {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
-        margin-bottom: 15px;
+        gap: 5px;
+        margin-bottom: 10px;
       }
 
       .hud-item {
         background: rgba(255, 255, 255, 0.05);
-        border-radius: 15px;
-        padding: 8px 5px;
-        border: 1px solid rgba(204, 51, 255, 0.2);
+        border-radius: 12px;
+        padding: 5px 3px;
+        border: 1px solid rgba(204, 51, 255, 0.15);
       }
 
       .hud-item .label {
-        font-size: 0.6rem;
+        font-size: 0.5rem;
         color: #9966cc;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
       }
 
       .hud-item .value {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         font-weight: 900;
         background: linear-gradient(135deg, #ff66cc, #cc33ff);
         -webkit-background-clip: text;
@@ -117,150 +118,153 @@
 
       .hud-item .value.health {
         -webkit-text-fill-color: #ff6b6b;
+        font-size: 1rem;
       }
 
       /* Canvas */
       .canvas-wrapper {
         position: relative;
-        border-radius: 20px;
+        border-radius: 16px;
         overflow: hidden;
-        border: 3px solid rgba(204, 51, 255, 0.3);
-        box-shadow: inset 0 0 50px rgba(204, 51, 255, 0.1);
-        margin-bottom: 15px;
+        border: 2px solid rgba(204, 51, 255, 0.3);
+        box-shadow: inset 0 0 30px rgba(204, 51, 255, 0.08);
+        margin-bottom: 10px;
+        background: radial-gradient(ellipse at center, #1a0033, #0a001a);
       }
 
       canvas {
         display: block;
         width: 100%;
         height: auto;
-        background: radial-gradient(ellipse at center, #1a0033, #0a001a);
-        cursor: none;
         touch-action: none;
+        cursor: crosshair;
       }
 
       /* Controles móviles */
       .controles-movil {
         display: none;
-        gap: 15px;
+        gap: 10px;
         justify-content: center;
-        margin: 10px 0;
+        margin: 8px 0;
       }
 
       .btn-control {
-        background: rgba(204, 51, 255, 0.2);
-        border: 2px solid rgba(204, 51, 255, 0.3);
-        border-radius: 20px;
-        padding: 15px 30px;
-        font-size: 2rem;
+        background: rgba(204, 51, 255, 0.15);
+        border: 2px solid rgba(204, 51, 255, 0.2);
+        border-radius: 16px;
+        padding: 10px 20px;
+        font-size: 1.5rem;
         color: white;
         cursor: pointer;
         transition: all 0.2s ease;
         user-select: none;
         touch-action: none;
-        min-width: 80px;
+        min-width: 60px;
+        font-weight: 900;
       }
 
       .btn-control:active {
-        background: rgba(204, 51, 255, 0.4);
-        transform: scale(0.95);
+        background: rgba(204, 51, 255, 0.35);
+        transform: scale(0.92);
       }
 
       .btn-control.fire {
-        background: rgba(255, 51, 133, 0.3);
-        border-color: rgba(255, 51, 133, 0.5);
+        background: rgba(255, 51, 133, 0.25);
+        border-color: rgba(255, 51, 133, 0.4);
       }
 
       .btn-control.fire:active {
-        background: rgba(255, 51, 133, 0.5);
+        background: rgba(255, 51, 133, 0.4);
       }
 
       /* Botones */
       .controls {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 8px;
         justify-content: center;
-        margin: 10px 0;
+        margin: 8px 0;
       }
 
       .btn {
-        padding: 12px 30px;
+        padding: 10px 22px;
         border: none;
-        border-radius: 30px;
+        border-radius: 25px;
         font-family: "Nunito", sans-serif;
         font-weight: 900;
-        font-size: 1rem;
+        font-size: 0.85rem;
         cursor: pointer;
         transition: all 0.3s ease;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
       }
 
       .btn-primary {
         background: linear-gradient(135deg, #ff66cc, #cc33ff);
         color: white;
-        box-shadow: 0 6px 20px rgba(204, 51, 255, 0.4);
+        box-shadow: 0 4px 15px rgba(204, 51, 255, 0.3);
       }
 
       .btn-primary:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(204, 51, 255, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(204, 51, 255, 0.4);
       }
 
       .btn-primary:disabled {
-        opacity: 0.5;
+        opacity: 0.4;
         cursor: not-allowed;
         transform: none;
       }
 
       .btn-secondary {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.08);
         color: #cc99ff;
-        border: 2px solid rgba(204, 51, 255, 0.3);
+        border: 2px solid rgba(204, 51, 255, 0.2);
       }
 
       .btn-secondary:hover {
-        background: rgba(204, 51, 255, 0.2);
-        transform: translateY(-3px);
+        background: rgba(204, 51, 255, 0.15);
+        transform: translateY(-2px);
       }
 
       .btn-gold {
         background: linear-gradient(135deg, #ffd700, #ffaa00);
         color: #1a0033;
-        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.25);
       }
 
       .btn-gold:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.35);
       }
 
       /* Récords */
       .records-section {
-        margin-top: 15px;
-        padding-top: 15px;
-        border-top: 2px dashed rgba(204, 51, 255, 0.2);
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(204, 51, 255, 0.15);
       }
 
       .records-section h3 {
         color: #cc99ff;
-        font-size: 0.9rem;
-        margin-bottom: 10px;
+        font-size: 0.75rem;
+        margin-bottom: 6px;
+        opacity: 0.7;
       }
 
       .records-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 5px;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 3px;
       }
 
       .record-item {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        padding: 5px 10px;
-        font-size: 0.75rem;
-        border: 1px solid rgba(204, 51, 255, 0.15);
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 8px;
+        padding: 3px 8px;
+        font-size: 0.65rem;
+        border: 1px solid rgba(204, 51, 255, 0.1);
         display: flex;
         justify-content: space-between;
       }
@@ -276,39 +280,99 @@
 
       .back-link {
         display: inline-block;
-        margin-top: 10px;
+        margin-top: 8px;
         color: #9966cc;
         font-weight: 900;
         text-decoration: none;
-        padding: 8px 20px;
-        border-radius: 30px;
-        border: 2px solid rgba(204, 51, 255, 0.2);
+        padding: 6px 16px;
+        border-radius: 25px;
+        border: 2px solid rgba(204, 51, 255, 0.15);
         transition: all 0.3s ease;
-        font-size: 0.9rem;
+        font-size: 0.8rem;
       }
 
       .back-link:hover {
-        background: rgba(204, 51, 255, 0.2);
+        background: rgba(204, 51, 255, 0.15);
         color: #cc99ff;
+      }
+
+      /* Game Over */
+      .game-over-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        border-radius: 16px;
+        z-index: 10;
+        padding: 20px;
+      }
+
+      .game-over-overlay.show {
+        display: flex;
+      }
+
+      .game-over-overlay .title {
+        font-size: 2rem;
+        font-weight: 900;
+        color: #ff66cc;
+        margin-bottom: 5px;
+      }
+
+      .game-over-overlay .sub {
+        color: #cc99ff;
+        font-size: 1rem;
+        margin-bottom: 3px;
+      }
+
+      .game-over-overlay .final-score {
+        font-size: 2.5rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #ffd700, #ffaa00);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 5px 0;
+      }
+
+      .game-over-overlay .stats {
+        color: #9966cc;
+        font-size: 0.8rem;
+        margin-bottom: 10px;
+        line-height: 1.4;
+      }
+
+      .game-over-overlay .btn {
+        padding: 10px 25px;
+        font-size: 0.9rem;
       }
 
       /* Responsive */
       @media (max-width: 500px) {
         .container {
-          padding: 15px 12px;
+          padding: 12px 10px;
+          border-radius: 20px;
         }
 
         h1 {
-          font-size: 1.6rem;
+          font-size: 1.4rem;
         }
 
         .hud-container {
           grid-template-columns: repeat(4, 1fr);
-          gap: 5px;
+          gap: 4px;
         }
 
         .hud-item .value {
-          font-size: 1.2rem;
+          font-size: 1rem;
+        }
+
+        .hud-item .value.health {
+          font-size: 0.85rem;
         }
 
         .controles-movil {
@@ -316,9 +380,21 @@
         }
 
         .btn-control {
-          padding: 12px 20px;
-          font-size: 1.5rem;
-          min-width: 60px;
+          padding: 8px 14px;
+          font-size: 1.2rem;
+          min-width: 50px;
+        }
+
+        .btn {
+          padding: 8px 16px;
+          font-size: 0.75rem;
+        }
+
+        .game-over-overlay .title {
+          font-size: 1.6rem;
+        }
+        .game-over-overlay .final-score {
+          font-size: 2rem;
         }
       }
 
@@ -333,62 +409,13 @@
           display: none !important;
         }
       }
-
-      .game-over-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.8);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        border-radius: 20px;
-        z-index: 10;
-      }
-
-      .game-over-overlay.show {
-        display: flex;
-      }
-
-      .game-over-overlay .title {
-        font-size: 2.5rem;
-        font-weight: 900;
-        color: #ff66cc;
-        margin-bottom: 10px;
-      }
-
-      .game-over-overlay .sub {
-        color: #cc99ff;
-        font-size: 1.2rem;
-        margin-bottom: 5px;
-      }
-
-      .game-over-overlay .final-score {
-        font-size: 3rem;
-        font-weight: 900;
-        background: linear-gradient(135deg, #ffd700, #ffaa00);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 10px 0;
-      }
-
-      .game-over-overlay .stats {
-        color: #9966cc;
-        font-size: 0.9rem;
-        margin-bottom: 15px;
-      }
     </style>
   </head>
 
   <body>
     <div class="container">
       <h1>🚀 Kitty Space Defender</h1>
-      <p class="subtitle">
-        ✨ Defiende la galaxia de los invasores alienígenas
-      </p>
+      <p class="subtitle">✨ Defiende la galaxia de los invasores</p>
 
       <!-- HUD -->
       <div class="hud-container">
@@ -405,14 +432,14 @@
           <div class="value" id="level">1</div>
         </div>
         <div class="hud-item">
-          <div class="label">💥 Eliminados</div>
+          <div class="label">💥 Kills</div>
           <div class="value" id="kills">0</div>
         </div>
       </div>
 
       <!-- Canvas -->
       <div class="canvas-wrapper">
-        <canvas id="gameCanvas" width="500" height="600"></canvas>
+        <canvas id="gameCanvas" width="440" height="520"></canvas>
         <div class="game-over-overlay" id="gameOverOverlay">
           <div class="title">💥 GAME OVER</div>
           <div class="sub">Puntuación Final</div>
@@ -434,7 +461,7 @@
       <!-- Controles -->
       <div class="controls">
         <button class="btn btn-primary" onclick="iniciarJuego()" id="btnStart">
-          🚀 Iniciar Misión
+          🚀 Iniciar
         </button>
         <button class="btn btn-secondary" onclick="resetGame()">
           🔄 Reiniciar
@@ -459,11 +486,14 @@
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
 
-      // Tamaños
-      const SHIP_W = 45;
-      const SHIP_H = 45;
-      const ENEMY_SIZE = 40;
-      const BULLET_SIZE = 8;
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // Tamaños (más pequeños para mejor ajuste)
+      const SHIP_W = 38;
+      const SHIP_H = 38;
+      const ENEMY_SIZE = 34;
+      const BULLET_SIZE = 6;
 
       // Estado del juego
       let gameActive = false;
@@ -472,7 +502,7 @@
       let level = 1;
       let kills = 0;
       let frameCount = 0;
-      let ship = { x: 230, y: 520 };
+      let ship = { x: 200, y: 450 };
       let bullets = [];
       let enemies = [];
       let stars = [];
@@ -481,6 +511,7 @@
       let enemyBullets = [];
       let combo = 0;
       let maxCombo = 0;
+      let shootCooldown = 0;
 
       // Teclas
       const keys = {};
@@ -501,12 +532,12 @@
       // ============================================================
       function initStars() {
         stars = [];
-        for (let i = 0; i < 80; i++) {
+        for (let i = 0; i < 60; i++) {
           stars.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            size: Math.random() * 2 + 1,
-            speed: Math.random() * 2 + 0.5,
+            x: Math.random() * W,
+            y: Math.random() * H,
+            size: Math.random() * 2 + 0.5,
+            speed: Math.random() * 1.5 + 0.3,
             brightness: Math.random() * 0.5 + 0.5,
           });
         }
@@ -515,9 +546,9 @@
       function updateStars() {
         for (const star of stars) {
           star.y += star.speed;
-          if (star.y > canvas.height) {
+          if (star.y > H) {
             star.y = 0;
-            star.x = Math.random() * canvas.width;
+            star.x = Math.random() * W;
           }
         }
       }
@@ -536,18 +567,18 @@
       // ============================================================
       //  PARTÍCULAS
       // ============================================================
-      function createExplosion(x, y, color, count = 20) {
+      function createExplosion(x, y, color, count = 15) {
         for (let i = 0; i < count; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const speed = Math.random() * 5 + 2;
+          const speed = Math.random() * 4 + 1;
           particles.push({
             x: x,
             y: y,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            life: Math.random() * 30 + 20,
-            maxLife: 50,
-            size: Math.random() * 6 + 2,
+            life: Math.random() * 20 + 15,
+            maxLife: 35,
+            size: Math.random() * 5 + 2,
             color: color || `hsl(${Math.random() * 60 + 300}, 100%, 70%)`,
           });
         }
@@ -558,8 +589,8 @@
           const p = particles[i];
           p.x += p.vx;
           p.y += p.vy;
-          p.vx *= 0.98;
-          p.vy *= 0.98;
+          p.vx *= 0.97;
+          p.vy *= 0.97;
           p.life--;
           if (p.life <= 0) {
             particles.splice(i, 1);
@@ -591,7 +622,8 @@
         kills = 0;
         combo = 0;
         maxCombo = 0;
-        ship.x = canvas.width / 2 - SHIP_W / 2;
+        shootCooldown = 0;
+        ship.x = W / 2 - SHIP_W / 2;
         bullets = [];
         enemies = [];
         particles = [];
@@ -613,6 +645,7 @@
       function gameLoop() {
         if (!gameActive) return;
         frameCount++;
+
         updateStars();
         updateParticles();
         updateShip();
@@ -624,55 +657,70 @@
         spawnEnemies();
         draw();
         actualizarHUD();
+
+        if (shootCooldown > 0) shootCooldown--;
+
         animationId = requestAnimationFrame(gameLoop);
       }
 
       // ============================================================
-      //  ACTUALIZAR NAVE
+      //  ACTUALIZAR NAVE Y DISPARO
       // ============================================================
       function updateShip() {
-        // Teclado
-        if (keys["ArrowLeft"] || keys["a"] || keys["A"]) {
-          ship.x = Math.max(0, ship.x - 6);
-        }
-        if (keys["ArrowRight"] || keys["d"] || keys["D"]) {
-          ship.x = Math.min(canvas.width - SHIP_W, ship.x + 6);
-        }
-        if (keys[" "] || keys["Space"]) {
+        // Movimiento con teclado
+        let moveX = 0;
+        if (keys["ArrowLeft"] || keys["a"] || keys["A"]) moveX = -5;
+        if (keys["ArrowRight"] || keys["d"] || keys["D"]) moveX = 5;
+        ship.x = Math.max(2, Math.min(W - SHIP_W - 2, ship.x + moveX));
+
+        // Movimiento con mouse/touch (detectado en eventos)
+        // Disparo automático con espacio o clic sostenido
+        if (keys[" "] || keys["Space"] || keys["z"] || keys["Z"] || keys["Fire"]) {
           disparar();
-          keys[" "] = false;
-          keys["Space"] = false;
+        }
+
+        // Disparo automático más suave
+        if (keys[" "]) {
+          // Ya se maneja arriba
         }
       }
 
       function disparar() {
         if (!gameActive) return;
-        const cadencia = Math.max(8, 15 - level);
+        if (shootCooldown > 0) return;
+
+        const cadencia = Math.max(6, 12 - level);
         if (frameCount % cadencia === 0) {
+          // Disparo normal
           bullets.push({
             x: ship.x + SHIP_W / 2 - BULLET_SIZE / 2,
-            y: ship.y - 10,
+            y: ship.y - 5,
             w: BULLET_SIZE,
-            h: BULLET_SIZE * 2,
+            h: BULLET_SIZE * 2.5,
             damage: 1,
           });
+
           // Disparo doble a partir del nivel 3
           if (level >= 3) {
             bullets.push({
-              x: ship.x + 5,
-              y: ship.y - 5,
+              x: ship.x + 4,
+              y: ship.y - 2,
               w: BULLET_SIZE,
               h: BULLET_SIZE * 2,
               damage: 1,
             });
             bullets.push({
-              x: ship.x + SHIP_W - BULLET_SIZE - 5,
-              y: ship.y - 5,
+              x: ship.x + SHIP_W - BULLET_SIZE - 4,
+              y: ship.y - 2,
               w: BULLET_SIZE,
               h: BULLET_SIZE * 2,
               damage: 1,
             });
           }
+
+          // Efecto de disparo
+          createExplosion(ship.x + SHIP_W / 2, ship.y - 5, "#66ccff", 3);
+          shootCooldown = 2;
         }
       }
 
@@ -681,8 +729,8 @@
       // ============================================================
       function updateBullets() {
         for (let i = bullets.length - 1; i >= 0; i--) {
-          bullets[i].y -= 10;
-          if (bullets[i].y < 0) {
+          bullets[i].y -= 10 + level * 0.3;
+          if (bullets[i].y < -10) {
             bullets.splice(i, 1);
           }
         }
@@ -692,34 +740,29 @@
       //  ACTUALIZAR ENEMIGOS
       // ============================================================
       function updateEnemies() {
-        const speed = 1.5 + level * 0.3;
+        const speed = 1.2 + level * 0.25;
         for (let i = enemies.length - 1; i >= 0; i--) {
           const e = enemies[i];
           e.y += speed;
 
-          // Movimiento lateral
           if (e.type === "zigzag") {
-            e.x += Math.sin(e.x + frameCount * 0.02) * 1.5;
+            e.x += Math.sin(e.x + frameCount * 0.025) * 1.2;
           } else if (e.type === "fast") {
-            e.y += 1;
+            e.y += 0.8;
           } else if (e.type === "tank") {
-            e.y += 0.5;
+            e.y += 0.4;
           }
 
-          // Disparo de enemigos (a partir del nivel 2)
-          if (
-            level >= 2 &&
-            e.type !== "tank" &&
-            Math.random() < 0.005 + level * 0.001
-          ) {
+          // Disparo de enemigos
+          if (level >= 2 && e.type !== "tank" && Math.random() < 0.004 + level * 0.0008) {
             enemyBullets.push({
               x: e.x + ENEMY_SIZE / 2 - 4,
               y: e.y + ENEMY_SIZE,
-              speed: 3 + level * 0.2,
+              speed: 2.5 + level * 0.15,
             });
           }
 
-          if (e.y > canvas.height + 50) {
+          if (e.y > H + 50) {
             enemies.splice(i, 1);
           }
         }
@@ -730,9 +773,8 @@
       // ============================================================
       function updatePowerups() {
         for (let i = powerups.length - 1; i >= 0; i--) {
-          const p = powerups[i];
-          p.y += 2;
-          if (p.y > canvas.height) {
+          powerups[i].y += 1.5;
+          if (powerups[i].y > H) {
             powerups.splice(i, 1);
           }
         }
@@ -743,9 +785,8 @@
       // ============================================================
       function updateEnemyBullets() {
         for (let i = enemyBullets.length - 1; i >= 0; i--) {
-          const b = enemyBullets[i];
-          b.y += b.speed;
-          if (b.y > canvas.height) {
+          enemyBullets[i].y += enemyBullets[i].speed;
+          if (enemyBullets[i].y > H) {
             enemyBullets.splice(i, 1);
           }
         }
@@ -755,7 +796,7 @@
       //  GENERAR ENEMIGOS
       // ============================================================
       function spawnEnemies() {
-        const spawnRate = Math.max(0.01, 0.04 - level * 0.003);
+        const spawnRate = Math.max(0.015, 0.045 - level * 0.0025);
         if (Math.random() < spawnRate) {
           const tipos = ["normal", "normal", "normal"];
           if (level >= 2) tipos.push("zigzag");
@@ -764,26 +805,19 @@
 
           const tipo = tipos[Math.floor(Math.random() * tipos.length)];
           const enemy = {
-            x: Math.random() * (canvas.width - ENEMY_SIZE),
+            x: Math.random() * (W - ENEMY_SIZE),
             y: -ENEMY_SIZE,
             type: tipo,
             health: tipo === "tank" ? 3 : 1,
-            emoji:
-              tipo === "tank"
-                ? "🛸"
-                : tipo === "fast"
-                  ? "👾"
-                  : tipo === "zigzag"
-                    ? "👽"
-                    : "👾",
+            emoji: tipo === "tank" ? "🛸" : tipo === "fast" ? "👾" : tipo === "zigzag" ? "👽" : "👾",
           };
           enemies.push(enemy);
         }
 
-        // Generar power-ups ocasionalmente
-        if (Math.random() < 0.002 && level >= 2) {
+        // Power-ups
+        if (Math.random() < 0.002 && level >= 2 && powerups.length < 2) {
           powerups.push({
-            x: Math.random() * (canvas.width - 30),
+            x: Math.random() * (W - 30),
             y: -30,
             type: Math.random() < 0.5 ? "health" : "score",
             emoji: Math.random() < 0.5 ? "❤️" : "⭐",
@@ -795,37 +829,34 @@
       //  DIBUJAR
       // ============================================================
       function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, W, H);
 
-        // Fondo con gradiente
-        const gradient = ctx.createRadialGradient(
-          canvas.width / 2,
-          canvas.height / 2,
-          50,
-          canvas.width / 2,
-          canvas.height / 2,
-          400,
-        );
+        // Fondo
+        const gradient = ctx.createRadialGradient(W / 2, H / 2, 50, W / 2, H / 2, 350);
         gradient.addColorStop(0, "#2a0050");
         gradient.addColorStop(0.5, "#1a0033");
         gradient.addColorStop(1, "#0a001a");
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, W, H);
 
         drawStars();
 
         // Power-ups
         for (const p of powerups) {
-          ctx.font = "24px Arial";
+          ctx.font = "22px Arial";
           ctx.textAlign = "center";
-          ctx.fillText(p.emoji, p.x + 15, p.y + 20);
+          ctx.textBaseline = "middle";
+          ctx.shadowColor = "rgba(255,215,0,0.3)";
+          ctx.shadowBlur = 15;
+          ctx.fillText(p.emoji, p.x + 15, p.y + 15);
+          ctx.shadowBlur = 0;
         }
 
         // Balas enemigas
         for (const b of enemyBullets) {
           ctx.fillStyle = "#ff4444";
           ctx.shadowColor = "#ff4444";
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 8;
           ctx.beginPath();
           ctx.arc(b.x + 4, b.y, 4, 0, Math.PI * 2);
           ctx.fill();
@@ -836,7 +867,7 @@
         for (const b of bullets) {
           ctx.fillStyle = "#66ccff";
           ctx.shadowColor = "#66ccff";
-          ctx.shadowBlur = 15;
+          ctx.shadowBlur = 12;
           ctx.fillRect(b.x, b.y, b.w, b.h);
           ctx.shadowBlur = 0;
         }
@@ -846,18 +877,16 @@
           ctx.font = `${ENEMY_SIZE}px Arial`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          // Sombra
-          ctx.shadowColor = "rgba(255, 0, 100, 0.3)";
-          ctx.shadowBlur = 20;
+          ctx.shadowColor = "rgba(255, 0, 100, 0.2)";
+          ctx.shadowBlur = 15;
           ctx.fillText(e.emoji, e.x + ENEMY_SIZE / 2, e.y + ENEMY_SIZE / 2);
           ctx.shadowBlur = 0;
 
-          // Barra de vida para tanques
           if (e.type === "tank" && e.health > 1) {
-            ctx.fillStyle = "rgba(255,255,255,0.2)";
-            ctx.fillRect(e.x, e.y - 10, ENEMY_SIZE, 4);
+            ctx.fillStyle = "rgba(255,255,255,0.15)";
+            ctx.fillRect(e.x, e.y - 8, ENEMY_SIZE, 3);
             ctx.fillStyle = "#ff6b6b";
-            ctx.fillRect(e.x, e.y - 10, ENEMY_SIZE * (e.health / 3), 4);
+            ctx.fillRect(e.x, e.y - 8, ENEMY_SIZE * (e.health / 3), 3);
           }
         }
 
@@ -865,86 +894,71 @@
         drawParticles();
 
         // Nave
-        ctx.shadowColor = "rgba(204, 51, 255, 0.5)";
-        ctx.shadowBlur = 30;
+        ctx.shadowColor = "rgba(204, 51, 255, 0.4)";
+        ctx.shadowBlur = 25;
         ctx.font = `${SHIP_W}px Arial`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText("🚀", ship.x + SHIP_W / 2, ship.y + SHIP_H / 2);
         ctx.shadowBlur = 0;
 
-        // Escudo visual (cuando hay combo alto)
+        // Escudo visual
         if (combo >= 5) {
-          ctx.strokeStyle = `rgba(255, 215, 0, ${0.3 + Math.sin(frameCount * 0.05) * 0.2})`;
+          ctx.strokeStyle = `rgba(255, 215, 0, ${0.25 + Math.sin(frameCount * 0.05) * 0.15})`;
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(ship.x + SHIP_W / 2, ship.y + SHIP_H / 2, 30, 0, Math.PI * 2);
+          ctx.arc(ship.x + SHIP_W / 2, ship.y + SHIP_H / 2, 26, 0, Math.PI * 2);
           ctx.stroke();
         }
 
-        // Combo display
+        // Combo
         if (combo > 1) {
           ctx.fillStyle = "#ffd700";
-          ctx.font = "bold 18px Nunito, sans-serif";
+          ctx.font = "bold 16px Nunito, sans-serif";
           ctx.textAlign = "right";
           ctx.textBaseline = "top";
-          ctx.fillText(`🔥 x${combo}`, canvas.width - 15, 10);
+          ctx.fillText(`🔥 x${combo}`, W - 10, 5);
         }
 
-        // Nivel display
-        ctx.fillStyle = "rgba(204, 51, 255, 0.5)";
-        ctx.font = "bold 14px Nunito, sans-serif";
+        // Nivel
+        ctx.fillStyle = "rgba(204, 51, 255, 0.4)";
+        ctx.font = "bold 12px Nunito, sans-serif";
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
-        ctx.fillText(`Nivel ${level}`, 10, 10);
+        ctx.fillText(`Nivel ${level}`, 8, 5);
       }
 
       // ============================================================
       //  COLISIONES
       // ============================================================
       function checkCollisions() {
+        const margin = 4;
+
         // Balas vs Enemigos
         for (let i = bullets.length - 1; i >= 0; i--) {
           for (let j = enemies.length - 1; j >= 0; j--) {
             const b = bullets[i];
             const e = enemies[j];
-            if (
-              b &&
-              e &&
-              b.x < e.x + ENEMY_SIZE &&
-              b.x + b.w > e.x &&
-              b.y < e.y + ENEMY_SIZE &&
-              b.y + b.h > e.y
-            ) {
-              // Daño al enemigo
+            if (b && e &&
+                b.x < e.x + ENEMY_SIZE - margin &&
+                b.x + b.w > e.x + margin &&
+                b.y < e.y + ENEMY_SIZE - margin &&
+                b.y + b.h > e.y + margin) {
               e.health -= b.damage;
               bullets.splice(i, 1);
-              createExplosion(
-                e.x + ENEMY_SIZE / 2,
-                e.y + ENEMY_SIZE / 2,
-                "#ff66cc",
-                10,
-              );
+              createExplosion(e.x + ENEMY_SIZE / 2, e.y + ENEMY_SIZE / 2, "#ff66cc", 8);
 
               if (e.health <= 0) {
-                const puntos =
-                  e.type === "tank" ? 30 : e.type === "fast" ? 20 : 15;
+                const puntos = e.type === "tank" ? 25 : e.type === "fast" ? 18 : 12;
                 score += puntos;
                 kills++;
                 combo++;
                 if (combo > maxCombo) maxCombo = combo;
-                createExplosion(
-                  e.x + ENEMY_SIZE / 2,
-                  e.y + ENEMY_SIZE / 2,
-                  "#ff66cc",
-                  25,
-                );
+                createExplosion(e.x + ENEMY_SIZE / 2, e.y + ENEMY_SIZE / 2, "#ff66cc", 20);
                 enemies.splice(j, 1);
 
-                // Subir nivel cada 15 eliminados
-                if (kills % 15 === 0 && kills > 0) {
+                if (kills % 12 === 0 && kills > 0) {
                   level++;
-                  // Bonus de vida al subir nivel
                   health = Math.min(5, health + 1);
                 }
               }
@@ -956,18 +970,11 @@
         // Enemigos vs Nave
         for (let i = enemies.length - 1; i >= 0; i--) {
           const e = enemies[i];
-          if (
-            e.x < ship.x + SHIP_W &&
-            e.x + ENEMY_SIZE > ship.x &&
-            e.y < ship.y + SHIP_H &&
-            e.y + ENEMY_SIZE > ship.y
-          ) {
-            createExplosion(
-              ship.x + SHIP_W / 2,
-              ship.y + SHIP_H / 2,
-              "#ff4444",
-              30,
-            );
+          if (e.x < ship.x + SHIP_W - margin &&
+              e.x + ENEMY_SIZE > ship.x + margin &&
+              e.y < ship.y + SHIP_H - margin &&
+              e.y + ENEMY_SIZE > ship.y + margin) {
+            createExplosion(ship.x + SHIP_W / 2, ship.y + SHIP_H / 2, "#ff4444", 25);
             health--;
             enemies.splice(i, 1);
             combo = 0;
@@ -981,18 +988,11 @@
         // Balas enemigas vs Nave
         for (let i = enemyBullets.length - 1; i >= 0; i--) {
           const b = enemyBullets[i];
-          if (
-            b.x < ship.x + SHIP_W &&
-            b.x + 8 > ship.x &&
-            b.y < ship.y + SHIP_H &&
-            b.y + 8 > ship.y
-          ) {
-            createExplosion(
-              ship.x + SHIP_W / 2,
-              ship.y + SHIP_H / 2,
-              "#ff4444",
-              15,
-            );
+          if (b.x < ship.x + SHIP_W - margin &&
+              b.x + 8 > ship.x + margin &&
+              b.y < ship.y + SHIP_H - margin &&
+              b.y + 8 > ship.y + margin) {
+            createExplosion(ship.x + SHIP_W / 2, ship.y + SHIP_H / 2, "#ff4444", 12);
             health--;
             enemyBullets.splice(i, 1);
             combo = 0;
@@ -1003,15 +1003,13 @@
           }
         }
 
-        // Power-ups vs Nave
+        // Power-ups
         for (let i = powerups.length - 1; i >= 0; i--) {
           const p = powerups[i];
-          if (
-            p.x < ship.x + SHIP_W &&
-            p.x + 30 > ship.x &&
-            p.y < ship.y + SHIP_H &&
-            p.y + 30 > ship.y
-          ) {
+          if (p.x < ship.x + SHIP_W &&
+              p.x + 30 > ship.x &&
+              p.y < ship.y + SHIP_H &&
+              p.y + 30 > ship.y) {
             if (p.type === "health") {
               health = Math.min(5, health + 1);
               createExplosion(p.x + 15, p.y + 15, "#ff6b6b", 10);
@@ -1044,25 +1042,24 @@
           animationId = null;
         }
         btnStart.disabled = false;
-        btnStart.textContent = "🚀 Iniciar Misión";
+        btnStart.textContent = "🚀 Iniciar";
 
         finalScore.textContent = score;
-        finalStats.textContent = `Nivel: ${level} | Eliminados: ${kills} | Combo máximo: x${maxCombo}`;
+        finalStats.textContent = `Nivel: ${level} | Eliminados: ${kills} | Combo: x${maxCombo}`;
         gameOverOverlay.classList.add("show");
 
-        // Guardar puntuación
         setTimeout(() => {
           const nombre = prompt(
-            `💥 ¡Game Over!\nPuntuación: ${score}\nNivel: ${level}\n\n✨ Ingresa tu nombre para el récord:`,
+            `💥 ¡Game Over!\n⭐ Puntuación: ${score}\n📊 Nivel: ${level}\n💥 Eliminados: ${kills}\n🔥 Combo máximo: x${maxCombo}\n\n✨ Ingresa tu nombre para el récord:`
           );
           if (nombre && nombre.trim()) {
             guardarPuntuacion(nombre.trim(), score);
           }
-        }, 500);
+        }, 300);
       }
 
       // ============================================================
-      //  REINICIAR JUEGO
+      //  REINICIAR
       // ============================================================
       function reiniciarJuego() {
         gameOverOverlay.classList.remove("show");
@@ -1081,7 +1078,8 @@
         kills = 0;
         combo = 0;
         maxCombo = 0;
-        ship.x = canvas.width / 2 - SHIP_W / 2;
+        shootCooldown = 0;
+        ship.x = W / 2 - SHIP_W / 2;
         bullets = [];
         enemies = [];
         particles = [];
@@ -1089,14 +1087,14 @@
         enemyBullets = [];
         gameOverOverlay.classList.remove("show");
         btnStart.disabled = false;
-        btnStart.textContent = "🚀 Iniciar Misión";
+        btnStart.textContent = "🚀 Iniciar";
         actualizarHUD();
         draw();
         cargarRecords();
       }
 
       // ============================================================
-      //  GUARDAR PUNTUACIÓN
+      //  GUARDAR Y CARGAR RÉCORDS
       // ============================================================
       function guardarPuntuacion(nombre, puntos) {
         fetch("/guardar_shooter", {
@@ -1108,26 +1106,23 @@
           .catch(() => {});
       }
 
-      // ============================================================
-      //  CARGAR RÉCORDS
-      // ============================================================
       function cargarRecords() {
         fetch("/records_shooter")
           .then((r) => r.json())
           .then((data) => {
             recordsGrid.innerHTML = "";
             if (data && data.length > 0) {
-              data.slice(0, 10).forEach((item, i) => {
+              data.slice(0, 8).forEach((item, i) => {
                 const div = document.createElement("div");
                 div.className = "record-item";
                 div.innerHTML = `
                   <span class="name">${i + 1}. ${item.nombre}</span>
-                  <span class="score">${item.puntos} pts</span>
+                  <span class="score">${item.puntos}</span>
                 `;
                 recordsGrid.appendChild(div);
               });
             } else {
-              recordsGrid.innerHTML = `<div class="record-item"><span class="name">✨ Sin récords aún</span></div>`;
+              recordsGrid.innerHTML = `<div class="record-item"><span class="name">✨ Sin récords</span></div>`;
             }
           })
           .catch(() => {});
@@ -1140,11 +1135,12 @@
         keys[e.key] = true;
         if (e.key === " " || e.key === "Space") {
           e.preventDefault();
+        }
+        if ((e.key === " " || e.key === "Space" || e.key === "z" || e.key === "Z") && gameActive) {
           disparar();
         }
-        // Disparo con Z también
-        if (e.key === "z" || e.key === "Z") {
-          disparar();
+        if (e.key === "Enter" && !gameActive) {
+          iniciarJuego();
         }
       });
 
@@ -1159,79 +1155,80 @@
       const btnRight = document.getElementById("btnRight");
       const btnFire = document.getElementById("btnFire");
 
-      // Touch / Mouse para móvil
       function setupMobileControls() {
-        const moveSpeed = 8;
+        // Izquierda
+        btnLeft.addEventListener("touchstart", (e) => { e.preventDefault(); keys["ArrowLeft"] = true; });
+        btnLeft.addEventListener("touchend", (e) => { e.preventDefault(); keys["ArrowLeft"] = false; });
+        btnLeft.addEventListener("mousedown", () => { keys["ArrowLeft"] = true; });
+        btnLeft.addEventListener("mouseup", () => { keys["ArrowLeft"] = false; });
+        btnLeft.addEventListener("mouseleave", () => { keys["ArrowLeft"] = false; });
 
-        // Botón izquierdo
-        btnLeft.addEventListener("touchstart", (e) => {
-          e.preventDefault();
-          keys["ArrowLeft"] = true;
-        });
-        btnLeft.addEventListener("touchend", (e) => {
-          e.preventDefault();
-          keys["ArrowLeft"] = false;
-        });
-        btnLeft.addEventListener("mousedown", () => {
-          keys["ArrowLeft"] = true;
-        });
-        btnLeft.addEventListener("mouseup", () => {
-          keys["ArrowLeft"] = false;
-        });
-        btnLeft.addEventListener("mouseleave", () => {
-          keys["ArrowLeft"] = false;
-        });
+        // Derecha
+        btnRight.addEventListener("touchstart", (e) => { e.preventDefault(); keys["ArrowRight"] = true; });
+        btnRight.addEventListener("touchend", (e) => { e.preventDefault(); keys["ArrowRight"] = false; });
+        btnRight.addEventListener("mousedown", () => { keys["ArrowRight"] = true; });
+        btnRight.addEventListener("mouseup", () => { keys["ArrowRight"] = false; });
+        btnRight.addEventListener("mouseleave", () => { keys["ArrowRight"] = false; });
 
-        // Botón derecho
-        btnRight.addEventListener("touchstart", (e) => {
-          e.preventDefault();
-          keys["ArrowRight"] = true;
-        });
-        btnRight.addEventListener("touchend", (e) => {
-          e.preventDefault();
-          keys["ArrowRight"] = false;
-        });
-        btnRight.addEventListener("mousedown", () => {
-          keys["ArrowRight"] = true;
-        });
-        btnRight.addEventListener("mouseup", () => {
-          keys["ArrowRight"] = false;
-        });
-        btnRight.addEventListener("mouseleave", () => {
-          keys["ArrowRight"] = false;
-        });
-
-        // Botón de disparo
+        // Disparo
         let fireInterval = null;
         btnFire.addEventListener("touchstart", (e) => {
           e.preventDefault();
+          keys["Fire"] = true;
           disparar();
-          fireInterval = setInterval(disparar, 150);
+          fireInterval = setInterval(disparar, 120);
         });
         btnFire.addEventListener("touchend", (e) => {
           e.preventDefault();
-          if (fireInterval) {
-            clearInterval(fireInterval);
-            fireInterval = null;
-          }
+          keys["Fire"] = false;
+          if (fireInterval) { clearInterval(fireInterval); fireInterval = null; }
         });
         btnFire.addEventListener("mousedown", () => {
+          keys["Fire"] = true;
           disparar();
-          fireInterval = setInterval(disparar, 150);
+          fireInterval = setInterval(disparar, 120);
         });
         btnFire.addEventListener("mouseup", () => {
-          if (fireInterval) {
-            clearInterval(fireInterval);
-            fireInterval = null;
-          }
+          keys["Fire"] = false;
+          if (fireInterval) { clearInterval(fireInterval); fireInterval = null; }
         });
         btnFire.addEventListener("mouseleave", () => {
-          if (fireInterval) {
-            clearInterval(fireInterval);
-            fireInterval = null;
-          }
+          keys["Fire"] = false;
+          if (fireInterval) { clearInterval(fireInterval); fireInterval = null; }
         });
       }
+
+      // ============================================================
+      //  CONTROLES CON RATÓN (disparo al hacer clic en el canvas)
+      // ============================================================
+      canvas.addEventListener("mousedown", (e) => {
+        if (gameActive) {
+          keys["Fire"] = true;
+          disparar();
+        }
+      });
+
+      canvas.addEventListener("mouseup", () => {
+        keys["Fire"] = false;
+      });
+
+      canvas.addEventListener("mouseleave", () => {
+        keys["Fire"] = false;
+      });
+
+      // Touch en canvas
+      canvas.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        if (gameActive) {
+          keys["Fire"] = true;
+          disparar();
+        }
+      });
+
+      canvas.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        keys["Fire"] = false;
+      });
 
       // ============================================================
       //  INICIALIZAR
@@ -1241,16 +1238,8 @@
         cargarRecords();
         setupMobileControls();
         draw();
-
-        // Tecla Enter para iniciar
-        document.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" && !gameActive) {
-            iniciarJuego();
-          }
-        });
       }
 
-      // Cargar cuando la página esté lista
       document.addEventListener("DOMContentLoaded", init);
     </script>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
