@@ -14,12 +14,11 @@
     />
 
     <style>
-      /* Ajuste general para que nada pegue a las orillas en móvil */
       body {
         text-align: center;
         padding: 10px;
         box-sizing: border-box;
-        overflow-x: hidden; /* Evita scroll horizontal accidental */
+        overflow-x: hidden;
       }
 
       .memorama-tablero {
@@ -46,7 +45,7 @@
           transform 0.3s,
           background 0.3s;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        user-select: none; /* Evita que el texto se seleccione al picar rápido */
+        user-select: none;
       }
 
       .carta.volteada {
@@ -76,26 +75,22 @@
         border-radius: 15px;
         border: 2px solid #ff99cc;
         margin: 20px auto;
-        width: 90%; /* Fluido en lugar de 300px fijos */
-        max-width: 400px; /* Límite para que no se vea gigante en PC */
+        width: 90%;
+        max-width: 400px;
         text-align: center;
         box-sizing: border-box;
       }
 
-      /* =======================================================
-           📱 MAGIA RESPONSIVA: MÓVILES (Hasta 440px)
-           ======================================================= */
       @media (max-width: 440px) {
         .memorama-tablero {
-          /* Usamos 'vw' para que las cartas midan el 20% del ancho de la pantalla */
           grid-template-columns: repeat(4, 20vw);
           gap: 2vw;
         }
         .carta {
           width: 20vw;
           height: 20vw;
-          font-size: 9vw; /* El emoji también se encoge proporcionalmente */
-          border-radius: 8px; /* Bordes un poco más suaves en pantallas chiquitas */
+          font-size: 9vw;
+          border-radius: 8px;
         }
       }
     </style>
@@ -108,7 +103,7 @@
       <p>Intentos actuales: <span id="intentos">0</span></p>
     </div>
 
-    <div class="memorama-tablero" id="tablero"></div>
+    <div class="memorama-tablero" id="tablero-memorama"></div>
 
     <div id="tabla-container">
       <h3>🏆 Top Menor Número de Intentos</h3>
@@ -144,7 +139,7 @@
           .then((data) => {
             let tbody = document.querySelector("#tabla-memorama tbody");
             tbody.innerHTML = "";
-            let sorted = Object.entries(data).sort((a, b) => a[1] - b[1]); // Menor a mayor intentos
+            let sorted = Object.entries(data).sort((a, b) => a[1] - b[1]);
             for (let [nombre, cant] of sorted) {
               tbody.innerHTML += `<tr><td style="padding: 5px;">${nombre}</td><td style="padding: 5px;">${cant}</td></tr>`;
             }
@@ -156,7 +151,7 @@
       }
 
       function crearTablero() {
-        const tablero = document.getElementById("tablero");
+        const tablero = document.getElementById("tablero-memorama");
         tablero.innerHTML = "";
         cartas.forEach((emoji) => {
           const cartaElemento = document.createElement("div");

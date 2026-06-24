@@ -276,9 +276,8 @@ img {
     font-size: 1.2em;
   }
   #tablero {
-    grid-template-columns: repeat(7, 35px);
-    gap: 2px;
-    justify-content: center;
+    grid-template-columns: repeat(7, 35px) !important;
+    gap: 2px !important;
   }
   #t-mio,
   #t-enemigo {
