@@ -93,8 +93,14 @@
       }
     </style>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
   </head>
   <body>
     <div class="kawaii-box">
@@ -201,6 +207,16 @@
             }).then(() => (location.href = "/secreto"));
           }
         }, 500);
+      }
+    </script>
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+    <script>
+      // Ejemplo de cómo usarlo en cualquier juego:
+      // Ya no necesitas prompt, el archivo scripts.js se encarga de todo.
+
+      function alGanarJuego(misPuntos) {
+        // Solo llamas a esta función y listo
+        enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
       }
     </script>
   </body>

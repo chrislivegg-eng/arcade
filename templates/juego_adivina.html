@@ -1,29 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Adivina el Número</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
 
-<body style="text-align: center; margin-top: 50px;">
+  <body style="text-align: center; margin-top: 50px">
     <h2>Adivina el Número (1-100)</h2>
-    <input type="number" id="guess" style="padding:10px;">
+    <input type="number" id="guess" style="padding: 10px" />
     <button class="btn" onclick="verificar()">Probar</button>
-    <p id="feedback" style="font-size: 1.5em; font-weight: bold;"></p>
-    <br><br>
+    <p id="feedback" style="font-size: 1.5em; font-weight: bold"></p>
+    <br /><br />
     <a href="/secreto" class="btn">Volver al Menú</a>
 
     <script>
-        let secret = Math.floor(Math.random() * 100) + 1;
+      let secret = Math.floor(Math.random() * 100) + 1;
 
-        function verificar() {
-            let val = document.getElementById('guess').value;
-            document.getElementById('feedback').innerText = val == secret ? "¡Ganaste! 🎉" : (val > secret ? "Más bajo ⬇️" : "Más alto ⬆️");
-        }
+      function verificar() {
+        let val = document.getElementById("guess").value;
+        document.getElementById("feedback").innerText =
+          val == secret
+            ? "¡Ganaste! 🎉"
+            : val > secret
+              ? "Más bajo ⬇️"
+              : "Más alto ⬆️";
+      }
     </script>
-</body>
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+    <script>
+      // Ejemplo de cómo usarlo en cualquier juego:
+      // Ya no necesitas prompt, el archivo scripts.js se encarga de todo.
 
+      function alGanarJuego(misPuntos) {
+        // Solo llamas a esta función y listo
+        enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
+      }
+    </script>
+  </body>
 </html>

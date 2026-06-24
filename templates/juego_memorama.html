@@ -418,5 +418,15 @@
         }
       }
     </script>
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+    <script>
+      // Ejemplo de cómo usarlo en cualquier juego:
+      // Ya no necesitas prompt, el archivo scripts.js se encarga de todo.
+
+      function alGanarJuego(misPuntos) {
+        // Solo llamas a esta función y listo
+        enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
+      }
+    </script>
   </body>
 </html>

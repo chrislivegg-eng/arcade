@@ -1,10 +1,15 @@
 <!doctype html>
 <html lang="es">
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
 
     <meta charset="UTF-8" />
     <title>Vuelo Kawaii 🎀</title>
@@ -243,6 +248,16 @@
         canvas.width / 2,
         canvas.height / 2,
       );
+    </script>
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+    <script>
+      // Ejemplo de cómo usarlo en cualquier juego:
+      // Ya no necesitas prompt, el archivo scripts.js se encarga de todo.
+
+      function alGanarJuego(misPuntos) {
+        // Solo llamas a esta función y listo
+        enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
+      }
     </script>
   </body>
 </html>
