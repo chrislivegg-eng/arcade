@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+
+    <meta charset="UTF-8">
+    <title>Kitty Clicker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #fff0f5 0%, #ffe6f2 100%);
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .clicker-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            max-width: 900px;
+            margin: 30px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(255, 153, 204, 0.3);
+            border: 4px dashed #ffb3d9;
+        }
+        
+        .zona-click {
+            flex: 1;
+            text-align: center;
+        }
+        
+        #btn-gigante {
+            font-size: 100px;
+            background: #ffe6f2;
+            border: 6px solid #ff99cc;
+            border-radius: 50%;
+            width: 250px;
+            height: 250px;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(255, 153, 204, 0.4);
+            transition: transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+            user-select: none;
+        }
+        
+        #btn-gigante:active {
+            transform: scale(0.90);
+        }
+        
+        .marcadores {
+            font-size: 1.8em;
+            color: #ff3385;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+        
+        .marcadores span {
+            color: #ff66a3;
+            font-size: 1.5em;
+            display: block;
+        }
+        
+        .zona-tienda {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .mejora-btn {
+            background: linear-gradient(45deg, #ff99cc, #ff66a3);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 1.2em;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(255, 102, 163, 0.4);
+            transition: 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .mejora-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+        
+        .mejora-btn:disabled {
+            background: #e0e0e0;
+            color: #a0a0a0;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        
+        .accion-salir {
+            background: linear-gradient(45deg, #ff6666, #ff1a1a);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            margin-top: 20px;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1 style="color: #ff3385;">🎀 Kitty Clicker 🎀</h1>
+
+    <div class="clicker-container">
+
+        <div class="zona-click">
+            <div class="marcadores">Puntos Kawaii: <span id="display-puntos">0</span></div>
+            <div style="color: #999; font-size: 1.2em; font-weight: bold;"><span id="display-pps">0</span> puntos por segundo</div>
+
+            <div id="btn-gigante" onclick="hacerClick()">🎀</div>
+        </div>
+
+        <div class="zona-tienda">
+            <h2 style="color: #ff3385; margin-top:0;">Tienda Mágica 🛒</h2>
+
+            <button class="mejora-btn" id="btn-auto" onclick="comprarMejora('auto')">
+                <span>🖱️ Auto-Click (+1 p/s)</span>
+                <span id="costo-auto">50 pts</span>
+            </button>
+
+            <button class="mejora-btn" id="btn-gato" onclick="comprarMejora('gato')">
+                <span>🐱 Gato Ayudante (+5 p/s)</span>
+                <span id="costo-gato">300 pts</span>
+            </button>
+
+            <button class="mejora-btn" id="btn-fabrica" onclick="comprarMejora('fabrica')">
+                <span>🏭 Fábrica de Moños (+20 p/s)</span>
+                <span id="costo-fabrica">1000 pts</span>
+            </button>
+        </div>
+
+    </div>
+
+    <button class="accion-salir" onclick="guardarYSalir()">💾 Guardar Récord y Salir</button>
+    <script>
+        let puntos = 0;
+        let puntosPorSegundo = 0;
+
+        let costos = {
+            auto: 50,
+            gato: 300,
+            fabrica: 1000
+        };
+
+        let incrementos = {
+            auto: 1,
+            gato: 5,
+            fabrica: 20
+        };
+
+        const displayPuntos = document.getElementById('display-puntos');
+        const displayPPS = document.getElementById('display-pps');
+        const btnGigante = document.getElementById('btn-gigante');
+
+        function hacerClick() {
+            puntos++;
+            actualizarUI();
+
+            // Animación visual al hacer clic (opcional, se siente más responsivo)
+            btnGigante.style.transform = "scale(0.90)";
+            setTimeout(() => btnGigante.style.transform = "scale(1)", 100);
+        }
+
+        // --- AQUÍ ESTÁ LA NUEVA LÓGICA PARA LA BARRA ESPACIADORA ---
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                hacerClick();
+                e.preventDefault(); // Evita que la página haga scroll al presionar espacio
+            }
+        });
+        // ----------------------------------------------------------
+
+        function comprarMejora(tipo) {
+            if (puntos >= costos[tipo]) {
+                puntos -= costos[tipo];
+                puntosPorSegundo += incrementos[tipo];
+
+                // La mejora se vuelve un 30% más cara cada vez
+                costos[tipo] = Math.floor(costos[tipo] * 1.3);
+                actualizarUI();
+            }
+        }
+
+        function actualizarUI() {
+            displayPuntos.innerText = Math.floor(puntos);
+            displayPPS.innerText = puntosPorSegundo;
+
+            document.getElementById('btn-auto').disabled = puntos < costos.auto;
+            document.getElementById('costo-auto').innerText = costos.auto + " pts";
+
+            document.getElementById('btn-gato').disabled = puntos < costos.gato;
+            document.getElementById('costo-gato').innerText = costos.gato + " pts";
+
+            document.getElementById('btn-fabrica').disabled = puntos < costos.fabrica;
+            document.getElementById('costo-fabrica').innerText = costos.fabrica + " pts";
+        }
+
+        setInterval(() => {
+            if (puntosPorSegundo > 0) {
+                puntos += puntosPorSegundo;
+                actualizarUI();
+            }
+        }, 1000);
+
+        function guardarYSalir() {
+            let nombre = prompt(`Terminaste con ${Math.floor(puntos)} puntos. ¡Ingresa tu nombre para el récord!`);
+            if (nombre) {
+                fetch('/guardar_clicker', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nombre: nombre,
+                        puntos: Math.floor(puntos)
+                    })
+                }).then(() => {
+                    window.location.href = '/secreto';
+                });
+            } else {
+                window.location.href = '/secreto';
+            }
+        }
+
+        actualizarUI();
+    </script>
+</body>
+
+</html>

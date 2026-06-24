@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Conecta 4 Kawaii 🔴🟡</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Nunito', sans-serif; background: #ffe6f2; text-align: center; margin: 0; padding: 10px; }
+        .kawaii-box { background: white; padding: 20px; border-radius: 30px; border: 4px dashed #ffb3d9; display: inline-block; box-shadow: 0 10px 20px rgba(229, 179, 217, 0.4); max-width: 500px; width: 100%; box-sizing: border-box;}
+        h1 { color: #ff3385; font-size: 2em; margin: 10px 0; cursor: pointer; user-select: none; }
+        
+        .menu-modos { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+        .btn-modo { font-size: 1.2em; padding: 12px; border: none; border-radius: 30px; cursor: pointer; color: white; font-weight: bold; width: 100%; }
+        .btn-bot { background: linear-gradient(45deg, #ff99cc, #ff66a3); }
+        .btn-online { background: linear-gradient(45deg, #ff6666, #ff0055); }
+
+        .codigo-sala { font-size: 1.5em; color: #ff3385; background: #ffe6f2; padding: 5px 15px; border-radius: 15px; display: inline-block; border: 2px dashed #ff99cc; margin: 10px 0; }
+        
+        .tablero-marco { background: #66ccff; padding: 10px; border-radius: 15px; display: inline-block; }
+        .tablero { display: grid; grid-template-columns: repeat(7, 40px); gap: 4px; }
+        .celda { width: 40px; height: 40px; background: white; border-radius: 50%; font-size: 1.5em; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        
+        .ganador-brillo { animation: latido 0.5s infinite alternate; box-shadow: 0 0 15px #ffeb3b; border: 3px solid white; }
+        @keyframes latido { from { transform: scale(1); } to { transform: scale(1.1); } }
+
+        .caja-chat { background: #fff0f5; width: 100%; max-width: 350px; margin: 10px auto; border-radius: 15px; padding: 10px; display: none; }
+        .mensajes { height: 80px; overflow-y: auto; font-size: 0.8em; text-align: left; }
+        .btn-accion { background: #ff3385; color: white; border: none; padding: 10px; border-radius: 20px; width: 100%; font-weight: bold; margin-top: 5px; cursor: pointer;}
+    </style>
+</head>
+<body>
+    <div class="kawaii-box">
+        <h1 id="titulo" onclick="activarModoSecreto()">🔴 Conecta 4 🟡</h1>
+        
+        <div id="pantalla-menu">
+            <div class="menu-modos">
+                <button class="btn-modo btn-bot" onclick="iniciarModo('bot')">🤖 Jugar contra Bot</button>
+                <button class="btn-modo btn-online" onclick="abrirLobby()">🌐 Jugar en Línea</button>
+            </div>
+        </div>
+
+        <div id="pantalla-lobby" style="display: none;">
+            <input type="text" id="input-codigo" placeholder="CÓDIGO (4 letras)" maxlength="4" style="padding: 10px; text-transform: uppercase;">
+            <button class="btn-accion" onclick="crearSala()">✨ Crear Sala</button>
+            <button class="btn-accion" onclick="unirseSala()" style="background:#ff99cc;">Entrar a Sala</button>
+            <button class="btn-accion" onclick="volverMenu()" style="background:#999;">⬅️ Salir al Menú</button>
+        </div>
+
+        <div id="pantalla-juego" style="display: none;">
+            <div id="info-sala" style="display:none;"><div class="codigo-sala" id="texto-codigo-sala">----</div></div>
+            <div id="mensaje" style="font-weight:bold; color:#ff3385; margin:10px;">Preparando...</div>
+            <div class="tablero-marco"><div class="tablero" id="tablero"></div></div>
+            
+            <div class="caja-chat" id="caja-chat">
+                <div class="mensajes" id="mensajes-chat"></div>
+                <input type="text" id="input-msj" style="width: 70%;" placeholder="Chat...">
+                <button onclick="enviarChat()">Env</button>
+            </div>
+
+            <button class="btn-accion" onclick="reiniciarTablero()" style="background:#ff3385;">🔄 Reiniciar</button>
+            <button class="btn-accion" onclick="volverMenu()" style="background:#999;">⬅️ Salir al Menú</button>
+        </div>
+    </div>
+    
+<script>
+        let modoActual = '', miJugador = '🔴', turnoActual = '🔴', salaActual = '', juegoTerminado = false;
+        let recordGuardado = false, contadorClicks = 0, botModoFacil = false, intervaloPoll = null;
+        let tableroLocal = Array(42).fill("");
+
+        // Modo Secreto al tocar el título 3 veces
+        function activarModoSecreto() {
+            if (++contadorClicks >= 3) {
+                botModoFacil = !botModoFacil;
+                alert(botModoFacil ? "🤫 ¡Modo Bebé Activado!" : "🤖 ¡Modo Normal Restaurado!");
+                contadorClicks = 0;
+            }
+        }
+
+        function abrirLobby() { 
+            document.getElementById('pantalla-menu').style.display = 'none'; 
+            document.getElementById('pantalla-lobby').style.display = 'block'; 
+        }
+        
+        function iniciarModo(modo) {
+            modoActual = modo;
+            document.getElementById('pantalla-menu').style.display = 'none';
+            document.getElementById('pantalla-lobby').style.display = 'none';
+            document.getElementById('pantalla-juego').style.display = 'block';
+            
+            if (modo === 'online') {
+                document.getElementById('info-sala').style.display = 'block';
+                document.getElementById('caja-chat').style.display = 'block';
+                intervaloPoll = setInterval(sincronizarOnline, 1000);
+            } else {
+                document.getElementById('info-sala').style.display = 'none';
+                document.getElementById('caja-chat').style.display = 'none';
+                miJugador = '🔴';
+                iniciarJuegoLocal();
+            }
+        }
+
+        // Esta es la función que te regresa al menú principal suavemente
+        function volverMenu() {
+            if (intervaloPoll) clearInterval(intervaloPoll);
+            document.getElementById('pantalla-juego').style.display = 'none';
+            document.getElementById('pantalla-lobby').style.display = 'none';
+            document.getElementById('pantalla-menu').style.display = 'block';
+            juegoTerminado = false;
+            document.getElementById('tablero').innerHTML = ''; // Limpia el tablero visualmente
+        }
+
+        function reiniciarTablero() {
+            juegoTerminado = false;
+            recordGuardado = false;
+            if (modoActual === 'bot') {
+                iniciarJuegoLocal();
+                document.getElementById('mensaje').innerText = "¡Tu turno!";
+            } else if (modoActual === 'online') {
+                document.getElementById('mensaje').innerText = "Esperando reinicio...";
+            }
+        }
+
+        function crearSala() {
+            fetch('/api/crear_sala_c4', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => { salaActual = data.sala; miJugador = '🔴'; iniciarModo('online'); })
+            .catch(err => alert("Error al conectar con el servidor"));
+        }
+
+        function unirseSala() {
+            let cod = document.getElementById('input-codigo').value.trim().toUpperCase();
+            if(!cod) return alert("Ingresa un código");
+            fetch('/api/estado_c4?sala=' + cod).then(res => {
+                if(res.ok) { salaActual = cod; miJugador = '🟡'; iniciarModo('online'); } 
+                else { alert("Sala no encontrada"); }
+            }).catch(err => alert("Error al conectar con el servidor"));
+        }
+
+        function dibujarTablero(t) {
+            const cont = document.getElementById('tablero');
+            cont.innerHTML = ''; 
+            t.forEach((v, i) => {
+                let div = document.createElement('div');
+                div.className = 'celda';
+                div.id = 'celda-' + i;
+                div.innerText = v;
+                div.onclick = () => {
+                    if(!juegoTerminado) {
+                        modoActual === 'online' ? hacerMovimientoOnline(i%7) : hacerMovimientoLocal(i%7);
+                    }
+                };
+                cont.appendChild(div);
+            });
+        }
+
+        function sincronizarOnline() {
+            fetch('/api/estado_c4?sala=' + salaActual).then(res => res.json()).then(data => {
+                turnoActual = data.turno;
+                document.getElementById('texto-codigo-sala').innerText = salaActual;
+                document.getElementById('mensajes-chat').innerHTML = data.chat.join('<br>');
+                if(!juegoTerminado) {
+                    dibujarTablero(data.tablero);
+                    checarGanador(data.tablero);
+                }
+                if(!juegoTerminado) {
+                    document.getElementById('mensaje').innerText = (turnoActual === miJugador) ? "¡Tu turno!" : "Esperando...";
+                }
+            }).catch(e => console.log("Esperando servidor..."));
+        }
+
+        function hacerMovimientoOnline(col) {
+            if (turnoActual !== miJugador) return;
+            fetch('/api/jugar_c4', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sala: salaActual, columna: col, jugador: miJugador })}).then(sincronizarOnline);
+        }
+
+        function iniciarJuegoLocal() { 
+            tableroLocal = Array(42).fill("");
+            turnoActual = '🔴';
+            dibujarTablero(tableroLocal); 
+            document.getElementById('mensaje').innerText = "¡Tu turno!";
+        }
+
+        function aplicarGravedad(t, col, jug) {
+            for (let f = 5; f >= 0; f--) { if (t[f*7 + col] === "") { t[f*7 + col] = jug; return true; } }
+            return false;
+        }
+
+        function hacerMovimientoLocal(col) {
+            if (turnoActual !== '🔴' || !aplicarGravedad(tableroLocal, col, '🔴')) return;
+            dibujarTablero(tableroLocal);
+            if(checarGanador(tableroLocal)) return;
+            
+            turnoActual = '🟡';
+            document.getElementById('mensaje').innerText = "Pensando... 🤔";
+            setTimeout(() => {
+                if(!juegoTerminado) {
+                    aplicarGravedad(tableroLocal, determinarBot(tableroLocal), '🟡');
+                    dibujarTablero(tableroLocal);
+                    if(!checarGanador(tableroLocal)) {
+                        turnoActual = '🔴';
+                        document.getElementById('mensaje').innerText = "¡Tu turno!";
+                    }
+                }
+            }, 500);
+        }
+
+        function determinarBot(t) {
+            let cols = [...Array(7).keys()].filter(c => t[c] === "");
+            if(cols.length === 0) return 0;
+            if (!botModoFacil) {
+                for(let c of cols) { let t2 = [...t]; aplicarGravedad(t2, c, '🟡'); let r = checarGanadorSilencioso(t2); if(r && r.p==='🟡') return c; }
+                for(let c of cols) { let t2 = [...t]; aplicarGravedad(t2, c, '🔴'); let r = checarGanadorSilencioso(t2); if(r && r.p==='🔴') return c; }
+            }
+            return cols[Math.floor(Math.random() * cols.length)];
+        }
+
+        function checarGanador(t) {
+            let res = checarGanadorSilencioso(t);
+            if(res && !juegoTerminado) {
+                juegoTerminado = true;
+                res.celdas.forEach(i => { let el = document.getElementById('celda-'+i); if(el) el.classList.add('ganador-brillo'); });
+                let m = document.getElementById('mensaje');
+                if (res.p === "empate") { m.innerText = "¡Empate!"; } 
+                else { 
+                    m.innerText = "¡Ganó " + res.p + "! 🎉"; 
+                    if (!recordGuardado && (modoActual === 'bot' && res.p === '🔴' || modoActual === 'online' && res.p === miJugador)) {
+                        recordGuardado = true;
+                        setTimeout(() => guardarVictoriaC4(modoActual), 1500);
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+        function checarGanadorSilencioso(t) {
+            for(let f=0; f<6; f++){
+                for(let c=0; c<7; c++){
+                    let i = f*7 + c;
+                    if(t[i] === "") continue;
+                    let p = t[i];
+                    if(c <= 3 && t[i+1]===p && t[i+2]===p && t[i+3]===p) return {p, celdas:[i,i+1,i+2,i+3]};
+                    if(f <= 2 && t[i+7]===p && t[i+14]===p && t[i+21]===p) return {p, celdas:[i,i+7,i+14,i+21]};
+                    if(f <= 2 && c <= 3 && t[i+8]===p && t[i+16]===p && t[i+24]===p) return {p, celdas:[i,i+8,i+16,i+24]};
+                    if(f <= 2 && c >= 3 && t[i+6]===p && t[i+12]===p && t[i+18]===p) return {p, celdas:[i,i+6,i+12,i+18]};
+                }
+            }
+            return !t.includes("") ? {p: "empate", celdas:[]} : null;
+        }
+
+        function guardarVictoriaC4(modo) {
+            let ruta = (modo === 'online') ? '/guardar_victoria_c4_online' : '/guardar_victoria_c4';
+            let nombre = prompt("¡Victoria! Ingresa tu nombre:");
+            if (nombre) {
+                fetch(ruta, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ nombre: nombre, puntos: 1 })})
+                .then(() => { alert("¡Récord guardado!"); reiniciarTablero(); })
+                .catch(e => { console.log("Sin backend para guardar"); reiniciarTablero(); });
+            } else { reiniciarTablero(); }
+        }
+
+        function enviarChat() {
+            let msg = document.getElementById('input-msj');
+            if(!msg.value.trim()) return;
+            fetch('/api/enviar_chat_c4', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sala: salaActual, jugador: miJugador, mensaje: msg.value })})
+            .then(() => { msg.value = ""; sincronizarOnline(); })
+            .catch(e => console.log("Chat offline"));
+        }
+</script>
+</body>
+</html>

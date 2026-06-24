@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+
+    <meta charset="UTF-8">
+    <title>Atrapa las Fresas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        #contenedor-juego {
+            width: 400px;
+            height: 500px;
+            background: #ffe4e9;
+            border: 4px solid #ff99cc;
+            border-radius: 15px;
+            margin: 20px auto;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #jugador {
+            width: 60px;
+            height: 60px;
+            background: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExa29lZDV4ZTcxaG4ycjVqY2l1bmsyeThhd2loeWMxaWRmY2k4YWN3MyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/kZqbBT64ECtjy/giphy.gif') center/cover;
+            position: absolute;
+            bottom: 10px;
+            left: 170px;
+        }
+        
+        .objeto-cae {
+            font-size: 30px;
+            position: absolute;
+            top: -40px;
+            line-height: 1;
+            /* Ayuda a que el emoji ocupe exactamente su espacio */
+        }
+        
+        .estadisticas {
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ff3385;
+        }
+        
+        #tabla-container {
+            background: #fff0f5;
+            padding: 15px;
+            border-radius: 15px;
+            border: 2px solid #ff99cc;
+            margin: 20px auto;
+            width: 300px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body style="text-align: center;">
+
+    <h2>Atrapa las Fresas 🍓</h2>
+    <div class="estadisticas">Puntos: <span id="puntos">0</span></div>
+
+    <div id="contenedor-juego">
+        <div id="jugador"></div>
+    </div>
+
+    <button class="btn" onclick="iniciarJuego()">Iniciar Juego</button>
+    <a href="/secreto" class="btn">Volver al Menú</a>
+
+    <div id="tabla-container">
+        <h3>🏆 Top Recolectores</h3>
+        <table id="tabla-records" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Puntos</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        let jugadorX = 170;
+        let puntos = 0;
+        let juegoActivo = false;
+        let intervaloCaida;
+        let intervaloCreacion;
+        const contenedor = document.getElementById('contenedor-juego');
+        const jugador = document.getElementById('jugador');
+
+        function cargarRanking() {
+            fetch('/obtener_fresas', {
+                    cache: 'no-store'
+                })
+                .then(r => r.json())
+                .then(data => {
+                    let tbody = document.querySelector("#tabla-records tbody");
+                    tbody.innerHTML = "";
+                    let sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+                    for (let [nombre, cant] of sorted) {
+                        tbody.innerHTML += `<tr><td>${nombre}</td><td>${cant}</td></tr>`;
+                    }
+                });
+        }
+        window.onload = cargarRanking;
+
+        // Movimiento del jugador
+        document.addEventListener('keydown', (e) => {
+            if (!juegoActivo) return;
+            if (e.key === 'ArrowLeft' && jugadorX > 10) jugadorX -= 25;
+            if (e.key === 'ArrowRight' && jugadorX < 330) jugadorX += 25;
+            jugador.style.left = jugadorX + 'px';
+        });
+
+        function crearObjeto() {
+            const obj = document.createElement('div');
+            obj.classList.add('objeto-cae');
+            // 20% probabilidad de bomba, 80% fresa
+            let esBomba = Math.random() < 0.2;
+            obj.innerText = esBomba ? '💣' : '🍓';
+            obj.dataset.tipo = esBomba ? 'bomba' : 'fresa';
+            obj.style.left = Math.floor(Math.random() * 340) + 'px';
+            contenedor.appendChild(obj);
+        }
+
+        function moverObjetos() {
+            const objetos = document.querySelectorAll('.objeto-cae');
+            objetos.forEach(obj => {
+                let top = parseInt(obj.style.top || -40);
+                top += 5; // Velocidad de caída
+                obj.style.top = top + 'px';
+
+                // Cálculo de Colisiones con HITBOX AJUSTADO
+                let objRect = obj.getBoundingClientRect();
+                let jugRect = jugador.getBoundingClientRect();
+
+                // Margen para hacer la caja de colisión más pequeña y precisa
+                let margenJugador = 15; // Kitty tiene espacio vacío a los lados
+                let margenObjeto = 5; // Los emojis tienen un poco de espacio extra
+
+                if (
+                    objRect.bottom - margenObjeto >= jugRect.top + margenJugador &&
+                    objRect.top + margenObjeto <= jugRect.bottom - margenJugador &&
+                    objRect.right - margenObjeto >= jugRect.left + margenJugador &&
+                    objRect.left + margenObjeto <= jugRect.right - margenJugador
+                ) {
+                    if (obj.dataset.tipo === 'bomba') {
+                        terminarJuego();
+                    } else {
+                        puntos++;
+                        document.getElementById('puntos').innerText = puntos;
+                        obj.remove();
+                    }
+                } else if (top > 500) {
+                    obj.remove(); // Eliminar si sale de la pantalla
+                }
+            });
+        }
+
+        function iniciarJuego() {
+            if (juegoActivo) return;
+            // Limpiar tablero
+            document.querySelectorAll('.objeto-cae').forEach(e => e.remove());
+            puntos = 0;
+            document.getElementById('puntos').innerText = puntos;
+            jugadorX = 170;
+            jugador.style.left = jugadorX + 'px';
+            juegoActivo = true;
+
+            intervaloCreacion = setInterval(crearObjeto, 800); // Crea objeto cada 0.8s
+            intervaloCaida = setInterval(moverObjetos, 20); // Mueve objetos a 50fps
+        }
+
+        function terminarJuego() {
+            juegoActivo = false;
+            clearInterval(intervaloCreacion);
+            clearInterval(intervaloCaida);
+
+            setTimeout(() => {
+                let nombre = prompt(`¡Boom! Atrapaste ${puntos} fresas. Escribe tu nombre para guardar tu récord:`);
+                if (nombre) {
+                    fetch('/guardar_fresas', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            nombre: nombre,
+                            puntos: puntos
+                        })
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            }, 100);
+        }
+    </script>
+</body>
+
+</html>

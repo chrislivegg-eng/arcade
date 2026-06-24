@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+
+    <meta charset="UTF-8">
+    <title>Memorama Kawaii</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .memorama-tablero {
+            display: grid;
+            grid-template-columns: repeat(4, 80px);
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            perspective: 1000px;
+        }
+        
+        .carta {
+            width: 80px;
+            height: 80px;
+            background: #ff99cc;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5em;
+            color: transparent;
+            transition: transform 0.3s, background 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .carta.volteada {
+            background: white;
+            color: black;
+            transform: rotateY(180deg);
+            border: 2px solid #ff99cc;
+        }
+        
+        .carta.encontrada {
+            background: #ffe4e9;
+            color: black;
+            cursor: default;
+            border: 2px solid #ff3385;
+        }
+        
+        .estadisticas {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+        
+        #tabla-container {
+            background: #fff0f5;
+            padding: 15px;
+            border-radius: 15px;
+            border: 2px solid #ff99cc;
+            margin: 20px auto;
+            width: 300px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body style="text-align: center;">
+
+    <h2>Memorama Kawaii</h2>
+
+    <div class="estadisticas">
+        <p>Intentos actuales: <span id="intentos">0</span></p>
+    </div>
+
+    <div class="memorama-tablero" id="tablero"></div>
+
+    <div id="tabla-container">
+        <h3>🏆 Top Menor Número de Intentos</h3>
+        <table id="tabla-memorama" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Intentos</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <br>
+    <button class="btn" onclick="iniciarJuego()">Reiniciar Juego</button>
+    <a href="/secreto" class="btn">Volver al Menú</a>
+
+    <script>
+        const emojis = ['🎀', '🐱', '🌸', '🍓', '💖', '🍰', '🍎', '⭐'];
+        let cartas = [...emojis, ...emojis];
+        let primeraCarta = null;
+        let segundaCarta = null;
+        let bloquearTablero = false;
+        let paresEncontrados = 0;
+        let intentos = 0;
+
+        function cargarRanking() {
+            fetch('/obtener_memorama', {
+                    cache: 'no-store'
+                })
+                .then(r => r.json())
+                .then(data => {
+                    let tbody = document.querySelector("#tabla-memorama tbody");
+                    tbody.innerHTML = "";
+                    let sorted = Object.entries(data).sort((a, b) => a[1] - b[1]); // Menor a mayor intentos
+                    for (let [nombre, cant] of sorted) {
+                        tbody.innerHTML += `<tr><td>${nombre}</td><td>${cant}</td></tr>`;
+                    }
+                });
+        }
+
+        function mezclarCartas() {
+            cartas.sort(() => Math.random() - 0.5);
+        }
+
+        function crearTablero() {
+            const tablero = document.getElementById('tablero');
+            tablero.innerHTML = '';
+            cartas.forEach((emoji) => {
+                const cartaElemento = document.createElement('div');
+                cartaElemento.classList.add('carta');
+                cartaElemento.dataset.emoji = emoji;
+                cartaElemento.innerHTML = emoji;
+                cartaElemento.addEventListener('click', voltearCarta);
+                tablero.appendChild(cartaElemento);
+            });
+        }
+
+        function voltearCarta() {
+            if (bloquearTablero) return;
+            if (this === primeraCarta) return;
+            this.classList.add('volteada');
+            if (!primeraCarta) {
+                primeraCarta = this;
+                return;
+            }
+            segundaCarta = this;
+            intentos++;
+            document.getElementById('intentos').innerText = intentos;
+            verificarPar();
+        }
+
+        function verificarPar() {
+            let esPar = primeraCarta.dataset.emoji === segundaCarta.dataset.emoji;
+            if (esPar) {
+                deshabilitarCartas();
+            } else {
+                desvoltearCartas();
+            }
+        }
+
+        function deshabilitarCartas() {
+            primeraCarta.removeEventListener('click', voltearCarta);
+            segundaCarta.removeEventListener('click', voltearCarta);
+            primeraCarta.classList.add('encontrada');
+            segundaCarta.classList.add('encontrada');
+            paresEncontrados++;
+            resetearVariables();
+
+            if (paresEncontrados === emojis.length) {
+                setTimeout(() => {
+                    alert(`¡Ganaste en ${intentos} intentos! 🎉`);
+                    let nombre = prompt("Escribe tu nombre para guardar tu récord:");
+                    if (nombre) {
+                        fetch('/guardar_memorama', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                nombre: nombre,
+                                intentos: intentos
+                            })
+                        }).then(cargarRanking);
+                    }
+                }, 500);
+            }
+        }
+
+        function desvoltearCartas() {
+            bloquearTablero = true;
+            setTimeout(() => {
+                primeraCarta.classList.remove('volteada');
+                segundaCarta.classList.remove('volteada');
+                resetearVariables();
+            }, 1000);
+        }
+
+        function resetearVariables() {
+            [primeraCarta, segundaCarta] = [null, null];
+            bloquearTablero = false;
+        }
+
+        function iniciarJuego() {
+            paresEncontrados = 0;
+            intentos = 0;
+            document.getElementById('intentos').innerText = intentos;
+            mezclarCartas();
+            crearTablero();
+            cargarRanking();
+        }
+
+        window.onload = iniciarJuego;
+    </script>
+</body>
+
+</html>

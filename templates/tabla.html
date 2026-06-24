@@ -1,0 +1,11 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<body>
+    <h2>Tabla de Líderes</h2>
+    <div class="kawaii-box">
+        {% for nombre, pts in puntuaciones.items() %}
+        <p>{{ nombre }}: {{ pts }}</p>{% endfor %}
+    </div>
+    <a href="/secreto" class="btn">Jugar otra vez</a>
+    <a href="/" class="btn">Volver al Menú</a>
+</body>

@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Kitty Cafe Dash ☕</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Nunito", sans-serif;
+        background: #fff0f5;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      .kawaii-box {
+        background: white;
+        padding: 40px;
+        border-radius: 40px;
+        border: 4px dashed #ff99cc;
+        box-shadow: 0 10px 20px rgba(255, 153, 204, 0.3);
+        max-width: 500px;
+        width: 100%;
+        text-align: center;
+      }
+
+      h1 {
+        color: #ff3385;
+        margin-top: 0;
+        font-size: 2.5em;
+      }
+      .hud {
+        font-size: 1.5em;
+        color: #ff66a3;
+        font-weight: bold;
+        margin-bottom: 20px;
+      }
+
+      .area-juego {
+        font-size: 5em;
+        margin: 30px 0;
+        min-height: 100px;
+        transition: transform 0.1s ease-out;
+      }
+
+      .botones-container {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .btn-ingrediente {
+        font-size: 3em;
+        padding: 15px 25px;
+        cursor: pointer;
+        border: none;
+        border-radius: 25px;
+        background: #ffe6f2;
+        box-shadow: 0 6px 0 #ffb3d9;
+        transition: all 0.1s;
+      }
+
+      .btn-ingrediente:active {
+        transform: translateY(6px);
+        box-shadow: 0 0 0 #ffb3d9;
+      }
+
+      .btn-ingrediente:hover {
+        background: #ffccdd;
+      }
+
+      .btn-inicio {
+        background: #ff3385;
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.2em;
+        border-radius: 30px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 5px 15px rgba(255, 51, 133, 0.4);
+        transition: 0.2s;
+      }
+
+      .btn-inicio:hover {
+        transform: scale(1.05);
+      }
+    </style>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <div class="kawaii-box">
+      <h1>☕ Kitty Cafe 🍰</h1>
+      <div class="hud">
+        Puntos: <span id="score">0</span> | Tiempo: <span id="timer">30</span>s
+      </div>
+
+      <div class="area-juego" id="pedido">¡Presiona Iniciar!</div>
+
+      <div class="botones-container">
+        <button class="btn-ingrediente" onclick="preparar('☕')">☕</button>
+        <button class="btn-ingrediente" onclick="preparar('🍰')">🍰</button>
+        <button class="btn-ingrediente" onclick="preparar('🍵')">🍵</button>
+      </div>
+
+      <button class="btn-inicio" onclick="iniciar()" id="btn-start">
+        ▶️ Iniciar Turno
+      </button>
+      <br /><br />
+      <a
+        href="/secreto"
+        style="color: #ff3385; text-decoration: none; font-weight: bold"
+        >🏠 Volver al Menú</a
+      >
+    </div>
+
+    <script>
+      let score = 0;
+      let timer = 30;
+      let pedidoActual = "";
+      let juegoActivo = false;
+      let intervaloTimer;
+
+      const recetas = ["☕", "🍰", "🍵"];
+      const areaPedido = document.getElementById("pedido");
+      const scoreDisp = document.getElementById("score");
+      const timerDisp = document.getElementById("timer");
+      const btnStart = document.getElementById("btn-start");
+
+      function iniciar() {
+        if (juegoActivo) return;
+        juegoActivo = true;
+        score = 0;
+        timer = 30;
+        scoreDisp.innerText = score;
+        timerDisp.innerText = timer;
+        areaPedido.style.color = "black"; // Reinicia el color a negro
+        btnStart.style.display = "none";
+
+        nuevoPedido();
+
+        intervaloTimer = setInterval(() => {
+          timer--;
+          timerDisp.innerText = timer;
+          if (timer <= 0) {
+            clearInterval(intervaloTimer);
+            terminar("¡Tiempo agotado! ⏰");
+          }
+        }, 1000);
+      }
+
+      function nuevoPedido() {
+        pedidoActual = recetas[Math.floor(Math.random() * recetas.length)];
+        areaPedido.innerText = pedidoActual;
+
+        areaPedido.style.transform = "scale(1.2)";
+        setTimeout(() => (areaPedido.style.transform = "scale(1)"), 150);
+      }
+
+      function preparar(ingrediente) {
+        if (!juegoActivo) return;
+
+        if (ingrediente === pedidoActual) {
+          score += 10;
+          scoreDisp.innerText = score;
+          nuevoPedido();
+        } else {
+          // ¡MUERTE SÚBITA!
+          clearInterval(intervaloTimer); // Detiene el reloj inmediatamente
+          areaPedido.style.color = "red"; // Pone el texto en rojo
+          terminar("¡Te equivocaste! 🙀"); // Termina el juego con mensaje de error
+        }
+      }
+
+      function terminar(mensaje) {
+        juegoActivo = false;
+        areaPedido.innerText = mensaje;
+        btnStart.style.display = "inline-block";
+        btnStart.innerText = "🔄 Jugar de nuevo";
+
+        setTimeout(() => {
+          let n = prompt(
+            mensaje +
+              "\nLograste " +
+              score +
+              " puntos.\nIngresa tu nombre para el récord:",
+          );
+          if (n) {
+            fetch("/guardar_cafe", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ nombre: n, puntos: score }),
+            }).then(() => (location.href = "/secreto"));
+          }
+        }, 500);
+      }
+    </script>
+  </body>
+</html>

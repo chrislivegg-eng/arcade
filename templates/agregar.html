@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Agregar Producto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h2>¡Agregar productos!</h2>
+    <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmhwazhjOWJmc3YxaTdjenoyemYxbmJ0OGJudGc4ejNqdW54ZzZ4OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/92YG8KKSjYhMc/giphy.gif" width="150">
+    <form action="/agregar" method="POST">
+        <input type="text" name="codigo" placeholder="Código" required><br>
+        <input type="text" name="nombre" placeholder="Nombre" required><br>
+        <input type="text" name="precio" placeholder="Precio" required><br>
+        <button type="submit" class="btn">Guardar</button>
+    </form>
+    <br><a href="/" class="btn">Volver</a>
+</body>
+</html>

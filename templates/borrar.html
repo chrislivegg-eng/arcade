@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Borrar Producto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h2>Borrar Producto</h2>
+    <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdDhweXZ6bnltZzI4bnY0bTB2b2Y2NDE2cnJ0NmFhYWI2aXQ3ZnZobiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/JXnGKDyWUvAha/giphy.gif" width="150">
+    <form action="/borrar" method="POST">
+        <input type="text" name="codigo" placeholder="Código" required>
+        <button type="submit" class="btn">Eliminar</button>
+    </form>
+    <br><a href="/" class="btn">Volver</a>
+</body>
+</html>

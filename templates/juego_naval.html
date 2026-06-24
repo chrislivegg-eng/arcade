@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Batalla Naval Kawaii 🚢</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Nunito', sans-serif; background: #e6f7ff; text-align: center; margin: 0; padding: 10px; }
+        .kawaii-box { background: white; padding: 20px; border-radius: 30px; border: 4px dashed #99ccff; display: inline-block; box-shadow: 0 10px 20px rgba(153, 204, 255, 0.4); max-width: 500px; width: 100%; box-sizing: border-box;}
+        h1 { color: #0088cc; font-size: 2em; margin: 10px 0; cursor: pointer; user-select: none; }
+
+        .menu-modos { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+        .btn-modo { font-size: 1.2em; padding: 12px; border: none; border-radius: 30px; cursor: pointer; color: white; font-weight: bold; width: 100%; }
+        .btn-bot { background: linear-gradient(45deg, #66ccff, #3399ff); }
+        .btn-online { background: linear-gradient(45deg, #ff99cc, #ff66a3); }
+
+        .codigo-sala { font-size: 1.5em; color: #0088cc; background: #e6f7ff; padding: 5px 15px; border-radius: 15px; display: inline-block; border: 2px dashed #66ccff; margin: 10px 0; }
+
+        .contenedor-tableros { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 15px;}
+        .area-tablero { background: #f0f8ff; padding: 10px; border-radius: 15px; border: 2px solid #b3e0ff;}
+        .tablero { display: grid; grid-template-columns: repeat(5, 40px); gap: 4px; justify-content: center;}
+        .celda { width: 40px; height: 40px; background: #cceeff; border-radius: 8px; cursor: pointer; font-size: 1.5em; display: flex; align-items: center; justify-content: center; transition: 0.2s;}
+        .celda:hover { transform: scale(1.05); }
+
+        .barco { background: #ff99cc !important; }
+        .tocado { background: #ff3385 !important; animation: temblor 0.3s; }
+        .agua { background: #66b3ff !important; }
+
+        @keyframes temblor { 0% {transform: translateX(-2px);} 50% {transform: translateX(2px);} 100% {transform: translateX(0);} }
+
+        .btn-accion { background: #0088cc; color: white; border: none; padding: 10px; border-radius: 20px; width: 100%; font-weight: bold; margin-top: 15px; cursor: pointer;}
+    </style>
+</head>
+<body>
+    <div class="kawaii-box">
+        <h1 id="titulo" onclick="activarModoSecreto()">🚢 Batalla Naval</h1>
+
+        <div id="pantalla-menu">
+            <div class="menu-modos">
+                <button class="btn-modo btn-bot" onclick="iniciarModo('bot')">🤖 Jugar contra Bot</button>
+                <button class="btn-modo btn-online" onclick="abrirLobby()">🌐 Jugar en Línea</button>
+                <button class="btn-modo" onclick="location.href='/secreto'" style="background: #b3b3b3;">🕹️ Volver al Menú de Juegos</button>
+            </div>
+        </div>
+
+        <div id="pantalla-lobby" style="display: none;">
+            <input type="text" id="input-codigo" placeholder="CÓDIGO (4 letras)" maxlength="4" style="padding: 10px; text-transform: uppercase;">
+            <button class="btn-accion" onclick="crearSala()">✨ Crear Sala</button>
+            <button class="btn-accion" onclick="unirseSala()" style="background:#66ccff;">Entrar a Sala</button>
+            <button class="btn-accion" onclick="volverMenu()" style="background:#999;">⬅️ Volver</button>
+        </div>
+
+        <div id="pantalla-juego" style="display: none;">
+            <div id="info-sala" style="display:none;"><div class="codigo-sala" id="texto-codigo-sala">----</div></div>
+            <div id="mensaje" style="font-weight:bold; color:#0088cc; margin:10px; font-size:1.2em;">Coloca 3 barcos en tu mar</div>
+
+            <div class="contenedor-tableros">
+                <div class="area-tablero">
+                    <h3 style="margin:5px 0; color:#3399ff;">Tu Mar 🌊</h3>
+                    <div class="tablero" id="t-mio"></div>
+                </div>
+
+                <div class="area-tablero" id="area-enemigo" style="opacity: 0.5; pointer-events: none;">
+                    <h3 style="margin:5px 0; color:#ff66a3;">Enemigo 🏴‍☠️</h3>
+                    <div class="tablero" id="t-enemigo"></div>
+                </div>
+            </div>
+
+            <button class="btn-accion" onclick="reiniciarJuego()" style="background:#ff3385;">🔄 Reiniciar</button>
+            <button class="btn-accion" onclick="volverMenu()" style="background:#999;">⬅️ Salir al Menú</button>
+        </div>
+    </div>
+
+<script>
+        let modoActual = '', miJugador = 'p1', salaActual = '', juegoTerminado = false;
+        let fase = 'colocando'; // colocando, esperando, jugando
+        let misBarcos = [];
+        let tableroLocalEnemigo = Array(25).fill(0); // Para modo bot
+        let tableroLocalMio = Array(25).fill(0);
+
+        let recordGuardado = false, contadorClicks = 0, botModoFacil = false, intervaloPoll = null;
+
+        function activarModoSecreto() {
+            if (++contadorClicks >= 3) {
+                botModoFacil = !botModoFacil;
+                alert(botModoFacil ? "🤫 ¡Modo Bebé Activado! El bot no sabe apuntar." : "🤖 ¡Modo Difícil Restaurado!");
+                contadorClicks = 0;
+            }
+        }
+
+        function abrirLobby() {
+            document.getElementById('pantalla-menu').style.display = 'none';
+            document.getElementById('pantalla-lobby').style.display = 'block';
+        }
+
+        function volverMenu() {
+            if (intervaloPoll) clearInterval(intervaloPoll);
+            document.getElementById('pantalla-juego').style.display = 'none';
+            document.getElementById('pantalla-lobby').style.display = 'none';
+            document.getElementById('pantalla-menu').style.display = 'block';
+            reiniciarVariables();
+        }
+
+        function reiniciarVariables() {
+            juegoTerminado = false;
+            fase = 'colocando';
+            misBarcos = [];
+            tableroLocalEnemigo = Array(25).fill(0);
+            tableroLocalMio = Array(25).fill(0);
+            recordGuardado = false;
+            document.getElementById('mensaje').innerText = "Coloca 3 barcos en tu mar";
+            document.getElementById('area-enemigo').style.opacity = '0.5';
+            document.getElementById('area-enemigo').style.pointerEvents = 'none';
+            dibujarTablerosVacios();
+        }
+
+        function reiniciarJuego() {
+            if(modoActual === 'online') {
+                alert("Para jugar de nuevo online, crea otra sala.");
+                volverMenu();
+            } else {
+                reiniciarVariables();
+            }
+        }
+
+        function dibujarTablerosVacios() {
+            const contMio = document.getElementById('t-mio');
+            const contEne = document.getElementById('t-enemigo');
+            contMio.innerHTML = ''; contEne.innerHTML = '';
+
+            for(let i=0; i<25; i++) {
+                let dMio = document.createElement('div');
+                dMio.className = 'celda'; dMio.id = 'mio-' + i;
+                dMio.onclick = () => accionMiTablero(i);
+                contMio.appendChild(dMio);
+
+                let dEne = document.createElement('div');
+                dEne.className = 'celda'; dEne.id = 'ene-' + i;
+                dEne.onclick = () => accionTableroEnemigo(i);
+                contEne.appendChild(dEne);
+            }
+        }
+
+        function iniciarModo(modo) {
+            modoActual = modo;
+            document.getElementById('pantalla-menu').style.display = 'none';
+            document.getElementById('pantalla-lobby').style.display = 'none';
+            document.getElementById('pantalla-juego').style.display = 'block';
+            reiniciarVariables();
+
+            if (modo === 'online') {
+                document.getElementById('info-sala').style.display = 'block';
+                intervaloPoll = setInterval(sincronizarOnline, 1000);
+            } else {
+                document.getElementById('info-sala').style.display = 'none';
+                generarBarcosBot();
+            }
+        }
+
+        // --- LÓGICA DE COLOCACIÓN ---
+        function accionMiTablero(i) {
+            if (fase !== 'colocando') return;
+            if (misBarcos.includes(i)) return; // Ya hay barco ahí
+
+            misBarcos.push(i);
+            tableroLocalMio[i] = 1;
+            document.getElementById('mio-'+i).classList.add('barco');
+
+            if (misBarcos.length === 3) {
+                fase = 'esperando';
+                document.getElementById('mensaje').innerText = "¡Barcos listos!";
+
+                if (modoActual === 'bot') {
+                    iniciarJuegoBot();
+                } else if (modoActual === 'online') {
+                    fetch('/api/colocar_nav', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ sala: salaActual, jugador: miJugador, barcos: misBarcos })
+                    });
+                }
+            }
+        }
+
+        // --- ONLINE LOBBY ---
+        function crearSala() {
+            fetch('/api/crear_sala_nav', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => { salaActual = data.sala; miJugador = 'p1'; iniciarModo('online'); })
+        }
+
+        function unirseSala() {
+            let cod = document.getElementById('input-codigo').value.trim().toUpperCase();
+            if(!cod) return;
+            fetch('/api/unirse_nav?sala=' + cod).then(res => {
+                if(res.ok) { salaActual = cod; miJugador = 'p2'; iniciarModo('online'); }
+                else { alert("Sala no encontrada"); }
+            });
+        }
+
+        // --- ONLINE SYNC ---
+        function sincronizarOnline() {
+            if(!salaActual) return;
+            fetch(`/api/estado_nav?sala=${salaActual}&jugador=${miJugador}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.error) return;
+                document.getElementById('texto-codigo-sala').innerText = salaActual;
+
+                if(fase === 'esperando') {
+                    if(data.estado === 'jugando') {
+                        fase = 'jugando';
+                        document.getElementById('area-enemigo').style.opacity = '1';
+                        document.getElementById('area-enemigo').style.pointerEvents = 'auto';
+                    } else if (data.listo_rival) {
+                        document.getElementById('mensaje').innerText = "Rival listo, esperando tus barcos...";
+                    } else {
+                        document.getElementById('mensaje').innerText = "Esperando al rival...";
+                    }
+                }
+
+                if(fase === 'jugando' || data.estado === 'terminado') {
+                    actualizarVisual(data.mi_tablero, data.tablero_rival);
+                    if(data.estado === 'terminado') {
+                        fase = 'terminado';
+                        manejarVictoria(data.ganador === miJugador);
+                    } else {
+                        document.getElementById('mensaje').innerText = (data.turno === miJugador) ? "🎯 ¡Tu turno de disparar!" : "🛡️ Enemigo apuntando...";
+                    }
+                }
+            });
+        }
+
+        function actualizarVisual(miTab, eneTab) {
+            for(let i=0; i<25; i++) {
+                let dMio = document.getElementById('mio-'+i);
+                if(miTab[i] === 2) dMio.className = 'celda agua';
+                if(miTab[i] === 3) dMio.className = 'celda tocado';
+
+                let dEne = document.getElementById('ene-'+i);
+                if(eneTab[i] === 2) dEne.className = 'celda agua';
+                if(eneTab[i] === 3) { dEne.className = 'celda tocado'; dEne.innerText = '💥'; }
+            }
+        }
+
+        // --- ACCIÓN DE DISPARO ---
+        function accionTableroEnemigo(i) {
+            if (fase !== 'jugando') return;
+
+            let dEne = document.getElementById('ene-'+i);
+            if(dEne.classList.contains('agua') || dEne.classList.contains('tocado')) return; // Ya disparó ahí
+
+            if (modoActual === 'online') {
+                // El server verificará si es mi turno
+                fetch('/api/disparar_nav', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ sala: salaActual, jugador: miJugador, idx: i })
+                }).then(sincronizarOnline);
+            } else {
+                procesarDisparoBot(i);
+            }
+        }
+
+        // --- LÓGICA LOCAL (BOT) ---
+        function generarBarcosBot() {
+            let colocados = 0;
+            while(colocados < 3) {
+                let r = Math.floor(Math.random() * 25);
+                if(tableroLocalEnemigo[r] === 0) {
+                    tableroLocalEnemigo[r] = 1;
+                    colocados++;
+                }
+            }
+        }
+
+        function iniciarJuegoBot() {
+            fase = 'jugando';
+            document.getElementById('area-enemigo').style.opacity = '1';
+            document.getElementById('area-enemigo').style.pointerEvents = 'auto';
+            document.getElementById('mensaje').innerText = "🎯 ¡Tu turno de disparar!";
+        }
+
+        function procesarDisparoBot(i) {
+            let dEne = document.getElementById('ene-'+i);
+            if(tableroLocalEnemigo[i] === 1) {
+                tableroLocalEnemigo[i] = 3;
+                dEne.className = 'celda tocado';
+                dEne.innerText = '💥';
+                verificarFinBot();
+            } else {
+                tableroLocalEnemigo[i] = 2;
+                dEne.className = 'celda agua';
+                if(!juegoTerminado) {
+                    fase = 'esperando';
+                    document.getElementById('mensaje').innerText = "🛡️ El Bot está apuntando...";
+                    setTimeout(turnoDelBot, 1000);
+                }
+            }
+        }
+
+        function turnoDelBot() {
+            if(juegoTerminado) return;
+            let objetivo = -1;
+
+            if (botModoFacil && Math.random() < 0.7) {
+                // Modo bebé: 70% de probabilidad de forzar un fallo si es posible
+                let vacias = [];
+                for(let i=0; i<25; i++) if(tableroLocalMio[i] === 0) vacias.push(i);
+                if(vacias.length > 0) objetivo = vacias[Math.floor(Math.random() * vacias.length)];
+            }
+
+            // Si no encontró objetivo bebé, o modo difícil (elige al azar sin repetir)
+            if (objetivo === -1) {
+                let posibles = [];
+                for(let i=0; i<25; i++) if(tableroLocalMio[i] === 0 || tableroLocalMio[i] === 1) posibles.push(i);
+                objetivo = posibles[Math.floor(Math.random() * posibles.length)];
+            }
+
+            let dMio = document.getElementById('mio-'+objetivo);
+            if(tableroLocalMio[objetivo] === 1) {
+                tableroLocalMio[objetivo] = 3;
+                dMio.className = 'celda tocado';
+            } else {
+                tableroLocalMio[objetivo] = 2;
+                dMio.className = 'celda agua';
+            }
+
+            verificarFinBot();
+            if(!juegoTerminado) {
+                fase = 'jugando';
+                document.getElementById('mensaje').innerText = "🎯 ¡Tu turno!";
+            }
+        }
+
+        function verificarFinBot() {
+            let misTocados = tableroLocalMio.filter(x => x === 3).length;
+            let eneTocados = tableroLocalEnemigo.filter(x => x === 3).length;
+
+            if(eneTocados === 3) {
+                manejarVictoria(true);
+            } else if(misTocados === 3) {
+                manejarVictoria(false);
+            }
+        }
+
+        function manejarVictoria(ganaste) {
+            juegoTerminado = true;
+            fase = 'terminado';
+            document.getElementById('area-enemigo').style.pointerEvents = 'none';
+
+            if(ganaste) {
+                document.getElementById('mensaje').innerText = "🎉 ¡HUNDISTE LA FLOTA! GANASTE 🎉";
+                if(!recordGuardado) {
+                    recordGuardado = true;
+                    setTimeout(guardarVictoriaNav, 1000);
+                }
+            } else {
+                document.getElementById('mensaje').innerText = "💀 Tus barcos fueron destruidos...";
+            }
+        }
+
+     function guardarVictoriaNav() {
+            // Decide la ruta correcta según el modo de juego
+            let ruta = (modoActual === 'online') ? '/guardar_victoria_nav_online' : '/guardar_victoria_nav';
+
+            let nombre = prompt("¡Victoria Naval! Ingresa tu nombre para el récord:");
+            if (nombre) {
+                fetch(ruta, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ nombre: nombre })
+                })
+                .then(() => alert("¡Récord guardado!"))
+                .catch(err => console.log("Error al guardar el récord"));
+            }
+        }
+
+</script>
+</body>
+</html>

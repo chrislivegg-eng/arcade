@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+
+    <meta charset="UTF-8">
+    <title>Torre de Pasteles</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #fff0f5 0%, #ffe6f2 100%);
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            color: #ff3385;
+        }
+        
+        #game-container {
+            display: inline-block;
+            background: white;
+            padding: 20px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(255, 153, 204, 0.3);
+            border: 4px dashed #ffb3d9;
+            position: relative;
+        }
+        
+        canvas {
+            background: linear-gradient(to bottom, #e6f7ff 0%, #ffe6f2 100%);
+            border: 2px solid #ff99cc;
+            border-radius: 15px;
+            cursor: pointer;
+        }
+        
+        .hud {
+            font-size: 2em;
+            font-weight: 900;
+            margin-bottom: 10px;
+            color: #ff66a3;
+        }
+        
+        .btn-juego {
+            background: linear-gradient(45deg, #ff99cc, #ffcc99);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px;
+            box-shadow: 0 5px 15px rgba(255, 153, 204, 0.4);
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-juego:hover {
+            transform: scale(1.05);
+        }
+        
+        #overlay {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 30px;
+            width: 80%;
+            border: 4px dashed #ff99cc;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <h1 style="margin-top:0;">🍰 Torre de Pasteles 🎂</h1>
+        <div class="hud">Pisos: <span id="score">0</span></div>
+        <canvas id="gameCanvas" width="400" height="500"></canvas>
+        <br>
+        <button class="btn-juego" onclick="iniciarJuego()">▶️ Jugar / Soltar (Espacio)</button>
+        <a href="/secreto" class="btn-juego" style="background: #fff; color: #ff99cc; border: 2px solid #ff99cc;">🏠 Menú</a>
+
+        <div id="overlay">
+            <h2 style="color:#ff3385; font-size:2.2em; margin:0;">¡Se cayó el pastel! 💥</h2>
+            <p style="font-size:1.5em; color:#666;">Apilaste <b id="final-score"></b> pisos.</p>
+            <button class="btn-juego" style="background:#ff3385;" onclick="guardar()">💾 Guardar Récord</button>
+            <button class="btn-juego" onclick="location.reload()" style="background:#ccc;">🔄 Reintentar</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let cajas = [];
+        let cajaActual = null;
+        let score = 0;
+        let gameActivo = false;
+        let frameId;
+
+        let velocidad = 4;
+        let direccion = 1;
+        const alturaCaja = 40;
+
+        const coloresPastel = ['#ff99cc', '#ffb3d9', '#ffcc99', '#ffff99', '#99ff99', '#99ccff', '#c299ff'];
+
+        function colorAleatorio() {
+            return coloresPastel[Math.floor(Math.random() * coloresPastel.length)];
+        }
+
+        function iniciarJuego() {
+            if (gameActivo) {
+                soltarCaja();
+                return;
+            }
+
+            cajas = [];
+            // La caja base que ya está colocada
+            cajas.push({
+                x: 100,
+                y: 460,
+                w: 200,
+                h: alturaCaja,
+                color: '#ff66a3'
+            });
+
+            score = 0;
+            velocidad = 4;
+            direccion = 1;
+            document.getElementById('score').innerText = score;
+            document.getElementById('overlay').style.display = 'none';
+
+            crearNuevaCaja(200);
+            gameActivo = true;
+            frameId = requestAnimationFrame(gameLoop);
+        }
+
+        function crearNuevaCaja(ancho) {
+            cajaActual = {
+                x: 0,
+                y: 100, // Siempre aparece arriba
+                w: ancho,
+                h: alturaCaja,
+                color: colorAleatorio()
+            };
+        }
+
+        function soltarCaja() {
+            const cajaAnterior = cajas[cajas.length - 1];
+
+            // Calculamos el cruce (overlap)
+            const overlapStart = Math.max(cajaActual.x, cajaAnterior.x);
+            const overlapEnd = Math.min(cajaActual.x + cajaActual.w, cajaAnterior.x + cajaAnterior.w);
+            const overlap = overlapEnd - overlapStart;
+
+            if (overlap > 0) {
+                score++;
+                document.getElementById('score').innerText = score;
+
+                // Cortamos la caja al tamaño del overlap
+                cajaActual.x = overlapStart;
+                cajaActual.w = overlap;
+                cajas.push({...cajaActual
+                }); // Guardamos en el arreglo
+
+                // Efecto de subir la cámara (bajamos todas las cajas visualmente)
+                cajas.forEach(caja => caja.y += alturaCaja);
+
+                velocidad += 0.4; // Sube la dificultad
+                crearNuevaCaja(overlap);
+            } else {
+                // Game Over si no toca nada
+                terminarJuego();
+            }
+        }
+
+        function gameLoop() {
+            if (!gameActivo) return;
+
+            // Mover caja actual
+            cajaActual.x += velocidad * direccion;
+            if (cajaActual.x + cajaActual.w > canvas.width || cajaActual.x < 0) {
+                direccion *= -1; // Rebota en los bordes
+            }
+
+            // Dibujar todo
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            cajas.forEach(caja => {
+                ctx.fillStyle = caja.color;
+                ctx.fillRect(caja.x, caja.y, caja.w, caja.h);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(caja.x, caja.y, caja.w, caja.h);
+            });
+
+            ctx.fillStyle = cajaActual.color;
+            ctx.fillRect(cajaActual.x, cajaActual.y, cajaActual.w, cajaActual.h);
+            ctx.strokeRect(cajaActual.x, cajaActual.y, cajaActual.w, cajaActual.h);
+
+            frameId = requestAnimationFrame(gameLoop);
+        }
+
+        function terminarJuego() {
+            gameActivo = false;
+            cancelAnimationFrame(frameId);
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        // Controles: Espacio o clic en el canvas
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space") {
+                soltarCaja();
+                e.preventDefault();
+            }
+        });
+        canvas.addEventListener("mousedown", () => {
+            if (gameActivo) soltarCaja();
+        });
+
+        function guardar() {
+            let nombre = prompt("Ingresa tu nombre maestro repostero:");
+            if (nombre) {
+                fetch('/guardar_torre', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nombre: nombre,
+                        puntos: score
+                    })
+                }).then(() => window.location.href = '/secreto');
+            }
+        }
+    </script>
+</body>
+
+</html>

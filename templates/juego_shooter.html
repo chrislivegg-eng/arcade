@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+
+    <meta charset="UTF-8" />
+    <title>Kitty Space Defender 🚀</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Nunito", sans-serif;
+        background: #1a0033;
+        color: white;
+        text-align: center;
+      }
+
+      canvas {
+        background: #2e005c;
+        border: 4px solid #cc33ff;
+        border-radius: 15px;
+        margin-top: 20px;
+      }
+
+      .hud {
+        font-size: 2em;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>🚀 Kitty Space Defender 🚀</h1>
+    <div class="hud">Puntos: <span id="score">0</span></div>
+    <canvas id="gameCanvas" width="400" height="500"></canvas>
+    <div class="controles-movil">
+      <div
+        class="btn-control"
+        onmousedown="teclas.Izq = true"
+        onmouseup="teclas.Izq = false"
+        onmouseleave="teclas.Izq = false"
+        ontouchstart="teclas.Izq=true"
+        ontouchend="teclas.Izq=false"
+      >
+        ⬅️
+      </div>
+      <div
+        class="btn-control"
+        onmousedown="teclas.Der = true"
+        onmouseup="teclas.Der = false"
+        onmouseleave="teclas.Der = false"
+        ontouchstart="teclas.Der=true"
+        ontouchend="teclas.Der=false"
+      >
+        ➡️
+      </div>
+    </div>
+    <br />
+    <button
+      onclick="iniciar()"
+      style="
+        padding: 15px 30px;
+        font-size: 1.2em;
+        border-radius: 30px;
+        border: none;
+        cursor: pointer;
+      "
+    >
+      ¡Iniciar Misión!
+    </button>
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // Configuración de tamaños para hitboxes precisas
+      const shipW = 40,
+        shipH = 40;
+      const enemySize = 40;
+
+      let ship = {
+        x: 180,
+        y: 440,
+      };
+      let bullets = [],
+        enemies = [],
+        score = 0,
+        gameActivo = false;
+      const keys = {}; // Rastreador de teclas
+
+      function iniciar() {
+        if (gameActivo) return;
+        gameActivo = true;
+        score = 0;
+        bullets = [];
+        enemies = [];
+        ship.x = 180; // Reset posición
+        requestAnimationFrame(loop);
+      }
+
+      // Controles: Capturamos qué teclas están presionadas
+      document.addEventListener("keydown", (e) => {
+        keys[e.key] = true;
+        // Disparo: si es espacio, disparar.
+        if (e.key === " ") {
+          bullets.push({
+            x: ship.x + 5,
+            y: ship.y,
+          });
+        }
+      });
+
+      document.addEventListener("keyup", (e) => {
+        keys[e.key] = false;
+      });
+
+      function loop() {
+        if (!gameActivo) return;
+        ctx.clearRect(0, 0, 400, 500);
+
+        // 1. Movimiento (Independiente del disparo)
+        if (keys["ArrowLeft"] && ship.x > 0) ship.x -= 6;
+        if (keys["ArrowRight"] && ship.x < 360) ship.x += 6;
+
+        // Dibujar Nave
+        ctx.font = "40px Arial";
+        ctx.fillText("🛸", ship.x, ship.y + 35); // +35 para ajustar el origen del emoji
+
+        // 2. Balas
+        bullets.forEach((b, i) => {
+          b.y -= 8;
+          ctx.fillText("✨", b.x, b.y);
+          if (b.y < 0) bullets.splice(i, 1);
+        });
+
+        // 3. Enemigos
+        if (Math.random() < 0.03) {
+          // Un poco menos frecuente para que sea justo
+          enemies.push({
+            x: Math.random() * 360,
+            y: -40,
+          });
+        }
+
+        enemies.forEach((e, i) => {
+          e.y += 2 + score / 200; // Velocidad aumenta con el score
+          ctx.fillText("👾", e.x, e.y + 35);
+
+          // --- HITBOX DE LA NAVE (Detección de colisión) ---
+          if (
+            e.x < ship.x + shipW &&
+            e.x + enemySize > ship.x &&
+            e.y < ship.y + shipH &&
+            e.y + enemySize > ship.y
+          ) {
+            terminarJuego();
+          }
+
+          // Colisión de Balas con Enemigos
+          bullets.forEach((b, bi) => {
+            if (
+              b.x > e.x &&
+              b.x < e.x + enemySize &&
+              b.y > e.y &&
+              b.y < e.y + enemySize
+            ) {
+              enemies.splice(i, 1);
+              bullets.splice(bi, 1);
+              score += 10;
+              document.getElementById("score").innerText = score;
+            }
+          });
+
+          // Si el enemigo pasa el fondo
+          if (e.y > 500) enemies.splice(i, 1);
+        });
+
+        requestAnimationFrame(loop);
+      }
+
+      function terminarJuego() {
+        gameActivo = false;
+        alert("¡Game Over! Puntuación: " + score);
+        guardar();
+      }
+
+      function guardar() {
+        let n = prompt("Nombre:");
+        if (n)
+          fetch("/guardar_shooter", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              nombre: n,
+              puntos: score,
+            }),
+          }).then(() => (location.href = "/secreto"));
+      }
+    </script>
+  </body>
+</html>

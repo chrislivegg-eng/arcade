@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+
+    <meta charset="UTF-8" />
+    <title>Vuelo Kawaii 🎀</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Nunito", sans-serif;
+        background: linear-gradient(135deg, #e6f7ff 0%, #ffe6f2 100%);
+        margin: 0;
+        padding: 20px;
+        text-align: center;
+      }
+      .kawaii-box {
+        background: rgba(255, 255, 255, 0.9);
+        padding: 30px;
+        border-radius: 40px;
+        border: 4px dashed #ff99cc;
+        display: inline-block;
+        box-shadow: 0 10px 30px rgba(255, 153, 204, 0.4);
+      }
+      h1 {
+        color: #ff3385;
+        margin-top: 0;
+        font-size: 2.5em;
+        text-shadow: 2px 2px white;
+      }
+      .hud {
+        font-size: 1.8em;
+        color: #ff66b3;
+        font-weight: bold;
+        margin-bottom: 15px;
+      }
+      canvas {
+        background: #b3e6ff; /* Color cielo */
+        border: 4px solid #ffb3d9;
+        border-radius: 15px;
+        box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+      }
+      .btn-juego {
+        background: linear-gradient(45deg, #ff3385, #ff99cc);
+        color: white;
+        border: none;
+        padding: 15px 35px;
+        font-size: 1.2em;
+        border-radius: 50px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 15px;
+        box-shadow: 0 5px 15px rgba(255, 51, 133, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="kawaii-box">
+      <h1>🎀 Vuelo Kawaii ☁️</h1>
+      <div class="hud">Puntos: <span id="score">0</span></div>
+
+      <canvas id="gameCanvas" width="400" height="500"></canvas>
+      <br />
+      <p style="color: #ff66b3; font-weight: bold">
+        Usa la barra ESPACIADORA o HAZ CLIC en el cuadro para volar
+      </p>
+      <button class="btn-juego" onclick="iniciar()">
+        ▶️ Iniciar / Reiniciar
+      </button>
+      <a
+        href="/secreto"
+        class="btn-juego"
+        style="
+          background: #fff;
+          color: #ff3385;
+          border: 2px solid #ff3385;
+          text-decoration: none;
+        "
+        >🏠 Menú</a
+      >
+    </div>
+
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      let kitty = { x: 50, y: 250, w: 35, h: 35, dy: 0 };
+      let gravedad = 0.6;
+      let salto = -8;
+      let tuberias = [];
+      let score = 0;
+      let frameCount = 0;
+      let gameActivo = false;
+      let animacion;
+
+      // Controles: Teclado y Clic/Toque
+      document.addEventListener("keydown", (e) => {
+        if (e.code === "Space" && gameActivo) {
+          kitty.dy = salto;
+          e.preventDefault(); // Evita que la página baje al presionar espacio
+        }
+      });
+      canvas.addEventListener("mousedown", () => {
+        if (gameActivo) kitty.dy = salto;
+      });
+      canvas.addEventListener("touchstart", (e) => {
+        if (gameActivo) kitty.dy = salto;
+        e.preventDefault();
+      });
+
+      function iniciar() {
+        if (animacion) cancelAnimationFrame(animacion);
+        kitty.y = 250;
+        kitty.dy = 0;
+        tuberias = [];
+        score = 0;
+        frameCount = 0;
+        document.getElementById("score").innerText = score;
+        gameActivo = true;
+        loop();
+      }
+
+      function generarTuberia() {
+        let hueco = 140; // Espacio para pasar
+        let alturaMinima = 50;
+        let alturaMax = canvas.height - hueco - alturaMinima;
+        let alturaArriba = Math.floor(
+          Math.random() * (alturaMax - alturaMinima + 1) + alturaMinima,
+        );
+
+        tuberias.push({
+          x: canvas.width,
+          yAbajo: alturaArriba + hueco,
+          hArriba: alturaArriba,
+          w: 60,
+          pasada: false,
+        });
+      }
+
+      function loop() {
+        if (!gameActivo) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Física de Kitty
+        kitty.dy += gravedad;
+        kitty.y += kitty.dy;
+
+        // Dibujar Kitty (Usaremos un emoji para que sea rápido y ligero)
+        ctx.font = "35px Arial";
+        ctx.fillText("🐱", kitty.x, kitty.y + 30);
+
+        // Generar tuberías (columnas rosas) cada 90 frames
+        frameCount++;
+        if (frameCount % 90 === 0) generarTuberia();
+
+        // Mover y dibujar tuberías
+        ctx.fillStyle = "#ff99cc"; // Color rosa kawaii
+        ctx.strokeStyle = "#ff66a3";
+        ctx.lineWidth = 4;
+
+        for (let i = 0; i < tuberias.length; i++) {
+          let t = tuberias[i];
+          t.x -= 3; // Velocidad de las tuberías
+
+          // Dibujar tubo de arriba
+          ctx.fillRect(t.x, 0, t.w, t.hArriba);
+          ctx.strokeRect(t.x, 0, t.w, t.hArriba);
+
+          // Dibujar tubo de abajo
+          let hAbajo = canvas.height - t.yAbajo;
+          ctx.fillRect(t.x, t.yAbajo, t.w, hAbajo);
+          ctx.strokeRect(t.x, t.yAbajo, t.w, hAbajo);
+
+          // Colisiones (hitbox)
+          // Usamos un pequeño margen para que no sea tan punitivo
+          let margen = 5;
+          if (
+            kitty.x + kitty.w - margen > t.x &&
+            kitty.x + margen < t.x + t.w
+          ) {
+            if (
+              kitty.y + margen < t.hArriba ||
+              kitty.y + kitty.h - margen > t.yAbajo
+            ) {
+              terminarJuego();
+            }
+          }
+
+          // Puntuación
+          if (t.x + t.w < kitty.x && !t.pasada) {
+            score++;
+            document.getElementById("score").innerText = score;
+            t.pasada = true;
+          }
+
+          // Eliminar tuberías que ya salieron de la pantalla
+          if (t.x + t.w < 0) {
+            tuberias.splice(i, 1);
+            i--;
+          }
+        }
+
+        // Colisión con el suelo o el techo
+        if (kitty.y + kitty.h > canvas.height || kitty.y < 0) {
+          terminarJuego();
+        }
+
+        animacion = requestAnimationFrame(loop);
+      }
+
+      function terminarJuego() {
+        gameActivo = false;
+        setTimeout(() => {
+          let n = prompt(
+            "¡Auch! 😿\nPuntos: " +
+              score +
+              "\nIngresa tu nombre para guardar tu récord:",
+          );
+          if (n) {
+            fetch("/guardar_vuelo", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ nombre: n, puntos: score }),
+            }).then(() => (location.href = "/secreto"));
+          }
+        }, 300); // Pequeña pausa para que veas dónde chocaste
+      }
+
+      // Pantalla inicial antes de jugar
+      ctx.font = "20px Nunito";
+      ctx.fillStyle = "#ff3385";
+      ctx.textAlign = "center";
+      ctx.fillText(
+        "Presiona Iniciar para volar",
+        canvas.width / 2,
+        canvas.height / 2,
+      );
+    </script>
+  </body>
+</html>

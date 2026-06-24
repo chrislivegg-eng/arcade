@@ -1,0 +1,6 @@
+chris:5000
+VILCIS:15000
+Miguelon:40826
+Zapata:14346
+JAirs:41
+a:0

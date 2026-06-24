@@ -1,0 +1,8 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<body>
+    <h2>Tus productos</h2>
+    <img src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3MnVlOTljejYwcjZhYWV4YXNnZGt1bW5xeTg4bmZkcHQwN3R4ejc1bCZlcD12MV9naWZzX3JlbGF0ZWQmY3Q9Zw/iwz3KxdBHo4ww/giphy.gif" width="150"> {% for p in productos %}
+    <div class="kawaii-box">{{ p }}</div>{% endfor %}
+    <br><a href="/" class="btn">Volver</a>
+</body>

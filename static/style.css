@@ -1,0 +1,298 @@
+/* =======================================================
+   💅 ESTÉTICA BASE (INVENTARIO Y MENÚS)
+   ======================================================= */
+body {
+  font-family: "Nunito", "Comic Sans MS", sans-serif;
+  background: linear-gradient(135deg, #ffe6f2 0%, #e6f7ff 100%);
+  background-attachment: fixed;
+  color: #ff6699;
+  text-align: center;
+  margin: 0;
+  padding: 20px;
+}
+
+h1,
+h2 {
+  color: #ff3385;
+  text-shadow: 2px 2px #ffcce6;
+  margin-top: 0;
+}
+
+.kawaii-box {
+  background: rgba(255, 255, 255, 0.9);
+  border: 4px dashed #ff99cc;
+  padding: 30px;
+  margin: 10px auto;
+  width: 100%;
+  max-width: 1200px;
+  border-radius: 40px;
+  box-shadow: 0 10px 30px rgba(255, 153, 204, 0.3);
+  backdrop-filter: blur(5px);
+  box-sizing: border-box;
+}
+
+input {
+  padding: 12px;
+  border-radius: 10px;
+  border: 2px solid #ff99cc;
+  width: 250px;
+  box-sizing: border-box;
+}
+
+img {
+  margin-bottom: 20px;
+  border-radius: 15px;
+}
+
+.btn {
+  background-color: #ff99cc;
+  color: white;
+  padding: 15px 30px;
+  text-decoration: none;
+  border-radius: 50px;
+  margin: 10px;
+  display: inline-block;
+  border: 3px solid #ffccdd;
+  transition: 0.3s;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background-color: #ff66b3;
+  transform: scale(1.05);
+}
+
+/* =======================================================
+   🎮 CENTRO DE JUEGOS (SECRETO.HTML)
+   ======================================================= */
+.botones-juegos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+  justify-items: center;
+  padding: 20px;
+}
+
+.btn-large {
+  padding: 15px 20px;
+  font-size: 1.2em;
+  display: block;
+  width: 100%;
+  max-width: 250px;
+  text-decoration: none;
+  border-radius: 50px;
+  text-align: center;
+  color: white;
+  font-weight: 900;
+  border: none;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-sizing: border-box;
+}
+
+.btn-large:hover {
+  transform: scale(1.05) translateY(-5px);
+  filter: brightness(1.1);
+}
+
+.game-tables {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin: 40px 0;
+  flex-wrap: wrap;
+}
+
+.score-table {
+  background: white;
+  padding: 15px;
+  border-radius: 25px;
+  border: 3px solid #ff99cc;
+  text-align: center;
+  width: 280px;
+  box-shadow: 0 8px 20px rgba(255, 153, 204, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.score-table h3 {
+  color: #ff3385;
+  font-size: 1.2em;
+  border-bottom: 2px dashed #ffb3d9;
+  padding-bottom: 10px;
+}
+
+.table-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.score-table table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 6px;
+}
+
+.score-table th {
+  color: #ff66a3;
+  font-size: 1.1em;
+  position: sticky;
+  top: 0;
+  background: white;
+}
+
+.score-table td {
+  background: #fff0f5;
+  border-radius: 8px;
+  padding: 6px;
+  color: #666;
+  font-weight: bold;
+}
+
+/* Colores de Botones Arcade */
+.btn-kitty {
+  background: linear-gradient(45deg, #ff99cc, #ff66a3);
+}
+.btn-adivina {
+  background: linear-gradient(45deg, #99ccff, #66b3ff);
+}
+.btn-gato {
+  background: linear-gradient(45deg, #d9b3ff, #bf80ff);
+}
+.btn-c4 {
+  background: linear-gradient(45deg, #ff6666, #ff0055);
+}
+.btn-nav {
+  background: linear-gradient(45deg, #33ccff, #0088cc);
+}
+.btn-memo {
+  background: linear-gradient(45deg, #ffcc99, #ff9933);
+}
+.btn-fresas {
+  background: linear-gradient(45deg, #ff6699, #ff1a66);
+}
+.btn-clicker {
+  background: linear-gradient(45deg, #ffd11a, #ff9900);
+}
+.btn-vibora {
+  background: linear-gradient(45deg, #66ff99, #00cc66);
+}
+.btn-topo {
+  background: linear-gradient(45deg, #c299ff, #9933ff);
+}
+.btn-torre {
+  background: linear-gradient(45deg, #ff99cc, #ffcc99);
+}
+.btn-rally {
+  background: linear-gradient(45deg, #ff4d4d, #ff0055);
+}
+.btn-cima {
+  background: linear-gradient(45deg, #00cc99, #33ffcc);
+}
+
+/* =======================================================
+   📱 MAGIA RESPONSIVA GLOBAL (CELULARES Y TABLETS)
+   ======================================================= */
+@media (max-width: 768px) {
+  .kawaii-box {
+    padding: 15px 10px !important;
+    border-radius: 20px !important;
+    margin: 5px auto !important;
+    width: 95% !important;
+  }
+  h1 {
+    font-size: 1.8em !important;
+  }
+  .botones-juegos {
+    grid-template-columns: 1fr !important;
+  }
+  .btn-large {
+    max-width: 100% !important;
+    font-size: 1.1em !important;
+  }
+  .game-tables {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  .score-table {
+    width: 100% !important;
+    max-width: 320px !important;
+  }
+
+  /* Encoger todos los tableros de juego para que quepan */
+  .contenedor-tableros {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  .celda {
+    width: 35px !important;
+    height: 35px !important;
+    font-size: 1.2em !important;
+  }
+  #tablero {
+    grid-template-columns: repeat(7, 35px) !important;
+    gap: 2px !important;
+  }
+  #t-mio,
+  #t-enemigo {
+    grid-template-columns: repeat(5, 35px) !important;
+    gap: 2px !important;
+  }
+  .memorama-tablero {
+    grid-template-columns: repeat(4, 65px) !important;
+    gap: 5px !important;
+  }
+  .carta {
+    width: 65px !important;
+    height: 65px !important;
+    font-size: 2em !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .celda {
+    width: 30px !important;
+    height: 30px !important;
+  }
+  #tablero {
+    grid-template-columns: repeat(7, 30px) !important;
+  }
+  #t-mio,
+  #t-enemigo {
+    grid-template-columns: repeat(5, 30px) !important;
+  }
+  .carta {
+    width: 55px !important;
+    height: 55px !important;
+  }
+}
+
+/* --- CONTROLES TÁCTILES PARA MÓVILES --- */
+.controles-movil {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.btn-control {
+  background: rgba(255, 51, 133, 0.1);
+  border: 3px solid #ff3385;
+  color: #ff3385;
+  border-radius: 50%;
+  width: 65px;
+  height: 65px;
+  font-size: 2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none; /* Evita que la pantalla haga zoom al picar rápido */
+  user-select: none;
+  cursor: pointer;
+}
+
+.btn-control:active {
+  background: rgba(255, 51, 133, 0.5);
+  transform: scale(0.9);
+}
