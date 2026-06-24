@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Memorama Online Kawaii</title>
+    <title>Memorama Multijugador Kawaii</title>
 
     <link
       rel="stylesheet"
@@ -62,7 +62,6 @@
         border: 2px solid #ff3385;
       }
 
-      /* Estilos específicos para las salas online */
       .lobby-box {
         background: white;
         padding: 30px;
@@ -110,29 +109,37 @@
   </head>
 
   <body>
-    <h2>💖 Memorama Online 💖</h2>
+    <h2>💖 Memorama VS 💖</h2>
 
     <div id="pantalla-lobby" class="lobby-box">
-      <h3>🎮 Jugar con un amigo</h3>
+      <h3>🤖 Jugar Solo</h3>
       <button
         class="btn"
-        onclick="crearSala()"
+        onclick="iniciarJuegoBot()"
+        style="width: 100%; background: #ff66a3"
+      >
+        Jugar contra la PC (Bot)
+      </button>
+
+      <hr style="border: 1px solid #ffe6f2; margin: 25px 0" />
+
+      <h3>🎮 Jugar Online con un amigo</h3>
+      <button
+        class="btn"
+        onclick="crearSalaOnline()"
         style="width: 100%; margin-bottom: 20px"
       >
         Crear Nueva Sala
       </button>
 
-      <hr style="border: 1px solid #ffe6f2; margin: 20px 0" />
-
-      <h3>Unirse a una sala</h3>
       <input
         type="text"
         id="codigo-sala"
         class="input-sala"
         placeholder="CÓDIGO (Ej. X7Y2)"
       />
-      <button class="btn" onclick="unirseSala()" style="width: 100%">
-        Unirse
+      <button class="btn" onclick="unirseSalaOnline()" style="width: 100%">
+        Unirse a Sala
       </button>
 
       <br /><br />
@@ -145,7 +152,7 @@
 
     <div id="pantalla-juego" style="display: none">
       <h3 style="color: #ff3385; margin-bottom: 5px">
-        Sala: <span id="display-sala"></span> | Eres el JUGADOR
+        Sala: <span id="display-sala"></span> | JUGADOR
         <span id="display-jugador"></span>
       </h3>
       <h4 id="display-turno" style="color: #cc0066; margin-top: 0">
@@ -164,46 +171,172 @@
         href="/secreto"
         class="btn"
         style="background: #ccc; border-color: #999"
-        >Salir de la sala</a
+        >Salir del juego</a
       >
     </div>
 
     <script>
+      let modoJuego = ""; // Puede ser "online" o "bot"
       let miSala = "";
-      let miJugador = 0;
+      let miJugador = 1;
       let intervalo = null;
 
-      function crearSala() {
-        // Genera un código aleatorio de 4 letras/números
+      // =========================================================
+      // --- LÓGICA DEL MODO BOT (COMPUTADORA) ---
+      // =========================================================
+      let estadoLocal = null;
+
+      function iniciarJuegoBot() {
+        modoJuego = "bot";
+        miJugador = 1;
+        document.getElementById("pantalla-lobby").style.display = "none";
+        document.getElementById("pantalla-juego").style.display = "block";
+        document.getElementById("display-sala").innerText = "VS BOT 🤖";
+        document.getElementById("display-jugador").innerText = "1 (Tú)";
+
+        // Preparamos las cartas revueltas para jugar localmente
+        const emojis = ["🎀", "🐱", "🌸", "🍓", "💖", "🍰", "🍎", "⭐"];
+        let cartas = [...emojis, ...emojis];
+        cartas.sort(() => Math.random() - 0.5);
+
+        // Creamos un estado "falso" idéntico al que nos mandaría Python
+        estadoLocal = {
+          cartas: cartas,
+          visibles: Array(16).fill(false),
+          resueltas: Array(16).fill(false),
+          turno: 1,
+          puntos_1: 0,
+          puntos_2: 0,
+          cartas_seleccionadas: [],
+        };
+        actualizarPantallaBot();
+      }
+
+      function actualizarPantallaBot() {
+        let textoTurno =
+          estadoLocal.turno === 1 ? "¡ES TU TURNO! ✅" : "Turno del BOT... 🤖";
+        document.getElementById("display-turno").innerText = textoTurno;
+        document.getElementById("pts-1").innerText = estadoLocal.puntos_1;
+        document.getElementById("pts-2").innerText = estadoLocal.puntos_2;
+        renderizarTablero(estadoLocal);
+
+        // Revisar si alguien ganó
+        if (estadoLocal.puntos_1 + estadoLocal.puntos_2 === 8) {
+          setTimeout(() => {
+            let ganador =
+              estadoLocal.puntos_1 > estadoLocal.puntos_2
+                ? 1
+                : estadoLocal.puntos_2 > estadoLocal.puntos_1
+                  ? 2
+                  : "Empate";
+            if (ganador === "Empate") alert("¡Fue un empate contra el Bot!");
+            else
+              alert(
+                ganador === 1
+                  ? "¡FELICIDADES, LE GANASTE AL BOT! 🎉"
+                  : "El Bot te ganó... 😿",
+              );
+          }, 500);
+        } else if (
+          estadoLocal.turno === 2 &&
+          estadoLocal.cartas_seleccionadas.length === 0
+        ) {
+          // Si es turno del Bot, hacerlo jugar después de 1 segundo
+          setTimeout(juegaBot, 1000);
+        }
+      }
+
+      function voltearCartaLocal(idx) {
+        if (estadoLocal.turno !== 1) return; // Si no es tu turno, ignorar clic
+        if (estadoLocal.cartas_seleccionadas.length >= 2) return;
+        if (estadoLocal.visibles[idx] || estadoLocal.resueltas[idx]) return;
+
+        estadoLocal.visibles[idx] = true;
+        estadoLocal.cartas_seleccionadas.push(idx);
+        actualizarPantallaBot();
+
+        if (estadoLocal.cartas_seleccionadas.length === 2)
+          setTimeout(verificarParLocal, 1000);
+      }
+
+      function verificarParLocal() {
+        let i1 = estadoLocal.cartas_seleccionadas[0];
+        let i2 = estadoLocal.cartas_seleccionadas[1];
+
+        if (estadoLocal.cartas[i1] === estadoLocal.cartas[i2]) {
+          estadoLocal.resueltas[i1] = estadoLocal.resueltas[i2] = true;
+          if (estadoLocal.turno === 1) estadoLocal.puntos_1++;
+          else estadoLocal.puntos_2++;
+        } else {
+          estadoLocal.visibles[i1] = estadoLocal.visibles[i2] = false;
+          estadoLocal.turno = estadoLocal.turno === 1 ? 2 : 1;
+        }
+        estadoLocal.cartas_seleccionadas = [];
+        actualizarPantallaBot();
+      }
+
+      function juegaBot() {
+        // El Bot busca qué cartas están boca abajo
+        let disponibles = [];
+        for (let i = 0; i < 16; i++) {
+          if (!estadoLocal.resueltas[i] && !estadoLocal.visibles[i])
+            disponibles.push(i);
+        }
+        if (disponibles.length < 2) return;
+
+        // El Bot elige 2 al azar
+        disponibles.sort(() => Math.random() - 0.5);
+        let c1 = disponibles[0];
+        let c2 = disponibles[1];
+
+        // Voltea la primera carta
+        estadoLocal.visibles[c1] = true;
+        estadoLocal.cartas_seleccionadas.push(c1);
+        actualizarPantallaBot();
+
+        // Medio segundo después, voltea la segunda carta
+        setTimeout(() => {
+          estadoLocal.visibles[c2] = true;
+          estadoLocal.cartas_seleccionadas.push(c2);
+          actualizarPantallaBot();
+          // Espera un segundo más para que veas qué volteó, y luego verifica
+          setTimeout(verificarParLocal, 1000);
+        }, 600);
+      }
+
+      // =========================================================
+      // --- LÓGICA DEL MODO ONLINE (CON PYTHON) ---
+      // =========================================================
+      function crearSalaOnline() {
+        modoJuego = "online";
         miSala = Math.random().toString(36).substring(2, 6).toUpperCase();
         miJugador = 1;
-        iniciarJuego();
+        arrancarOnline();
       }
 
-      function unirseSala() {
+      function unirseSalaOnline() {
         let cod = document.getElementById("codigo-sala").value.toUpperCase();
         if (cod.length < 4) return alert("Ingresa un código válido");
+        modoJuego = "online";
         miSala = cod;
         miJugador = 2;
-        iniciarJuego();
+        arrancarOnline();
       }
 
-      function iniciarJuego() {
+      function arrancarOnline() {
         document.getElementById("pantalla-lobby").style.display = "none";
         document.getElementById("pantalla-juego").style.display = "block";
         document.getElementById("display-sala").innerText = miSala;
         document.getElementById("display-jugador").innerText = miJugador;
 
-        // El celular le pregunta a Python cada 1 segundo cómo va el juego
-        intervalo = setInterval(obtenerEstado, 1000);
-        obtenerEstado();
+        intervalo = setInterval(obtenerEstadoOnline, 1000);
+        obtenerEstadoOnline();
       }
 
-      function obtenerEstado() {
+      function obtenerEstadoOnline() {
         fetch(`/api/estado_memorama/${miSala}`)
           .then((r) => r.json())
           .then((estado) => {
-            // Actualizar textos de turnos y puntos
             let textoTurno =
               estado.turno === miJugador
                 ? "¡ES TU TURNO! ✅"
@@ -212,11 +345,8 @@
             document.getElementById("pts-1").innerText = estado.puntos_1;
             document.getElementById("pts-2").innerText = estado.puntos_2;
 
-            // Dibujar las cartas
             renderizarTablero(estado);
 
-            // LOGICA MAESTRA: Si volteaste 2 cartas, te damos 1.5 segundos para que ambos
-            // las vean, y luego mandamos a Python a verificar si ganaste o fallaste.
             if (
               estado.cartas_seleccionadas.length === 2 &&
               estado.turno === miJugador
@@ -226,11 +356,10 @@
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ sala: miSala }),
-                }).then(() => obtenerEstado());
+                }).then(() => obtenerEstadoOnline());
               }, 1500);
             }
 
-            // Comprobar si ya se acabaron las cartas (8 pares en total)
             if (estado.puntos_1 + estado.puntos_2 === 8) {
               clearInterval(intervalo);
               let ganador =
@@ -250,6 +379,21 @@
           });
       }
 
+      function voltearCartaOnline(idx, estado) {
+        if (estado.turno !== miJugador) return alert("¡No es tu turno!");
+        if (estado.cartas_seleccionadas.length >= 2) return;
+        if (estado.visibles[idx] || estado.resueltas[idx]) return;
+
+        fetch("/api/jugar_memorama", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sala: miSala, jugador: miJugador, idx: idx }),
+        }).then(() => obtenerEstadoOnline());
+      }
+
+      // =========================================================
+      // --- FUNCIÓN COMPARTIDA PARA DIBUJAR LAS CARTAS ---
+      // =========================================================
       function renderizarTablero(estado) {
         const tablero = document.getElementById("tablero-online");
         tablero.innerHTML = "";
@@ -264,22 +408,14 @@
             if (estado.resueltas[i]) div.classList.add("encontrada");
           }
 
-          div.onclick = () => voltearCarta(i, estado);
+          // Decide qué función usar dependiendo del modo de juego
+          div.onclick = () => {
+            if (modoJuego === "bot") voltearCartaLocal(i);
+            else voltearCartaOnline(i, estado);
+          };
+
           tablero.appendChild(div);
         }
-      }
-
-      function voltearCarta(idx, estado) {
-        if (estado.turno !== miJugador) return alert("¡No es tu turno!");
-        if (estado.cartas_seleccionadas.length >= 2) return;
-        if (estado.visibles[idx] || estado.resueltas[idx]) return;
-
-        // Enviar el clic a Python
-        fetch("/api/jugar_memorama", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sala: miSala, jugador: miJugador, idx: idx }),
-        }).then(() => obtenerEstado()); // Refresca rápido para ver la carta
       }
     </script>
   </body>
