@@ -38,14 +38,13 @@
         overflow-x: hidden;
       }
 
-      /* Decoración de fondo estilo Hello Kitty */
       body::before {
         content: "🌸";
         position: fixed;
         top: 20px;
         left: 20px;
         font-size: 4rem;
-        opacity: 0.15;
+        opacity: 0.12;
         transform: rotate(-15deg);
       }
 
@@ -55,7 +54,7 @@
         bottom: 20px;
         right: 20px;
         font-size: 4rem;
-        opacity: 0.15;
+        opacity: 0.12;
         transform: rotate(15deg);
       }
 
@@ -78,7 +77,7 @@
         top: -15px;
         left: -15px;
         font-size: 4rem;
-        opacity: 0.2;
+        opacity: 0.15;
         transform: rotate(-20deg);
       }
 
@@ -88,11 +87,10 @@
         bottom: -15px;
         right: -15px;
         font-size: 4rem;
-        opacity: 0.2;
+        opacity: 0.15;
         transform: rotate(20deg);
       }
 
-      /* Header con Hello Kitty */
       .header {
         display: flex;
         align-items: center;
@@ -149,7 +147,6 @@
         letter-spacing: 2px;
       }
 
-      /* HUD */
       .hud-container {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -233,7 +230,37 @@
         }
       }
 
-      /* Pedido */
+      /* Bonus de tiempo */
+      .time-bonus-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        background: linear-gradient(135deg, #ffd700, #ffaa00);
+        color: white;
+        padding: 20px 40px;
+        border-radius: 30px;
+        font-size: 2.5rem;
+        font-weight: 900;
+        box-shadow: 0 20px 60px rgba(255, 215, 0, 0.5);
+        z-index: 1000;
+        opacity: 0;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        text-align: center;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+      }
+
+      .time-bonus-popup.show {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+
+      .time-bonus-popup .sub {
+        font-size: 1rem;
+        opacity: 0.9;
+        font-weight: 700;
+      }
+
       .pedido-container {
         background: linear-gradient(135deg, #fff5f9, #ffe6f2);
         border-radius: 30px;
@@ -348,7 +375,6 @@
         }
       }
 
-      /* Botones de ingredientes */
       .botones-container {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -451,7 +477,6 @@
         z-index: 2;
       }
 
-      /* Efectos especiales */
       .correct-flash {
         animation: flash-green 0.6s ease;
       }
@@ -533,7 +558,6 @@
         }
       }
 
-      /* Controles */
       .controls {
         display: flex;
         flex-wrap: wrap;
@@ -609,18 +633,6 @@
         transform: translateY(-3px);
       }
 
-      .btn-gold {
-        background: linear-gradient(135deg, #ffd700, #ffaa00);
-        color: white;
-        box-shadow: 0 6px 25px rgba(255, 215, 0, 0.3);
-      }
-
-      .btn-gold:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 35px rgba(255, 215, 0, 0.4);
-      }
-
-      /* Back link */
       .back-link {
         display: inline-block;
         margin-top: 10px;
@@ -642,43 +654,34 @@
         border-color: #ff3385;
       }
 
-      /* Responsive */
       @media (max-width: 500px) {
         .container {
           padding: 20px 15px;
         }
-
         h1 {
           font-size: 1.6rem;
         }
-
         .header .kitty-icon {
           font-size: 2.5rem;
         }
-
         .hud-container {
           grid-template-columns: repeat(4, 1fr);
           gap: 5px;
         }
-
         .hud-item .value {
           font-size: 1.2rem;
         }
-
         .botones-container {
           grid-template-columns: repeat(3, 1fr);
         }
-
         .btn-ingrediente {
           font-size: 1.8rem;
           min-height: 60px;
           padding: 10px 5px;
         }
-
         .pedido-container .pedido-texto {
           font-size: 2.8rem;
         }
-
         .pedido-container .pedido-texto .ingrediente-item {
           padding: 0 5px;
         }
@@ -689,12 +692,10 @@
           grid-template-columns: repeat(3, 1fr);
           gap: 5px;
         }
-
         .btn-ingrediente {
           font-size: 1.4rem;
           min-height: 50px;
         }
-
         .pedido-container .pedido-texto {
           font-size: 2.2rem;
         }
@@ -710,10 +711,9 @@
         <span class="kitty-icon">🎀</span>
       </div>
       <p class="subtitle">
-        ✨ Sirve los pedidos antes de que se acabe el tiempo
+        ✨ Sirve los pedidos y gana bonos de tiempo en niveles altos
       </p>
 
-      <!-- HUD -->
       <div class="hud-container">
         <div class="hud-item">
           <div class="label">⭐ Puntos</div>
@@ -733,7 +733,12 @@
         </div>
       </div>
 
-      <!-- Pedido -->
+      <!-- Popup de bonus de tiempo -->
+      <div class="time-bonus-popup" id="timeBonusPopup">
+        ⏰ +<span id="bonusTimeAmount">0</span>s
+        <div class="sub">✨ ¡Bono de tiempo!</div>
+      </div>
+
       <div class="pedido-container" id="pedidoContainer">
         <span class="nivel-display" id="nivelDisplay">🌟 Nivel 1</span>
         <span class="combo-display" id="comboDisplay" style="display: none"
@@ -749,7 +754,6 @@
         </div>
       </div>
 
-      <!-- Botones de ingredientes -->
       <div class="botones-container">
         <button
           class="btn-ingrediente"
@@ -777,7 +781,6 @@
         </button>
       </div>
 
-      <!-- Controles -->
       <div class="controls">
         <button class="btn btn-primary" onclick="iniciar()" id="btn-start">
           ▶️ Iniciar Turno
@@ -808,8 +811,8 @@
       let totalCorrectos = 0;
       let totalErrores = 0;
       let procesandoPedido = false;
+      let bonusPopupTimeout = null;
 
-      // Clientes con personalidad
       const clientes = [
         {
           nombre: "Mochi",
@@ -853,7 +856,6 @@
         },
       ];
 
-      // Todas las recetas posibles
       const recetas = {
         "☕": { nombre: "Café", emoji: "☕", ingredientes: ["☕"] },
         "🍰": { nombre: "Pastel", emoji: "🍰", ingredientes: ["🍰"] },
@@ -896,7 +898,6 @@
         },
       };
 
-      // Elementos DOM
       const scoreDisp = document.getElementById("score");
       const timerDisp = document.getElementById("timer");
       const comboDisp = document.getElementById("combo");
@@ -908,6 +909,8 @@
       const pistaText = document.getElementById("pistaText");
       const pedidoContainer = document.getElementById("pedidoContainer");
       const btnStart = document.getElementById("btn-start");
+      const timeBonusPopup = document.getElementById("timeBonusPopup");
+      const bonusTimeAmount = document.getElementById("bonusTimeAmount");
 
       // ============================================================
       //  INICIO DEL JUEGO
@@ -951,21 +954,18 @@
       }
 
       // ============================================================
-      //  NUEVO PEDIDO CON DIFICULTAD PROGRESIVA
+      //  NUEVO PEDIDO
       // ============================================================
       function nuevoPedido() {
-        // Determinar cuántos ingredientes pedir según el nivel
         let numIngredientes = 1;
         if (nivel >= 2) numIngredientes = 2;
         if (nivel >= 4) numIngredientes = 3;
         if (nivel >= 6) numIngredientes = 4;
 
-        // Filtrar recetas según el número de ingredientes
         const recetasDisponibles = Object.keys(recetas).filter(
           (key) => recetas[key].ingredientes.length === numIngredientes,
         );
 
-        // Si no hay recetas con ese número, usar todas
         const recetaKey =
           recetasDisponibles.length > 0
             ? recetasDisponibles[
@@ -979,35 +979,42 @@
         pedidoActual = [...receta.ingredientes];
         pedidoCompleto = [...receta.ingredientes];
 
-        // Elegir cliente
         const cliente = clientes[Math.floor(Math.random() * clientes.length)];
         const frase =
           cliente.frases[Math.floor(Math.random() * cliente.frases.length)];
 
-        // Mostrar pedido
         clienteText.innerHTML = `
           <span class="cliente-emoji">${cliente.emoji}</span>
           <span>${cliente.nombre}: ${frase}</span>
         `;
 
-        // Mostrar ingredientes con animación
         pedidoTexto.innerHTML = pedidoCompleto
           .map((ing) => `<span class="ingrediente-item">${ing}</span>`)
           .join("");
 
-        // Pista
-        pistaText.textContent = `💡 Necesitas ${numIngredientes} ingrediente${numIngredientes > 1 ? "s" : ""}`;
+        const dificultad =
+          numIngredientes === 1
+            ? "simple"
+            : numIngredientes === 2
+              ? "normal"
+              : numIngredientes === 3
+                ? "difícil"
+                : "extremo";
+        const emojisDificultad = {
+          simple: "😊",
+          normal: "🤔",
+          difícil: "😤",
+          extremo: "🔥",
+        };
+        pistaText.textContent = `💡 ${emojisDificultad[dificultad]} ${numIngredientes} ingrediente${numIngredientes > 1 ? "s" : ""}`;
 
-        // Resetear estado del pedido
         pedidoActual = [...receta.ingredientes];
 
-        // Animación de entrada
         pedidoContainer.style.transform = "scale(0.95)";
         setTimeout(() => {
           pedidoContainer.style.transform = "scale(1)";
         }, 100);
 
-        // Efecto de combo
         if (combo > 1) {
           comboDisplay.textContent = `🔥 x${Math.min(combo, 10)}`;
           comboDisplay.style.display = "block";
@@ -1019,7 +1026,6 @@
           comboDisplay.style.display = "none";
         }
 
-        // Actualizar nivel
         nivelDisplay.textContent = `🌟 Nivel ${nivel}`;
         procesandoPedido = false;
       }
@@ -1035,35 +1041,29 @@
         const index = pedidoActual.indexOf(ingrediente);
 
         if (index !== -1) {
-          // ¡Correcto!
           pedidoActual.splice(index, 1);
           totalCorrectos++;
 
-          // Efecto visual
           pedidoContainer.classList.remove("wrong-flash");
           pedidoContainer.classList.add("correct-flash");
           setTimeout(() => {
             pedidoContainer.classList.remove("correct-flash");
           }, 600);
 
-          // Mostrar progreso
           const restantes = pedidoActual.length;
           if (restantes > 0) {
             pistaText.textContent = `✅ ¡Bien! ${restantes} ingrediente${restantes > 1 ? "s" : ""} restante${restantes > 1 ? "s" : ""}`;
           }
 
-          // Si completó el pedido
           if (pedidoActual.length === 0) {
             procesandoPedido = true;
             completarPedido();
           }
         } else {
-          // ¡Error!
           totalErrores++;
           combo = 0;
           actualizarHUD();
 
-          // Efecto visual
           pedidoContainer.classList.remove("correct-flash");
           pedidoContainer.classList.add("wrong-flash");
           pedidoContainer.classList.add("shake");
@@ -1074,7 +1074,6 @@
 
           pistaText.textContent = `❌ ¡Eso no va aquí! Los ingredientes son: ${pedidoCompleto.join(" + ")}`;
 
-          // Perder 5 puntos (pero no menos de 0)
           score = Math.max(0, score - 5);
           actualizarHUD();
 
@@ -1085,52 +1084,111 @@
       }
 
       // ============================================================
-      //  COMPLETAR PEDIDO
+      //  COMPLETAR PEDIDO CON BONOS DE TIEMPO INTELIGENTES
       // ============================================================
       function completarPedido() {
         pedidosCompletados++;
 
-        // Calcular puntos
+        // --- CALCULAR PUNTOS ---
         let puntosBase = 10 + (pedidoCompleto.length - 1) * 5;
         let puntosBonus = 0;
 
-        // Bonus por combo
         combo++;
         if (combo > maxCombo) maxCombo = combo;
         const comboBonus = Math.min(combo, 5);
         puntosBonus += comboBonus * 2;
-
-        // Bonus por nivel
         puntosBonus += Math.floor(nivel / 2);
-
-        // Bonus por tiempo restante (máximo 5 puntos)
         const tiempoBonus = Math.min(Math.floor(timer / 5), 5);
         puntosBonus += tiempoBonus;
 
         const puntosTotales = puntosBase + puntosBonus;
         score += puntosTotales;
 
-        // Mostrar puntos flotantes
         mostrarPuntosFlotantes(`+${puntosTotales} 💫`, "#ffd700");
 
-        // Subir de nivel cada 4 pedidos completados
+        // --- CALCULAR BONO DE TIEMPO (SOLO EN NIVELES ALTOS) ---
+        let tiempoBonusExtra = 0;
+        let motivoBonus = "";
+
+        // Condiciones para recibir bono de tiempo:
+        // 1. Nivel >= 3
+        // 2. Combo >= 3
+        // 3. Pedido difícil (3+ ingredientes)
+        // 4. Tiempo bajo (< 10 segundos) - para ayudar al jugador
+
+        const esNivelAlto = nivel >= 3;
+        const esComboAlto = combo >= 3;
+        const esPedidoDificil = pedidoCompleto.length >= 3;
+        const esTiempoBajo = timer <= 10;
+
+        if (esNivelAlto && esComboAlto) {
+          // Bono por combo en nivel alto
+          tiempoBonusExtra = 2 + Math.floor(combo / 2);
+          motivoBonus = "🔥 Combo en nivel alto!";
+        } else if (esNivelAlto && esPedidoDificil) {
+          // Bono por pedido difícil en nivel alto
+          tiempoBonusExtra = 3 + Math.floor(pedidoCompleto.length / 2);
+          motivoBonus = "⭐ Pedido difícil completado!";
+        } else if (esNivelAlto && esTiempoBajo) {
+          // Bono de ayuda cuando el tiempo es bajo
+          tiempoBonusExtra = 4;
+          motivoBonus = "⏰ ¡Ayuda de tiempo!";
+        } else if (esNivelAlto && combo >= 2) {
+          // Bono menor por combo decente
+          tiempoBonusExtra = 1;
+          motivoBonus = "💫 Buen combo!";
+        }
+
+        // Aplicar bono de tiempo si hay
+        if (tiempoBonusExtra > 0) {
+          // Limitar el bono para que no supere el máximo
+          const tiempoAntes = timer;
+          timer = Math.min(timerMax, timer + tiempoBonusExtra);
+          const tiempoReal = timer - tiempoAntes;
+
+          // Mostrar popup de bono
+          mostrarBonoTiempo(tiempoReal, motivoBonus);
+        }
+
+        // Subir de nivel cada 4 pedidos
         if (pedidosCompletados % 4 === 0) {
           nivel++;
-          // Timer máximo se reduce ligeramente
           timerMax = Math.max(20, timerMax - 1);
-          // NO se da bonus de tiempo al subir nivel
           mostrarPuntosFlotantes(`⬆️ Nivel ${nivel}! 🎉`, "#ff3385");
           nivelDisplay.textContent = `🌟 Nivel ${nivel}`;
         }
 
         actualizarHUD();
 
-        // Nuevo pedido después de un breve retraso
         setTimeout(() => {
           if (juegoActivo) {
             nuevoPedido();
           }
         }, 400);
+      }
+
+      // ============================================================
+      //  MOSTRAR BONO DE TIEMPO
+      // ============================================================
+      function mostrarBonoTiempo(cantidad, motivo) {
+        if (bonusPopupTimeout) {
+          clearTimeout(bonusPopupTimeout);
+          timeBonusPopup.classList.remove("show");
+        }
+
+        bonusTimeAmount.textContent = cantidad;
+        timeBonusPopup.querySelector(".sub").textContent = `✨ ${motivo}`;
+        timeBonusPopup.classList.add("show");
+
+        // Reproducir vibración si está disponible
+        if (navigator.vibrate) {
+          navigator.vibrate(100);
+        }
+
+        bonusPopupTimeout = setTimeout(() => {
+          timeBonusPopup.classList.remove("show");
+          bonusPopupTimeout = null;
+        }, 1800);
       }
 
       // ============================================================
@@ -1179,6 +1237,10 @@
           clearInterval(intervaloTimer);
           intervaloTimer = null;
         }
+        if (bonusPopupTimeout) {
+          clearTimeout(bonusPopupTimeout);
+          timeBonusPopup.classList.remove("show");
+        }
 
         btnStart.disabled = false;
         btnStart.textContent = "🔄 Jugar de nuevo";
@@ -1224,6 +1286,11 @@
           clearInterval(intervaloTimer);
           intervaloTimer = null;
         }
+        if (bonusPopupTimeout) {
+          clearTimeout(bonusPopupTimeout);
+          timeBonusPopup.classList.remove("show");
+        }
+
         juegoActivo = false;
         score = 0;
         timer = timerMax;

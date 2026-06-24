@@ -162,6 +162,18 @@
           body: JSON.stringify({ sala: miSala }),
         }).then(obtenerEstado);
       }
+
+      function guardarVictoria(ganador) {
+        if (ganador === "Empate" || ganador === "") return;
+        const nombre = prompt("✨ ¡Ganaste! Ingresa tu nombre para el récord:");
+        if (nombre && nombre.trim()) {
+          fetch("/guardar_victoria_dados", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre: nombre.trim() }),
+          }).catch(() => {});
+        }
+      }
     </script>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
     <script>

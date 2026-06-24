@@ -138,6 +138,18 @@
           obtenerEstado();
         });
       }
+
+      function guardarVictoria(ganador) {
+        if (ganador === "Empate" || ganador === "") return;
+        const nombre = prompt("✨ ¡Ganaste! Ingresa tu nombre para el récord:");
+        if (nombre && nombre.trim()) {
+          fetch("/guardar_victoria_adivina_vs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre: nombre.trim() }),
+          }).catch(() => {});
+        }
+      }
     </script>
   </body>
 </html>

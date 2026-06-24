@@ -159,6 +159,18 @@
         // Solo llamas a esta función y listo
         enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
       }
+
+      function guardarVictoria(ganaron) {
+        if (!ganaron) return;
+        const nombre = prompt("✨ ¡Ganaron! Ingresa el nombre para el récord:");
+        if (nombre && nombre.trim()) {
+          fetch("/guardar_victoria_ahorcado", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre: nombre.trim() }),
+          }).catch(() => {});
+        }
+      }
     </script>
   </body>
 </html>

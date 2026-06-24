@@ -7,6 +7,11 @@ from flask import Flask, render_template, request, redirect, jsonify
 app = Flask(__name__)
 
 # --- Archivos de Datos ---
+
+ARCHIVO_DADOS = "victorias_dados.txt"
+ARCHIVO_ADIVINA_VS = "victorias_adivina_vs.txt"
+ARCHIVO_FANTASMA = "victorias_fantasma.txt"
+ARCHIVO_AHORCADO = "victorias_ahorcado.txt"
 ARCHIVO = "productos.txt"
 ARCHIVO_PUNTOS = "puntos.txt"
 ARCHIVO_VICTORIAS = "victorias_gato.txt"
@@ -113,7 +118,11 @@ def secreto():
                            records_shooter=leer_records(ARCHIVO_SHOOTER),
                            records_cafe=leer_records(ARCHIVO_CAFE),
                            records_vuelo=leer_records(ARCHIVO_VUELO),
-                           records_pixel_art=leer_records(ARCHIVO_PIXEL_ART))
+                           records_pixel_art=leer_records(ARCHIVO_PIXEL_ART)
+                           victorias_dados=leer_records(ARCHIVO_DADOS),
+                           victorias_adivina_vs=leer_records(ARCHIVO_ADIVINA_VS),
+                           victorias_fantasma=leer_records(ARCHIVO_FANTASMA),
+                           victorias_ahorcado=leer_records(ARCHIVO_AHORCADO))
 
 
 # --- Rutas de Juegos HTML ---
@@ -293,6 +302,22 @@ def guardar_victoria_nav(): return guardar_generico(ARCHIVO_VICTORIAS_NAV, reque
 
 @app.route('/guardar_victoria_nav_online', methods=['POST'])
 def guardar_victoria_nav_online(): return guardar_generico(ARCHIVO_VICTORIAS_NAV_ONLINE, request.json['nombre'].strip().title(), 1, acumulable=True)
+
+@app.route('/guardar_victoria_dados', methods=['POST'])
+def guardar_victoria_dados():
+    return guardar_generico(ARCHIVO_DADOS, request.json['nombre'].strip().title(), 1, acumulable=True)
+
+@app.route('/guardar_victoria_adivina_vs', methods=['POST'])
+def guardar_victoria_adivina_vs():
+    return guardar_generico(ARCHIVO_ADIVINA_VS, request.json['nombre'].strip().title(), 1, acumulable=True)
+
+@app.route('/guardar_victoria_fantasma', methods=['POST'])
+def guardar_victoria_fantasma():
+    return guardar_generico(ARCHIVO_FANTASMA, request.json['nombre'].strip().title(), 1, acumulable=True)
+
+@app.route('/guardar_victoria_ahorcado', methods=['POST'])
+def guardar_victoria_ahorcado():
+    return guardar_generico(ARCHIVO_AHORCADO, request.json['nombre'].strip().title(), 1, acumulable=True)
 
 # --- APIs MULTIJUGADOR: GATO ---
 def leer_salas():

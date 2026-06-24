@@ -5,259 +5,1111 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
-    />
-
     <meta charset="UTF-8" />
-    <title>Vuelo Kawaii 🎀</title>
+    <title>🎀 Vuelo Kawaii 3D</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap"
       rel="stylesheet"
     />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
     <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
       body {
         font-family: "Nunito", sans-serif;
-        background: linear-gradient(135deg, #e6f7ff 0%, #ffe6f2 100%);
-        margin: 0;
+        background: linear-gradient(
+          135deg,
+          #e6f7ff 0%,
+          #ffe6f2 50%,
+          #f0e6ff 100%
+        );
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         padding: 20px;
-        text-align: center;
       }
-      .kawaii-box {
-        background: rgba(255, 255, 255, 0.9);
-        padding: 30px;
-        border-radius: 40px;
-        border: 4px dashed #ff99cc;
-        display: inline-block;
-        box-shadow: 0 10px 30px rgba(255, 153, 204, 0.4);
-      }
-      h1 {
-        color: #ff3385;
-        margin-top: 0;
-        font-size: 2.5em;
-        text-shadow: 2px 2px white;
-      }
-      .hud {
-        font-size: 1.8em;
-        color: #ff66b3;
-        font-weight: bold;
-        margin-bottom: 15px;
-      }
-      canvas {
-        background: #b3e6ff; /* Color cielo */
-        border: 4px solid #ffb3d9;
-        border-radius: 15px;
-        box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.5);
-        cursor: pointer;
-      }
-      .btn-juego {
-        background: linear-gradient(45deg, #ff3385, #ff99cc);
-        color: white;
-        border: none;
-        padding: 15px 35px;
-        font-size: 1.2em;
+
+      .container {
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
         border-radius: 50px;
-        font-weight: bold;
+        padding: 30px 25px;
+        max-width: 500px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(255, 51, 133, 0.15);
+        border: 4px solid #ffb3d9;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .container::before {
+        content: "🌸";
+        position: absolute;
+        top: -10px;
+        left: -10px;
+        font-size: 3rem;
+        opacity: 0.15;
+        transform: rotate(-20deg);
+      }
+
+      .container::after {
+        content: "🎀";
+        position: absolute;
+        bottom: -10px;
+        right: -10px;
+        font-size: 3rem;
+        opacity: 0.15;
+        transform: rotate(20deg);
+      }
+
+      h1 {
+        font-size: 2.2rem;
+        background: linear-gradient(135deg, #ff3385, #ff66a3, #9966ff);
+        background-size: 200% 200%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: gradient-shift 3s ease-in-out infinite;
+        margin-bottom: 5px;
+      }
+
+      @keyframes gradient-shift {
+        0%,
+        100% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+      }
+
+      .subtitle {
+        color: #ff6b9d;
+        font-size: 0.85rem;
+        margin-bottom: 12px;
+        opacity: 0.8;
+        letter-spacing: 1px;
+      }
+
+      .hud-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .hud-item {
+        background: linear-gradient(135deg, #fff5f9, #ffe6f2);
+        border-radius: 15px;
+        padding: 8px 5px;
+        border: 2px solid #ffb3d9;
+      }
+
+      .hud-item .label {
+        font-size: 0.5rem;
+        color: #cc99aa;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 900;
+      }
+
+      .hud-item .value {
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: #ff3385;
+      }
+
+      .hud-item .value.gold {
+        color: #ffd700;
+      }
+
+      .hud-item .value.green {
+        color: #33cc66;
+      }
+
+      .hud-item .value.purple {
+        color: #9966ff;
+      }
+
+      .canvas-wrapper {
+        position: relative;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 4px solid #ffb3d9;
+        box-shadow: 0 10px 30px rgba(255, 51, 133, 0.15);
+        margin-bottom: 12px;
+        background: #b3e6ff;
         cursor: pointer;
-        margin-top: 15px;
-        box-shadow: 0 5px 15px rgba(255, 51, 133, 0.4);
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        touch-action: none;
+        background: transparent;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        margin: 12px 0;
+      }
+
+      .btn {
+        padding: 12px 28px;
+        border: none;
+        border-radius: 50px;
+        font-family: "Nunito", sans-serif;
+        font-weight: 900;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #ff6b9d, #ff3385);
+        color: white;
+        box-shadow: 0 6px 25px rgba(255, 51, 133, 0.35);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 35px rgba(255, 51, 133, 0.45);
+      }
+
+      .btn-secondary {
+        background: white;
+        color: #ff3385;
+        border: 3px solid #ff3385;
+      }
+
+      .btn-secondary:hover {
+        background: #ff3385;
+        color: white;
+        transform: translateY(-3px);
+      }
+
+      .btn-purple {
+        background: linear-gradient(135deg, #9966ff, #663399);
+        color: white;
+        box-shadow: 0 6px 25px rgba(102, 51, 153, 0.35);
+      }
+
+      .btn-purple:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 35px rgba(102, 51, 153, 0.45);
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-top: 8px;
+        color: #ff6b9d;
+        font-weight: 900;
+        text-decoration: none;
+        padding: 8px 20px;
+        border-radius: 30px;
+        border: 2px solid #ffb3d9;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+      }
+
+      .back-link:hover {
+        background: #ff3385;
+        color: white;
+        border-color: #ff3385;
+      }
+
+      .controls-info {
+        color: #9966cc;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-top: 5px;
+        opacity: 0.7;
+      }
+
+      @media (max-width: 500px) {
+        .container {
+          padding: 15px 12px;
+        }
+        h1 {
+          font-size: 1.6rem;
+        }
+        .hud-container {
+          grid-template-columns: repeat(3, 1fr);
+          gap: 5px;
+        }
+        .hud-item .value {
+          font-size: 1.2rem;
+        }
+        .btn {
+          padding: 10px 18px;
+          font-size: 0.85rem;
+        }
       }
     </style>
   </head>
-  <body>
-    <div class="kawaii-box">
-      <h1>🎀 Vuelo Kawaii ☁️</h1>
-      <div class="hud">Puntos: <span id="score">0</span></div>
 
-      <canvas id="gameCanvas" width="400" height="500"></canvas>
-      <br />
-      <p style="color: #ff66b3; font-weight: bold">
-        Usa la barra ESPACIADORA o HAZ CLIC en el cuadro para volar
-      </p>
-      <button class="btn-juego" onclick="iniciar()">
-        ▶️ Iniciar / Reiniciar
-      </button>
-      <a
-        href="/secreto"
-        class="btn-juego"
-        style="
-          background: #fff;
-          color: #ff3385;
-          border: 2px solid #ff3385;
-          text-decoration: none;
-        "
-        >🏠 Menú</a
-      >
+  <body>
+    <div class="container">
+      <h1>🎀 Vuelo Kawaii 3D</h1>
+      <p class="subtitle">✨ Vuela alto y esquiva los obstáculos</p>
+
+      <div class="hud-container">
+        <div class="hud-item">
+          <div class="label">⭐ Puntos</div>
+          <div class="value gold" id="score">0</div>
+        </div>
+        <div class="hud-item">
+          <div class="label">📊 Nivel</div>
+          <div class="value purple" id="nivel">1</div>
+        </div>
+        <div class="hud-item">
+          <div class="label">🚀 Velocidad</div>
+          <div class="value green" id="velocidad">1x</div>
+        </div>
+      </div>
+
+      <div class="canvas-wrapper" id="canvasWrapper">
+        <canvas id="gameCanvas" width="400" height="500"></canvas>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" onclick="iniciar()" id="btnStart">
+          🚀 Iniciar Vuelo
+        </button>
+        <button class="btn btn-secondary" onclick="reiniciar()">
+          🔄 Reiniciar
+        </button>
+      </div>
+
+      <div class="controls-info">
+        ⌨️ Presiona ESPACIO o Haz CLIC en la pantalla para volar
+      </div>
+
+      <a href="/secreto" class="back-link">🏠 Volver al Menú</a>
     </div>
 
     <script>
+      // ============================================================
+      //  CONFIGURACIÓN
+      // ============================================================
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
+      const canvasWrapper = document.getElementById("canvasWrapper");
 
-      let kitty = { x: 50, y: 250, w: 35, h: 35, dy: 0 };
-      let gravedad = 0.6;
-      let salto = -8;
-      let tuberias = [];
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // Tamaños
+      const KITTY_W = 40;
+      const KITTY_H = 40;
+      const OBSTACLE_W = 50;
+      const GAP_MIN = 130;
+      const GAP_MAX = 180;
+
+      // Variables del juego
+      let kitty = { x: 60, y: 200, dy: 0 };
+      let obstacles = [];
+      let clouds = [];
+      let particles = [];
       let score = 0;
+      let nivel = 1;
+      let velocidad = 3;
       let frameCount = 0;
-      let gameActivo = false;
-      let animacion;
+      let gameActive = false;
+      let gameReady = false;
+      let animId = null;
+      let saltosAuto = 2; // Saltos automáticos al inicio
+      let autoJumpTimer = 0;
+      let groundY = H - 20;
 
-      // Controles: Teclado y Clic/Toque
-      document.addEventListener("keydown", (e) => {
-        if (e.code === "Space" && gameActivo) {
-          kitty.dy = salto;
-          e.preventDefault(); // Evita que la página baje al presionar espacio
+      // Elementos DOM
+      const scoreDisp = document.getElementById("score");
+      const nivelDisp = document.getElementById("nivel");
+      const velocidadDisp = document.getElementById("velocidad");
+      const btnStart = document.getElementById("btnStart");
+
+      // ============================================================
+      //  INICIALIZAR
+      // ============================================================
+      function init() {
+        generarNubes();
+        dibujarPantallaInicio();
+      }
+
+      function generarNubes() {
+        clouds = [];
+        for (let i = 0; i < 8; i++) {
+          clouds.push({
+            x: Math.random() * W,
+            y: Math.random() * (H * 0.7),
+            w: 40 + Math.random() * 60,
+            h: 15 + Math.random() * 25,
+            speed: 0.2 + Math.random() * 0.3,
+            opacity: 0.3 + Math.random() * 0.3,
+            layer: Math.floor(Math.random() * 3),
+          });
         }
-      });
-      canvas.addEventListener("mousedown", () => {
-        if (gameActivo) kitty.dy = salto;
-      });
-      canvas.addEventListener("touchstart", (e) => {
-        if (gameActivo) kitty.dy = salto;
-        e.preventDefault();
-      });
+      }
 
+      function dibujarPantallaInicio() {
+        ctx.clearRect(0, 0, W, H);
+        dibujarFondo3D();
+        ctx.font = "bold 28px Nunito, sans-serif";
+        ctx.fillStyle = "#ff3385";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.shadowColor = "rgba(255, 51, 133, 0.3)";
+        ctx.shadowBlur = 20;
+        ctx.fillText("🎀 ¡Listo para volar!", W / 2, H / 2 - 30);
+        ctx.font = "18px Nunito, sans-serif";
+        ctx.fillStyle = "#9966cc";
+        ctx.shadowBlur = 10;
+        ctx.fillText('Presiona "Iniciar Vuelo"', W / 2, H / 2 + 40);
+        ctx.shadowBlur = 0;
+      }
+
+      // ============================================================
+      //  INICIAR JUEGO
+      // ============================================================
       function iniciar() {
-        if (animacion) cancelAnimationFrame(animacion);
-        kitty.y = 250;
+        if (gameActive) return;
+
+        // Reiniciar estado
+        kitty.x = 60;
+        kitty.y = 200;
         kitty.dy = 0;
-        tuberias = [];
+        obstacles = [];
+        particles = [];
         score = 0;
+        nivel = 1;
+        velocidad = 3;
         frameCount = 0;
-        document.getElementById("score").innerText = score;
-        gameActivo = true;
+        saltosAuto = 2;
+        autoJumpTimer = 0;
+        gameActive = true;
+        gameReady = true;
+
+        btnStart.disabled = true;
+        btnStart.textContent = "⏳ Volando...";
+
+        actualizarHUD();
+        generarNubes();
+
+        if (animId) cancelAnimationFrame(animId);
         loop();
       }
 
-      function generarTuberia() {
-        let hueco = 140; // Espacio para pasar
-        let alturaMinima = 50;
-        let alturaMax = canvas.height - hueco - alturaMinima;
-        let alturaArriba = Math.floor(
-          Math.random() * (alturaMax - alturaMinima + 1) + alturaMinima,
-        );
+      // ============================================================
+      //  REINICIAR
+      // ============================================================
+      function reiniciar() {
+        if (animId) {
+          cancelAnimationFrame(animId);
+          animId = null;
+        }
+        gameActive = false;
+        gameReady = false;
+        btnStart.disabled = false;
+        btnStart.textContent = "🚀 Iniciar Vuelo";
+        score = 0;
+        nivel = 1;
+        velocidad = 3;
+        actualizarHUD();
+        dibujarPantallaInicio();
+      }
 
-        tuberias.push({
-          x: canvas.width,
-          yAbajo: alturaArriba + hueco,
-          hArriba: alturaArriba,
-          w: 60,
-          pasada: false,
+      // ============================================================
+      //  BUCLE PRINCIPAL
+      // ============================================================
+      function loop() {
+        if (!gameActive) return;
+
+        frameCount++;
+
+        // Física de Kitty
+        kitty.dy += 0.5; // Gravedad
+        kitty.y += kitty.dy;
+
+        // Saltos automáticos al inicio (2 saltos)
+        if (saltosAuto > 0 && frameCount < 60) {
+          if (autoJumpTimer === 0) {
+            kitty.dy = -7;
+            saltosAuto--;
+            autoJumpTimer = 20;
+            crearParticulas(
+              kitty.x + KITTY_W / 2,
+              kitty.y + KITTY_H,
+              "#ff66a3",
+              5,
+            );
+          }
+          autoJumpTimer--;
+        }
+
+        // Generar obstáculos
+        if (
+          frameCount % Math.max(60, 120 - nivel * 5) === 0 &&
+          frameCount > 30
+        ) {
+          generarObstaculo();
+        }
+
+        // Actualizar y dibujar
+        dibujarFondo3D();
+        dibujarNubes();
+        actualizarObstaculos();
+        dibujarKitty3D();
+        dibujarParticles();
+        dibujarGround();
+
+        // Colisiones
+        checkCollisions();
+
+        // Verificar fin del juego
+        if (kitty.y + KITTY_H > groundY || kitty.y < -20) {
+          terminarJuego();
+          return;
+        }
+
+        // Actualizar HUD
+        actualizarHUD();
+
+        animId = requestAnimationFrame(loop);
+      }
+
+      // ============================================================
+      //  DIBUJAR FONDO 3D
+      // ============================================================
+      function dibujarFondo3D() {
+        // Cielo con gradiente
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+        skyGrad.addColorStop(0, "#87ceeb");
+        skyGrad.addColorStop(0.4, "#b3e6ff");
+        skyGrad.addColorStop(0.7, "#e0f6ff");
+        skyGrad.addColorStop(1, "#fff0f5");
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Efecto de brillo solar
+        const glow = ctx.createRadialGradient(W - 80, 60, 10, W - 80, 60, 120);
+        glow.addColorStop(0, "rgba(255, 255, 200, 0.6)");
+        glow.addColorStop(0.3, "rgba(255, 200, 100, 0.2)");
+        glow.addColorStop(1, "rgba(255, 200, 100, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+
+        // Sol
+        ctx.shadowColor = "rgba(255, 200, 50, 0.3)";
+        ctx.shadowBlur = 40;
+        ctx.beginPath();
+        ctx.arc(W - 80, 60, 40, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 220, 100, 0.8)";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // ============================================================
+      //  DIBUJAR NUBES 3D
+      // ============================================================
+      function dibujarNubes() {
+        for (const cloud of clouds) {
+          cloud.x -= cloud.speed * (1 + nivel * 0.05);
+          if (cloud.x + cloud.w < 0) {
+            cloud.x = W + Math.random() * 100;
+            cloud.y = Math.random() * (H * 0.6);
+          }
+
+          ctx.globalAlpha = cloud.opacity;
+          const depth = cloud.layer === 0 ? 0.3 : cloud.layer === 1 ? 0.6 : 1;
+          const sizeMult = 1 + cloud.layer * 0.3;
+
+          // Sombra de la nube (efecto 3D)
+          ctx.shadowColor = "rgba(200, 200, 255, 0.1)";
+          ctx.shadowBlur = 20;
+          ctx.shadowOffsetX = 3;
+          ctx.shadowOffsetY = 3;
+
+          const cx = cloud.x;
+          const cy = cloud.y;
+          const cw = cloud.w * sizeMult;
+          const ch = cloud.h * sizeMult;
+
+          ctx.fillStyle = "white";
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, cw / 2, ch / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(
+            cx - cw / 3,
+            cy - ch / 3,
+            cw / 3,
+            ch / 2.5,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(
+            cx + cw / 3,
+            cy - ch / 4,
+            cw / 3.5,
+            ch / 2.5,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // ============================================================
+      //  DIBUJAR KITTY 3D
+      // ============================================================
+      function dibujarKitty3D() {
+        const x = kitty.x;
+        const y = kitty.y;
+        const size = 35;
+
+        // Sombra de Kitty (efecto 3D)
+        ctx.shadowColor = "rgba(0, 0, 0, 0.15)";
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 5;
+
+        // Cuerpo (círculo 3D)
+        const grad = ctx.createRadialGradient(
+          x + 8,
+          y + 8,
+          5,
+          x + 18,
+          y + 18,
+          size,
+        );
+        grad.addColorStop(0, "#ffb3d9");
+        grad.addColorStop(0.6, "#ff99cc");
+        grad.addColorStop(1, "#ff66a3");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.ellipse(
+          x + size / 2,
+          y + size / 2,
+          size / 2,
+          size / 2.2,
+          0,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+        ctx.strokeStyle = "#ff66a3";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Cabeza (círculo 3D)
+        const headGrad = ctx.createRadialGradient(
+          x + 12,
+          y + 4,
+          3,
+          x + 18,
+          y + 12,
+          size * 0.45,
+        );
+        headGrad.addColorStop(0, "#ffcce0");
+        headGrad.addColorStop(0.6, "#ff99cc");
+        headGrad.addColorStop(1, "#ff66a3");
+        ctx.fillStyle = headGrad;
+        ctx.beginPath();
+        ctx.ellipse(
+          x + size / 2,
+          y + size / 2 - 8,
+          size / 2.4,
+          size / 2.6,
+          0,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+        ctx.stroke();
+
+        // Orejas
+        ctx.fillStyle = "#ff99cc";
+        ctx.beginPath();
+        ctx.moveTo(x + 6, y + 2);
+        ctx.lineTo(x + 4, y - 8);
+        ctx.lineTo(x + 16, y + 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x + size - 6, y + 2);
+        ctx.lineTo(x + size - 4, y - 8);
+        ctx.lineTo(x + size - 16, y + 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Ojos (brillantes 3D)
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.ellipse(x + 12, y + size / 2 - 10, 6, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(x + size - 12, y + size / 2 - 10, 6, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pupilas
+        ctx.fillStyle = "#4a2a3a";
+        ctx.beginPath();
+        ctx.arc(x + 14, y + size / 2 - 8, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + size - 10, y + size / 2 - 8, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Brillo en los ojos (efecto 3D)
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.beginPath();
+        ctx.arc(x + 11, y + size / 2 - 13, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + size - 13, y + size / 2 - 13, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Nariz
+        ctx.fillStyle = "#ff6b9d";
+        ctx.beginPath();
+        ctx.moveTo(x + size / 2, y + size / 2 - 3);
+        ctx.lineTo(x + size / 2 - 4, y + size / 2 + 2);
+        ctx.lineTo(x + size / 2 + 4, y + size / 2 + 2);
+        ctx.fill();
+
+        // Bigotes
+        ctx.strokeStyle = "#9966cc";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x + 8, y + size / 2);
+        ctx.lineTo(x - 8, y + size / 2 - 4);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + 8, y + size / 2 + 4);
+        ctx.lineTo(x - 8, y + size / 2 + 4);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + 8, y + size / 2 + 8);
+        ctx.lineTo(x - 8, y + size / 2 + 12);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x + size - 8, y + size / 2);
+        ctx.lineTo(x + size + 8, y + size / 2 - 4);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + size - 8, y + size / 2 + 4);
+        ctx.lineTo(x + size + 8, y + size / 2 + 4);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + size - 8, y + size / 2 + 8);
+        ctx.lineTo(x + size + 8, y + size / 2 + 12);
+        ctx.stroke();
+
+        // Sonrisa
+        ctx.strokeStyle = "#ff3385";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x + size / 2, y + size / 2 + 4, 8, 0.1, Math.PI - 0.1);
+        ctx.stroke();
+
+        // Mejillas rosadas (efecto 3D)
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = "#ff66a3";
+        ctx.beginPath();
+        ctx.ellipse(x + 8, y + size / 2 + 4, 6, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(x + size - 8, y + size / 2 + 4, 6, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
+
+      // ============================================================
+      //  DIBUJAR SUELO 3D
+      // ============================================================
+      function dibujarGround() {
+        // Sombra del suelo
+        const grad = ctx.createLinearGradient(0, groundY - 30, 0, H);
+        grad.addColorStop(0, "rgba(144, 238, 144, 0)");
+        grad.addColorStop(0.3, "rgba(144, 238, 144, 0.3)");
+        grad.addColorStop(0.7, "rgba(50, 205, 50, 0.5)");
+        grad.addColorStop(1, "rgba(34, 139, 34, 0.8)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, groundY - 30, W, 50);
+
+        // Línea del suelo con efecto 3D
+        ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 3;
+
+        const grad2 = ctx.createLinearGradient(0, groundY, 0, groundY + 20);
+        grad2.addColorStop(0, "#66bb66");
+        grad2.addColorStop(0.5, "#44aa44");
+        grad2.addColorStop(1, "#228822");
+        ctx.fillStyle = grad2;
+        ctx.fillRect(0, groundY, W, 20);
+
+        // Detalles del pasto (3D)
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.strokeStyle = "rgba(50, 205, 50, 0.4)";
+        ctx.lineWidth = 2;
+        for (let i = 0; i < W; i += 12) {
+          const offset = Math.sin(i * 0.1 + frameCount * 0.02) * 3;
+          ctx.beginPath();
+          ctx.moveTo(i, groundY);
+          ctx.quadraticCurveTo(i + 4, groundY - 6 + offset, i + 8, groundY);
+          ctx.stroke();
+        }
+
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+      }
+
+      // ============================================================
+      //  OBSTÁCULOS 3D
+      // ============================================================
+      function generarObstaculo() {
+        const gap = Math.max(GAP_MIN, GAP_MAX - nivel * 2);
+        const minY = 80;
+        const maxY = groundY - gap - 40;
+        const topH = Math.floor(Math.random() * (maxY - minY + 1) + minY);
+
+        obstacles.push({
+          x: W + 20,
+          topH: topH,
+          gap: gap,
+          w: OBSTACLE_W,
+          passed: false,
+          rotation: Math.random() * 0.2 - 0.1,
         });
       }
 
-      function loop() {
-        if (!gameActivo) return;
+      function actualizarObstaculos() {
+        const speed = velocidad + nivel * 0.2;
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const obs = obstacles[i];
+          obs.x -= speed;
 
-        // Física de Kitty
-        kitty.dy += gravedad;
-        kitty.y += kitty.dy;
+          // Dibujar obstáculo superior (3D)
+          dibujarObstaculo3D(obs.x, 0, obs.w, obs.topH, "arriba", obs.rotation);
 
-        // Dibujar Kitty (Usaremos un emoji para que sea rápido y ligero)
-        ctx.font = "35px Arial";
-        ctx.fillText("🐱", kitty.x, kitty.y + 30);
+          // Dibujar obstáculo inferior (3D)
+          const bottomY = obs.topH + obs.gap;
+          const bottomH = groundY - bottomY;
+          dibujarObstaculo3D(
+            obs.x,
+            bottomY,
+            obs.w,
+            bottomH,
+            "abajo",
+            obs.rotation,
+          );
 
-        // Generar tuberías (columnas rosas) cada 90 frames
-        frameCount++;
-        if (frameCount % 90 === 0) generarTuberia();
-
-        // Mover y dibujar tuberías
-        ctx.fillStyle = "#ff99cc"; // Color rosa kawaii
-        ctx.strokeStyle = "#ff66a3";
-        ctx.lineWidth = 4;
-
-        for (let i = 0; i < tuberias.length; i++) {
-          let t = tuberias[i];
-          t.x -= 3; // Velocidad de las tuberías
-
-          // Dibujar tubo de arriba
-          ctx.fillRect(t.x, 0, t.w, t.hArriba);
-          ctx.strokeRect(t.x, 0, t.w, t.hArriba);
-
-          // Dibujar tubo de abajo
-          let hAbajo = canvas.height - t.yAbajo;
-          ctx.fillRect(t.x, t.yAbajo, t.w, hAbajo);
-          ctx.strokeRect(t.x, t.yAbajo, t.w, hAbajo);
-
-          // Colisiones (hitbox)
-          // Usamos un pequeño margen para que no sea tan punitivo
-          let margen = 5;
+          // Colisión
+          const margin = 8;
           if (
-            kitty.x + kitty.w - margen > t.x &&
-            kitty.x + margen < t.x + t.w
+            kitty.x + KITTY_W - margin > obs.x &&
+            kitty.x + margin < obs.x + obs.w
           ) {
             if (
-              kitty.y + margen < t.hArriba ||
-              kitty.y + kitty.h - margen > t.yAbajo
+              kitty.y + margin < obs.topH ||
+              kitty.y + KITTY_H - margin > obs.topH + obs.gap
             ) {
               terminarJuego();
+              return;
             }
           }
 
           // Puntuación
-          if (t.x + t.w < kitty.x && !t.pasada) {
-            score++;
-            document.getElementById("score").innerText = score;
-            t.pasada = true;
+          if (obs.x + obs.w < kitty.x && !obs.passed) {
+            obs.passed = true;
+            score += 10 + Math.floor(nivel / 2);
+            // Subir nivel cada 50 puntos
+            if (score % 50 === 0 && score > 0) {
+              nivel++;
+              crearParticulas(W / 2, H / 2, "#ffd700", 30);
+            }
+            actualizarHUD();
           }
 
-          // Eliminar tuberías que ya salieron de la pantalla
-          if (t.x + t.w < 0) {
-            tuberias.splice(i, 1);
-            i--;
+          // Eliminar obstáculos fuera de pantalla
+          if (obs.x + obs.w < -20) {
+            obstacles.splice(i, 1);
           }
         }
+      }
 
-        // Colisión con el suelo o el techo
-        if (kitty.y + kitty.h > canvas.height || kitty.y < 0) {
+      function dibujarObstaculo3D(x, y, w, h, tipo, rotacion) {
+        if (h <= 0) return;
+
+        // Efecto 3D con gradiente
+        const grad = ctx.createLinearGradient(x, y, x + w, y);
+        grad.addColorStop(0, tipo === "arriba" ? "#ff66a3" : "#ff3385");
+        grad.addColorStop(0.3, tipo === "arriba" ? "#ff99cc" : "#ff66a3");
+        grad.addColorStop(0.7, tipo === "arriba" ? "#ff66a3" : "#ff3385");
+        grad.addColorStop(1, tipo === "arriba" ? "#ff3385" : "#cc2266");
+
+        ctx.shadowColor = "rgba(255, 51, 133, 0.2)";
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+
+        // Cuerpo principal con bordes redondeados
+        const radius = 8;
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, radius);
+        ctx.fill();
+
+        // Borde brillante (efecto 3D)
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(x + 2, y + 2, w - 4, h - 4, radius - 2);
+        ctx.stroke();
+
+        // Decoración (corazones o estrellas en los obstáculos)
+        ctx.font = "16px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+        const decoracion = tipo === "arriba" ? "💖" : "💢";
+        const decoY = tipo === "arriba" ? h / 2 : h / 2;
+        ctx.fillText(decoracion, x + w / 2, y + decoY);
+
+        // Bisel inferior (efecto 3D)
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.05)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y + h);
+        ctx.lineTo(x + w, y + h);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
+
+      // ============================================================
+      //  PARTÍCULAS
+      // ============================================================
+      function crearParticulas(x, y, color, count = 10) {
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 4 + 1;
+          particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 1,
+            life: Math.random() * 20 + 15,
+            maxLife: 35,
+            size: Math.random() * 5 + 2,
+            color: color,
+          });
+        }
+      }
+
+      function dibujarParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.08;
+          p.life--;
+
+          const alpha = p.life / p.maxLife;
+          ctx.globalAlpha = alpha;
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = p.color;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (p.life <= 0) {
+            particles.splice(i, 1);
+          }
+        }
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      }
+
+      // ============================================================
+      //  COLISIONES
+      // ============================================================
+      function checkCollisions() {
+        // Suelo y techo
+        if (kitty.y + KITTY_H > groundY || kitty.y < -20) {
           terminarJuego();
         }
-
-        animacion = requestAnimationFrame(loop);
       }
 
+      // ============================================================
+      //  ACTUALIZAR HUD
+      // ============================================================
+      function actualizarHUD() {
+        scoreDisp.textContent = score;
+        nivelDisp.textContent = nivel;
+        velocidadDisp.textContent = `${(1 + nivel * 0.1).toFixed(1)}x`;
+      }
+
+      // ============================================================
+      //  TERMINAR JUEGO
+      // ============================================================
       function terminarJuego() {
-        gameActivo = false;
+        if (!gameActive) return;
+        gameActive = false;
+        gameReady = false;
+
+        if (animId) {
+          cancelAnimationFrame(animId);
+          animId = null;
+        }
+
+        btnStart.disabled = false;
+        btnStart.textContent = "🔄 Jugar de Nuevo";
+
+        crearParticulas(
+          kitty.x + KITTY_W / 2,
+          kitty.y + KITTY_H / 2,
+          "#ff4444",
+          30,
+        );
+
+        // Mostrar Game Over
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = "rgba(255, 51, 133, 0.3)";
+        ctx.font = "bold 42px Nunito, sans-serif";
+        ctx.fillStyle = "#ff3385";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("💥 ¡OUCH!", W / 2, H / 2 - 40);
+
+        ctx.font = "24px Nunito, sans-serif";
+        ctx.fillStyle = "#9966cc";
+        ctx.fillText(`⭐ ${score} puntos`, W / 2, H / 2 + 30);
+
+        ctx.shadowBlur = 0;
+
         setTimeout(() => {
-          let n = prompt(
-            "¡Auch! 😿\nPuntos: " +
-              score +
-              "\nIngresa tu nombre para guardar tu récord:",
+          const nombre = prompt(
+            `💥 ¡Game Over!\n⭐ Puntuación: ${score}\n📊 Nivel: ${nivel}\n\n✨ Ingresa tu nombre para el récord:`,
           );
-          if (n) {
-            fetch("/guardar_vuelo", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ nombre: n, puntos: score }),
-            }).then(() => (location.href = "/secreto"));
+          if (nombre && nombre.trim()) {
+            guardarPuntuacion(nombre.trim(), score);
           }
-        }, 300); // Pequeña pausa para que veas dónde chocaste
+        }, 500);
       }
 
-      // Pantalla inicial antes de jugar
-      ctx.font = "20px Nunito";
-      ctx.fillStyle = "#ff3385";
-      ctx.textAlign = "center";
-      ctx.fillText(
-        "Presiona Iniciar para volar",
-        canvas.width / 2,
-        canvas.height / 2,
-      );
+      // ============================================================
+      //  GUARDAR PUNTUACIÓN
+      // ============================================================
+      function guardarPuntuacion(nombre, puntos) {
+        fetch("/guardar_vuelo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nombre: nombre.trim(), puntos: puntos }),
+        })
+          .then(() => {})
+          .catch(() => {});
+      }
+
+      // ============================================================
+      //  CONTROLES
+      // ============================================================
+      function saltar() {
+        if (!gameActive) return;
+        if (!gameReady) return;
+        kitty.dy = -7;
+        crearParticulas(kitty.x + KITTY_W / 2, kitty.y + KITTY_H, "#ff66a3", 5);
+      }
+
+      // Teclado
+      document.addEventListener("keydown", (e) => {
+        if (e.code === "Space" || e.key === " " || e.code === "ArrowUp") {
+          e.preventDefault();
+          saltar();
+        }
+        if (e.key === "Enter" && !gameActive) {
+          iniciar();
+        }
+      });
+
+      // Click / Tap en el canvas
+      canvasWrapper.addEventListener("click", saltar);
+      canvasWrapper.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        saltar();
+      });
+
+      // ============================================================
+      //  POLYFILL roundRect
+      // ============================================================
+      if (!CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function (
+          x,
+          y,
+          w,
+          h,
+          radii,
+        ) {
+          const r = typeof radii === "number" ? radii : radii || 0;
+          this.moveTo(x + r, y);
+          this.lineTo(x + w - r, y);
+          this.quadraticCurveTo(x + w, y, x + w, y + r);
+          this.lineTo(x + w, y + h - r);
+          this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+          this.lineTo(x + r, y + h);
+          this.quadraticCurveTo(x, y + h, x, y + h - r);
+          this.lineTo(x, y + r);
+          this.quadraticCurveTo(x, y, x + r, y);
+          return this;
+        };
+      }
+
+      // ============================================================
+      //  INICIALIZAR
+      // ============================================================
+      init();
     </script>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-    <script>
-      // Ejemplo de cómo usarlo en cualquier juego:
-      // Ya no necesitas prompt, el archivo scripts.js se encarga de todo.
-
-      function alGanarJuego(misPuntos) {
-        // Solo llamas a esta función y listo
-        enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
-      }
-    </script>
   </body>
 </html>
