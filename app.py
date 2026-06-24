@@ -159,27 +159,35 @@ def ahorcado_online(): return render_template('ahorcado_online.html')
 
 # --- Motor de Guardado (Acumulativo y Limpio) ---
 def guardar_generico(archivo, nombre, puntos, inverso=False, acumulable=False):
+    # LIMPIEZA MAESTRA: Normaliza el nombre antes de cualquier comparación
+    nombre_normalizado = nombre.strip().lower().title()
+    
     lista = {}
     if os.path.exists(archivo):
         with open(archivo, "r") as f:
             for line in f:
                 if ":" in line:
                     n, p = line.strip().split(":")
-                    lista[n] = int(p)
+                    # Importante: al leer el archivo, también normalizamos 
+                    # los nombres existentes por si tenías datos viejos "sucios"
+                    lista[n.strip().lower().title()] = int(p)
 
     if acumulable:
-        if nombre in lista:
-            lista[nombre] += puntos
+        if nombre_normalizado in lista:
+            lista[nombre_normalizado] += puntos
         else:
-            lista[nombre] = puntos
+            lista[nombre_normalizado] = puntos
     else:
         if inverso:
-            if nombre not in lista or puntos < lista[nombre]: lista[nombre] = puntos
+            if nombre_normalizado not in lista or puntos < lista[nombre_normalizado]: 
+                lista[nombre_normalizado] = puntos
         else:
-            if nombre not in lista or puntos > lista[nombre]: lista[nombre] = puntos
+            if nombre_normalizado not in lista or puntos > lista[nombre_normalizado]: 
+                lista[nombre_normalizado] = puntos
 
     with open(archivo, "w") as f:
-        for n, p in lista.items(): f.write(f"{n}:{p}\n")
+        for n, p in lista.items(): 
+            f.write(f"{n}:{p}\n")
     return jsonify({"status": "ok"})
 
 # --- APIs Guardado Juegos Individuales ---
