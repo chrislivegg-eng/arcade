@@ -32,6 +32,7 @@ ARCHIVO_SALAS_NAV = "salas_navales.json"
 ARCHIVO_SALAS_PIXEL = "salas_pixel.json"  # NUEVO
 ARCHIVO_VICTORIAS_NAV = "victorias_navales.txt"
 ARCHIVO_VICTORIAS_NAV_ONLINE = "victorias_navales_online.txt"
+ARCHIVO_ADIVINA = "victorias_adivina.txt"
 
 # --- Variables Globales ---
 salas_memorama = {}
@@ -97,6 +98,9 @@ def secreto():
                            victorias_gato_online=leer_records(ARCHIVO_VICTORIAS_ONLINE),
                            victorias_c4=leer_records(ARCHIVO_VICTORIAS_C4),
                            victorias_c4_online=leer_records(ARCHIVO_VICTORIAS_C4_ONLINE),
+                           victorias_navales=leer_records(ARCHIVO_VICTORIAS_NAV),
+                           victorias_navales_online=leer_records(ARCHIVO_VICTORIAS_NAV_ONLINE),
+                           victorias_adivina=leer_records(ARCHIVO_ADIVINA),  # NUEVO
                            records_memorama=leer_records(ARCHIVO_MEMORAMA, inverso=True),
                            records_fresas=leer_records(ARCHIVO_FRESAS),
                            records_clicker=leer_records(ARCHIVO_CLICKER),
@@ -109,9 +113,8 @@ def secreto():
                            records_shooter=leer_records(ARCHIVO_SHOOTER),
                            records_cafe=leer_records(ARCHIVO_CAFE),
                            records_vuelo=leer_records(ARCHIVO_VUELO),
-                           records_pixel_art=leer_records(ARCHIVO_PIXEL_ART),  # NUEVO
-                           victorias_navales=leer_records(ARCHIVO_VICTORIAS_NAV),
-                           victorias_navales_online=leer_records(ARCHIVO_VICTORIAS_NAV_ONLINE))
+                           records_pixel_art=leer_records(ARCHIVO_PIXEL_ART))
+
 
 # --- Rutas de Juegos HTML ---
 @app.route('/juego_salto')

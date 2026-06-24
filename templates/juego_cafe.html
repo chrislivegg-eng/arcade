@@ -2,10 +2,18 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <title>☕ Kitty Cafe Dash</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>☕ Kitty Cafe - Hello Kitty Style</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap"
       rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
     />
     <style>
       * {
@@ -16,64 +24,199 @@
 
       body {
         font-family: "Nunito", sans-serif;
-        background: linear-gradient(135deg, #fff0f5, #ffe6f2, #fff0f5);
+        background: linear-gradient(
+          135deg,
+          #ffebf5 0%,
+          #ffd6e8 50%,
+          #ffcce0 100%
+        );
         min-height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
         padding: 20px;
+        overflow-x: hidden;
       }
 
-      .kawaii-box {
+      /* Decoración de fondo estilo Hello Kitty */
+      body::before {
+        content: "🌸";
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        font-size: 4rem;
+        opacity: 0.15;
+        transform: rotate(-15deg);
+      }
+
+      body::after {
+        content: "🎀";
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        font-size: 4rem;
+        opacity: 0.15;
+        transform: rotate(15deg);
+      }
+
+      .container {
         background: rgba(255, 255, 255, 0.92);
         backdrop-filter: blur(10px);
+        border-radius: 50px;
         padding: 30px 25px;
-        border-radius: 40px;
-        border: 4px dashed #ff99cc;
-        box-shadow: 0 20px 60px rgba(255, 51, 133, 0.2);
-        max-width: 500px;
+        max-width: 550px;
         width: 100%;
-        text-align: center;
+        box-shadow: 0 20px 60px rgba(255, 51, 133, 0.15);
+        border: 4px solid #ffb3d9;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .container::before {
+        content: "🎀";
+        position: absolute;
+        top: -15px;
+        left: -15px;
+        font-size: 4rem;
+        opacity: 0.2;
+        transform: rotate(-20deg);
+      }
+
+      .container::after {
+        content: "🌸";
+        position: absolute;
+        bottom: -15px;
+        right: -15px;
+        font-size: 4rem;
+        opacity: 0.2;
+        transform: rotate(20deg);
+      }
+
+      /* Header con Hello Kitty */
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 5px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .header .kitty-icon {
+        font-size: 3.5rem;
+        animation: float 3s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0) rotate(-5deg);
+        }
+        50% {
+          transform: translateY(-8px) rotate(5deg);
+        }
       }
 
       h1 {
-        color: #ff3385;
-        font-size: 2.5rem;
-        text-shadow: 3px 3px 0 #ffb3d9;
-        margin-bottom: 5px;
+        font-size: 2.2rem;
+        background: linear-gradient(135deg, #ff3385, #ff66a3, #ff3385);
+        background-size: 200% 200%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: gradient-shift 3s ease-in-out infinite;
+        text-shadow: none;
+        letter-spacing: 1px;
+      }
+
+      @keyframes gradient-shift {
+        0%,
+        100% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
       }
 
       .subtitle {
         color: #ff6b9d;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         margin-bottom: 15px;
+        opacity: 0.8;
+        position: relative;
+        z-index: 1;
+        letter-spacing: 2px;
       }
 
+      /* HUD */
       .hud-container {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 8px;
         margin-bottom: 15px;
+        position: relative;
+        z-index: 1;
       }
 
       .hud-item {
-        background: #fff5f9;
-        border-radius: 15px;
-        padding: 8px 5px;
-        border: 2px solid #ffccdd;
+        background: linear-gradient(135deg, #fff5f9, #ffe6f2);
+        border-radius: 20px;
+        padding: 10px 5px;
+        border: 2px solid #ffb3d9;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hud-item::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 51, 133, 0.05) 0%,
+          transparent 70%
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .hud-item:hover::after {
+        opacity: 1;
       }
 
       .hud-item .label {
-        font-size: 0.55rem;
+        font-size: 0.5rem;
         color: #cc99aa;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 1.5px;
+        font-weight: 900;
+        position: relative;
+        z-index: 1;
       }
 
       .hud-item .value {
         font-size: 1.5rem;
         font-weight: 900;
         color: #ff3385;
+        position: relative;
+        z-index: 1;
+      }
+
+      .hud-item .value.gold {
+        color: #ffd700;
+      }
+
+      .hud-item .value.purple {
+        color: #9966ff;
+      }
+
+      .hud-item .value.green {
+        color: #33cc66;
       }
 
       .hud-item .value.timer-warning {
@@ -86,22 +229,26 @@
           transform: scale(1);
         }
         100% {
-          transform: scale(1.1);
+          transform: scale(1.15);
         }
       }
 
+      /* Pedido */
       .pedido-container {
         background: linear-gradient(135deg, #fff5f9, #ffe6f2);
-        border-radius: 25px;
-        padding: 20px;
+        border-radius: 30px;
+        padding: 20px 15px;
         margin: 15px 0;
-        border: 3px solid #ff99cc;
-        min-height: 100px;
+        border: 3px solid #ffb3d9;
+        min-height: 120px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        transition: all 0.3s ease;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+        z-index: 1;
+        box-shadow: inset 0 0 30px rgba(255, 179, 217, 0.15);
       }
 
       .pedido-container .cliente {
@@ -109,25 +256,106 @@
         color: #ff6b9d;
         font-weight: 700;
         margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pedido-container .cliente .cliente-emoji {
+        font-size: 1.5rem;
+        animation: float 2s ease-in-out infinite;
       }
 
       .pedido-container .pedido-texto {
         font-size: 3.5rem;
-        line-height: 1.2;
+        line-height: 1.3;
         transition: all 0.3s ease;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .pedido-container .pedido-texto .ingrediente-item {
+        display: inline-block;
+        animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        background: rgba(255, 255, 255, 0.5);
+        padding: 0 8px;
+        border-radius: 15px;
+        border: 2px solid rgba(255, 179, 217, 0.3);
+      }
+
+      @keyframes pop-in {
+        0% {
+          transform: scale(0) rotate(-20deg);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1) rotate(0deg);
+          opacity: 1;
+        }
       }
 
       .pedido-container .pista {
         font-size: 0.8rem;
         color: #cc99aa;
         margin-top: 5px;
+        font-weight: 700;
+        min-height: 20px;
       }
 
+      .pedido-container .nivel-display {
+        position: absolute;
+        top: -12px;
+        left: 15px;
+        background: linear-gradient(135deg, #ff3385, #ff66a3);
+        color: white;
+        padding: 2px 16px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 900;
+        box-shadow: 0 4px 15px rgba(255, 51, 133, 0.3);
+        z-index: 2;
+      }
+
+      .pedido-container .combo-display {
+        position: absolute;
+        top: -12px;
+        right: 15px;
+        font-size: 1rem;
+        font-weight: 900;
+        color: #ffd700;
+        text-shadow: 0 2px 15px rgba(255, 215, 0, 0.4);
+        animation: combo-pop 0.3s ease;
+        background: rgba(255, 215, 0, 0.15);
+        padding: 2px 14px;
+        border-radius: 20px;
+        border: 2px solid rgba(255, 215, 0, 0.3);
+        z-index: 2;
+      }
+
+      @keyframes combo-pop {
+        0% {
+          transform: scale(0.5);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.4);
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* Botones de ingredientes */
       .botones-container {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 10px;
         margin: 15px 0;
+        position: relative;
+        z-index: 1;
       }
 
       .btn-ingrediente {
@@ -135,10 +363,12 @@
         padding: 15px 10px;
         cursor: pointer;
         border: none;
-        border-radius: 20px;
-        background: #ffe6f2;
-        box-shadow: 0 6px 0 #ffb3d9;
-        transition: all 0.1s ease;
+        border-radius: 25px;
+        background: linear-gradient(145deg, #ffe6f2, #ffd9e8);
+        box-shadow:
+          0 6px 0 #ffb3d9,
+          0 8px 25px rgba(255, 51, 133, 0.1);
+        transition: all 0.15s ease;
         font-family: "Nunito", sans-serif;
         font-weight: 700;
         min-height: 70px;
@@ -147,21 +377,53 @@
         align-items: center;
         justify-content: center;
         gap: 2px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn-ingrediente::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 51, 133, 0.05) 0%,
+          transparent 70%
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .btn-ingrediente:hover::after {
+        opacity: 1;
       }
 
       .btn-ingrediente .btn-label {
         font-size: 0.55rem;
         color: #ff6b9d;
-        font-weight: 700;
+        font-weight: 900;
+        letter-spacing: 0.5px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .btn-ingrediente .btn-emoji {
+        position: relative;
+        z-index: 1;
       }
 
       .btn-ingrediente:active {
         transform: translateY(6px);
-        box-shadow: 0 0 0 #ffb3d9;
+        box-shadow:
+          0 2px 0 #ffb3d9,
+          0 8px 25px rgba(255, 51, 133, 0.1);
       }
 
       .btn-ingrediente:hover:not(:disabled) {
-        background: #ffccdd;
+        background: linear-gradient(145deg, #ffd9e8, #ffcce0);
         transform: scale(1.05);
       }
 
@@ -171,48 +433,121 @@
         transform: none;
       }
 
+      .btn-ingrediente .badge-count {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ff3385;
+        color: white;
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        font-size: 0.6rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        box-shadow: 0 2px 10px rgba(255, 51, 133, 0.3);
+        z-index: 2;
+      }
+
+      /* Efectos especiales */
       .correct-flash {
-        animation: flash-green 0.5s ease;
+        animation: flash-green 0.6s ease;
       }
 
       .wrong-flash {
-        animation: flash-red 0.5s ease;
+        animation: flash-red 0.6s ease;
       }
 
       @keyframes flash-green {
         0%,
         100% {
-          background: #ffe6f2;
+          background: linear-gradient(135deg, #fff5f9, #ffe6f2);
         }
-        50% {
-          background: #b8f0b8;
+        30% {
+          background: linear-gradient(135deg, #b8f0b8, #90ee90);
           border-color: #00b894;
+          transform: scale(1.02);
         }
       }
 
       @keyframes flash-red {
         0%,
         100% {
-          background: #ffe6f2;
+          background: linear-gradient(135deg, #fff5f9, #ffe6f2);
         }
-        50% {
-          background: #ffb3b3;
+        30% {
+          background: linear-gradient(135deg, #ffb3b3, #ff6b6b);
           border-color: #e17055;
+          transform: scale(0.98);
         }
       }
 
+      .float-score {
+        position: fixed;
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #ffd700;
+        text-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
+        pointer-events: none;
+        animation: float-up 1.2s ease forwards;
+        z-index: 1000;
+        font-family: "Nunito", sans-serif;
+      }
+
+      @keyframes float-up {
+        0% {
+          opacity: 1;
+          transform: translateY(0) scale(0.5);
+        }
+        50% {
+          transform: translateY(-60px) scale(1.2);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-120px) scale(1);
+        }
+      }
+
+      .shake {
+        animation: shake 0.5s ease;
+      }
+
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        20% {
+          transform: translateX(-12px) rotate(-2deg);
+        }
+        40% {
+          transform: translateX(12px) rotate(2deg);
+        }
+        60% {
+          transform: translateX(-8px);
+        }
+        80% {
+          transform: translateX(8px);
+        }
+      }
+
+      /* Controles */
       .controls {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
         justify-content: center;
         margin: 15px 0;
+        position: relative;
+        z-index: 1;
       }
 
       .btn {
-        padding: 12px 25px;
+        padding: 12px 28px;
         border: none;
-        border-radius: 30px;
+        border-radius: 50px;
         font-family: "Nunito", sans-serif;
         font-weight: 900;
         font-size: 1rem;
@@ -221,17 +556,39 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.2) 0%,
+          transparent 70%
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .btn:hover::after {
+        opacity: 1;
       }
 
       .btn-primary {
         background: linear-gradient(135deg, #ff6b9d, #ff3385);
         color: white;
-        box-shadow: 0 6px 20px rgba(255, 51, 133, 0.35);
+        box-shadow: 0 6px 25px rgba(255, 51, 133, 0.35);
       }
 
       .btn-primary:hover {
         transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(255, 51, 133, 0.45);
+        box-shadow: 0 10px 35px rgba(255, 51, 133, 0.45);
       }
 
       .btn-primary:disabled {
@@ -252,31 +609,60 @@
         transform: translateY(-3px);
       }
 
+      .btn-gold {
+        background: linear-gradient(135deg, #ffd700, #ffaa00);
+        color: white;
+        box-shadow: 0 6px 25px rgba(255, 215, 0, 0.3);
+      }
+
+      .btn-gold:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 35px rgba(255, 215, 0, 0.4);
+      }
+
+      /* Back link */
       .back-link {
         display: inline-block;
         margin-top: 10px;
-        color: #ff3385;
+        color: #ff6b9d;
         font-weight: 900;
         text-decoration: none;
         padding: 8px 20px;
         border-radius: 30px;
-        border: 2px solid #ff3385;
+        border: 2px solid #ffb3d9;
         transition: all 0.3s ease;
         font-size: 0.9rem;
+        position: relative;
+        z-index: 1;
       }
 
       .back-link:hover {
         background: #ff3385;
         color: white;
+        border-color: #ff3385;
       }
 
+      /* Responsive */
       @media (max-width: 500px) {
-        .kawaii-box {
+        .container {
           padding: 20px 15px;
         }
 
         h1 {
-          font-size: 2rem;
+          font-size: 1.6rem;
+        }
+
+        .header .kitty-icon {
+          font-size: 2.5rem;
+        }
+
+        .hud-container {
+          grid-template-columns: repeat(4, 1fr);
+          gap: 5px;
+        }
+
+        .hud-item .value {
+          font-size: 1.2rem;
         }
 
         .botones-container {
@@ -292,16 +678,42 @@
         .pedido-container .pedido-texto {
           font-size: 2.8rem;
         }
+
+        .pedido-container .pedido-texto .ingrediente-item {
+          padding: 0 5px;
+        }
+      }
+
+      @media (max-width: 380px) {
+        .botones-container {
+          grid-template-columns: repeat(3, 1fr);
+          gap: 5px;
+        }
+
+        .btn-ingrediente {
+          font-size: 1.4rem;
+          min-height: 50px;
+        }
+
+        .pedido-container .pedido-texto {
+          font-size: 2.2rem;
+        }
       }
     </style>
   </head>
+
   <body>
-    <div class="kawaii-box">
-      <h1>☕ Kitty Cafe Dash</h1>
+    <div class="container">
+      <div class="header">
+        <span class="kitty-icon">🐱</span>
+        <h1>Kitty Cafe</h1>
+        <span class="kitty-icon">🎀</span>
+      </div>
       <p class="subtitle">
         ✨ Sirve los pedidos antes de que se acabe el tiempo
       </p>
 
+      <!-- HUD -->
       <div class="hud-container">
         <div class="hud-item">
           <div class="label">⭐ Puntos</div>
@@ -312,34 +724,47 @@
           <div class="value" id="timer">30</div>
         </div>
         <div class="hud-item">
+          <div class="label">🔥 Combo</div>
+          <div class="value gold" id="combo">x1</div>
+        </div>
+        <div class="hud-item">
           <div class="label">📊 Nivel</div>
-          <div class="value" id="nivel">1</div>
+          <div class="value purple" id="nivel">1</div>
         </div>
       </div>
 
+      <!-- Pedido -->
       <div class="pedido-container" id="pedidoContainer">
-        <div class="cliente" id="clienteText">🐱 Cliente:</div>
-        <div class="pedido-texto" id="pedidoTexto">¡Presiona Iniciar! 🎀</div>
+        <span class="nivel-display" id="nivelDisplay">🌟 Nivel 1</span>
+        <span class="combo-display" id="comboDisplay" style="display: none"
+          >🔥 x1</span
+        >
+        <div class="cliente" id="clienteText">
+          <span class="cliente-emoji">🐱</span>
+          <span>Cliente: </span>
+        </div>
+        <div class="pedido-texto" id="pedidoTexto">🎀 ¡Presiona Iniciar!</div>
         <div class="pista" id="pistaText">
           💡 Elige los ingredientes correctos
         </div>
       </div>
 
+      <!-- Botones de ingredientes -->
       <div class="botones-container">
         <button
           class="btn-ingrediente"
           onclick="preparar('☕')"
           id="btn-coffee"
         >
-          ☕
+          <span class="btn-emoji">☕</span>
           <span class="btn-label">Café</span>
         </button>
         <button class="btn-ingrediente" onclick="preparar('🍰')" id="btn-cake">
-          🍰
+          <span class="btn-emoji">🍰</span>
           <span class="btn-label">Pastel</span>
         </button>
         <button class="btn-ingrediente" onclick="preparar('🍵')" id="btn-tea">
-          🍵
+          <span class="btn-emoji">🍵</span>
           <span class="btn-label">Té</span>
         </button>
         <button
@@ -347,11 +772,12 @@
           onclick="preparar('🍪')"
           id="btn-cookie"
         >
-          🍪
+          <span class="btn-emoji">🍪</span>
           <span class="btn-label">Galleta</span>
         </button>
       </div>
 
+      <!-- Controles -->
       <div class="controls">
         <button class="btn btn-primary" onclick="iniciar()" id="btn-start">
           ▶️ Iniciar Turno
@@ -372,6 +798,8 @@
       let timer = 30;
       let timerMax = 30;
       let nivel = 1;
+      let combo = 1;
+      let maxCombo = 1;
       let pedidoActual = [];
       let pedidoCompleto = [];
       let juegoActivo = false;
@@ -379,8 +807,9 @@
       let pedidosCompletados = 0;
       let totalCorrectos = 0;
       let totalErrores = 0;
-      let procesandoPedido = false; // <--- NUEVO: evita múltiples clics
+      let procesandoPedido = false;
 
+      // Clientes con personalidad
       const clientes = [
         {
           nombre: "Mochi",
@@ -412,21 +841,68 @@
           emoji: "🐱",
           frases: ["¡Hola! Un", "Dame un", "Por favor un"],
         },
+        {
+          nombre: "Taro",
+          emoji: "🐼",
+          frases: ["¡Hola! Quiero", "Dame", "Necesito"],
+        },
+        {
+          nombre: "Sakura",
+          emoji: "🌸",
+          frases: ["¡Konnichiwa!", "Quisiera", "Por favor"],
+        },
       ];
 
-      // Recetas simples (solo 1 ingrediente para evitar complicaciones)
+      // Todas las recetas posibles
       const recetas = {
         "☕": { nombre: "Café", emoji: "☕", ingredientes: ["☕"] },
         "🍰": { nombre: "Pastel", emoji: "🍰", ingredientes: ["🍰"] },
         "🍵": { nombre: "Té", emoji: "🍵", ingredientes: ["🍵"] },
         "🍪": { nombre: "Galleta", emoji: "🍪", ingredientes: ["🍪"] },
+        "☕+🍪": {
+          nombre: "Café con Galleta",
+          emoji: "☕+🍪",
+          ingredientes: ["☕", "🍪"],
+        },
+        "🍵+🍪": {
+          nombre: "Té con Galleta",
+          emoji: "🍵+🍪",
+          ingredientes: ["🍵", "🍪"],
+        },
+        "☕+🍰": {
+          nombre: "Café y Pastel",
+          emoji: "☕+🍰",
+          ingredientes: ["☕", "🍰"],
+        },
+        "🍵+🍰": {
+          nombre: "Té y Pastel",
+          emoji: "🍵+🍰",
+          ingredientes: ["🍵", "🍰"],
+        },
+        "☕+🍵+🍪": {
+          nombre: "Combo Especial",
+          emoji: "☕+🍵+🍪",
+          ingredientes: ["☕", "🍵", "🍪"],
+        },
+        "🍰+🍪+☕": {
+          nombre: "Merienda Perfecta",
+          emoji: "🍰+🍪+☕",
+          ingredientes: ["🍰", "🍪", "☕"],
+        },
+        "☕+🍰+🍪+🍵": {
+          nombre: "Fiesta Kitty",
+          emoji: "☕+🍰+🍪+🍵",
+          ingredientes: ["☕", "🍰", "🍪", "🍵"],
+        },
       };
 
-      const recetasList = Object.keys(recetas);
-
+      // Elementos DOM
       const scoreDisp = document.getElementById("score");
       const timerDisp = document.getElementById("timer");
+      const comboDisp = document.getElementById("combo");
       const nivelDisp = document.getElementById("nivel");
+      const nivelDisplay = document.getElementById("nivelDisplay");
+      const comboDisplay = document.getElementById("comboDisplay");
       const pedidoTexto = document.getElementById("pedidoTexto");
       const clienteText = document.getElementById("clienteText");
       const pistaText = document.getElementById("pistaText");
@@ -443,6 +919,8 @@
         score = 0;
         timer = timerMax;
         nivel = 1;
+        combo = 1;
+        maxCombo = 1;
         pedidosCompletados = 0;
         totalCorrectos = 0;
         totalErrores = 0;
@@ -473,46 +951,87 @@
       }
 
       // ============================================================
-      //  NUEVO PEDIDO
+      //  NUEVO PEDIDO CON DIFICULTAD PROGRESIVA
       // ============================================================
       function nuevoPedido() {
-        // Elegir receta aleatoria simple
+        // Determinar cuántos ingredientes pedir según el nivel
+        let numIngredientes = 1;
+        if (nivel >= 2) numIngredientes = 2;
+        if (nivel >= 4) numIngredientes = 3;
+        if (nivel >= 6) numIngredientes = 4;
+
+        // Filtrar recetas según el número de ingredientes
+        const recetasDisponibles = Object.keys(recetas).filter(
+          (key) => recetas[key].ingredientes.length === numIngredientes,
+        );
+
+        // Si no hay recetas con ese número, usar todas
         const recetaKey =
-          recetasList[Math.floor(Math.random() * recetasList.length)];
+          recetasDisponibles.length > 0
+            ? recetasDisponibles[
+                Math.floor(Math.random() * recetasDisponibles.length)
+              ]
+            : Object.keys(recetas)[
+                Math.floor(Math.random() * Object.keys(recetas).length)
+              ];
+
         const receta = recetas[recetaKey];
         pedidoActual = [...receta.ingredientes];
         pedidoCompleto = [...receta.ingredientes];
 
+        // Elegir cliente
         const cliente = clientes[Math.floor(Math.random() * clientes.length)];
         const frase =
           cliente.frases[Math.floor(Math.random() * cliente.frases.length)];
 
-        clienteText.textContent = `${cliente.emoji} ${cliente.nombre}: ${frase}`;
-        pedidoTexto.textContent = receta.emoji;
-        pistaText.textContent = `💡 Presiona el ingrediente correcto`;
+        // Mostrar pedido
+        clienteText.innerHTML = `
+          <span class="cliente-emoji">${cliente.emoji}</span>
+          <span>${cliente.nombre}: ${frase}</span>
+        `;
 
-        pedidoContainer.style.transform = "scale(0.9)";
+        // Mostrar ingredientes con animación
+        pedidoTexto.innerHTML = pedidoCompleto
+          .map((ing) => `<span class="ingrediente-item">${ing}</span>`)
+          .join("");
+
+        // Pista
+        pistaText.textContent = `💡 Necesitas ${numIngredientes} ingrediente${numIngredientes > 1 ? "s" : ""}`;
+
+        // Resetear estado del pedido
+        pedidoActual = [...receta.ingredientes];
+
+        // Animación de entrada
+        pedidoContainer.style.transform = "scale(0.95)";
         setTimeout(() => {
           pedidoContainer.style.transform = "scale(1)";
         }, 100);
 
-        procesandoPedido = false; // <--- Reactivar los clics
+        // Efecto de combo
+        if (combo > 1) {
+          comboDisplay.textContent = `🔥 x${Math.min(combo, 10)}`;
+          comboDisplay.style.display = "block";
+          comboDisplay.style.animation = "none";
+          setTimeout(() => {
+            comboDisplay.style.animation = "combo-pop 0.3s ease";
+          }, 10);
+        } else {
+          comboDisplay.style.display = "none";
+        }
+
+        // Actualizar nivel
+        nivelDisplay.textContent = `🌟 Nivel ${nivel}`;
+        procesandoPedido = false;
       }
 
       // ============================================================
-      //  PREPARAR INGREDIENTE (CORREGIDO)
+      //  PREPARAR INGREDIENTE
       // ============================================================
       function preparar(ingrediente) {
-        // 1. Verificar si el juego está activo
         if (!juegoActivo) return;
-
-        // 2. Verificar si ya se procesó el pedido
         if (procesandoPedido) return;
-
-        // 3. Verificar si el pedido ya se completó
         if (pedidoActual.length === 0) return;
 
-        // 4. Verificar si el ingrediente es correcto
         const index = pedidoActual.indexOf(ingrediente);
 
         if (index !== -1) {
@@ -525,7 +1044,7 @@
           pedidoContainer.classList.add("correct-flash");
           setTimeout(() => {
             pedidoContainer.classList.remove("correct-flash");
-          }, 500);
+          }, 600);
 
           // Mostrar progreso
           const restantes = pedidoActual.length;
@@ -535,19 +1054,23 @@
 
           // Si completó el pedido
           if (pedidoActual.length === 0) {
-            procesandoPedido = true; // <--- Bloquear más clics
+            procesandoPedido = true;
             completarPedido();
           }
         } else {
           // ¡Error!
           totalErrores++;
+          combo = 0;
+          actualizarHUD();
 
           // Efecto visual
           pedidoContainer.classList.remove("correct-flash");
           pedidoContainer.classList.add("wrong-flash");
+          pedidoContainer.classList.add("shake");
           setTimeout(() => {
             pedidoContainer.classList.remove("wrong-flash");
-          }, 500);
+            pedidoContainer.classList.remove("shake");
+          }, 600);
 
           pistaText.textContent = `❌ ¡Eso no va aquí! Los ingredientes son: ${pedidoCompleto.join(" + ")}`;
 
@@ -555,7 +1078,6 @@
           score = Math.max(0, score - 5);
           actualizarHUD();
 
-          // Si tiene muchos errores, terminar el juego
           if (totalErrores >= 5) {
             terminar("😅 ¡Demasiados errores!");
           }
@@ -569,21 +1091,37 @@
         pedidosCompletados++;
 
         // Calcular puntos
-        let puntosBase = 10;
-        let puntosBonus = Math.floor(timer / 5);
-        let puntosTotales = puntosBase + puntosBonus;
+        let puntosBase = 10 + (pedidoCompleto.length - 1) * 5;
+        let puntosBonus = 0;
+
+        // Bonus por combo
+        combo++;
+        if (combo > maxCombo) maxCombo = combo;
+        const comboBonus = Math.min(combo, 5);
+        puntosBonus += comboBonus * 2;
+
+        // Bonus por nivel
+        puntosBonus += Math.floor(nivel / 2);
+
+        // Bonus por tiempo restante (máximo 5 puntos)
+        const tiempoBonus = Math.min(Math.floor(timer / 5), 5);
+        puntosBonus += tiempoBonus;
+
+        const puntosTotales = puntosBase + puntosBonus;
         score += puntosTotales;
 
-        // Subir de nivel cada 5 pedidos
-        if (pedidosCompletados % 5 === 0) {
-          nivel++;
-          timerMax = Math.max(15, timerMax - 1);
-          timer = Math.min(timer + 3, timerMax);
-          pistaText.textContent = `⬆️ ¡NIVEL ${nivel}! 🎉`;
-        }
+        // Mostrar puntos flotantes
+        mostrarPuntosFlotantes(`+${puntosTotales} 💫`, "#ffd700");
 
-        // Bonus de tiempo
-        timer = Math.min(timer + 1, timerMax);
+        // Subir de nivel cada 4 pedidos completados
+        if (pedidosCompletados % 4 === 0) {
+          nivel++;
+          // Timer máximo se reduce ligeramente
+          timerMax = Math.max(20, timerMax - 1);
+          // NO se da bonus de tiempo al subir nivel
+          mostrarPuntosFlotantes(`⬆️ Nivel ${nivel}! 🎉`, "#ff3385");
+          nivelDisplay.textContent = `🌟 Nivel ${nivel}`;
+        }
 
         actualizarHUD();
 
@@ -596,12 +1134,40 @@
       }
 
       // ============================================================
+      //  MOSTRAR PUNTOS FLOTANTES
+      // ============================================================
+      function mostrarPuntosFlotantes(texto, color = "#ffd700") {
+        const el = document.createElement("div");
+        el.className = "float-score";
+        el.textContent = texto;
+        el.style.color = color;
+        el.style.left = "50%";
+        el.style.top = "45%";
+        el.style.transform = "translateX(-50%)";
+        el.style.fontSize = "2.8rem";
+        document.body.appendChild(el);
+
+        setTimeout(() => {
+          el.remove();
+        }, 1200);
+      }
+
+      // ============================================================
       //  ACTUALIZAR HUD
       // ============================================================
       function actualizarHUD() {
         scoreDisp.textContent = score;
         timerDisp.textContent = timer;
+        comboDisp.textContent = `x${Math.min(combo, 10)}`;
         nivelDisp.textContent = nivel;
+
+        if (combo >= 5) {
+          comboDisp.style.color = "#ffd700";
+        } else if (combo >= 3) {
+          comboDisp.style.color = "#ff9900";
+        } else {
+          comboDisp.style.color = "#ff3385";
+        }
       }
 
       // ============================================================
@@ -617,13 +1183,19 @@
         btnStart.disabled = false;
         btnStart.textContent = "🔄 Jugar de nuevo";
 
-        pedidoTexto.textContent = mensaje;
-        pistaText.textContent = `📊 Puntos: ${score} | Pedidos: ${pedidosCompletados}`;
+        pedidoTexto.innerHTML = mensaje;
+        pistaText.textContent = `📊 Puntos: ${score} | Combo máximo: x${maxCombo} | Nivel: ${nivel}`;
 
-        // Guardar puntuación
+        const resumen = `🌟 Resumen:
+        • Puntos: ${score}
+        • Pedidos completados: ${pedidosCompletados}
+        • Combo máximo: x${maxCombo}
+        • Nivel alcanzado: ${nivel}
+        • Errores: ${totalErrores}`;
+
         setTimeout(() => {
           const nombre = prompt(
-            `${mensaje}\n\n📊 Puntuación final: ${score}\nPedidos completados: ${pedidosCompletados}\nNivel: ${nivel}\n\n✨ Ingresa tu nombre para el récord:`,
+            `${mensaje}\n\n${resumen}\n\n✨ Ingresa tu nombre para el récord:`,
           );
           if (nombre && nombre.trim()) {
             guardarPuntuacion(nombre.trim(), score);
@@ -656,6 +1228,8 @@
         score = 0;
         timer = timerMax;
         nivel = 1;
+        combo = 1;
+        maxCombo = 1;
         pedidosCompletados = 0;
         totalCorrectos = 0;
         totalErrores = 0;
@@ -666,10 +1240,15 @@
         btnStart.disabled = false;
         btnStart.textContent = "▶️ Iniciar Turno";
 
-        pedidoTexto.textContent = "¡Listo para jugar! 🎀";
+        pedidoTexto.innerHTML = "🎀 ¡Listo para jugar!";
         pistaText.textContent = '💡 Presiona "Iniciar Turno" para comenzar';
-        clienteText.textContent = "🐱 Cliente: ";
-        pedidoContainer.classList.remove("correct-flash", "wrong-flash");
+        clienteText.innerHTML = `<span class="cliente-emoji">🐱</span><span>Cliente: </span>`;
+        pedidoContainer.classList.remove(
+          "correct-flash",
+          "wrong-flash",
+          "shake",
+        );
+        comboDisplay.style.display = "none";
 
         actualizarHUD();
         timerDisp.classList.remove("timer-warning");
