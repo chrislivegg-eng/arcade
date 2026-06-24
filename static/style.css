@@ -8,7 +8,7 @@ body {
   color: #ff6699;
   text-align: center;
   margin: 0;
-  padding: 20px;
+  padding: 2vw; /* Usamos 'vw' para que el padding sea fluido */
 }
 
 h1,
@@ -23,8 +23,8 @@ h2 {
   border: 4px dashed #ff99cc;
   padding: 30px;
   margin: 10px auto;
-  width: 100%;
-  max-width: 1200px;
+  width: 95%; /* Relativo para que no choque en los bordes */
+  max-width: 1200px; /* Tamaño por defecto */
   border-radius: 40px;
   box-shadow: 0 10px 30px rgba(255, 153, 204, 0.3);
   backdrop-filter: blur(5px);
@@ -35,13 +35,16 @@ input {
   padding: 12px;
   border-radius: 10px;
   border: 2px solid #ff99cc;
-  width: 250px;
+  width: 100%;
+  max-width: 250px; /* Adaptable en móviles, tope en PC */
   box-sizing: border-box;
 }
 
 img {
   margin-bottom: 20px;
   border-radius: 15px;
+  max-width: 100%; /* Evita que las imágenes se desborden */
+  height: auto;
 }
 
 .btn {
@@ -110,7 +113,8 @@ img {
   border-radius: 25px;
   border: 3px solid #ff99cc;
   text-align: center;
-  width: 280px;
+  width: 100%;
+  max-width: 280px;
   box-shadow: 0 8px 20px rgba(255, 153, 204, 0.2);
   display: flex;
   flex-direction: column;
@@ -150,7 +154,7 @@ img {
   font-weight: bold;
 }
 
-/* Colores de Botones Arcade */
+/* Colores de Botones Arcade (Se mantienen intactos) */
 .btn-kitty {
   background: linear-gradient(45deg, #ff99cc, #ff66a3);
 }
@@ -192,79 +196,135 @@ img {
 }
 
 /* =======================================================
-   📱 MAGIA RESPONSIVA GLOBAL (CELULARES Y TABLETS)
+   📺 MAGIA RESPONSIVA: MONITORES GRANDES Y ULTRAWIDE (1400px - 2300px)
    ======================================================= */
-@media (max-width: 768px) {
+@media (min-width: 1400px) {
   .kawaii-box {
-    padding: 15px 10px !important;
-    border-radius: 20px !important;
-    margin: 5px auto !important;
-    width: 95% !important;
-  }
-  h1 {
-    font-size: 1.8em !important;
+    max-width: 1400px; /* Cubre 1400px, 1520px, 1710px */
+    padding: 50px;
   }
   .botones-juegos {
-    grid-template-columns: 1fr !important;
-  }
-  .btn-large {
-    max-width: 100% !important;
-    font-size: 1.1em !important;
-  }
-  .game-tables {
-    flex-direction: column !important;
-    align-items: center !important;
-  }
-  .score-table {
-    width: 100% !important;
-    max-width: 320px !important;
-  }
-
-  /* Encoger todos los tableros de juego para que quepan */
-  .contenedor-tableros {
-    flex-direction: column !important;
-    align-items: center !important;
-  }
-  .celda {
-    width: 35px !important;
-    height: 35px !important;
-    font-size: 1.2em !important;
-  }
-  #tablero {
-    grid-template-columns: repeat(7, 35px) !important;
-    gap: 2px !important;
-  }
-  #t-mio,
-  #t-enemigo {
-    grid-template-columns: repeat(5, 35px) !important;
-    gap: 2px !important;
-  }
-  .memorama-tablero {
-    grid-template-columns: repeat(4, 65px) !important;
-    gap: 5px !important;
-  }
-  .carta {
-    width: 65px !important;
-    height: 65px !important;
-    font-size: 2em !important;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   }
 }
 
-@media (max-width: 380px) {
+@media (min-width: 1920px) {
+  .kawaii-box {
+    max-width: 1800px; /* Cubre 1920px, 2100px, 2300px */
+    padding: 60px;
+  }
+  h1 {
+    font-size: 3em;
+  }
+  .btn-large {
+    font-size: 1.5em;
+    max-width: 300px;
+  }
+  .score-table {
+    max-width: 350px;
+  }
+}
+
+/* =======================================================
+   💻 MAGIA RESPONSIVA: LAPTOPS Y TABLETS (768px - 1020px)
+   ======================================================= */
+@media (max-width: 1024px) {
+  /* Cubre tu punto de 1020px */
+  .game-tables {
+    flex-direction: row;
+    gap: 15px;
+  }
+  .score-table {
+    width: 45%;
+  }
+}
+
+@media (max-width: 768px) {
+  .kawaii-box {
+    padding: 15px 10px;
+    border-radius: 20px;
+    margin: 5px auto;
+    width: 95%;
+  }
+  h1 {
+    font-size: 1.8em;
+  }
+  .botones-juegos {
+    grid-template-columns: 1fr;
+  }
+  .btn-large {
+    max-width: 100%;
+    font-size: 1.1em;
+  }
+  .game-tables {
+    flex-direction: column;
+    align-items: center;
+  }
+  .score-table {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  /* Reducción de tableros general para tablets y móviles grandes */
+  .contenedor-tableros {
+    flex-direction: column;
+    align-items: center;
+  }
   .celda {
-    width: 30px !important;
-    height: 30px !important;
+    width: 35px;
+    height: 35px;
+    font-size: 1.2em;
   }
   #tablero {
-    grid-template-columns: repeat(7, 30px) !important;
+    grid-template-columns: repeat(7, 35px);
+    gap: 2px;
+    justify-content: center;
   }
   #t-mio,
   #t-enemigo {
-    grid-template-columns: repeat(5, 30px) !important;
+    grid-template-columns: repeat(5, 35px);
+    gap: 2px;
+    justify-content: center;
+  }
+  .memorama-tablero {
+    grid-template-columns: repeat(4, 65px);
+    gap: 5px;
+    justify-content: center;
   }
   .carta {
-    width: 55px !important;
-    height: 55px !important;
+    width: 65px;
+    height: 65px;
+    font-size: 2em;
+  }
+}
+
+/* =======================================================
+   📱 MAGIA RESPONSIVA: MÓVILES PEQUEÑOS (375px - 440px)
+   ======================================================= */
+@media (max-width: 440px) {
+  /* Al poner 440px como límite, este bloque cubre tus puntos: 375, 379, 400 y 440 de una sola vez */
+  body {
+    padding: 10px;
+  }
+  .celda {
+    width: 8vw; /* Medida relativa al ancho de la pantalla, nunca se desbordará */
+    height: 8vw;
+    font-size: 1em;
+  }
+  #tablero {
+    grid-template-columns: repeat(7, 8vw);
+  }
+  #t-mio,
+  #t-enemigo {
+    grid-template-columns: repeat(5, 10vw);
+  }
+  .memorama-tablero {
+    grid-template-columns: repeat(4, 18vw);
+  }
+  .carta {
+    width: 18vw;
+    height: 18vw;
+    font-size: 1.5em;
   }
 }
 
@@ -287,7 +347,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  touch-action: none; /* Evita que la pantalla haga zoom al picar rápido */
+  touch-action: none;
   user-select: none;
   cursor: pointer;
 }
