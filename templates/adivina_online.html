@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Adivina Online</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <style>
+      .lobby-box {
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        border: 3px dashed #ff99cc;
+        max-width: 400px;
+        margin: 40px auto;
+      }
+      .input-sala {
+        padding: 12px;
+        border-radius: 10px;
+        border: 2px solid #ff99cc;
+        font-size: 1.2em;
+        text-align: center;
+        width: 80%;
+        margin-bottom: 15px;
+      }
+      .caja-jugador {
+        background: #fff0f5;
+        padding: 15px;
+        border-radius: 10px;
+        margin: 10px;
+        border: 2px solid #ff99cc;
+      }
+    </style>
+  </head>
+  <body style="text-align: center">
+    <h2>🔢 Adivina VS 🔢</h2>
+
+    <div id="pantalla-lobby" class="lobby-box">
+      <button class="btn" onclick="crearSala()">Crear Sala</button><br /><br />
+      <input
+        type="text"
+        id="codigo-sala"
+        class="input-sala"
+        placeholder="CÓDIGO"
+      />
+      <button class="btn" onclick="unirseSala()">Unirse</button>
+      <br /><br /><a href="/secreto" style="color: #ff3385">Volver al menú</a>
+    </div>
+
+    <div id="pantalla-juego" style="display: none">
+      <h3>Sala: <span id="display-sala"></span></h3>
+      <h4 style="color: #666">
+        El servidor pensó un número del 1 al 100. ¡Adivina antes que el rival!
+      </h4>
+
+      <div class="caja-jugador">
+        <h3 style="color: #0099ff">JUGADOR 1</h3>
+        <p id="msg-p1" style="font-weight: bold; font-size: 1.2em">
+          Esperando...
+        </p>
+      </div>
+      <div class="caja-jugador">
+        <h3 style="color: #ff9900">JUGADOR 2</h3>
+        <p id="msg-p2" style="font-weight: bold; font-size: 1.2em">
+          Esperando...
+        </p>
+      </div>
+
+      <div id="controles" style="margin-top: 20px">
+        <input
+          type="number"
+          id="input-numero"
+          class="input-sala"
+          placeholder="Tu número"
+          style="width: 50%"
+        />
+        <button class="btn" onclick="enviarNumero()">Enviar</button>
+      </div>
+      <br />
+      <a href="/secreto" class="btn" style="background: #ccc">Salir</a>
+    </div>
+
+    <script>
+      let miSala = "",
+        miJugador = "";
+
+      function crearSala() {
+        miSala = Math.random().toString(36).substring(2, 6).toUpperCase();
+        miJugador = "p1";
+        iniciar();
+      }
+      function unirseSala() {
+        miSala = document.getElementById("codigo-sala").value.toUpperCase();
+        miJugador = "p2";
+        iniciar();
+      }
+
+      function iniciar() {
+        document.getElementById("pantalla-lobby").style.display = "none";
+        document.getElementById("pantalla-juego").style.display = "block";
+        document.getElementById("display-sala").innerText = miSala;
+        setInterval(obtenerEstado, 1000);
+        obtenerEstado();
+      }
+
+      function obtenerEstado() {
+        fetch(`/api/estado_adivina/${miSala}`)
+          .then((r) => r.json())
+          .then((s) => {
+            document.getElementById("msg-p1").innerText = s.msg_p1;
+            document.getElementById("msg-p2").innerText = s.msg_p2;
+
+            if (s.ganador !== "") {
+              document.getElementById("controles").innerHTML =
+                s.ganador === miJugador
+                  ? "<h2 style='color:green;'>¡GANASTE! 🎉</h2>"
+                  : "<h2 style='color:red;'>¡PERDISTE! 😿</h2>";
+            }
+          });
+      }
+
+      function enviarNumero() {
+        let num = document.getElementById("input-numero").value;
+        if (!num) return;
+        fetch("/api/jugar_adivina", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sala: miSala,
+            jugador: miJugador,
+            intento: num,
+          }),
+        }).then(() => {
+          document.getElementById("input-numero").value = "";
+          obtenerEstado();
+        });
+      }
+    </script>
+  </body>
+</html>

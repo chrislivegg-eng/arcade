@@ -34,6 +34,12 @@ ARCHIVO_VICTORIAS_NAV_ONLINE = "victorias_navales_online.txt"
 # --- Variables Globales ---
 salas_memorama = {}
 emojis_memorama = ["🎀", "🐱", "🌸", "🍓", "💖", "🍰", "🍎", "⭐"]
+salas_dados = {}
+salas_adivina = {}
+salas_fantasma = {}
+salas_ahorcado = {}
+
+palabras_ahorcado = ["KAWAII", "GATITO", "FRESA", "ARCADE", "PYTHON", "JUEGO", "COMPUTADORA", "ESTRELLA"]
 
 # --- Rutas de Gestión (Inventario) ---
 @app.route('/')
@@ -142,6 +148,14 @@ def juego_cafe(): return render_template('juego_cafe.html')
 def juego_vuelo(): return render_template('juego_vuelo.html')
 @app.route('/memorama_online')
 def memorama_online(): return render_template('memorama_online.html')
+@app.route('/dados_online')
+def dados_online(): return render_template('dados_online.html')
+@app.route('/adivina_online')
+def adivina_online(): return render_template('adivina_online.html')
+@app.route('/fantasma_online')
+def fantasma_online(): return render_template('fantasma_online.html')
+@app.route('/ahorcado_online')
+def ahorcado_online(): return render_template('ahorcado_online.html')
 
 # --- Motor de Guardado (Acumulativo y Limpio) ---
 def guardar_generico(archivo, nombre, puntos, inverso=False, acumulable=False):
@@ -431,6 +445,128 @@ def estado_memorama(sala):
             'cartas_seleccionadas': []
         }
     return jsonify(salas_memorama[sala])
+
+@app.route('/api/estado_dados/<sala>')
+def estado_dados(sala):
+    if sala not in salas_dados:
+        salas_dados[sala] = {'p1': 0, 'p2': 0, 'estado': 'esperando', 'ganador': ''}
+    # Ocultamos la tirada del rival hasta que ambos tiren
+    s = salas_dados[sala].copy()
+    if s['estado'] == 'esperando':
+        s['p1'] = 'listo' if s['p1'] != 0 else 0
+        s['p2'] = 'listo' if s['p2'] != 0 else 0
+    return jsonify(s)
+
+@app.route('/api/jugar_dados', methods=['POST'])
+def jugar_dados():
+    sala, jug = request.json['sala'], request.json['jugador']
+    s = salas_dados.get(sala)
+    if s and s['estado'] == 'esperando' and s[jug] == 0:
+        s[jug] = random.randint(1, 6) # Tira un dado del 1 al 6
+        if s['p1'] != 0 and s['p2'] != 0:
+            s['estado'] = 'terminado'
+            if s['p1'] > s['p2']: s['ganador'] = 'p1'
+            elif s['p2'] > s['p1']: s['ganador'] = 'p2'
+            else: s['ganador'] = 'Empate'
+    return jsonify({"status": "ok"})
+
+@app.route('/api/reiniciar_dados', methods=['POST'])
+def reiniciar_dados():
+    sala = request.json['sala']
+    if sala in salas_dados: salas_dados[sala] = {'p1': 0, 'p2': 0, 'estado': 'esperando', 'ganador': ''}
+    return jsonify({"status": "ok"})
+
+# =======================================================
+# 2. APIs MULTIJUGADOR: ADIVINA EL NÚMERO
+# =======================================================
+@app.route('/api/estado_adivina/<sala>')
+def estado_adivina(sala):
+    if sala not in salas_adivina:
+        salas_adivina[sala] = {'secreto': random.randint(1, 100), 'msg_p1': 'Escribe un número', 'msg_p2': 'Escribe un número', 'ganador': ''}
+    # Ocultamos el número secreto al enviarlo a los celulares
+    s = salas_adivina[sala].copy()
+    s['secreto'] = '???' 
+    return jsonify(s)
+
+@app.route('/api/jugar_adivina', methods=['POST'])
+def jugar_adivina():
+    sala, jug, intento = request.json['sala'], request.json['jugador'], int(request.json['intento'])
+    s = salas_adivina.get(sala)
+    if s and s['ganador'] == '':
+        llave_msg = 'msg_p1' if jug == 'p1' else 'msg_p2'
+        if intento == s['secreto']:
+            s[llave_msg] = f"¡ATINASTE! Era el {intento}"
+            s['ganador'] = jug
+        elif intento < s['secreto']:
+            s[llave_msg] = f"{intento} es muy BAJO ⬆️"
+        else:
+            s[llave_msg] = f"{intento} es muy ALTO ⬇️"
+    return jsonify({"status": "ok"})
+
+# =======================================================
+# 3. APIs MULTIJUGADOR: ATRAPA EL FANTASMA
+# =======================================================
+@app.route('/api/estado_fantasma/<sala>')
+def estado_fantasma(sala):
+    if sala not in salas_fantasma:
+        # fx y fy son las coordenadas (porcentaje de la pantalla)
+        salas_fantasma[sala] = {'p1': 0, 'p2': 0, 'fx': 50, 'fy': 50, 'fid': 1, 'ganador': ''}
+    return jsonify(salas_fantasma[sala])
+
+@app.route('/api/jugar_fantasma', methods=['POST'])
+def jugar_fantasma():
+    sala, jug, fid_tocado = request.json['sala'], request.json['jugador'], request.json['fid']
+    s = salas_fantasma.get(sala)
+    # Si le atinó al fantasma actual (fid)
+    if s and s['ganador'] == '' and s['fid'] == fid_tocado:
+        s[jug] += 1
+        if s[jug] >= 10:
+            s['ganador'] = jug
+        else:
+            # Mueve el fantasma a otra parte aleatoria
+            s['fx'] = random.randint(10, 80)
+            s['fy'] = random.randint(10, 80)
+            s['fid'] += 1
+    return jsonify({"status": "ok"})
+
+# =======================================================
+# 4. APIs MULTIJUGADOR: AHORCADO COOPERATIVO
+# =======================================================
+@app.route('/api/estado_ahorcado/<sala>')
+def estado_ahorcado(sala):
+    if sala not in salas_ahorcado:
+        secreto = random.choice(palabras_ahorcado)
+        salas_ahorcado[sala] = {
+            'secreto': secreto, 'descubierto': ['_'] * len(secreto),
+            'errores': 0, 'turno': 'p1', 'estado': 'jugando', 'letras_usadas': []
+        }
+    s = salas_ahorcado[sala].copy()
+    s['secreto'] = '???' # Ocultar la palabra real
+    return jsonify(s)
+
+@app.route('/api/jugar_ahorcado', methods=['POST'])
+def jugar_ahorcado():
+    sala, jug, letra = request.json['sala'], request.json['jugador'], request.json['letra'].upper()
+    s = salas_ahorcado.get(sala)
+    
+    if s and s['estado'] == 'jugando' and s['turno'] == jug and letra not in s['letras_usadas']:
+        s['letras_usadas'].append(letra)
+        if letra in s['secreto']:
+            # Revelar las letras
+            for i, l in enumerate(s['secreto']):
+                if l == letra: s['descubierto'][i] = letra
+            if '_' not in s['descubierto']:
+                s['estado'] = 'ganaron'
+        else:
+            s['errores'] += 1
+            if s['errores'] >= 6:
+                s['estado'] = 'perdieron'
+        
+        # Cambiar de turno si el juego sigue
+        if s['estado'] == 'jugando':
+            s['turno'] = 'p2' if jug == 'p1' else 'p1'
+            
+    return jsonify({"status": "ok"})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

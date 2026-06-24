@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dados Kawaii Online</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <style>
+      .lobby-box {
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        border: 3px dashed #ff99cc;
+        max-width: 400px;
+        margin: 40px auto;
+      }
+      .input-sala {
+        padding: 12px;
+        border-radius: 10px;
+        border: 2px solid #ff99cc;
+        font-size: 1.2em;
+        text-align: center;
+        width: 80%;
+        margin-bottom: 15px;
+      }
+      .dado-container {
+        font-size: 5em;
+        margin: 20px 0;
+        display: flex;
+        justify-content: space-around;
+      }
+    </style>
+  </head>
+  <body style="text-align: center">
+    <h2>🎲 Dados Kawaii 🎲</h2>
+
+    <div id="pantalla-lobby" class="lobby-box">
+      <h3>Crear Sala</h3>
+      <button class="btn" onclick="crearSala()">Nueva Sala</button>
+      <hr style="margin: 20px 0; border: 1px solid #ffe6f2" />
+      <h3>Unirse</h3>
+      <input
+        type="text"
+        id="codigo-sala"
+        class="input-sala"
+        placeholder="CÓDIGO"
+      />
+      <button class="btn" onclick="unirseSala()">Entrar</button>
+      <br /><br /><a href="/secreto" style="color: #ff3385; font-weight: bold"
+        >Volver al menú</a
+      >
+    </div>
+
+    <div id="pantalla-juego" style="display: none">
+      <h3>
+        Sala: <span id="display-sala"></span> | Eres
+        <span id="display-jugador"></span>
+      </h3>
+      <h4 id="estado-juego" style="color: #cc0066">Esperando jugadores...</h4>
+
+      <div class="dado-container">
+        <div>
+          <span style="font-size: 0.3em; display: block">P1</span
+          ><span id="dado-p1">❔</span>
+        </div>
+        <div>
+          <span style="font-size: 0.3em; display: block">P2</span
+          ><span id="dado-p2">❔</span>
+        </div>
+      </div>
+
+      <button
+        class="btn"
+        id="btn-tirar"
+        onclick="tirarDado()"
+        style="font-size: 1.5em; padding: 15px 30px"
+      >
+        ¡TIRAR DADO!
+      </button>
+      <br /><br />
+      <button
+        class="btn"
+        onclick="reiniciarJuego()"
+        style="background: #ccc; border-color: #999"
+      >
+        Otra Ronda
+      </button>
+      <a
+        href="/secreto"
+        class="btn"
+        style="background: #ff66a3; border-color: #cc0066"
+        >Salir</a
+      >
+    </div>
+
+    <script>
+      let miSala = "",
+        miJugador = "",
+        intervalo = null;
+
+      function crearSala() {
+        miSala = Math.random().toString(36).substring(2, 6).toUpperCase();
+        miJugador = "p1";
+        iniciar();
+      }
+      function unirseSala() {
+        miSala = document.getElementById("codigo-sala").value.toUpperCase();
+        miJugador = "p2";
+        iniciar();
+      }
+
+      function iniciar() {
+        document.getElementById("pantalla-lobby").style.display = "none";
+        document.getElementById("pantalla-juego").style.display = "block";
+        document.getElementById("display-sala").innerText = miSala;
+        document.getElementById("display-jugador").innerText =
+          miJugador.toUpperCase();
+        intervalo = setInterval(obtenerEstado, 1000);
+        obtenerEstado();
+      }
+
+      function obtenerEstado() {
+        fetch(`/api/estado_dados/${miSala}`)
+          .then((r) => r.json())
+          .then((s) => {
+            document.getElementById("dado-p1").innerText =
+              s.p1 === 0 ? "❔" : s.p1 === "listo" ? "✔️" : s.p1;
+            document.getElementById("dado-p2").innerText =
+              s.p2 === 0 ? "❔" : s.p2 === "listo" ? "✔️" : s.p2;
+
+            if (s.estado === "terminado") {
+              if (s.ganador === "Empate")
+                document.getElementById("estado-juego").innerText = "¡EMPATE!";
+              else
+                document.getElementById("estado-juego").innerText =
+                  s.ganador === miJugador ? "¡GANASTE! 🎉" : "¡PERDISTE! 😿";
+              document.getElementById("btn-tirar").style.display = "none";
+            } else {
+              document.getElementById("estado-juego").innerText =
+                s[miJugador] === 0 ? "¡Tira tu dado!" : "Esperando al rival...";
+              document.getElementById("btn-tirar").style.display =
+                s[miJugador] === 0 ? "inline-block" : "none";
+            }
+          });
+      }
+
+      function tirarDado() {
+        fetch("/api/jugar_dados", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sala: miSala, jugador: miJugador }),
+        }).then(obtenerEstado);
+      }
+
+      function reiniciarJuego() {
+        fetch("/api/reiniciar_dados", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sala: miSala }),
+        }).then(obtenerEstado);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ahorcado Cooperativo</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <style>
+      .lobby-box {
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        border: 3px dashed #ff99cc;
+        max-width: 400px;
+        margin: 40px auto;
+      }
+      .input-sala {
+        padding: 12px;
+        border-radius: 10px;
+        border: 2px solid #ff99cc;
+        font-size: 1.2em;
+        text-align: center;
+        width: 80%;
+        margin-bottom: 15px;
+      }
+
+      #palabra {
+        font-size: 2.5em;
+        letter-spacing: 10px;
+        margin: 20px 0;
+        font-weight: bold;
+        color: #cc0066;
+      }
+      .teclado button {
+        font-size: 1.2em;
+        margin: 5px;
+        padding: 10px 15px;
+        border-radius: 8px;
+        border: 2px solid #ff99cc;
+        background: white;
+        cursor: pointer;
+      }
+      .teclado button:disabled {
+        background: #eee;
+        border-color: #ccc;
+        color: #999;
+      }
+    </style>
+  </head>
+  <body style="text-align: center">
+    <h2>📝 Ahorcado Co-op 📝</h2>
+
+    <div id="pantalla-lobby" class="lobby-box">
+      <button class="btn" onclick="crearSala()">Crear Sala</button><br /><br />
+      <input
+        type="text"
+        id="codigo-sala"
+        class="input-sala"
+        placeholder="CÓDIGO"
+      />
+      <button class="btn" onclick="unirseSala()">Unirse</button>
+      <br /><br /><a href="/secreto" style="color: #ff3385">Volver al menú</a>
+    </div>
+
+    <div id="pantalla-juego" style="display: none">
+      <h3>Sala: <span id="display-sala"></span></h3>
+      <h4 id="estado-turno" style="color: #0099ff">Cargando turno...</h4>
+      <h4 style="color: red">
+        Errores: <span id="display-errores">0</span> / 6
+      </h4>
+
+      <div id="palabra">_ _ _ _</div>
+
+      <div id="teclado" class="teclado"></div>
+      <br />
+      <a href="/secreto" class="btn" style="background: #ccc">Salir</a>
+    </div>
+
+    <script>
+      let miSala = "",
+        miJugador = "";
+      const alfabeto = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ".split("");
+
+      function crearSala() {
+        miSala = Math.random().toString(36).substring(2, 6).toUpperCase();
+        miJugador = "p1";
+        iniciar();
+      }
+      function unirseSala() {
+        miSala = document.getElementById("codigo-sala").value.toUpperCase();
+        miJugador = "p2";
+        iniciar();
+      }
+
+      function iniciar() {
+        document.getElementById("pantalla-lobby").style.display = "none";
+        document.getElementById("pantalla-juego").style.display = "block";
+        document.getElementById("display-sala").innerText = miSala;
+
+        let tecladoHTML = "";
+        alfabeto.forEach(
+          (l) =>
+            (tecladoHTML += `<button id="letra-${l}" onclick="enviarLetra('${l}')">${l}</button>`),
+        );
+        document.getElementById("teclado").innerHTML = tecladoHTML;
+
+        setInterval(obtenerEstado, 1000);
+        obtenerEstado();
+      }
+
+      function obtenerEstado() {
+        fetch(`/api/estado_ahorcado/${miSala}`)
+          .then((r) => r.json())
+          .then((s) => {
+            document.getElementById("palabra").innerText =
+              s.descubierto.join(" ");
+            document.getElementById("display-errores").innerText = s.errores;
+
+            if (s.estado === "ganaron") {
+              document.getElementById("estado-turno").innerHTML =
+                "<span style='color:green'>¡GANARON! 🎉</span>";
+              document.getElementById("teclado").style.display = "none";
+            } else if (s.estado === "perdieron") {
+              document.getElementById("estado-turno").innerHTML =
+                "<span style='color:red'>¡PERDIERON! 😿</span>";
+              document.getElementById("teclado").style.display = "none";
+            } else {
+              document.getElementById("estado-turno").innerText =
+                s.turno === miJugador
+                  ? "¡ES TU TURNO!"
+                  : "Esperando al compañero...";
+
+              // Bloquear letras ya usadas
+              s.letras_usadas.forEach((l) => {
+                let btn = document.getElementById(`letra-${l}`);
+                if (btn) btn.disabled = true;
+              });
+            }
+          });
+      }
+
+      function enviarLetra(l) {
+        fetch("/api/jugar_ahorcado", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sala: miSala, jugador: miJugador, letra: l }),
+        }).then(obtenerEstado);
+      }
+    </script>
+  </body>
+</html>

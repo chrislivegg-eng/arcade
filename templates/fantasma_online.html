@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Atrapa al Fantasma</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <style>
+      .lobby-box {
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        border: 3px dashed #ff99cc;
+        max-width: 400px;
+        margin: 40px auto;
+      }
+      .input-sala {
+        padding: 12px;
+        border-radius: 10px;
+        border: 2px solid #ff99cc;
+        font-size: 1.2em;
+        text-align: center;
+        width: 80%;
+        margin-bottom: 15px;
+      }
+
+      #area-juego {
+        width: 100%;
+        height: 60vh;
+        background: #2c3e50;
+        border: 5px solid #ff99cc;
+        border-radius: 15px;
+        position: relative;
+        overflow: hidden;
+        margin-top: 20px;
+      }
+      #fantasma {
+        font-size: 3em;
+        position: absolute;
+        cursor: pointer;
+        user-select: none;
+        transition:
+          top 0.2s,
+          left 0.2s;
+      }
+    </style>
+  </head>
+  <body style="text-align: center; overflow: hidden">
+    <h2>👻 Atrapa al Fantasma 👻</h2>
+
+    <div id="pantalla-lobby" class="lobby-box">
+      <button class="btn" onclick="crearSala()">Crear Sala</button><br /><br />
+      <input
+        type="text"
+        id="codigo-sala"
+        class="input-sala"
+        placeholder="CÓDIGO"
+      />
+      <button class="btn" onclick="unirseSala()">Unirse</button>
+      <br /><br /><a href="/secreto" style="color: #ff3385">Volver al menú</a>
+    </div>
+
+    <div id="pantalla-juego" style="display: none">
+      <h3>Sala: <span id="display-sala"></span></h3>
+      <h3 style="margin: 0">
+        Puntos:
+        <span style="color: #0099ff">J1: <span id="pts-p1">0</span></span> |
+        <span style="color: #ff9900">J2: <span id="pts-p2">0</span></span>
+      </h3>
+      <p style="margin: 5px; color: #666">
+        ¡El primero en llegar a 10 puntos gana!
+      </p>
+
+      <div id="area-juego">
+        <div id="fantasma" onclick="tocarFantasma()">👻</div>
+      </div>
+      <br />
+      <a href="/secreto" class="btn" style="background: #ccc; padding: 10px"
+        >Salir</a
+      >
+    </div>
+
+    <script>
+      let miSala = "",
+        miJugador = "",
+        currentFid = 1;
+
+      function crearSala() {
+        miSala = Math.random().toString(36).substring(2, 6).toUpperCase();
+        miJugador = "p1";
+        iniciar();
+      }
+      function unirseSala() {
+        miSala = document.getElementById("codigo-sala").value.toUpperCase();
+        miJugador = "p2";
+        iniciar();
+      }
+
+      function iniciar() {
+        document.getElementById("pantalla-lobby").style.display = "none";
+        document.getElementById("pantalla-juego").style.display = "block";
+        document.getElementById("display-sala").innerText = miSala;
+        setInterval(obtenerEstado, 800); // Se actualiza rápido para los reflejos
+        obtenerEstado();
+      }
+
+      function obtenerEstado() {
+        fetch(`/api/estado_fantasma/${miSala}`)
+          .then((r) => r.json())
+          .then((s) => {
+            document.getElementById("pts-p1").innerText = s.p1;
+            document.getElementById("pts-p2").innerText = s.p2;
+
+            if (s.ganador !== "") {
+              document.getElementById("area-juego").innerHTML =
+                `<h1 style="color:white; margin-top:20vh;">${s.ganador === miJugador ? "¡GANASTE! 🎉" : "¡PERDISTE! 😿"}</h1>`;
+            } else {
+              let fantasma = document.getElementById("fantasma");
+              fantasma.style.left = s.fx + "%";
+              fantasma.style.top = s.fy + "%";
+              currentFid = s.fid;
+            }
+          });
+      }
+
+      function tocarFantasma() {
+        fetch("/api/jugar_fantasma", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sala: miSala,
+            jugador: miJugador,
+            fid: currentFid,
+          }),
+        }).then(obtenerEstado);
+      }
+    </script>
+  </body>
+</html>
