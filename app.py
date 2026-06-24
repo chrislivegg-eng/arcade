@@ -125,6 +125,7 @@ def secreto():
                            victorias_ahorcado=leer_records(ARCHIVO_AHORCADO))
 
 
+
 # --- Rutas de Juegos HTML ---
 @app.route('/juego_salto')
 def juego_salto(): return render_template('juego_salto.html')
