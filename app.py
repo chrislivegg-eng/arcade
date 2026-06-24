@@ -25,9 +25,11 @@ ARCHIVO_SIMON = "record_simon.txt"
 ARCHIVO_SHOOTER = "record_shooter.txt"
 ARCHIVO_CAFE = "record_cafe.txt"
 ARCHIVO_VUELO = "record_vuelo.txt"
+ARCHIVO_PIXEL_ART = "record_pixel_art.txt"  # NUEVO
 ARCHIVO_SALAS_GATO = "salas_gato.json"
 ARCHIVO_SALAS_C4 = "salas_conecta4.json"
 ARCHIVO_SALAS_NAV = "salas_navales.json"
+ARCHIVO_SALAS_PIXEL = "salas_pixel.json"  # NUEVO
 ARCHIVO_VICTORIAS_NAV = "victorias_navales.txt"
 ARCHIVO_VICTORIAS_NAV_ONLINE = "victorias_navales_online.txt"
 
@@ -38,7 +40,6 @@ salas_dados = {}
 salas_adivina = {}
 salas_fantasma = {}
 salas_ahorcado = {}
-
 palabras_ahorcado = ["KAWAII", "GATITO", "FRESA", "ARCADE", "PYTHON", "JUEGO", "COMPUTADORA", "ESTRELLA"]
 
 # --- Rutas de Gestión (Inventario) ---
@@ -108,52 +109,77 @@ def secreto():
                            records_shooter=leer_records(ARCHIVO_SHOOTER),
                            records_cafe=leer_records(ARCHIVO_CAFE),
                            records_vuelo=leer_records(ARCHIVO_VUELO),
+                           records_pixel_art=leer_records(ARCHIVO_PIXEL_ART),  # NUEVO
                            victorias_navales=leer_records(ARCHIVO_VICTORIAS_NAV),
                            victorias_navales_online=leer_records(ARCHIVO_VICTORIAS_NAV_ONLINE))
 
 # --- Rutas de Juegos HTML ---
 @app.route('/juego_salto')
 def juego_salto(): return render_template('juego_salto.html')
+
 @app.route('/juego_adivina')
 def juego_adivina(): return render_template('juego_adivina.html')
+
 @app.route('/juego_gato')
 def juego_gato(): return render_template('juego_gato.html')
+
 @app.route('/juego_conecta4')
 def juego_conecta4(): return render_template('juego_conecta4.html')
+
 @app.route('/juego_naval')
 def juego_naval(): return render_template('juego_naval.html')
+
 @app.route('/juego_memorama')
 def juego_memorama(): return render_template('juego_memorama.html')
+
 @app.route('/juego_fresas')
 def juego_fresas(): return render_template('juego_fresas.html')
+
 @app.route('/juego_clicker')
 def juego_clicker(): return render_template('juego_clicker.html')
+
 @app.route('/juego_vibora')
 def juego_vibora(): return render_template('juego_vibora.html')
+
 @app.route('/juego_topo')
 def juego_topo(): return render_template('juego_topo.html')
+
 @app.route('/juego_torre')
 def juego_torre(): return render_template('juego_torre.html')
+
 @app.route('/juego_rally')
 def juego_rally(): return render_template('juego_rally.html')
+
 @app.route('/juego_cima')
 def juego_cima(): return render_template('juego_cima.html')
+
 @app.route('/juego_simon')
 def juego_simon(): return render_template('juego_simon.html')
+
 @app.route('/juego_shooter')
 def juego_shooter(): return render_template('juego_shooter.html')
+
 @app.route('/juego_cafe')
 def juego_cafe(): return render_template('juego_cafe.html')
+
 @app.route('/juego_vuelo')
 def juego_vuelo(): return render_template('juego_vuelo.html')
+
+@app.route('/pixel_art_battle')  # NUEVO
+def pixel_art_battle(): return render_template('pixel_art_battle.html')
+
 @app.route('/memorama_online')
 def memorama_online(): return render_template('memorama_online.html')
+
 @app.route('/dados_online')
 def dados_online(): return render_template('dados_online.html')
+
 @app.route('/adivina_online')
 def adivina_online(): return render_template('adivina_online.html')
+
 @app.route('/fantasma_online')
 def fantasma_online(): return render_template('fantasma_online.html')
+
 @app.route('/ahorcado_online')
 def ahorcado_online(): return render_template('ahorcado_online.html')
 
@@ -193,42 +219,75 @@ def guardar_generico(archivo, nombre, puntos, inverso=False, acumulable=False):
 # --- APIs Guardado Juegos Individuales ---
 @app.route('/guardar_cafe', methods=['POST'])
 def guardar_cafe(): return guardar_generico(ARCHIVO_CAFE, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
 @app.route('/guardar_shooter', methods=['POST'])
 def guardar_shooter(): return guardar_generico(ARCHIVO_SHOOTER, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
 @app.route('/guardar_puntos', methods=['POST'])
 def guardar_puntos(): return guardar_generico(ARCHIVO_PUNTOS, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
 @app.route('/guardar_memorama', methods=['POST'])
 def guardar_memorama(): return guardar_generico(ARCHIVO_MEMORAMA, request.json['nombre'].strip().title(), request.json['intentos'], acumulable=True)
+
 @app.route('/guardar_fresas', methods=['POST'])
 def guardar_fresas(): return guardar_generico(ARCHIVO_FRESAS, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
 @app.route('/guardar_clicker', methods=['POST'])
 def guardar_clicker(): return guardar_generico(ARCHIVO_CLICKER, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
 @app.route('/guardar_vibora', methods=['POST'])
 def guardar_vibora(): return guardar_generico(ARCHIVO_VIBORA, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
 @app.route('/guardar_topo', methods=['POST'])
 def guardar_topo(): return guardar_generico(ARCHIVO_TOPO, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
 @app.route('/guardar_torre', methods=['POST'])
 def guardar_torre(): return guardar_generico(ARCHIVO_TORRE, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
 @app.route('/guardar_rally', methods=['POST'])
 def guardar_rally(): return guardar_generico(ARCHIVO_RALLY, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
 @app.route('/guardar_cima', methods=['POST'])
 def guardar_cima(): return guardar_generico(ARCHIVO_CIMA, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
 @app.route('/guardar_simon', methods=['POST'])
 def guardar_simon(): return guardar_generico(ARCHIVO_SIMON, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
 @app.route('/guardar_vuelo', methods=['POST'])
 def guardar_vuelo(): return guardar_generico(ARCHIVO_VUELO, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
+@app.route('/guardar_pixel_art', methods=['POST'])  # NUEVO
+def guardar_pixel_art(): return guardar_generico(ARCHIVO_PIXEL_ART, request.json['nombre'].strip().title(), request.json['puntos'], acumulable=True)
+
+# --- Obtener Récords ---
+@app.route('/records_pixel_art')  # NUEVO
+def records_pixel_art():
+    records = {}
+    if os.path.exists(ARCHIVO_PIXEL_ART):
+        with open(ARCHIVO_PIXEL_ART, "r") as f:
+            for line in f:
+                if ":" in line:
+                    n, p = line.strip().split(":")
+                    records[n.strip().lower().title()] = int(p)
+    sorted_records = [{"nombre": k, "puntos": v} for k, v in sorted(records.items(), key=lambda item: item[1], reverse=True)]
+    return jsonify(sorted_records)
 
 # --- APIs Guardado Multijugador ---
 @app.route('/guardar_victoria', methods=['POST'])
 def guardar_victoria(): return guardar_generico(ARCHIVO_VICTORIAS, request.json['nombre'].strip().title(), 1, acumulable=True)
+
 @app.route('/guardar_victoria_online', methods=['POST'])
 def guardar_victoria_online(): return guardar_generico(ARCHIVO_VICTORIAS_ONLINE, request.json['nombre'].strip().title(), 1, acumulable=True)
+
 @app.route('/guardar_victoria_c4', methods=['POST'])
 def guardar_victoria_c4(): return guardar_generico(ARCHIVO_VICTORIAS_C4, request.json['nombre'].strip().title(), 1, acumulable=True)
+
 @app.route('/guardar_victoria_c4_online', methods=['POST'])
 def guardar_victoria_c4_online(): return guardar_generico(ARCHIVO_VICTORIAS_C4_ONLINE, request.json['nombre'].strip().title(), 1, acumulable=True)
+
 @app.route('/guardar_victoria_nav', methods=['POST'])
 def guardar_victoria_nav(): return guardar_generico(ARCHIVO_VICTORIAS_NAV, request.json['nombre'].strip().title(), 1, acumulable=True)
+
 @app.route('/guardar_victoria_nav_online', methods=['POST'])
 def guardar_victoria_nav_online(): return guardar_generico(ARCHIVO_VICTORIAS_NAV_ONLINE, request.json['nombre'].strip().title(), 1, acumulable=True)
 
@@ -437,6 +496,110 @@ def api_disparar_nav():
     guardar_salas_nav(salas)
     return jsonify({"status": "ok"})
 
+# --- APIs MULTIJUGADOR: PIXEL ART (NUEVO) ---
+def leer_salas_pixel():
+    if os.path.exists(ARCHIVO_SALAS_PIXEL):
+        with open(ARCHIVO_SALAS_PIXEL, "r") as f:
+            return json.load(f)
+    return {}
+
+def guardar_salas_pixel(salas):
+    with open(ARCHIVO_SALAS_PIXEL, "w") as f:
+        json.dump(salas, f)
+
+@app.route('/api/crear_sala_pixel', methods=['POST'])
+def crear_sala_pixel():
+    salas = leer_salas_pixel()
+    codigo = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    salas[codigo] = {
+        "p1": {"listo": False, "puntos": 0, "aciertos": 0, "errores": 0},
+        "p2": {"listo": False, "puntos": 0, "aciertos": 0, "errores": 0},
+        "turno": "p1",
+        "ronda": 1,
+        "estado": "esperando",
+        "patron": [],
+        "timer": 0
+    }
+    guardar_salas_pixel(salas)
+    return jsonify({"sala": codigo})
+
+@app.route('/api/estado_pixel', methods=['GET'])
+def api_estado_pixel():
+    sala = request.args.get('sala')
+    salas = leer_salas_pixel()
+    if sala in salas:
+        return jsonify(salas[sala])
+    return jsonify({"error": "Sala no encontrada"}), 404
+
+@app.route('/api/unirse_pixel', methods=['POST'])
+def api_unirse_pixel():
+    datos = request.json
+    salas = leer_salas_pixel()
+    sala = datos['sala']
+    jugador = datos['jugador']
+    if sala in salas:
+        salas[sala][jugador]["listo"] = True
+        if salas[sala]["p1"]["listo"] and salas[sala]["p2"]["listo"]:
+            salas[sala]["estado"] = "jugando"
+            # Generar patrón inicial
+            salas[sala]["patron"] = generar_patron_pixel(1)
+        guardar_salas_pixel(salas)
+        return jsonify({"status": "ok"})
+    return jsonify({"error": "Sala no encontrada"}), 404
+
+@app.route('/api/jugar_pixel', methods=['POST'])
+def api_jugar_pixel():
+    datos = request.json
+    salas = leer_salas_pixel()
+    sala = datos['sala']
+    jugador = datos['jugador']
+    celda = datos['celda']
+    color = datos['color']
+    
+    if sala in salas:
+        estado = salas[sala]
+        if estado['estado'] == 'jugando' and estado['turno'] == jugador:
+            # Verificar si el color coincide con el patrón
+            if estado['patron'][celda] == color:
+                estado[jugador]["aciertos"] += 1
+                # Calcular puntos
+                puntos = 10 + max(0, 10 - estado['timer'])
+                estado[jugador]["puntos"] += puntos
+            else:
+                estado[jugador]["errores"] += 1
+                estado[jugador]["puntos"] = max(0, estado[jugador]["puntos"] - 5)
+            
+            # Cambiar turno
+            estado['turno'] = "p2" if jugador == "p1" else "p1"
+            
+            # Verificar si alguien completó el patrón
+            total_celdas = sum(1 for c in estado['patron'] if c >= 0)
+            if estado["p1"]["aciertos"] + estado["p2"]["aciertos"] >= total_celdas * 2:
+                estado["estado"] = "terminado"
+                # Determinar ganador
+                if estado["p1"]["puntos"] > estado["p2"]["puntos"]:
+                    estado["ganador"] = "p1"
+                elif estado["p2"]["puntos"] > estado["p1"]["puntos"]:
+                    estado["ganador"] = "p2"
+                else:
+                    estado["ganador"] = "empate"
+            
+            guardar_salas_pixel(salas)
+            return jsonify({"status": "ok"})
+    return jsonify({"error": "Sala no encontrada"}), 404
+
+def generar_patron_pixel(ronda):
+    # Genera un patrón de 5x5 para Pixel Art
+    patron = [-1] * 25
+    num_colores = min(3 + ronda // 2, 8)
+    num_celdas = min(3 + ronda, 25)
+    indices = list(range(25))
+    random.shuffle(indices)
+    seleccionadas = indices[:num_celdas]
+    for idx in seleccionadas:
+        patron[idx] = random.randint(0, num_colores - 1)
+    return patron
+
 # --- APIs MULTIJUGADOR: MEMORAMA ---
 @app.route('/api/estado_memorama/<sala>')
 def estado_memorama(sala):
@@ -454,11 +617,58 @@ def estado_memorama(sala):
         }
     return jsonify(salas_memorama[sala])
 
+@app.route('/api/jugar_memorama', methods=['POST'])
+def api_jugar_memorama():
+    datos = request.json
+    sala = datos['sala']
+    jugador = datos['jugador']
+    idx = datos['idx']
+    
+    if sala in salas_memorama:
+        estado = salas_memorama[sala]
+        if estado['turno'] == jugador and not estado['visibles'][idx] and not estado['resueltas'][idx]:
+            estado['visibles'][idx] = True
+            estado['cartas_seleccionadas'].append(idx)
+            
+            if len(estado['cartas_seleccionadas']) == 2:
+                i1, i2 = estado['cartas_seleccionadas']
+                if estado['cartas'][i1] == estado['cartas'][i2]:
+                    estado['resueltas'][i1] = estado['resueltas'][i2] = True
+                    if jugador == 1:
+                        estado['puntos_1'] += 1
+                    else:
+                        estado['puntos_2'] += 1
+                else:
+                    estado['turno'] = 2 if jugador == 1 else 1
+                estado['cartas_seleccionadas'] = []
+            
+            return jsonify(estado)
+    return jsonify({"error": "Error en la jugada"}), 400
+
+@app.route('/api/reiniciar_memorama', methods=['POST'])
+def api_reiniciar_memorama():
+    datos = request.json
+    sala = datos['sala']
+    if sala in salas_memorama:
+        cartas = emojis_memorama + emojis_memorama
+        random.shuffle(cartas)
+        salas_memorama[sala] = {
+            'cartas': cartas,
+            'visibles': [False] * 16,
+            'resueltas': [False] * 16,
+            'turno': 1,
+            'puntos_1': 0,
+            'puntos_2': 0,
+            'cartas_seleccionadas': []
+        }
+        return jsonify({"status": "ok"})
+    return jsonify({"error": "Sala no encontrada"}), 404
+
+# --- APIs MULTIJUGADOR: DADOS ---
 @app.route('/api/estado_dados/<sala>')
 def estado_dados(sala):
     if sala not in salas_dados:
         salas_dados[sala] = {'p1': 0, 'p2': 0, 'estado': 'esperando', 'ganador': ''}
-    # Ocultamos la tirada del rival hasta que ambos tiren
     s = salas_dados[sala].copy()
     if s['estado'] == 'esperando':
         s['p1'] = 'listo' if s['p1'] != 0 else 0
@@ -470,7 +680,7 @@ def jugar_dados():
     sala, jug = request.json['sala'], request.json['jugador']
     s = salas_dados.get(sala)
     if s and s['estado'] == 'esperando' and s[jug] == 0:
-        s[jug] = random.randint(1, 6) # Tira un dado del 1 al 6
+        s[jug] = random.randint(1, 6)
         if s['p1'] != 0 and s['p2'] != 0:
             s['estado'] = 'terminado'
             if s['p1'] > s['p2']: s['ganador'] = 'p1'
@@ -484,16 +694,13 @@ def reiniciar_dados():
     if sala in salas_dados: salas_dados[sala] = {'p1': 0, 'p2': 0, 'estado': 'esperando', 'ganador': ''}
     return jsonify({"status": "ok"})
 
-# =======================================================
-# 2. APIs MULTIJUGADOR: ADIVINA EL NÚMERO
-# =======================================================
+# --- APIs MULTIJUGADOR: ADIVINA EL NÚMERO ---
 @app.route('/api/estado_adivina/<sala>')
 def estado_adivina(sala):
     if sala not in salas_adivina:
         salas_adivina[sala] = {'secreto': random.randint(1, 100), 'msg_p1': 'Escribe un número', 'msg_p2': 'Escribe un número', 'ganador': ''}
-    # Ocultamos el número secreto al enviarlo a los celulares
     s = salas_adivina[sala].copy()
-    s['secreto'] = '???' 
+    s['secreto'] = '???'
     return jsonify(s)
 
 @app.route('/api/jugar_adivina', methods=['POST'])
@@ -511,13 +718,10 @@ def jugar_adivina():
             s[llave_msg] = f"{intento} es muy ALTO ⬇️"
     return jsonify({"status": "ok"})
 
-# =======================================================
-# 3. APIs MULTIJUGADOR: ATRAPA EL FANTASMA
-# =======================================================
+# --- APIs MULTIJUGADOR: ATRAPA EL FANTASMA ---
 @app.route('/api/estado_fantasma/<sala>')
 def estado_fantasma(sala):
     if sala not in salas_fantasma:
-        # fx y fy son las coordenadas (porcentaje de la pantalla)
         salas_fantasma[sala] = {'p1': 0, 'p2': 0, 'fx': 50, 'fy': 50, 'fid': 1, 'ganador': ''}
     return jsonify(salas_fantasma[sala])
 
@@ -525,21 +729,17 @@ def estado_fantasma(sala):
 def jugar_fantasma():
     sala, jug, fid_tocado = request.json['sala'], request.json['jugador'], request.json['fid']
     s = salas_fantasma.get(sala)
-    # Si le atinó al fantasma actual (fid)
     if s and s['ganador'] == '' and s['fid'] == fid_tocado:
         s[jug] += 1
         if s[jug] >= 10:
             s['ganador'] = jug
         else:
-            # Mueve el fantasma a otra parte aleatoria
             s['fx'] = random.randint(10, 80)
             s['fy'] = random.randint(10, 80)
             s['fid'] += 1
     return jsonify({"status": "ok"})
 
-# =======================================================
-# 4. APIs MULTIJUGADOR: AHORCADO COOPERATIVO
-# =======================================================
+# --- APIs MULTIJUGADOR: AHORCADO COOPERATIVO ---
 @app.route('/api/estado_ahorcado/<sala>')
 def estado_ahorcado(sala):
     if sala not in salas_ahorcado:
@@ -549,7 +749,7 @@ def estado_ahorcado(sala):
             'errores': 0, 'turno': 'p1', 'estado': 'jugando', 'letras_usadas': []
         }
     s = salas_ahorcado[sala].copy()
-    s['secreto'] = '???' # Ocultar la palabra real
+    s['secreto'] = '???'
     return jsonify(s)
 
 @app.route('/api/jugar_ahorcado', methods=['POST'])
@@ -560,7 +760,6 @@ def jugar_ahorcado():
     if s and s['estado'] == 'jugando' and s['turno'] == jug and letra not in s['letras_usadas']:
         s['letras_usadas'].append(letra)
         if letra in s['secreto']:
-            # Revelar las letras
             for i, l in enumerate(s['secreto']):
                 if l == letra: s['descubierto'][i] = letra
             if '_' not in s['descubierto']:
@@ -570,7 +769,6 @@ def jugar_ahorcado():
             if s['errores'] >= 6:
                 s['estado'] = 'perdieron'
         
-        # Cambiar de turno si el juego sigue
         if s['estado'] == 'jugando':
             s['turno'] = 'p2' if jug == 'p1' else 'p1'
             
