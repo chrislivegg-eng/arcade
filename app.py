@@ -600,7 +600,7 @@ def generar_patron_pixel(ronda):
         patron[idx] = random.randint(0, num_colores - 1)
     return patron
 
-# --- APIs MULTIJUGADOR: MEMORAMA ---
+# --- APIs MULTIJUGADOR: MEMORAMA (CORREGIDO) ---
 @app.route('/api/estado_memorama/<sala>')
 def estado_memorama(sala):
     if sala not in salas_memorama:
@@ -620,49 +620,91 @@ def estado_memorama(sala):
 @app.route('/api/jugar_memorama', methods=['POST'])
 def api_jugar_memorama():
     datos = request.json
-    sala = datos['sala']
-    jugador = datos['jugador']
-    idx = datos['idx']
+    sala = datos.get('sala')
+    jugador = datos.get('jugador')
+    idx = datos.get('idx')
     
-    if sala in salas_memorama:
-        estado = salas_memorama[sala]
-        if estado['turno'] == jugador and not estado['visibles'][idx] and not estado['resueltas'][idx]:
-            estado['visibles'][idx] = True
-            estado['cartas_seleccionadas'].append(idx)
-            
-            if len(estado['cartas_seleccionadas']) == 2:
-                i1, i2 = estado['cartas_seleccionadas']
-                if estado['cartas'][i1] == estado['cartas'][i2]:
-                    estado['resueltas'][i1] = estado['resueltas'][i2] = True
-                    if jugador == 1:
-                        estado['puntos_1'] += 1
-                    else:
-                        estado['puntos_2'] += 1
-                else:
-                    estado['turno'] = 2 if jugador == 1 else 1
-                estado['cartas_seleccionadas'] = []
-            
-            return jsonify(estado)
-    return jsonify({"error": "Error en la jugada"}), 400
+    if sala not in salas_memorama:
+        return jsonify({"error": "Sala no encontrada"}), 404
+    
+    estado = salas_memorama[sala]
+    
+    # Verificar si es el turno del jugador
+    if estado['turno'] != jugador:
+        return jsonify({"error": "No es tu turno"}), 400
+    
+    # Verificar si la carta ya está visible o resuelta
+    if estado['visibles'][idx] or estado['resueltas'][idx]:
+        return jsonify({"error": "Carta ya volteada"}), 400
+    
+    # Voltear carta
+    estado['visibles'][idx] = True
+    estado['cartas_seleccionadas'].append(idx)
+    
+    # Si hay 2 cartas seleccionadas, verificar par
+    if len(estado['cartas_seleccionadas']) == 2:
+        i1, i2 = estado['cartas_seleccionadas']
+        if estado['cartas'][i1] == estado['cartas'][i2]:
+            # ¡Par encontrado!
+            estado['resueltas'][i1] = estado['resueltas'][i2] = True
+            if jugador == 1:
+                estado['puntos_1'] += 1
+            else:
+                estado['puntos_2'] += 1
+        else:
+            # No es par, cambiar turno
+            estado['turno'] = 2 if jugador == 1 else 1
+        estado['cartas_seleccionadas'] = []
+    
+    return jsonify(estado)
 
 @app.route('/api/reiniciar_memorama', methods=['POST'])
 def api_reiniciar_memorama():
     datos = request.json
-    sala = datos['sala']
-    if sala in salas_memorama:
-        cartas = emojis_memorama + emojis_memorama
-        random.shuffle(cartas)
-        salas_memorama[sala] = {
-            'cartas': cartas,
-            'visibles': [False] * 16,
-            'resueltas': [False] * 16,
-            'turno': 1,
-            'puntos_1': 0,
-            'puntos_2': 0,
-            'cartas_seleccionadas': []
-        }
-        return jsonify({"status": "ok"})
-    return jsonify({"error": "Sala no encontrada"}), 404
+    sala = datos.get('sala')
+    
+    if sala not in salas_memorama:
+        return jsonify({"error": "Sala no encontrada"}), 404
+    
+    cartas = emojis_memorama + emojis_memorama
+    random.shuffle(cartas)
+    salas_memorama[sala] = {
+        'cartas': cartas,
+        'visibles': [False] * 16,
+        'resueltas': [False] * 16,
+        'turno': 1,
+        'puntos_1': 0,
+        'puntos_2': 0,
+        'cartas_seleccionadas': []
+    }
+    return jsonify(salas_memorama[sala])
+
+@app.route('/api/verificar_memorama', methods=['POST'])
+def api_verificar_memorama():
+    datos = request.json
+    sala = datos.get('sala')
+    
+    if sala not in salas_memorama:
+        return jsonify({"error": "Sala no encontrada"}), 404
+    
+    estado = salas_memorama[sala]
+    
+    # Verificar si hay un par pendiente
+    if len(estado['cartas_seleccionadas']) == 2:
+        i1, i2 = estado['cartas_seleccionadas']
+        if estado['cartas'][i1] == estado['cartas'][i2]:
+            estado['resueltas'][i1] = estado['resueltas'][i2] = True
+            jugador = estado['turno']
+            if jugador == 1:
+                estado['puntos_1'] += 1
+            else:
+                estado['puntos_2'] += 1
+        else:
+            estado['visibles'][i1] = estado['visibles'][i2] = False
+            estado['turno'] = 2 if estado['turno'] == 1 else 1
+        estado['cartas_seleccionadas'] = []
+    
+    return jsonify(estado)
 
 # --- APIs MULTIJUGADOR: DADOS ---
 @app.route('/api/estado_dados/<sala>')

@@ -6,13 +6,15 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Memorama Kawaii - Bot Superinteligente</title>
-
+    <title>💖 Memorama Online</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
     />
-
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap"
+      rel="stylesheet"
+    />
     <style>
       * {
         margin: 0;
@@ -24,23 +26,26 @@
         font-family: "Nunito", sans-serif;
         background: linear-gradient(135deg, #ffe6f0, #ffd9e6, #ffe6f5);
         min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         padding: 20px;
-        text-align: center;
       }
 
       .container {
-        max-width: 700px;
-        margin: 0 auto;
         background: rgba(255, 255, 255, 0.92);
         backdrop-filter: blur(10px);
         border-radius: 40px;
         padding: 30px 25px;
+        max-width: 600px;
+        width: 100%;
         box-shadow: 0 20px 60px rgba(255, 51, 133, 0.2);
         border: 3px solid rgba(255, 153, 204, 0.3);
+        text-align: center;
       }
 
       h1 {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         color: #ff3385;
         text-shadow: 3px 3px 0 #ffb3d9;
         margin-bottom: 5px;
@@ -48,8 +53,8 @@
 
       .subtitle {
         color: #ff6b9d;
-        font-size: 1rem;
-        margin-bottom: 20px;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
       }
 
       .lobby-box {
@@ -57,18 +62,17 @@
         padding: 25px;
         border-radius: 25px;
         border: 3px dashed #ff99cc;
-        margin: 20px 0;
+        margin: 15px 0;
       }
 
       .lobby-box h3 {
         color: #ff3385;
         margin-bottom: 15px;
-        font-size: 1.3rem;
       }
 
       .lobby-box hr {
         border: 1px solid #ffe6f2;
-        margin: 25px 0;
+        margin: 20px 0;
       }
 
       .btn {
@@ -86,6 +90,8 @@
         gap: 8px;
         text-decoration: none;
         color: white;
+        width: 100%;
+        margin-bottom: 10px;
       }
 
       .btn-primary {
@@ -117,34 +123,6 @@
       .btn-green:hover {
         transform: translateY(-3px);
         box-shadow: 0 10px 30px rgba(0, 184, 148, 0.45);
-      }
-
-      .btn-secondary {
-        background: #fff;
-        color: #ff3385;
-        border: 3px solid #ff3385;
-      }
-
-      .btn-secondary:hover {
-        background: #ff3385;
-        color: white;
-        transform: translateY(-3px);
-      }
-
-      .btn-grey {
-        background: #ccc;
-        color: #666;
-        border-color: #999;
-      }
-
-      .btn-grey:hover {
-        background: #999;
-        color: white;
-      }
-
-      .btn-full {
-        width: 100%;
-        margin-bottom: 10px;
       }
 
       .input-sala {
@@ -207,16 +185,12 @@
         gap: 10px;
       }
 
-      .turn-indicator .emoji-big {
-        font-size: 1.8rem;
-      }
-
       .marcador {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 12px;
         margin: 15px 0;
-        max-width: 400px;
+        max-width: 300px;
         margin-left: auto;
         margin-right: auto;
       }
@@ -250,15 +224,11 @@
         color: #ff9900;
       }
 
-      .stat-card.bot .stat-number {
-        color: #6c5ce7;
-      }
-
       .memorama-tablero {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
-        max-width: 450px;
+        gap: 10px;
+        max-width: 400px;
         margin: 20px auto;
         perspective: 1000px;
       }
@@ -277,8 +247,7 @@
         box-shadow: 0 6px 20px rgba(255, 51, 133, 0.15);
         user-select: none;
         border: 3px solid rgba(255, 255, 255, 0.3);
-        min-height: 80px;
-        position: relative;
+        min-height: 70px;
         transform-style: preserve-3d;
       }
 
@@ -299,106 +268,9 @@
         box-shadow: 0 4px 15px rgba(255, 51, 133, 0.15);
       }
 
-      .carta.encontrada::after {
-        content: "✨";
-        position: absolute;
-        top: -10px;
-        right: -10px;
-        font-size: 1.2rem;
-        animation: sparkle 1s ease-in-out infinite alternate;
-      }
-
-      @keyframes sparkle {
-        0% {
-          transform: scale(1) rotate(0deg);
-          opacity: 0.7;
-        }
-        100% {
-          transform: scale(1.3) rotate(20deg);
-          opacity: 1;
-        }
-      }
-
       .carta:hover:not(.volteada):not(.encontrada) {
         transform: scale(1.08);
         box-shadow: 0 8px 30px rgba(255, 51, 133, 0.3);
-      }
-
-      .carta.bot-thinking {
-        animation: pulse-bot 0.8s ease-in-out infinite alternate;
-        border-color: #6c5ce7;
-      }
-
-      @keyframes pulse-bot {
-        0% {
-          box-shadow: 0 0 10px rgba(108, 92, 231, 0.3);
-        }
-        100% {
-          box-shadow: 0 0 30px rgba(108, 92, 231, 0.6);
-        }
-      }
-
-      .thinking-indicator {
-        display: none;
-        color: #6c5ce7;
-        font-weight: 900;
-        font-size: 1.1rem;
-        animation: pulse 1s ease-in-out infinite;
-        margin: 10px 0;
-      }
-
-      .thinking-indicator.show {
-        display: block;
-      }
-
-      @keyframes pulse {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.3;
-        }
-      }
-
-      .controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        justify-content: center;
-        margin: 20px 0;
-      }
-
-      .difficulty-selector {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        justify-content: center;
-        margin: 10px 0;
-      }
-
-      .difficulty-btn {
-        padding: 8px 18px;
-        border: 3px solid #ffccdd;
-        border-radius: 30px;
-        background: white;
-        color: #4a2a3a;
-        font-family: "Nunito", sans-serif;
-        font-weight: 700;
-        font-size: 0.8rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-
-      .difficulty-btn:hover {
-        transform: scale(1.05);
-      }
-
-      .difficulty-btn.active {
-        border-color: #ff3385;
-        background: #ff3385;
-        color: white;
-        box-shadow: 0 4px 15px rgba(255, 51, 133, 0.3);
       }
 
       .back-link {
@@ -407,10 +279,11 @@
         color: #ff3385;
         font-weight: 900;
         text-decoration: none;
-        padding: 10px 20px;
+        padding: 8px 20px;
         border-radius: 30px;
         border: 2px solid #ff3385;
         transition: all 0.3s ease;
+        font-size: 0.9rem;
       }
 
       .back-link:hover {
@@ -418,56 +291,40 @@
         color: white;
       }
 
-      /* Responsive */
       @media (max-width: 500px) {
         .container {
           padding: 15px 12px;
         }
 
         h1 {
-          font-size: 1.8rem;
+          font-size: 1.6rem;
         }
 
         .memorama-tablero {
-          gap: 8px;
+          gap: 6px;
           max-width: 320px;
         }
 
         .carta {
-          font-size: 1.8rem;
+          font-size: 2rem;
           min-height: 60px;
           border-radius: 12px;
         }
 
         .game-header {
           flex-direction: column;
-          align-items: stretch;
-          text-align: center;
-        }
-
-        .marcador {
-          grid-template-columns: repeat(3, 1fr);
-          gap: 8px;
-        }
-
-        .stat-card .stat-number {
-          font-size: 1.4rem;
-        }
-
-        .btn {
-          padding: 10px 16px;
-          font-size: 0.85rem;
+          align-items: center;
         }
       }
 
-      @media (max-width: 400px) {
+      @media (max-width: 380px) {
         .memorama-tablero {
-          gap: 5px;
+          gap: 4px;
           max-width: 280px;
         }
 
         .carta {
-          font-size: 1.4rem;
+          font-size: 1.6rem;
           min-height: 50px;
           border-radius: 10px;
         }
@@ -477,61 +334,13 @@
 
   <body>
     <div class="container">
-      <h1>💖 Memorama Kawaii</h1>
-      <p class="subtitle">🎮 Encuentra las parejas antes que el bot</p>
+      <h1>💖 Memorama Online</h1>
+      <p class="subtitle">🎮 Encuentra las parejas antes que tu rival</p>
 
-      <!-- ========================================================= -->
-      <!--  LOBBY -->
-      <!-- ========================================================= -->
+      <!-- LOBBY -->
       <div id="pantalla-lobby" class="lobby-box">
-        <h3>🤖 Modo Bot</h3>
-        <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem">
-          Elige la dificultad y juega contra la computadora
-        </p>
-
-        <div class="difficulty-selector">
-          <button
-            class="difficulty-btn"
-            data-difficulty="easy"
-            onclick="setBotDifficulty('easy')"
-          >
-            😊 Fácil
-          </button>
-          <button
-            class="difficulty-btn active"
-            data-difficulty="medium"
-            onclick="setBotDifficulty('medium')"
-          >
-            🤔 Intermedio
-          </button>
-          <button
-            class="difficulty-btn"
-            data-difficulty="hard"
-            onclick="setBotDifficulty('hard')"
-          >
-            🧠 Experto
-          </button>
-          <button
-            class="difficulty-btn"
-            data-difficulty="impossible"
-            onclick="setBotDifficulty('impossible')"
-          >
-            🤖 Superinteligente
-          </button>
-        </div>
-
-        <button class="btn btn-primary btn-full" onclick="iniciarJuegoBot()">
-          🎮 Jugar contra el Bot
-        </button>
-
-        <hr />
-
-        <h3>🎮 Modo Online</h3>
-        <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem">
-          Juega con un amigo en línea
-        </p>
-
-        <button class="btn btn-purple btn-full" onclick="crearSalaOnline()">
+        <h3>🎮 Jugar Online con un amigo</h3>
+        <button class="btn btn-primary" onclick="crearSala()">
           ✨ Crear Nueva Sala
         </button>
 
@@ -542,17 +351,15 @@
           placeholder="📝 CÓDIGO (Ej. X7Y2)"
           maxlength="6"
         />
-        <button class="btn btn-green btn-full" onclick="unirseSalaOnline()">
+        <button class="btn btn-purple" onclick="unirseSala()">
           🚀 Unirse a Sala
         </button>
 
         <br />
-        <a href="/secreto" class="back-link">🏠 Volver al menú</a>
+        <a href="/secreto" class="back-link">🏠 Volver al Menú</a>
       </div>
 
-      <!-- ========================================================= -->
-      <!--  PANTALLA DE JUEGO -->
-      <!-- ========================================================= -->
+      <!-- JUEGO -->
       <div id="pantalla-juego" style="display: none">
         <div class="game-header">
           <span class="room-info"
@@ -564,7 +371,6 @@
         </div>
 
         <div class="turn-indicator" id="turnIndicator">
-          <span class="emoji-big">🎀</span>
           <span id="display-turno">Cargando...</span>
         </div>
 
@@ -573,27 +379,43 @@
             <div class="stat-number" id="pts-1">0</div>
             <div class="stat-label">🎀 Jugador 1</div>
           </div>
-          <div class="stat-card bot" id="stat-bot">
-            <div class="stat-number" id="pts-bot">0</div>
-            <div class="stat-label">🤖 Bot</div>
-          </div>
-          <div class="stat-card player2" id="stat-player2">
+          <div class="stat-card player2">
             <div class="stat-number" id="pts-2">0</div>
             <div class="stat-label">🌟 Jugador 2</div>
           </div>
         </div>
 
-        <div id="thinkingIndicator" class="thinking-indicator">
-          🤖 El bot está analizando las cartas...
-        </div>
+        <div class="memorama-tablero" id="tablero"></div>
 
-        <div class="memorama-tablero" id="tablero-online"></div>
-
-        <div class="controls">
-          <button class="btn btn-secondary" onclick="resetGame()">
+        <div
+          style="
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+          "
+        >
+          <button
+            class="btn btn-green"
+            onclick="reiniciarJuego()"
+            style="width: auto; padding: 10px 20px; font-size: 0.9rem"
+          >
             🔄 Nueva Partida
           </button>
-          <button class="btn btn-grey" onclick="salirJuego()">🚪 Salir</button>
+          <button
+            class="btn btn-primary"
+            onclick="salirJuego()"
+            style="
+              width: auto;
+              padding: 10px 20px;
+              font-size: 0.9rem;
+              background: #ccc;
+              box-shadow: none;
+            "
+          >
+            🚪 Salir
+          </button>
         </div>
       </div>
     </div>
@@ -602,488 +424,76 @@
       // ============================================================
       //  CONFIGURACIÓN
       // ============================================================
-      let modoJuego = ""; // "bot" o "online"
       let miSala = "";
       let miJugador = 1;
       let intervalo = null;
-      let botDifficulty = "medium";
-      let isBotThinking = false;
-      let gameLock = false;
-
-      const EMOJIS = ["🎀", "🐱", "🌸", "🍓", "💖", "🍰", "🍎", "⭐"];
-      const TOTAL_CARTAS = 16;
-      const PARES_TOTAL = 8;
+      let juegoActivo = false;
+      let procesando = false;
 
       // ============================================================
-      //  ESTADO DEL BOT (LOCAL)
+      //  FUNCIONES DE SALA
       // ============================================================
-      let estadoBot = null;
-
-      // ============================================================
-      //  DIFICULTAD DEL BOT
-      // ============================================================
-      function setBotDifficulty(level) {
-        botDifficulty = level;
-        document.querySelectorAll(".difficulty-btn").forEach((btn) => {
-          btn.classList.toggle("active", btn.dataset.difficulty === level);
-        });
+      function crearSala() {
+        fetch("/api/crear_sala_memorama", { method: "POST" })
+          .then((r) => r.json())
+          .then((data) => {
+            miSala = data.sala;
+            miJugador = 1;
+            arrancarJuego();
+          });
       }
 
-      // ============================================================
-      //  INICIAR MODO BOT
-      // ============================================================
-      function iniciarJuegoBot() {
-        modoJuego = "bot";
-        miJugador = 1;
-        document.getElementById("pantalla-lobby").style.display = "none";
-        document.getElementById("pantalla-juego").style.display = "block";
-        document.getElementById("display-sala").innerText = "VS BOT 🤖";
-        document.getElementById("display-jugador").innerText = "1 (Tú)";
-
-        // Ocultar el marcador del jugador 2 (mostrar Bot)
-        document.getElementById("stat-player2").style.display = "none";
-        document.getElementById("stat-bot").style.display = "block";
-        document.getElementById("pts-bot").textContent = "0";
-
-        iniciarPartidaBot();
-      }
-
-      function iniciarPartidaBot() {
-        // Mezclar cartas
-        let cartas = [...EMOJIS, ...EMOJIS];
-        cartas.sort(() => Math.random() - 0.5);
-
-        estadoBot = {
-          cartas: cartas,
-          visibles: Array(TOTAL_CARTAS).fill(false),
-          resueltas: Array(TOTAL_CARTAS).fill(false),
-          turno: 1,
-          puntos_1: 0,
-          puntos_2: 0,
-          cartas_seleccionadas: [],
-          primera_carta_visible: false,
-          primera_carta_idx: -1,
-        };
-
-        actualizarPantallaBot();
-      }
-
-      // ============================================================
-      //  ACTUALIZAR PANTALLA BOT
-      // ============================================================
-      function actualizarPantallaBot() {
-        const estado = estadoBot;
-        const esTurnoJugador = estado.turno === 1;
-
-        document.getElementById("display-turno").innerHTML = esTurnoJugador
-          ? "🎀 ¡ES TU TURNO!"
-          : "🤖 El bot está jugando...";
-        document.getElementById("pts-1").textContent = estado.puntos_1;
-        document.getElementById("pts-bot").textContent = estado.puntos_2;
-
-        renderizarTablero(estado, modoJuego);
-
-        // Verificar fin del juego
-        if (estado.puntos_1 + estado.puntos_2 === PARES_TOTAL) {
-          const ganador =
-            estado.puntos_1 > estado.puntos_2
-              ? 1
-              : estado.puntos_2 > estado.puntos_1
-                ? 2
-                : 0;
-
-          setTimeout(() => {
-            let mensaje = "";
-            if (ganador === 0) mensaje = "🤝 ¡Fue un empate!";
-            else if (ganador === 1) mensaje = "🎉 ¡FELICIDADES, GANASTE!";
-            else mensaje = "😅 El bot te ganó... ¡Intenta de nuevo!";
-            alert(mensaje);
-            document.getElementById("display-turno").innerHTML =
-              `🏁 ${mensaje}`;
-          }, 500);
+      function unirseSala() {
+        const cod = document.getElementById("codigo-sala").value.toUpperCase();
+        if (cod.length < 4) {
+          alert("⚠️ Ingresa un código válido de 4 caracteres");
           return;
         }
-
-        // Si es turno del bot y no está pensando
-        if (!esTurnoJugador && !isBotThinking && !gameLock) {
-          isBotThinking = true;
-          document.getElementById("thinkingIndicator").classList.add("show");
-          setTimeout(() => {
-            hacerJugadaBot();
-          }, calcularTiempoBot());
-        }
-      }
-
-      // ============================================================
-      //  CALCULAR TIEMPO DE RESPUESTA DEL BOT
-      // ============================================================
-      function calcularTiempoBot() {
-        switch (botDifficulty) {
-          case "easy":
-            return 800 + Math.random() * 600;
-          case "medium":
-            return 600 + Math.random() * 400;
-          case "hard":
-            return 400 + Math.random() * 300;
-          case "impossible":
-            return 300 + Math.random() * 200;
-          default:
-            return 600;
-        }
-      }
-
-      // ============================================================
-      //  JUGADA DEL BOT (SUPERINTELIGENTE)
-      // ============================================================
-      function hacerJugadaBot() {
-        if (gameLock) return;
-        gameLock = true;
-
-        const estado = estadoBot;
-        const disponibles = estado.cartas
-          .map((v, i) => (!estado.resueltas[i] && !estado.visibles[i] ? i : -1))
-          .filter((i) => i >= 0);
-
-        if (disponibles.length < 2) {
-          gameLock = false;
-          isBotThinking = false;
-          document.getElementById("thinkingIndicator").classList.remove("show");
-          return;
-        }
-
-        // Elegir jugada según dificultad
-        let seleccion = elegirJugadaBot(estado, disponibles);
-
-        if (!seleccion || seleccion.length < 2) {
-          // Fallback: elegir al azar
-          disponibles.sort(() => Math.random() - 0.5);
-          seleccion = [disponibles[0], disponibles[1]];
-        }
-
-        // Voltear primera carta
-        estado.visibles[seleccion[0]] = true;
-        estado.cartas_seleccionadas.push(seleccion[0]);
-        renderizarTablero(estado, modoJuego);
-
-        // Voltear segunda carta después de un tiempo
-        setTimeout(
-          () => {
-            estado.visibles[seleccion[1]] = true;
-            estado.cartas_seleccionadas.push(seleccion[1]);
-            renderizarTablero(estado, modoJuego);
-
-            // Verificar par después de otro tiempo
-            setTimeout(
-              () => {
-                verificarParBot();
-              },
-              500 + Math.random() * 200,
-            );
-          },
-          400 + Math.random() * 300,
-        );
-      }
-
-      // ============================================================
-      //  ESTRATEGIAS DEL BOT POR DIFICULTAD
-      // ============================================================
-      function elegirJugadaBot(estado, disponibles) {
-        switch (botDifficulty) {
-          case "easy":
-            return elegirFacil(disponibles);
-          case "medium":
-            return elegirIntermedio(estado, disponibles);
-          case "hard":
-            return elegirExperto(estado, disponibles);
-          case "impossible":
-            return elegirSuperInteligente(estado, disponibles);
-          default:
-            return elegirIntermedio(estado, disponibles);
-        }
-      }
-
-      // ---------- FÁCIL: Aleatorio ----------
-      function elegirFacil(disponibles) {
-        disponibles.sort(() => Math.random() - 0.5);
-        return disponibles.length >= 2
-          ? [disponibles[0], disponibles[1]]
-          : null;
-      }
-
-      // ---------- INTERMEDIO: Memoria + Aleatorio ----------
-      function elegirIntermedio(estado, disponibles) {
-        // 1. Intentar recordar pares vistos
-        const parRecordado = buscarParRecordado(estado, disponibles);
-        if (parRecordado) return parRecordado;
-
-        // 2. Aleatorio
-        disponibles.sort(() => Math.random() - 0.5);
-        return disponibles.length >= 2
-          ? [disponibles[0], disponibles[1]]
-          : null;
-      }
-
-      // ---------- EXPERTO: Memoria + Estrategia ----------
-      function elegirExperto(estado, disponibles) {
-        // 1. Buscar par recordado
-        const parRecordado = buscarParRecordado(estado, disponibles);
-        if (parRecordado) return parRecordado;
-
-        // 2. Si no hay pares recordados, elegir estratégicamente
-        //    - Priorizar cartas que puedan formar par con las visibles
-        const cartaConPosiblePar = buscarCartaConPosiblePar(
-          estado,
-          disponibles,
-        );
-        if (cartaConPosiblePar) {
-          // Elegir esa carta + otra aleatoria
-          const otras = disponibles.filter((i) => i !== cartaConPosiblePar);
-          if (otras.length > 0) {
-            const segunda = otras[Math.floor(Math.random() * otras.length)];
-            return [cartaConPosiblePar, segunda];
-          }
-        }
-
-        // 3. Aleatorio
-        disponibles.sort(() => Math.random() - 0.5);
-        return disponibles.length >= 2
-          ? [disponibles[0], disponibles[1]]
-          : null;
-      }
-
-      // ---------- SUPERINTELIGENTE: Estrategia Óptima ----------
-      function elegirSuperInteligente(estado, disponibles) {
-        // 1. Buscar par recordado (prioridad máxima)
-        const parRecordado = buscarParRecordado(estado, disponibles);
-        if (parRecordado) return parRecordado;
-
-        // 2. Buscar carta que forme par con una visible
-        const cartaConPosiblePar = buscarCartaConPosiblePar(
-          estado,
-          disponibles,
-        );
-        if (cartaConPosiblePar) {
-          const otras = disponibles.filter((i) => i !== cartaConPosiblePar);
-          if (otras.length > 0) {
-            // Elegir la segunda carta que maximice información
-            const segunda = elegirSegundaCartaOptimizada(estado, otras);
-            return [cartaConPosiblePar, segunda];
-          }
-        }
-
-        // 3. Buscar carta más frecuente
-        const frecuencia = {};
-        for (const idx of disponibles) {
-          const emoji = estado.cartas[idx];
-          frecuencia[emoji] = (frecuencia[emoji] || 0) + 1;
-        }
-
-        // Ordenar por frecuencia (más frecuente primero)
-        const ordenadas = [...disponibles].sort((a, b) => {
-          return (
-            (frecuencia[estado.cartas[b]] || 0) -
-            (frecuencia[estado.cartas[a]] || 0)
-          );
-        });
-
-        return ordenadas.length >= 2 ? [ordenadas[0], ordenadas[1]] : null;
-      }
-
-      // ---------- FUNCIONES AUXILIARES ----------
-      function buscarParRecordado(estado, disponibles) {
-        // Busca cartas volteadas que coincidan en emoji
-        const visibles = estado.cartas
-          .map((v, i) =>
-            estado.visibles[i] && !estado.resueltas[i]
-              ? { idx: i, emoji: v }
-              : null,
-          )
-          .filter((v) => v !== null);
-
-        for (const v of visibles) {
-          for (const idx of disponibles) {
-            if (estado.cartas[idx] === v.emoji) {
-              return [v.idx, idx];
-            }
-          }
-        }
-        return null;
-      }
-
-      function buscarCartaConPosiblePar(estado, disponibles) {
-        // Busca una carta en disponibles que tenga su pareja en visibles
-        const visibles = estado.cartas
-          .map((v, i) =>
-            estado.visibles[i] && !estado.resueltas[i]
-              ? { idx: i, emoji: v }
-              : null,
-          )
-          .filter((v) => v !== null);
-
-        if (visibles.length === 0) return null;
-
-        for (const idx of disponibles) {
-          const emoji = estado.cartas[idx];
-          if (visibles.some((v) => v.emoji === emoji)) {
-            return idx;
-          }
-        }
-        return null;
-      }
-
-      function elegirSegundaCartaOptimizada(estado, disponibles) {
-        // Elige la carta que aporte más información (menos repetida)
-        const frecuencia = {};
-        for (const idx of disponibles) {
-          const emoji = estado.cartas[idx];
-          frecuencia[emoji] = (frecuencia[emoji] || 0) + 1;
-        }
-
-        // Ordenar por frecuencia (menos frecuente primero = más información)
-        const ordenadas = [...disponibles].sort((a, b) => {
-          return (
-            (frecuencia[estado.cartas[a]] || 0) -
-            (frecuencia[estado.cartas[b]] || 0)
-          );
-        });
-
-        return ordenadas[0] || disponibles[0];
-      }
-
-      // ---------- VERIFICAR PAR (BOT) ----------
-      function verificarParBot() {
-        const estado = estadoBot;
-        const sel = estado.cartas_seleccionadas;
-
-        if (sel.length === 2) {
-          const i1 = sel[0];
-          const i2 = sel[1];
-
-          if (estado.cartas[i1] === estado.cartas[i2]) {
-            estado.resueltas[i1] = estado.resueltas[i2] = true;
-            estado.puntos_2++;
-          } else {
-            estado.visibles[i1] = estado.visibles[i2] = false;
-            // Cambiar turno al jugador
-            estado.turno = 1;
-          }
-          estado.cartas_seleccionadas = [];
-        }
-
-        gameLock = false;
-        isBotThinking = false;
-        document.getElementById("thinkingIndicator").classList.remove("show");
-        actualizarPantallaBot();
-      }
-
-      // ============================================================
-      //  JUGADA DEL JUGADOR (MODO BOT)
-      // ============================================================
-      function voltearCartaLocal(idx) {
-        if (gameLock) return;
-        if (isBotThinking) return;
-        const estado = estadoBot;
-        if (estado.turno !== 1) return;
-        if (estado.cartas_seleccionadas.length >= 2) return;
-        if (estado.visibles[idx] || estado.resueltas[idx]) return;
-
-        estado.visibles[idx] = true;
-        estado.cartas_seleccionadas.push(idx);
-        renderizarTablero(estado, modoJuego);
-
-        if (estado.cartas_seleccionadas.length === 2) {
-          gameLock = true;
-          setTimeout(() => {
-            verificarParLocal();
-          }, 800);
-        }
-      }
-
-      function verificarParLocal() {
-        const estado = estadoBot;
-        const sel = estado.cartas_seleccionadas;
-
-        if (sel.length === 2) {
-          const i1 = sel[0];
-          const i2 = sel[1];
-
-          if (estado.cartas[i1] === estado.cartas[i2]) {
-            estado.resueltas[i1] = estado.resueltas[i2] = true;
-            estado.puntos_1++;
-          } else {
-            estado.visibles[i1] = estado.visibles[i2] = false;
-            // Cambiar turno al bot
-            estado.turno = 2;
-          }
-          estado.cartas_seleccionadas = [];
-        }
-
-        gameLock = false;
-        actualizarPantallaBot();
-      }
-
-      // ============================================================
-      //  MODO ONLINE (CONECTA CON PYTHON)
-      // ============================================================
-      function crearSalaOnline() {
-        modoJuego = "online";
-        miSala = Math.random().toString(36).substring(2, 6).toUpperCase();
-        miJugador = 1;
-        arrancarOnline();
-      }
-
-      function unirseSalaOnline() {
-        let cod = document.getElementById("codigo-sala").value.toUpperCase();
-        if (cod.length < 4)
-          return alert("⚠️ Ingresa un código válido de 4 caracteres");
-        modoJuego = "online";
         miSala = cod;
         miJugador = 2;
-        arrancarOnline();
+        arrancarJuego();
       }
 
-      function arrancarOnline() {
+      function arrancarJuego() {
         document.getElementById("pantalla-lobby").style.display = "none";
         document.getElementById("pantalla-juego").style.display = "block";
-        document.getElementById("display-sala").innerText = miSala;
-        document.getElementById("display-jugador").innerText = miJugador;
+        document.getElementById("display-sala").textContent = miSala;
+        document.getElementById("display-jugador").textContent = miJugador;
+        juegoActivo = true;
 
-        // Mostrar jugador 2, ocultar bot
-        document.getElementById("stat-player2").style.display = "block";
-        document.getElementById("stat-bot").style.display = "none";
-
-        intervalo = setInterval(obtenerEstadoOnline, 1000);
-        obtenerEstadoOnline();
+        if (intervalo) clearInterval(intervalo);
+        intervalo = setInterval(obtenerEstado, 800);
+        obtenerEstado();
       }
 
-      function obtenerEstadoOnline() {
+      // ============================================================
+      //  OBTENER ESTADO
+      // ============================================================
+      function obtenerEstado() {
+        if (!juegoActivo) return;
+
         fetch(`/api/estado_memorama/${miSala}`)
           .then((r) => r.json())
           .then((estado) => {
+            // Actualizar turno
             const esMiTurno = estado.turno === miJugador;
-            document.getElementById("display-turno").innerHTML = esMiTurno
+            const turnoText = esMiTurno
               ? "🎀 ¡ES TU TURNO!"
               : "⏳ Esperando al rival...";
+            document.getElementById("display-turno").textContent = turnoText;
+
+            // Actualizar puntuaciones
             document.getElementById("pts-1").textContent = estado.puntos_1;
             document.getElementById("pts-2").textContent = estado.puntos_2;
 
-            renderizarTablero(estado, modoJuego);
+            // Renderizar tablero
+            renderizarTablero(estado);
 
-            if (
-              estado.cartas_seleccionadas.length === 2 &&
-              estado.turno === miJugador
-            ) {
-              setTimeout(() => {
-                fetch("/api/verificar_memorama", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ sala: miSala }),
-                }).then(() => obtenerEstadoOnline());
-              }, 1500);
-            }
-
-            if (estado.puntos_1 + estado.puntos_2 === PARES_TOTAL) {
+            // Verificar fin del juego
+            const totalPares = 8;
+            if (estado.puntos_1 + estado.puntos_2 === totalPares) {
               clearInterval(intervalo);
+              juegoActivo = false;
               const ganador =
                 estado.puntos_1 > estado.puntos_2
                   ? 1
@@ -1097,41 +507,24 @@
                     : ganador === miJugador
                       ? "🎉 ¡GANASTE!"
                       : "😅 Perdiste...";
-                alert(mensaje);
+                alert(
+                  mensaje + `\nJ1: ${estado.puntos_1} | J2: ${estado.puntos_2}`,
+                );
+                guardarVictoria(ganador);
               }, 500);
             }
           })
           .catch(() => {});
       }
 
-      function voltearCartaOnline(idx) {
-        fetch(`/api/estado_memorama/${miSala}`)
-          .then((r) => r.json())
-          .then((estado) => {
-            if (estado.turno !== miJugador) return alert("⚠️ ¡No es tu turno!");
-            if (estado.cartas_seleccionadas.length >= 2) return;
-            if (estado.visibles[idx] || estado.resueltas[idx]) return;
-
-            fetch("/api/jugar_memorama", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                sala: miSala,
-                jugador: miJugador,
-                idx: idx,
-              }),
-            }).then(() => obtenerEstadoOnline());
-          });
-      }
-
       // ============================================================
-      //  RENDERIZAR TABLERO (COMPARTIDO)
+      //  RENDERIZAR TABLERO
       // ============================================================
-      function renderizarTablero(estado, modo) {
-        const tablero = document.getElementById("tablero-online");
+      function renderizarTablero(estado) {
+        const tablero = document.getElementById("tablero");
         tablero.innerHTML = "";
 
-        for (let i = 0; i < TOTAL_CARTAS; i++) {
+        for (let i = 0; i < 16; i++) {
           const div = document.createElement("div");
           div.className = "carta";
 
@@ -1143,42 +536,95 @@
             }
           }
 
-          div.onclick = () => {
-            if (modo === "bot") {
-              voltearCartaLocal(i);
-            } else {
-              voltearCartaOnline(i);
-            }
-          };
+          // Solo permitir clic si es tu turno y la carta no está visible/resuelta
+          if (
+            estado.turno === miJugador &&
+            !estado.visibles[i] &&
+            !estado.resueltas[i] &&
+            !procesando
+          ) {
+            div.onclick = () => jugarCarta(i);
+            div.style.cursor = "pointer";
+          } else {
+            div.style.cursor = "default";
+          }
 
           tablero.appendChild(div);
         }
       }
 
       // ============================================================
-      //  REINICIAR Y SALIR
+      //  JUGAR CARTA
       // ============================================================
-      function resetGame() {
-        if (modoJuego === "bot") {
-          iniciarPartidaBot();
-        } else {
-          // Online: resetear en el servidor
-          fetch("/api/reset_memorama", {
+      function jugarCarta(idx) {
+        if (procesando) return;
+        if (!juegoActivo) return;
+
+        procesando = true;
+
+        fetch("/api/jugar_memorama", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sala: miSala,
+            jugador: miJugador,
+            idx: idx,
+          }),
+        })
+          .then((r) => r.json())
+          .then((estado) => {
+            procesando = false;
+            // Actualizar estado inmediatamente
+            renderizarTablero(estado);
+          })
+          .catch(() => {
+            procesando = false;
+          });
+      }
+
+      // ============================================================
+      //  REINICIAR JUEGO
+      // ============================================================
+      function reiniciarJuego() {
+        if (!miSala) return;
+
+        fetch("/api/reiniciar_memorama", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sala: miSala }),
+        }).then(() => {
+          if (intervalo) clearInterval(intervalo);
+          intervalo = setInterval(obtenerEstado, 800);
+          obtenerEstado();
+        });
+      }
+
+      // ============================================================
+      //  GUARDAR VICTORIA
+      // ============================================================
+      function guardarVictoria(ganador) {
+        if (ganador === 0) return;
+        const nombre = prompt("✨ Ingresa tu nombre para el récord:");
+        if (nombre && nombre.trim()) {
+          fetch("/guardar_memorama_online", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sala: miSala }),
-          }).then(() => obtenerEstadoOnline());
+            body: JSON.stringify({ nombre: nombre.trim() }),
+          }).catch(() => {});
         }
       }
 
+      // ============================================================
+      //  SALIR
+      // ============================================================
       function salirJuego() {
         if (intervalo) {
           clearInterval(intervalo);
           intervalo = null;
         }
+        juegoActivo = false;
         document.getElementById("pantalla-juego").style.display = "none";
         document.getElementById("pantalla-lobby").style.display = "block";
-        modoJuego = "";
       }
     </script>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
