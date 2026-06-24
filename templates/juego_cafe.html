@@ -2,68 +2,226 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <title>Kitty Cafe Dash ☕</title>
+    <title>☕ Kitty Cafe Dash - Edición Deluxe</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap"
       rel="stylesheet"
     />
     <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
       body {
         font-family: "Nunito", sans-serif;
-        background: #fff0f5;
-        margin: 0;
+        background: linear-gradient(135deg, #ffe6f0, #ffd9e6, #fff0f5);
+        min-height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 100vh;
+        padding: 20px;
+        overflow-x: hidden;
       }
 
       .kawaii-box {
-        background: white;
-        padding: 40px;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
+        padding: 30px 25px;
         border-radius: 40px;
         border: 4px dashed #ff99cc;
-        box-shadow: 0 10px 20px rgba(255, 153, 204, 0.3);
-        max-width: 500px;
+        box-shadow: 0 20px 60px rgba(255, 51, 133, 0.2);
+        max-width: 550px;
         width: 100%;
         text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .kawaii-box::before {
+        content: "🌸";
+        position: absolute;
+        top: -10px;
+        left: -10px;
+        font-size: 3rem;
+        opacity: 0.3;
+        transform: rotate(-20deg);
+      }
+
+      .kawaii-box::after {
+        content: "🎀";
+        position: absolute;
+        bottom: -10px;
+        right: -10px;
+        font-size: 3rem;
+        opacity: 0.3;
+        transform: rotate(20deg);
       }
 
       h1 {
         color: #ff3385;
-        margin-top: 0;
-        font-size: 2.5em;
-      }
-      .hud {
-        font-size: 1.5em;
-        color: #ff66a3;
-        font-weight: bold;
-        margin-bottom: 20px;
+        font-size: 2.5rem;
+        text-shadow: 3px 3px 0 #ffb3d9;
+        margin-bottom: 5px;
       }
 
-      .area-juego {
-        font-size: 5em;
-        margin: 30px 0;
-        min-height: 100px;
-        transition: transform 0.1s ease-out;
+      .subtitle {
+        color: #ff6b9d;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
       }
 
-      .botones-container {
+      /* HUD */
+      .hud-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-bottom: 15px;
+      }
+
+      .hud-item {
+        background: #fff5f9;
+        border-radius: 15px;
+        padding: 8px 5px;
+        border: 2px solid #ffccdd;
+      }
+
+      .hud-item .label {
+        font-size: 0.6rem;
+        color: #cc99aa;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .hud-item .value {
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: #ff3385;
+      }
+
+      .hud-item .value.timer-warning {
+        color: #ff4444;
+        animation: pulse-timer 0.5s ease-in-out infinite alternate;
+      }
+
+      @keyframes pulse-timer {
+        0% {
+          transform: scale(1);
+        }
+        100% {
+          transform: scale(1.1);
+        }
+      }
+
+      /* Área del pedido */
+      .pedido-container {
+        background: linear-gradient(135deg, #fff5f9, #ffe6f2);
+        border-radius: 25px;
+        padding: 20px;
+        margin: 15px 0;
+        border: 3px solid #ff99cc;
+        min-height: 120px;
         display: flex;
+        flex-direction: column;
+        align-items: center;
         justify-content: center;
-        gap: 15px;
-        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .pedido-container .cliente {
+        font-size: 0.9rem;
+        color: #ff6b9d;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+
+      .pedido-container .pedido-texto {
+        font-size: 3.5rem;
+        line-height: 1.2;
+        transition: all 0.3s ease;
+      }
+
+      .pedido-container .pedido-texto.complejo {
+        font-size: 2.5rem;
+      }
+
+      .pedido-container .pista {
+        font-size: 0.8rem;
+        color: #cc99aa;
+        margin-top: 5px;
+      }
+
+      .pedido-container .combo-display {
+        position: absolute;
+        top: 5px;
+        right: 15px;
+        font-size: 1.2rem;
+        font-weight: 900;
+        color: #ffd700;
+        text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+        animation: combo-pop 0.3s ease;
+      }
+
+      @keyframes combo-pop {
+        0% {
+          transform: scale(0.5);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.5);
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .pedido-container .nivel-display {
+        position: absolute;
+        top: 5px;
+        left: 15px;
+        font-size: 0.8rem;
+        background: #ff3385;
+        color: white;
+        padding: 2px 12px;
+        border-radius: 20px;
+        font-weight: 900;
+      }
+
+      /* Botones de ingredientes */
+      .botones-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin: 15px 0;
       }
 
       .btn-ingrediente {
-        font-size: 3em;
-        padding: 15px 25px;
+        font-size: 2.2rem;
+        padding: 15px 10px;
         cursor: pointer;
         border: none;
-        border-radius: 25px;
+        border-radius: 20px;
         background: #ffe6f2;
         box-shadow: 0 6px 0 #ffb3d9;
-        transition: all 0.1s;
+        transition: all 0.1s ease;
+        position: relative;
+        font-family: "Nunito", sans-serif;
+        font-weight: 700;
+        min-height: 70px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+      }
+
+      .btn-ingrediente .btn-label {
+        font-size: 0.55rem;
+        color: #ff6b9d;
+        font-weight: 700;
       }
 
       .btn-ingrediente:active {
@@ -71,153 +229,851 @@
         box-shadow: 0 0 0 #ffb3d9;
       }
 
-      .btn-ingrediente:hover {
+      .btn-ingrediente:hover:not(:disabled) {
         background: #ffccdd;
-      }
-
-      .btn-inicio {
-        background: #ff3385;
-        color: white;
-        border: none;
-        padding: 15px 40px;
-        font-size: 1.2em;
-        border-radius: 30px;
-        font-weight: bold;
-        cursor: pointer;
-        box-shadow: 0 5px 15px rgba(255, 51, 133, 0.4);
-        transition: 0.2s;
-      }
-
-      .btn-inicio:hover {
         transform: scale(1.05);
       }
-    </style>
 
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
-    />
+      .btn-ingrediente:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-ingrediente .badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ff3385;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 0.6rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+      }
+
+      /* Efectos especiales */
+      .correct-flash {
+        animation: flash-green 0.5s ease;
+      }
+
+      .wrong-flash {
+        animation: flash-red 0.5s ease;
+      }
+
+      @keyframes flash-green {
+        0%,
+        100% {
+          background: #ffe6f2;
+        }
+        50% {
+          background: #b8f0b8;
+          border-color: #00b894;
+        }
+      }
+
+      @keyframes flash-red {
+        0%,
+        100% {
+          background: #ffe6f2;
+        }
+        50% {
+          background: #ffb3b3;
+          border-color: #e17055;
+        }
+      }
+
+      .float-score {
+        position: fixed;
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #ffd700;
+        text-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
+        pointer-events: none;
+        animation: float-up 1s ease forwards;
+        z-index: 1000;
+      }
+
+      @keyframes float-up {
+        0% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-100px) scale(1.5);
+        }
+      }
+
+      .shake {
+        animation: shake 0.5s ease;
+      }
+
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        20% {
+          transform: translateX(-10px);
+        }
+        40% {
+          transform: translateX(10px);
+        }
+        60% {
+          transform: translateX(-10px);
+        }
+        80% {
+          transform: translateX(10px);
+        }
+      }
+
+      /* Controles */
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        margin: 15px 0;
+      }
+
+      .btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 30px;
+        font-family: "Nunito", sans-serif;
+        font-weight: 900;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #ff6b9d, #ff3385);
+        color: white;
+        box-shadow: 0 6px 20px rgba(255, 51, 133, 0.35);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(255, 51, 133, 0.45);
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-secondary {
+        background: white;
+        color: #ff3385;
+        border: 3px solid #ff3385;
+      }
+
+      .btn-secondary:hover {
+        background: #ff3385;
+        color: white;
+        transform: translateY(-3px);
+      }
+
+      .btn-gold {
+        background: linear-gradient(135deg, #ffd700, #ffaa00);
+        color: white;
+        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+      }
+
+      .btn-gold:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+      }
+
+      /* Tabla de récords */
+      .records-section {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 2px dashed #ffccdd;
+      }
+
+      .records-section h3 {
+        color: #ff3385;
+        font-size: 1rem;
+        margin-bottom: 10px;
+      }
+
+      .records-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 5px;
+      }
+
+      .record-item {
+        background: #fff5f9;
+        border-radius: 10px;
+        padding: 5px 8px;
+        font-size: 0.75rem;
+        border: 1px solid #ffccdd;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .record-item .name {
+        color: #4a2a3a;
+      }
+
+      .record-item .score {
+        color: #ff3385;
+        font-weight: 900;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-top: 15px;
+        color: #ff3385;
+        font-weight: 900;
+        text-decoration: none;
+        padding: 8px 20px;
+        border-radius: 30px;
+        border: 2px solid #ff3385;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+      }
+
+      .back-link:hover {
+        background: #ff3385;
+        color: white;
+      }
+
+      /* Responsive */
+      @media (max-width: 500px) {
+        .kawaii-box {
+          padding: 20px 15px;
+        }
+
+        h1 {
+          font-size: 2rem;
+        }
+
+        .hud-container {
+          grid-template-columns: repeat(4, 1fr);
+          gap: 5px;
+        }
+
+        .hud-item .value {
+          font-size: 1.2rem;
+        }
+
+        .botones-container {
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        .btn-ingrediente {
+          font-size: 1.8rem;
+          min-height: 60px;
+          padding: 10px 5px;
+        }
+
+        .pedido-container .pedido-texto {
+          font-size: 2.8rem;
+        }
+
+        .pedido-container .pedido-texto.complejo {
+          font-size: 2rem;
+        }
+      }
+
+      @media (max-width: 380px) {
+        .botones-container {
+          grid-template-columns: repeat(3, 1fr);
+          gap: 5px;
+        }
+
+        .btn-ingrediente {
+          font-size: 1.4rem;
+          min-height: 50px;
+        }
+
+        .pedido-container .pedido-texto {
+          font-size: 2.2rem;
+        }
+      }
+    </style>
   </head>
   <body>
     <div class="kawaii-box">
-      <h1>☕ Kitty Cafe 🍰</h1>
-      <div class="hud">
-        Puntos: <span id="score">0</span> | Tiempo: <span id="timer">30</span>s
+      <h1>☕ Kitty Cafe Dash</h1>
+      <p class="subtitle">
+        ✨ Sirve los pedidos antes de que se acabe el tiempo
+      </p>
+
+      <!-- HUD -->
+      <div class="hud-container">
+        <div class="hud-item">
+          <div class="label">⭐ Puntos</div>
+          <div class="value" id="score">0</div>
+        </div>
+        <div class="hud-item">
+          <div class="label">⏱️ Tiempo</div>
+          <div class="value" id="timer">30</div>
+        </div>
+        <div class="hud-item">
+          <div class="label">🔥 Combo</div>
+          <div class="value" id="combo">x1</div>
+        </div>
+        <div class="hud-item">
+          <div class="label">📊 Nivel</div>
+          <div class="value" id="nivel">1</div>
+        </div>
       </div>
 
-      <div class="area-juego" id="pedido">¡Presiona Iniciar!</div>
+      <!-- Pedido -->
+      <div class="pedido-container" id="pedidoContainer">
+        <span class="nivel-display" id="nivelDisplay">Nivel 1</span>
+        <span class="combo-display" id="comboDisplay">🔥 x1</span>
+        <div class="cliente" id="clienteText">🐱 Cliente:</div>
+        <div class="pedido-texto" id="pedidoTexto">¡Presiona Iniciar! 🎀</div>
+        <div class="pista" id="pistaText">
+          💡 Elige los ingredientes correctos
+        </div>
+      </div>
 
+      <!-- Botones de ingredientes -->
       <div class="botones-container">
-        <button class="btn-ingrediente" onclick="preparar('☕')">☕</button>
-        <button class="btn-ingrediente" onclick="preparar('🍰')">🍰</button>
-        <button class="btn-ingrediente" onclick="preparar('🍵')">🍵</button>
+        <button
+          class="btn-ingrediente"
+          onclick="preparar('☕')"
+          id="btn-coffee"
+        >
+          ☕
+          <span class="btn-label">Café</span>
+        </button>
+        <button class="btn-ingrediente" onclick="preparar('🍰')" id="btn-cake">
+          🍰
+          <span class="btn-label">Pastel</span>
+        </button>
+        <button class="btn-ingrediente" onclick="preparar('🍵')" id="btn-tea">
+          🍵
+          <span class="btn-label">Té</span>
+        </button>
+        <button
+          class="btn-ingrediente"
+          onclick="preparar('🍪')"
+          id="btn-cookie"
+        >
+          🍪
+          <span class="btn-label">Galleta</span>
+        </button>
       </div>
 
-      <button class="btn-inicio" onclick="iniciar()" id="btn-start">
-        ▶️ Iniciar Turno
-      </button>
-      <br /><br />
-      <a
-        href="/secreto"
-        style="color: #ff3385; text-decoration: none; font-weight: bold"
-        >🏠 Volver al Menú</a
-      >
+      <!-- Controles -->
+      <div class="controls">
+        <button class="btn btn-primary" onclick="iniciar()" id="btn-start">
+          ▶️ Iniciar Turno
+        </button>
+        <button class="btn btn-secondary" onclick="resetGame()">
+          🔄 Reiniciar
+        </button>
+      </div>
+
+      <!-- Récords -->
+      <div class="records-section">
+        <h3>🏆 Mejores Puntuaciones</h3>
+        <div class="records-grid" id="recordsGrid">
+          <div class="record-item"><span class="name">Cargando...</span></div>
+        </div>
+      </div>
+
+      <a href="/secreto" class="back-link">🏠 Volver al Menú</a>
     </div>
 
     <script>
+      // ============================================================
+      //  CONFIGURACIÓN DEL JUEGO
+      // ============================================================
       let score = 0;
       let timer = 30;
-      let pedidoActual = "";
+      let timerMax = 30;
+      let nivel = 1;
+      let combo = 1;
+      let maxCombo = 1;
+      let pedidoActual = [];
+      let pedidoCompleto = [];
       let juegoActivo = false;
-      let intervaloTimer;
+      let intervaloTimer = null;
+      let pedidosCompletados = 0;
+      let totalCorrectos = 0;
+      let totalErrores = 0;
 
-      const recetas = ["☕", "🍰", "🍵"];
-      const areaPedido = document.getElementById("pedido");
+      // Clientes y sus diálogos
+      const clientes = [
+        {
+          nombre: "Mochi",
+          emoji: "🐱",
+          frases: ["¡Hola! Quiero", "Necesito", "Dame un"],
+        },
+        {
+          nombre: "Luna",
+          emoji: "🐰",
+          frases: ["¡Miau! Traeme", "Quisiera", "Antojo de"],
+        },
+        {
+          nombre: "Neko",
+          emoji: "🐱",
+          frases: ["¡Purr! Dame", "Quiero un", "Necesito un"],
+        },
+        {
+          nombre: "Koko",
+          emoji: "🐶",
+          frases: ["¡Woof! Trae", "Dame un", "Quiero"],
+        },
+        {
+          nombre: "Pochi",
+          emoji: "🐹",
+          frases: ["¡Squeak!", "Quiero un", "Traeme un"],
+        },
+        {
+          nombre: "Mimi",
+          emoji: "🐱",
+          frases: ["¡Hola! Un", "Dame un", "Por favor un"],
+        },
+      ];
+
+      // Todas las recetas posibles con sus ingredientes
+      const recetas = {
+        "☕": { nombre: "Café", emoji: "☕", ingredientes: ["☕"] },
+        "🍰": { nombre: "Pastel", emoji: "🍰", ingredientes: ["🍰"] },
+        "🍵": { nombre: "Té", emoji: "🍵", ingredientes: ["🍵"] },
+        "🍪": { nombre: "Galleta", emoji: "🍪", ingredientes: ["🍪"] },
+        "☕+🍪": {
+          nombre: "Café con Galleta",
+          emoji: "☕+🍪",
+          ingredientes: ["☕", "🍪"],
+        },
+        "🍵+🍪": {
+          nombre: "Té con Galleta",
+          emoji: "🍵+🍪",
+          ingredientes: ["🍵", "🍪"],
+        },
+        "☕+🍰": {
+          nombre: "Café y Pastel",
+          emoji: "☕+🍰",
+          ingredientes: ["☕", "🍰"],
+        },
+        "🍵+🍰": {
+          nombre: "Té y Pastel",
+          emoji: "🍵+🍰",
+          ingredientes: ["🍵", "🍰"],
+        },
+        "☕+🍵+🍪": {
+          nombre: "Combo Especial",
+          emoji: "☕+🍵+🍪",
+          ingredientes: ["☕", "🍵", "🍪"],
+        },
+        "🍰+🍪+☕": {
+          nombre: "Merienda Perfecta",
+          emoji: "🍰+🍪+☕",
+          ingredientes: ["🍰", "🍪", "☕"],
+        },
+      };
+
+      const recetasList = Object.keys(recetas);
+
+      // Elementos DOM
       const scoreDisp = document.getElementById("score");
       const timerDisp = document.getElementById("timer");
+      const comboDisp = document.getElementById("combo");
+      const nivelDisp = document.getElementById("nivel");
+      const nivelDisplay = document.getElementById("nivelDisplay");
+      const comboDisplay = document.getElementById("comboDisplay");
+      const pedidoTexto = document.getElementById("pedidoTexto");
+      const clienteText = document.getElementById("clienteText");
+      const pistaText = document.getElementById("pistaText");
+      const pedidoContainer = document.getElementById("pedidoContainer");
       const btnStart = document.getElementById("btn-start");
+      const recordsGrid = document.getElementById("recordsGrid");
 
+      // ============================================================
+      //  INICIO DEL JUEGO
+      // ============================================================
       function iniciar() {
         if (juegoActivo) return;
+
+        // Reiniciar estado
         juegoActivo = true;
         score = 0;
-        timer = 30;
-        scoreDisp.innerText = score;
-        timerDisp.innerText = timer;
-        areaPedido.style.color = "black"; // Reinicia el color a negro
-        btnStart.style.display = "none";
+        timer = timerMax;
+        nivel = 1;
+        combo = 1;
+        maxCombo = 1;
+        pedidosCompletados = 0;
+        totalCorrectos = 0;
+        totalErrores = 0;
+        pedidoActual = [];
+        pedidoCompleto = [];
 
+        btnStart.disabled = true;
+        btnStart.textContent = "⏳ Jugando...";
+
+        actualizarHUD();
         nuevoPedido();
 
+        // Iniciar timer
+        if (intervaloTimer) clearInterval(intervaloTimer);
         intervaloTimer = setInterval(() => {
           timer--;
-          timerDisp.innerText = timer;
+          actualizarHUD();
+
           if (timer <= 0) {
             clearInterval(intervaloTimer);
-            terminar("¡Tiempo agotado! ⏰");
+            terminar("⏰ ¡Tiempo agotado!");
+          }
+
+          // Advertencia de tiempo bajo
+          if (timer <= 5) {
+            timerDisp.classList.add("timer-warning");
+          } else {
+            timerDisp.classList.remove("timer-warning");
           }
         }, 1000);
       }
 
+      // ============================================================
+      //  NUEVO PEDIDO
+      // ============================================================
       function nuevoPedido() {
-        pedidoActual = recetas[Math.floor(Math.random() * recetas.length)];
-        areaPedido.innerText = pedidoActual;
+        // Elegir dificultad según nivel
+        let recetasDisponibles;
+        if (nivel <= 2) {
+          // Niveles 1-2: solo recetas simples
+          recetasDisponibles = ["☕", "🍰", "🍵", "🍪"];
+        } else if (nivel <= 4) {
+          // Niveles 3-4: recetas de 2 ingredientes
+          recetasDisponibles = ["☕+🍪", "🍵+🍪", "☕+🍰", "🍵+🍰"];
+        } else {
+          // Nivel 5+: todas las recetas (incluyendo combinaciones de 3)
+          recetasDisponibles = recetasList;
+        }
 
-        areaPedido.style.transform = "scale(1.2)";
-        setTimeout(() => (areaPedido.style.transform = "scale(1)"), 150);
+        // Elegir receta aleatoria
+        const recetaKey =
+          recetasDisponibles[
+            Math.floor(Math.random() * recetasDisponibles.length)
+          ];
+        const receta = recetas[recetaKey];
+        pedidoActual = receta.ingredientes;
+        pedidoCompleto = [...pedidoActual];
+
+        // Elegir cliente
+        const cliente = clientes[Math.floor(Math.random() * clientes.length)];
+        const frase =
+          cliente.frases[Math.floor(Math.random() * cliente.frases.length)];
+
+        // Mostrar pedido
+        clienteText.textContent = `${cliente.emoji} ${cliente.nombre}: ${frase}`;
+        pedidoTexto.textContent = receta.emoji;
+
+        // Si es complejo (más de 1 ingrediente), mostrar con estilo
+        if (receta.ingredientes.length > 1) {
+          pedidoTexto.classList.add("complejo");
+          pistaText.textContent = `💡 Necesitas ${receta.ingredientes.length} ingredientes: ${receta.ingredientes.join(" + ")}`;
+        } else {
+          pedidoTexto.classList.remove("complejo");
+          pistaText.textContent = `💡 Presiona el ingrediente correcto`;
+        }
+
+        // Resetear estado del pedido
+        pedidoActual = receta.ingredientes;
+
+        // Animación de entrada
+        pedidoContainer.style.transform = "scale(0.9)";
+        setTimeout(() => {
+          pedidoContainer.style.transform = "scale(1)";
+        }, 100);
+
+        // Efecto de combo
+        if (combo > 1) {
+          comboDisplay.textContent = `🔥 x${combo}`;
+          comboDisplay.style.display = "block";
+          comboDisplay.style.animation = "none";
+          setTimeout(() => {
+            comboDisplay.style.animation = "combo-pop 0.3s ease";
+          }, 10);
+        } else {
+          comboDisplay.style.display = "none";
+        }
+
+        // Actualizar nivel
+        nivelDisplay.textContent = `Nivel ${nivel}`;
       }
 
+      // ============================================================
+      //  PREPARAR INGREDIENTE
+      // ============================================================
       function preparar(ingrediente) {
         if (!juegoActivo) return;
+        if (pedidoActual.length === 0) return;
 
-        if (ingrediente === pedidoActual) {
-          score += 10;
-          scoreDisp.innerText = score;
-          nuevoPedido();
+        // Verificar si el ingrediente es correcto
+        const index = pedidoActual.indexOf(ingrediente);
+
+        if (index !== -1) {
+          // ¡Correcto!
+          pedidoActual.splice(index, 1);
+          totalCorrectos++;
+
+          // Efecto visual
+          pedidoContainer.classList.remove("wrong-flash");
+          pedidoContainer.classList.add("correct-flash");
+          setTimeout(() => {
+            pedidoContainer.classList.remove("correct-flash");
+          }, 500);
+
+          // Mostrar progreso
+          const restantes = pedidoActual.length;
+          if (restantes > 0) {
+            pistaText.textContent = `✅ ¡Bien! ${restantes} ingrediente${restantes > 1 ? "s" : ""} restante${restantes > 1 ? "s" : ""}`;
+          }
+
+          // Si completó el pedido
+          if (pedidoActual.length === 0) {
+            completarPedido();
+          }
         } else {
-          // ¡MUERTE SÚBITA!
-          clearInterval(intervaloTimer); // Detiene el reloj inmediatamente
-          areaPedido.style.color = "red"; // Pone el texto en rojo
-          terminar("¡Te equivocaste! 🙀"); // Termina el juego con mensaje de error
+          // ¡Error!
+          totalErrores++;
+          combo = 0;
+          actualizarHUD();
+
+          // Efecto visual
+          pedidoContainer.classList.remove("correct-flash");
+          pedidoContainer.classList.add("wrong-flash");
+          pedidoContainer.classList.add("shake");
+          setTimeout(() => {
+            pedidoContainer.classList.remove("wrong-flash");
+            pedidoContainer.classList.remove("shake");
+          }, 500);
+
+          pistaText.textContent = `❌ ¡Eso no va aquí! Los ingredientes son: ${pedidoCompleto.join(" + ")}`;
+
+          // Perder 5 puntos por error (pero no menos de 0)
+          score = Math.max(0, score - 5);
+          actualizarHUD();
         }
       }
 
-      function terminar(mensaje) {
-        juegoActivo = false;
-        areaPedido.innerText = mensaje;
-        btnStart.style.display = "inline-block";
-        btnStart.innerText = "🔄 Jugar de nuevo";
+      // ============================================================
+      //  COMPLETAR PEDIDO
+      // ============================================================
+      function completarPedido() {
+        pedidosCompletados++;
+
+        // Calcular puntos base
+        let puntosBase = 10 + (pedidoCompleto.length - 1) * 5;
+        let puntosBonus = 0;
+
+        // Bonus por combo
+        combo++;
+        if (combo > maxCombo) maxCombo = combo;
+        const comboBonus = Math.min(combo, 5); // Máximo x5
+        puntosBonus += comboBonus * 2;
+
+        // Bonus por nivel
+        puntosBonus += Math.floor(nivel / 2);
+
+        // Bonus por tiempo restante
+        const tiempoBonus = Math.floor(timer / 5);
+        puntosBonus += tiempoBonus;
+
+        // Puntos totales
+        const puntosTotales = puntosBase + puntosBonus;
+        score += puntosTotales;
+
+        // Efecto de puntos flotantes
+        mostrarPuntosFlotantes(`+${puntosTotales} 💫`, "#ffd700");
+
+        // Subir de nivel cada 5 pedidos completados
+        if (pedidosCompletados % 5 === 0) {
+          nivel++;
+          timerMax = Math.max(15, timerMax - 1); // El tiempo máximo disminuye gradualmente
+          timer = Math.min(timer + 3, timerMax); // Bonus de tiempo al subir nivel
+
+          mostrarPuntosFlotantes(`⬆️ NIVEL ${nivel}! 🎉`, "#ff3385");
+          nivelDisplay.textContent = `Nivel ${nivel}`;
+        } else {
+          // Bonus de tiempo por pedido completado
+          timer = Math.min(timer + 1, timerMax);
+        }
+
+        // Actualizar HUD
+        actualizarHUD();
+
+        // Nuevo pedido después de un breve retraso
+        setTimeout(() => {
+          nuevoPedido();
+        }, 300);
+      }
+
+      // ============================================================
+      //  MOSTRAR PUNTOS FLOTANTES
+      // ============================================================
+      function mostrarPuntosFlotantes(texto, color = "#ffd700") {
+        const el = document.createElement("div");
+        el.className = "float-score";
+        el.textContent = texto;
+        el.style.color = color;
+        el.style.left = "50%";
+        el.style.top = "40%";
+        el.style.transform = "translateX(-50%)";
+        document.body.appendChild(el);
 
         setTimeout(() => {
-          let n = prompt(
-            mensaje +
-              "\nLograste " +
-              score +
-              " puntos.\nIngresa tu nombre para el récord:",
+          el.remove();
+        }, 1000);
+      }
+
+      // ============================================================
+      //  ACTUALIZAR HUD
+      // ============================================================
+      function actualizarHUD() {
+        scoreDisp.textContent = score;
+        timerDisp.textContent = timer;
+        comboDisp.textContent = `x${Math.min(combo, 5)}`;
+        nivelDisp.textContent = nivel;
+
+        // Color del combo
+        if (combo >= 5) {
+          comboDisp.style.color = "#ffd700";
+        } else if (combo >= 3) {
+          comboDisp.style.color = "#ff9900";
+        } else {
+          comboDisp.style.color = "#ff3385";
+        }
+      }
+
+      // ============================================================
+      //  TERMINAR JUEGO
+      // ============================================================
+      function terminar(mensaje) {
+        juegoActivo = false;
+        if (intervaloTimer) {
+          clearInterval(intervaloTimer);
+          intervaloTimer = null;
+        }
+
+        btnStart.disabled = false;
+        btnStart.textContent = "🔄 Jugar de nuevo";
+
+        pedidoTexto.textContent = mensaje;
+        pistaText.textContent = `📊 Puntos: ${score} | Combo máximo: x${maxCombo} | Nivel: ${nivel}`;
+
+        // Mostrar resumen
+        const resumen = `🌟 Resumen:
+        • Puntos: ${score}
+        • Pedidos completados: ${pedidosCompletados}
+        • Combo máximo: x${maxCombo}
+        • Nivel alcanzado: ${nivel}
+        • Errores: ${totalErrores}`;
+
+        // Guardar puntuación
+        setTimeout(() => {
+          const nombre = prompt(
+            `${mensaje}\n\n${resumen}\n\n✨ Ingresa tu nombre para el récord:`,
           );
-          if (n) {
-            fetch("/guardar_cafe", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ nombre: n, puntos: score }),
-            }).then(() => (location.href = "/secreto"));
+          if (nombre && nombre.trim()) {
+            guardarPuntuacion(nombre.trim(), score);
           }
         }, 500);
       }
+
+      // ============================================================
+      //  GUARDAR PUNTUACIÓN
+      // ============================================================
+      function guardarPuntuacion(nombre, puntos) {
+        fetch("/guardar_cafe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nombre: nombre, puntos: puntos }),
+        })
+          .then(() => cargarRecords())
+          .catch(() => {});
+      }
+
+      // ============================================================
+      //  CARGAR RÉCORDS
+      // ============================================================
+      function cargarRecords() {
+        fetch("/records_cafe")
+          .then((r) => r.json())
+          .then((data) => {
+            recordsGrid.innerHTML = "";
+            if (data && data.length > 0) {
+              data.slice(0, 10).forEach((item, i) => {
+                const div = document.createElement("div");
+                div.className = "record-item";
+                div.innerHTML = `
+                  <span class="name">${i + 1}. ${item.nombre}</span>
+                  <span class="score">${item.puntos} pts</span>
+                `;
+                recordsGrid.appendChild(div);
+              });
+            } else {
+              recordsGrid.innerHTML = `<div class="record-item"><span class="name">✨ Sin récords aún</span></div>`;
+            }
+          })
+          .catch(() => {});
+      }
+
+      // ============================================================
+      //  REINICIAR
+      // ============================================================
+      function resetGame() {
+        if (intervaloTimer) {
+          clearInterval(intervaloTimer);
+          intervaloTimer = null;
+        }
+        juegoActivo = false;
+        score = 0;
+        timer = timerMax;
+        combo = 1;
+        nivel = 1;
+        pedidosCompletados = 0;
+        totalCorrectos = 0;
+        totalErrores = 0;
+        pedidoActual = [];
+        pedidoCompleto = [];
+
+        btnStart.disabled = false;
+        btnStart.textContent = "▶️ Iniciar Turno";
+
+        pedidoTexto.textContent = "¡Listo para jugar! 🎀";
+        pistaText.textContent = '💡 Presiona "Iniciar Turno" para comenzar';
+        clienteText.textContent = "🐱 Cliente: ";
+        pedidoContainer.classList.remove(
+          "correct-flash",
+          "wrong-flash",
+          "shake",
+        );
+
+        actualizarHUD();
+        timerDisp.classList.remove("timer-warning");
+        cargarRecords();
+      }
+
+      // ============================================================
+      //  INICIALIZAR
+      // ============================================================
+      document.addEventListener("DOMContentLoaded", () => {
+        cargarRecords();
+        resetGame();
+      });
     </script>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-    <script>
-      // Ejemplo de cómo usarlo en cualquier juego:
-      // Ya no necesitas prompt, el archivo scripts.js se encarga de todo.
-
-      function alGanarJuego(misPuntos) {
-        // Solo llamas a esta función y listo
-        enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
-      }
-    </script>
   </body>
 </html>
