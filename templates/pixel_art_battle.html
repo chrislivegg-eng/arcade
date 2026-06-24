@@ -21,7 +21,6 @@
         padding: 0;
         box-sizing: border-box;
       }
-
       body {
         font-family: "Nunito", sans-serif;
         background: linear-gradient(135deg, #1a0033, #2d0050, #1a0033);
@@ -31,7 +30,6 @@
         align-items: center;
         padding: 20px;
       }
-
       .container {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
@@ -43,7 +41,6 @@
         border: 3px solid rgba(153, 51, 255, 0.3);
         text-align: center;
       }
-
       h1 {
         font-size: 2.5rem;
         background: linear-gradient(135deg, #ff66cc, #cc33ff, #9966ff);
@@ -51,68 +48,59 @@
         -webkit-text-fill-color: transparent;
         margin-bottom: 5px;
       }
-
       .subtitle {
         color: #9966cc;
         font-size: 0.9rem;
         margin-bottom: 15px;
       }
-
-      /* HUD */
       .hud-container {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
         gap: 8px;
         margin-bottom: 15px;
       }
-
       .hud-item {
         background: #f5f0ff;
         border-radius: 15px;
         padding: 8px 5px;
         border: 2px solid #d9b3ff;
       }
-
       .hud-item .label {
         font-size: 0.5rem;
         color: #9966cc;
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
-
       .hud-item .value {
         font-size: 1.4rem;
         font-weight: 900;
         color: #663399;
       }
-
       .hud-item .value.gold {
         color: #ffd700;
       }
-
       .hud-item .value.pink {
         color: #ff66a3;
       }
-
       .hud-item .value.green {
         color: #33cc66;
       }
+      .hud-item .value.purple {
+        color: #9966ff;
+      }
 
-      /* Tableros */
       .boards-container {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 15px;
         margin: 15px 0;
       }
-
       .board-wrapper {
         background: #f5f0ff;
         border-radius: 20px;
         padding: 12px;
         border: 3px solid #d9b3ff;
       }
-
       .board-wrapper .board-title {
         font-size: 0.8rem;
         font-weight: 900;
@@ -122,7 +110,6 @@
         justify-content: space-between;
         align-items: center;
       }
-
       .board-wrapper .board-title .badge {
         background: #663399;
         color: white;
@@ -130,13 +117,11 @@
         border-radius: 20px;
         font-size: 0.7rem;
       }
-
       .board-wrapper .board-title .badge.active-turn {
         background: #ffd700;
         color: #1a0033;
         animation: pulse-badge 1s ease-in-out infinite alternate;
       }
-
       @keyframes pulse-badge {
         0% {
           transform: scale(1);
@@ -145,7 +130,6 @@
           transform: scale(1.1);
         }
       }
-
       .board {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
@@ -154,7 +138,6 @@
         max-width: 200px;
         margin: 0 auto;
       }
-
       .cell {
         aspect-ratio: 1;
         border-radius: 4px;
@@ -163,30 +146,24 @@
         transition: all 0.15s ease;
         background: #f0e8f8;
       }
-
       .cell:hover:not(.disabled) {
         transform: scale(1.05);
         border-color: #9966cc;
       }
-
       .cell.disabled {
         cursor: not-allowed;
         opacity: 0.6;
       }
-
       .cell.pattern-cell {
         border-color: #663399;
         box-shadow: 0 0 10px rgba(102, 51, 153, 0.3);
       }
-
       .cell.correct {
         animation: flash-green 0.3s ease;
       }
-
       .cell.wrong {
         animation: flash-red 0.3s ease;
       }
-
       @keyframes flash-green {
         0%,
         100% {
@@ -197,7 +174,6 @@
           box-shadow: 0 0 20px rgba(51, 204, 102, 0.5);
         }
       }
-
       @keyframes flash-red {
         0%,
         100% {
@@ -209,7 +185,6 @@
         }
       }
 
-      /* Patrón a replicar */
       .pattern-display {
         background: #f5f0ff;
         border-radius: 20px;
@@ -217,13 +192,11 @@
         border: 3px dashed #d9b3ff;
         margin: 10px 0;
       }
-
       .pattern-display .pattern-label {
         font-size: 0.8rem;
         color: #9966cc;
         font-weight: 700;
       }
-
       .pattern-display .pattern-grid {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
@@ -232,7 +205,6 @@
         margin: 8px auto;
         aspect-ratio: 1;
       }
-
       .pattern-display .pattern-cell {
         aspect-ratio: 1;
         border-radius: 4px;
@@ -240,7 +212,6 @@
         background: #f0e8f8;
       }
 
-      /* Controles */
       .controls {
         display: flex;
         flex-wrap: wrap;
@@ -248,7 +219,6 @@
         justify-content: center;
         margin: 15px 0;
       }
-
       .btn {
         padding: 12px 28px;
         border: none;
@@ -262,56 +232,38 @@
         align-items: center;
         gap: 8px;
       }
-
       .btn-primary {
         background: linear-gradient(135deg, #9966ff, #663399);
         color: white;
         box-shadow: 0 6px 20px rgba(102, 51, 153, 0.35);
       }
-
       .btn-primary:hover {
         transform: translateY(-3px);
         box-shadow: 0 10px 30px rgba(102, 51, 153, 0.45);
       }
-
       .btn-primary:disabled {
         opacity: 0.5;
         cursor: not-allowed;
         transform: none;
       }
-
       .btn-secondary {
         background: white;
         color: #663399;
         border: 3px solid #663399;
       }
-
       .btn-secondary:hover {
         background: #663399;
         color: white;
         transform: translateY(-3px);
       }
-
       .btn-gold {
         background: linear-gradient(135deg, #ffd700, #ffaa00);
         color: #1a0033;
         box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
       }
-
       .btn-gold:hover {
         transform: translateY(-3px);
         box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
-      }
-
-      .btn-pink {
-        background: linear-gradient(135deg, #ff66a3, #ff3385);
-        color: white;
-        box-shadow: 0 6px 20px rgba(255, 51, 133, 0.3);
-      }
-
-      .btn-pink:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(255, 51, 133, 0.4);
       }
 
       .difficulty-selector {
@@ -321,7 +273,6 @@
         justify-content: center;
         margin: 10px 0;
       }
-
       .difficulty-btn {
         padding: 8px 16px;
         border: 3px solid #d9b3ff;
@@ -334,18 +285,15 @@
         cursor: pointer;
         transition: all 0.3s ease;
       }
-
       .difficulty-btn:hover {
         transform: scale(1.05);
       }
-
       .difficulty-btn.active {
         border-color: #663399;
         background: #663399;
         color: white;
       }
 
-      /* Lobby */
       .lobby-box {
         background: #f5f0ff;
         padding: 25px;
@@ -353,18 +301,15 @@
         border: 3px dashed #d9b3ff;
         margin: 15px 0;
       }
-
       .lobby-box h3 {
         color: #663399;
         margin-bottom: 15px;
         font-size: 1.2rem;
       }
-
       .lobby-box hr {
         border: 1px solid #e0d0f0;
         margin: 20px 0;
       }
-
       .input-sala {
         padding: 12px 20px;
         border-radius: 15px;
@@ -377,17 +322,14 @@
         outline: none;
         transition: border-color 0.3s;
       }
-
       .input-sala:focus {
         border-color: #663399;
       }
-
       .btn-full {
         width: 100%;
         margin-bottom: 8px;
       }
 
-      /* Game Over */
       .game-over-overlay {
         position: absolute;
         top: 0;
@@ -403,30 +345,25 @@
         z-index: 10;
         padding: 20px;
       }
-
       .game-over-overlay.show {
         display: flex;
       }
-
       .game-over-overlay .title {
         font-size: 2.5rem;
         font-weight: 900;
         color: #ffd700;
         margin-bottom: 5px;
       }
-
       .game-over-overlay .sub {
         color: #cc99ff;
         font-size: 1.1rem;
       }
-
       .game-over-overlay .final-score {
         font-size: 3rem;
         font-weight: 900;
         color: #ff66cc;
         margin: 5px 0;
       }
-
       .game-over-overlay .stats {
         color: #9966cc;
         font-size: 0.9rem;
@@ -446,32 +383,27 @@
         transition: all 0.3s ease;
         font-size: 0.9rem;
       }
-
       .back-link:hover {
         background: #663399;
         color: white;
         border-color: #663399;
       }
 
-      /* Records */
       .records-section {
         margin-top: 15px;
         padding-top: 15px;
         border-top: 2px dashed #d9b3ff;
       }
-
       .records-section h3 {
         color: #663399;
         font-size: 0.9rem;
         margin-bottom: 8px;
       }
-
       .records-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
         gap: 5px;
       }
-
       .record-item {
         background: #f5f0ff;
         border-radius: 10px;
@@ -481,60 +413,56 @@
         display: flex;
         justify-content: space-between;
       }
-
       .record-item .name {
         color: #663399;
       }
-
       .record-item .score {
         color: #ff66a3;
         font-weight: 900;
       }
 
-      /* Responsive */
+      .canvas-wrapper {
+        position: relative;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 3px solid #d9b3ff;
+        margin-bottom: 12px;
+      }
+
       @media (max-width: 600px) {
         .container {
           padding: 15px 10px;
         }
-
         h1 {
           font-size: 1.6rem;
         }
-
         .hud-container {
           grid-template-columns: repeat(3, 1fr);
           gap: 5px;
         }
-
         .hud-item .value {
           font-size: 1.1rem;
         }
-
         .boards-container {
           grid-template-columns: 1fr;
           gap: 10px;
         }
-
         .board {
           max-width: 150px;
         }
-
         .pattern-display .pattern-grid {
           max-width: 180px;
         }
-
         .btn {
           padding: 10px 18px;
           font-size: 0.85rem;
         }
       }
-
       @media (max-width: 400px) {
         .board {
           max-width: 120px;
           gap: 3px;
         }
-
         .pattern-display .pattern-grid {
           max-width: 140px;
           gap: 3px;
@@ -547,9 +475,7 @@
       <h1>🎨 Pixel Art Battle</h1>
       <p class="subtitle">✨ Replica el patrón de colores antes que tu rival</p>
 
-      <!-- ========================================================= -->
-      <!--  LOBBY -->
-      <!-- ========================================================= -->
+      <!-- LOBBY -->
       <div id="pantalla-lobby" class="lobby-box">
         <h3>🤖 Modo Bot</h3>
         <div class="difficulty-selector">
@@ -585,11 +511,9 @@
         <button class="btn btn-primary btn-full" onclick="iniciarModoBot()">
           🎮 Jugar contra el Bot
         </button>
-
         <hr />
-
         <h3>🌐 Modo Online</h3>
-        <button class="btn btn-pink btn-full" onclick="crearSalaOnline()">
+        <button class="btn btn-gold btn-full" onclick="crearSalaOnline()">
           ✨ Crear Sala
         </button>
         <input
@@ -599,18 +523,18 @@
           placeholder="📝 Código (Ej. X7Y2)"
           maxlength="6"
         />
-        <button class="btn btn-gold btn-full" onclick="unirseSalaOnline()">
+        <button
+          class="btn btn-primary btn-full"
+          onclick="unirseSalaOnline()"
+          style="background: linear-gradient(135deg, #ff66a3, #ff3385)"
+        >
           🚀 Unirse a Sala
         </button>
-
         <a href="/secreto" class="back-link">🏠 Volver al Menú</a>
       </div>
 
-      <!-- ========================================================= -->
-      <!--  PANTALLA DE JUEGO -->
-      <!-- ========================================================= -->
+      <!-- JUEGO -->
       <div id="pantalla-juego" style="display: none">
-        <!-- HUD -->
         <div class="hud-container">
           <div class="hud-item">
             <div class="label">🎯 Ronda</div>
@@ -630,11 +554,10 @@
           </div>
           <div class="hud-item">
             <div class="label">🏆 Puntos</div>
-            <div class="value" id="score">0</div>
+            <div class="value purple" id="score">0</div>
           </div>
         </div>
 
-        <!-- Patrón a replicar -->
         <div class="pattern-display">
           <div class="pattern-label">🎯 Patrón a replicar</div>
           <div class="pattern-grid" id="patternGrid"></div>
@@ -643,7 +566,6 @@
           </div>
         </div>
 
-        <!-- Tableros -->
         <div class="boards-container">
           <div class="board-wrapper">
             <div class="board-title">
@@ -661,7 +583,6 @@
           </div>
         </div>
 
-        <!-- Estado del juego -->
         <div
           id="gameStatus"
           style="
@@ -675,7 +596,6 @@
           🎯 ¡Listo para jugar!
         </div>
 
-        <!-- Controles -->
         <div class="controls">
           <button
             class="btn btn-primary"
@@ -689,7 +609,6 @@
           </button>
         </div>
 
-        <!-- Récords -->
         <div class="records-section">
           <h3>🏆 Mejores Puntuaciones</h3>
           <div class="records-grid" id="recordsGrid">
@@ -706,7 +625,6 @@
       const COLS = 5;
       const ROWS = 5;
       const TOTAL_CELLS = COLS * ROWS;
-
       const COLORS = [
         "#ff6b6b",
         "#ffd93d",
@@ -718,7 +636,7 @@
         "#e67e22",
       ];
 
-      let modoJuego = ""; // 'bot' o 'online'
+      let modoJuego = "";
       let botDifficulty = "medium";
       let miSala = "";
       let miJugador = 1;
@@ -726,6 +644,8 @@
       let gameActive = false;
       let roundActive = false;
       let isBotThinking = false;
+      let timerInterval = null;
+      let timerValue = 0;
 
       // Estado del juego
       let estado = {
@@ -739,6 +659,7 @@
         timer: 0,
         turno: 1,
         gameOver: false,
+        totalCeldas: 0,
       };
 
       // Estado del bot
@@ -749,6 +670,7 @@
         errors: 0,
         currentStep: 0,
         sequence: [],
+        waiting: false,
       };
 
       // Elementos DOM
@@ -770,27 +692,24 @@
       // ============================================================
       //  FUNCIONES DEL JUEGO
       // ============================================================
-      function generarPatron(dificultad) {
+      function generarPatron() {
         const numColores = Math.min(
           3 + Math.floor(estado.round / 2),
           COLORS.length,
         );
-        const celdas = Math.min(3 + estado.round, TOTAL_CELLS);
-        const patron = [];
+        const numCeldas = Math.min(3 + estado.round, TOTAL_CELLS);
+        const patron = Array(TOTAL_CELLS).fill(-1);
         const indices = [];
         for (let i = 0; i < TOTAL_CELLS; i++) indices.push(i);
-        // Mezclar y seleccionar celdas
+
         for (let i = indices.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [indices[i], indices[j]] = [indices[j], indices[i]];
         }
-        const seleccionadas = indices.slice(0, celdas);
-        for (let i = 0; i < TOTAL_CELLS; i++) {
-          if (seleccionadas.includes(i)) {
-            patron[i] = Math.floor(Math.random() * numColores);
-          } else {
-            patron[i] = -1;
-          }
+
+        const seleccionadas = indices.slice(0, numCeldas);
+        for (const idx of seleccionadas) {
+          patron[idx] = Math.floor(Math.random() * numColores);
         }
         return patron;
       }
@@ -816,9 +735,16 @@
           if (board[i] >= 0) {
             cell.style.background = COLORS[board[i]];
           }
-          if (editable && roundActive && estado.turno === miJugador) {
+          if (
+            editable &&
+            roundActive &&
+            estado.turno === 1 &&
+            !estado.gameOver
+          ) {
             cell.onclick = () => playerClick(i);
             cell.style.cursor = "pointer";
+          } else {
+            cell.style.cursor = "default";
           }
           container.appendChild(cell);
         }
@@ -869,6 +795,7 @@
           timer: 0,
           turno: 1,
           gameOver: false,
+          totalCeldas: 0,
         };
         botState = {
           pattern: [],
@@ -877,9 +804,15 @@
           errors: 0,
           currentStep: 0,
           sequence: [],
+          waiting: false,
         };
         roundActive = false;
         gameActive = true;
+        timerValue = 0;
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
         actualizarHUD();
         renderizarPatron([]);
         renderizarBoard(estado.playerBoard, playerBoard, true);
@@ -890,45 +823,31 @@
         timerDisp.textContent = "0s";
       }
 
+      // ============================================================
+      //  INICIAR RONDA
+      // ============================================================
       function iniciarRonda() {
-        if (!gameActive || roundActive) return;
-        if (estado.gameOver) {
-          reiniciarJuego();
-          return;
-        }
+        if (!gameActive || roundActive || estado.gameOver) return;
 
         roundActive = true;
         estado.turno = 1;
         estado.hits = 0;
         estado.errors = 0;
         estado.timer = 0;
+        timerValue = 0;
         estado.playerBoard = Array(TOTAL_CELLS).fill(-1);
         estado.rivalBoard = Array(TOTAL_CELLS).fill(-1);
+        botState.board = Array(TOTAL_CELLS).fill(-1);
+        botState.hits = 0;
+        botState.errors = 0;
+        botState.currentStep = 0;
+        botState.waiting = false;
 
-        // Generar patrón según dificultad del bot
-        const dificultad =
-          botDifficulty === "easy"
-            ? 1
-            : botDifficulty === "medium"
-              ? 2
-              : botDifficulty === "hard"
-                ? 3
-                : 4;
-        const numColores = Math.min(
-          3 + Math.floor(estado.round / 2) + (dificultad - 1),
-          COLORS.length,
-        );
-        const celdas = Math.min(
-          3 + estado.round + (dificultad - 1) * 2,
-          TOTAL_CELLS,
-        );
-
-        const patron = generarPatron(dificultad);
+        // Generar patrón
+        const patron = generarPatron();
         estado.pattern = patron;
         botState.pattern = [...patron];
-        botState.board = Array(TOTAL_CELLS).fill(-1);
-        botState.currentStep = 0;
-        botState.sequence = [];
+        estado.totalCeldas = patron.filter((c) => c >= 0).length;
 
         renderizarPatron(patron);
         renderizarBoard(estado.playerBoard, playerBoard, true);
@@ -940,27 +859,27 @@
         btnStartRound.textContent = "⏳ En curso...";
 
         // Iniciar timer
-        let timer = 0;
-        const timerInterval = setInterval(() => {
-          timer++;
-          estado.timer = timer;
-          timerDisp.textContent = `${timer}s`;
-          if (estado.gameOver || !roundActive) {
-            clearInterval(timerInterval);
-          }
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+          timerValue++;
+          estado.timer = timerValue;
+          timerDisp.textContent = `${timerValue}s`;
         }, 1000);
 
-        // El bot espera un momento antes de empezar
+        // El bot espera 1-2 segundos antes de empezar
         setTimeout(
           () => {
-            if (roundActive && modoJuego === "bot") {
+            if (roundActive && modoJuego === "bot" && !estado.gameOver) {
               jugadaBot();
             }
           },
-          1000 + Math.random() * 1000,
+          1500 + Math.random() * 1000,
         );
       }
 
+      // ============================================================
+      //  JUGADA DEL JUGADOR
+      // ============================================================
       function playerClick(index) {
         if (!roundActive || estado.turno !== 1 || estado.gameOver) return;
         if (estado.playerBoard[index] >= 0) return;
@@ -971,7 +890,6 @@
           estado.hits++;
           renderizarBoard(estado.playerBoard, playerBoard, true);
 
-          // Efecto visual
           const cells = playerBoard.children;
           if (cells[index]) {
             cells[index].classList.add("correct");
@@ -979,10 +897,13 @@
           }
 
           actualizarHUD();
-          actualizarEstado(`✅ ¡Bien! ${estado.hits} aciertos`, "⭐");
+          actualizarEstado(
+            `✅ ¡Bien! ${estado.hits}/${estado.totalCeldas} aciertos`,
+            "⭐",
+          );
 
           // Verificar si completó el patrón
-          if (estado.hits === estado.pattern.filter((c) => c >= 0).length) {
+          if (estado.hits === estado.totalCeldas) {
             completarRonda(1);
           }
         } else {
@@ -998,159 +919,162 @@
           actualizarHUD();
           actualizarEstado(`❌ ¡Error! ${estado.errors} errores`, "😅");
 
-          // Si tiene muchos errores, perder
           if (estado.errors >= 3) {
             terminarJuego("Perdiste por muchos errores 😢");
           }
         }
       }
 
+      // ============================================================
+      //  JUGADA DEL BOT (CORREGIDO)
+      // ============================================================
       function jugadaBot() {
         if (!roundActive || estado.gameOver || modoJuego !== "bot") return;
+        if (botState.waiting) return;
+        if (botState.hits >= estado.totalCeldas) return;
 
-        isBotThinking = true;
-        const patron = botState.pattern;
-        const celdasDisponibles = patron
-          .map((v, i) => (v >= 0 && botState.board[i] < 0 ? i : -1))
-          .filter((i) => i >= 0);
+        botState.waiting = true;
 
-        if (celdasDisponibles.length === 0) {
-          isBotThinking = false;
+        // Obtener celdas disponibles
+        const disponibles = [];
+        for (let i = 0; i < TOTAL_CELLS; i++) {
+          if (botState.pattern[i] >= 0 && botState.board[i] < 0) {
+            disponibles.push(i);
+          }
+        }
+
+        if (disponibles.length === 0) {
+          botState.waiting = false;
           return;
         }
 
-        // Estrategia según dificultad
-        let seleccion = [];
+        // Elegir siguiente celda según dificultad
+        let seleccion = -1;
+        const precision =
+          botDifficulty === "easy"
+            ? 0.3
+            : botDifficulty === "medium"
+              ? 0.6
+              : botDifficulty === "hard"
+                ? 0.8
+                : 0.95;
 
-        switch (botDifficulty) {
-          case "easy":
-            seleccion = [
-              celdasDisponibles[
-                Math.floor(Math.random() * celdasDisponibles.length)
-              ],
-            ];
-            break;
-          case "medium":
-            // 70% correcto, 30% aleatorio
-            if (
-              Math.random() < 0.7 &&
-              botState.currentStep < celdasDisponibles.length
-            ) {
-              seleccion = [celdasDisponibles[botState.currentStep]];
-            } else {
-              seleccion = [
-                celdasDisponibles[
-                  Math.floor(Math.random() * celdasDisponibles.length)
-                ],
-              ];
+        // El bot intenta seguir el orden del patrón
+        if (
+          Math.random() < precision &&
+          botState.currentStep < disponibles.length
+        ) {
+          // Elegir la celda correcta en orden
+          const patronCeldas = [];
+          for (let i = 0; i < TOTAL_CELLS; i++) {
+            if (botState.pattern[i] >= 0) patronCeldas.push(i);
+          }
+          if (botState.currentStep < patronCeldas.length) {
+            seleccion = patronCeldas[botState.currentStep];
+            // Verificar si ya fue usada
+            if (botState.board[seleccion] >= 0) {
+              // Buscar otra disponible
+              const disponibles2 = [];
+              for (let i = 0; i < TOTAL_CELLS; i++) {
+                if (botState.pattern[i] >= 0 && botState.board[i] < 0) {
+                  disponibles2.push(i);
+                }
+              }
+              if (disponibles2.length > 0) {
+                seleccion =
+                  disponibles2[Math.floor(Math.random() * disponibles2.length)];
+              }
             }
-            break;
-          case "hard":
-            // 85% correcto en orden
-            if (
-              Math.random() < 0.85 &&
-              botState.currentStep < celdasDisponibles.length
-            ) {
-              seleccion = [celdasDisponibles[botState.currentStep]];
-            } else {
-              seleccion = [
-                celdasDisponibles[
-                  Math.floor(Math.random() * celdasDisponibles.length)
-                ],
-              ];
-            }
-            break;
-          case "impossible":
-            // 95% correcto en orden optimizado
-            if (
-              Math.random() < 0.95 &&
-              botState.currentStep < celdasDisponibles.length
-            ) {
-              seleccion = [celdasDisponibles[botState.currentStep]];
-            } else {
-              // Si falla, elige la que tenga más color similar
-              const mejor = celdasDisponibles.reduce((a, b) => {
-                const pa = patron[a] >= 0 ? 1 : 0;
-                const pb = patron[b] >= 0 ? 1 : 0;
-                return pa > pb ? a : b;
-              });
-              seleccion = [mejor];
-            }
-            break;
-          default:
-            seleccion = [
-              celdasDisponibles[
-                Math.floor(Math.random() * celdasDisponibles.length)
-              ],
-            ];
+          }
         }
 
-        const index = seleccion[0];
-        const color = patron[index];
+        // Si no se seleccionó, elegir aleatorio
+        if (seleccion === -1) {
+          const disponibles2 = [];
+          for (let i = 0; i < TOTAL_CELLS; i++) {
+            if (botState.pattern[i] >= 0 && botState.board[i] < 0) {
+              disponibles2.push(i);
+            }
+          }
+          if (disponibles2.length > 0) {
+            seleccion =
+              disponibles2[Math.floor(Math.random() * disponibles2.length)];
+          }
+        }
 
+        if (seleccion === -1) {
+          botState.waiting = false;
+          return;
+        }
+
+        const color = botState.pattern[seleccion];
         if (color >= 0) {
-          botState.board[index] = color;
+          botState.board[seleccion] = color;
           botState.hits++;
           botState.currentStep++;
 
           // Actualizar tablero rival
-          estado.rivalBoard[index] = color;
+          estado.rivalBoard[seleccion] = color;
           renderizarBoard(estado.rivalBoard, rivalBoard, false);
 
           // Efecto visual
           const cells = rivalBoard.children;
-          if (cells[index]) {
-            cells[index].classList.add("correct");
-            setTimeout(() => cells[index].classList.remove("correct"), 300);
+          if (cells[seleccion]) {
+            cells[seleccion].classList.add("correct");
+            setTimeout(() => cells[seleccion].classList.remove("correct"), 300);
           }
 
-          actualizarEstado(`🤖 Bot: ${botState.hits} aciertos`, "🤖");
+          actualizarEstado(
+            `🤖 Bot: ${botState.hits}/${estado.totalCeldas} aciertos`,
+            "🤖",
+          );
 
           // Verificar si el bot completó
-          const totalCeldas = patron.filter((c) => c >= 0).length;
-          if (botState.hits === totalCeldas) {
+          if (botState.hits === estado.totalCeldas) {
+            botState.waiting = false;
             completarRonda(2);
-          } else {
-            // Continuar
-            const delay =
-              botDifficulty === "impossible"
-                ? 300
-                : botDifficulty === "hard"
-                  ? 500
-                  : botDifficulty === "medium"
-                    ? 700
-                    : 1000;
-            setTimeout(
-              () => {
-                if (roundActive && !estado.gameOver) {
-                  jugadaBot();
-                }
-                isBotThinking = false;
-              },
-              delay + Math.random() * 300,
-            );
+            return;
           }
-        } else {
-          // Error del bot (raro)
-          estado.errors++;
-          actualizarHUD();
-          const cells = rivalBoard.children;
-          if (cells[index]) {
-            cells[index].classList.add("wrong");
-            setTimeout(() => cells[index].classList.remove("wrong"), 300);
-          }
-          setTimeout(() => {
-            if (roundActive && !estado.gameOver) {
+        }
+
+        // Calcular tiempo de espera según dificultad
+        const delay =
+          botDifficulty === "impossible"
+            ? 400
+            : botDifficulty === "hard"
+              ? 600
+              : botDifficulty === "medium"
+                ? 800
+                : 1200;
+
+        setTimeout(
+          () => {
+            botState.waiting = false;
+            if (
+              roundActive &&
+              !estado.gameOver &&
+              botState.hits < estado.totalCeldas
+            ) {
               jugadaBot();
             }
-            isBotThinking = false;
-          }, 500);
-        }
+          },
+          delay + Math.random() * 300,
+        );
       }
 
+      // ============================================================
+      //  COMPLETAR RONDA
+      // ============================================================
       function completarRonda(ganador) {
+        if (!roundActive) return;
         roundActive = false;
-        const puntos = Math.max(10, 100 - estado.timer);
+
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+
+        const puntos = Math.max(10, 50 - estado.timer);
         const bonus = estado.errors === 0 ? 20 : 0;
         const totalPuntos = puntos + bonus;
 
@@ -1158,22 +1082,15 @@
           estado.score += totalPuntos;
           actualizarEstado(`🎉 ¡Ganaste la ronda! +${totalPuntos} pts`, "🏆");
           actualizarHUD();
-
-          // El bot también suma puntos si hizo algunos
-          const botPuntos = Math.floor(botState.hits * 2);
-          if (botPuntos > 0) {
-            // Mostrar que el bot también puntuó
-          }
         } else if (ganador === 2) {
-          const botPuntos = Math.floor(botState.hits * 3);
           actualizarEstado(`😅 El bot ganó la ronda`, "🤖");
-          // El jugador no pierde puntos, solo no gana
+          // El jugador no pierde puntos
         }
 
         estado.round++;
         actualizarHUD();
 
-        // Verificar fin del juego
+        // Verificar fin del juego (máximo 10 rondas)
         if (estado.round > 10) {
           terminarJuego("🎨 ¡Completaste 10 rondas!");
           return;
@@ -1182,7 +1099,6 @@
         btnStartRound.disabled = false;
         btnStartRound.textContent = "▶️ Siguiente Ronda";
 
-        // Mostrar resumen
         setTimeout(() => {
           if (!estado.gameOver) {
             actualizarEstado(
@@ -1190,14 +1106,22 @@
               "🎮",
             );
           }
-        }, 2000);
+        }, 1500);
       }
 
+      // ============================================================
+      //  TERMINAR JUEGO
+      // ============================================================
       function terminarJuego(mensaje) {
         if (estado.gameOver) return;
         estado.gameOver = true;
         roundActive = false;
         gameActive = false;
+
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
 
         actualizarEstado(
           `🏁 ${mensaje} - Puntuación final: ${estado.score}`,
@@ -1207,10 +1131,9 @@
         btnStartRound.disabled = false;
         btnStartRound.textContent = "🔄 Jugar de Nuevo";
 
-        // Guardar puntuación
         setTimeout(() => {
           const nombre = prompt(
-            `🎨 ¡${mensaje}!\nPuntuación: ${estado.score}\nRondas: ${estado.round - 1}\n\n✨ Ingresa tu nombre para el récord:`,
+            `🎨 ${mensaje}\nPuntuación: ${estado.score}\nRondas: ${estado.round - 1}\n\n✨ Ingresa tu nombre para el récord:`,
           );
           if (nombre && nombre.trim()) {
             guardarPuntuacion(nombre.trim(), estado.score);
@@ -1225,33 +1148,47 @@
         modoJuego = "online";
         miSala = Math.random().toString(36).substring(2, 6).toUpperCase();
         miJugador = 1;
-        arrancarOnline();
+        document.getElementById("pantalla-lobby").style.display = "none";
+        document.getElementById("pantalla-juego").style.display = "block";
+        rivalTitle.textContent = "🌟 Rival";
+        playerBadge.textContent = "🎀 Jugador 1";
+        rivalBadge.textContent = "🌟 Jugador 2";
+        cargarRecords();
+        reiniciarJuego();
+        actualizarEstado("🌐 Esperando rival...", "🌐");
+        btnStartRound.disabled = true;
+
+        // Simular conexión
+        setTimeout(() => {
+          if (modoJuego === "online") {
+            actualizarEstado(
+              '🌐 Rival conectado. ¡Presiona "Iniciar Ronda"!',
+              "🎮",
+            );
+            btnStartRound.disabled = false;
+          }
+        }, 1500);
       }
 
       function unirseSalaOnline() {
         const cod = document.getElementById("codigo-sala").value.toUpperCase();
-        if (cod.length < 4)
-          return alert("⚠️ Ingresa un código válido de 4 caracteres");
+        if (cod.length < 4) {
+          alert("⚠️ Ingresa un código válido de 4 caracteres");
+          return;
+        }
         modoJuego = "online";
         miSala = cod;
         miJugador = 2;
-        arrancarOnline();
-      }
-
-      function arrancarOnline() {
         document.getElementById("pantalla-lobby").style.display = "none";
         document.getElementById("pantalla-juego").style.display = "block";
         rivalTitle.textContent = "🌟 Rival";
-        playerBadge.textContent = `🎀 Jugador ${miJugador}`;
-        rivalBadge.textContent = `🌟 Jugador ${miJugador === 1 ? 2 : 1}`;
+        playerBadge.textContent = "🎀 Jugador 2";
+        rivalBadge.textContent = "🌟 Jugador 1";
         cargarRecords();
         reiniciarJuego();
-
-        // Simulación de online (en producción se conectaría con el servidor)
-        actualizarEstado("🌐 Modo Online - Esperando rival...", "🌐");
+        actualizarEstado("🌐 Conectado a la sala. Esperando rival...", "🌐");
         btnStartRound.disabled = true;
 
-        // Simular que el rival se conecta
         setTimeout(() => {
           if (modoJuego === "online") {
             actualizarEstado(
@@ -1264,6 +1201,10 @@
       }
 
       function salirJuego() {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
         if (intervalo) {
           clearInterval(intervalo);
           intervalo = null;
@@ -1315,9 +1256,14 @@
       // ============================================================
       document.addEventListener("DOMContentLoaded", () => {
         cargarRecords();
-        // Tecla Enter para iniciar ronda
         document.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" && modoJuego && !roundActive && gameActive) {
+          if (
+            e.key === "Enter" &&
+            modoJuego &&
+            !roundActive &&
+            gameActive &&
+            !estado.gameOver
+          ) {
             iniciarRonda();
           }
         });
