@@ -1,0 +1,219 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}El Impostor{% endblock %}
+{% block emoji %}🕵️{% endblock %}
+{% block subtitulo %}¿Quién no sabe la palabra?{% endblock %}
+
+{% block estilos %}
+<style>
+  .carta {
+    border-radius: 26px;
+    padding: 28px 18px;
+    text-align: center;
+    color: #fff;
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    box-shadow: 0 12px 30px rgba(108, 92, 231, 0.35);
+    cursor: pointer;
+    user-select: none;
+    min-height: 190px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .carta.impostor {
+    background: linear-gradient(135deg, #eb3b5a, #fa8231);
+    box-shadow: 0 12px 30px rgba(235, 59, 90, 0.35);
+  }
+  .carta.tapada {
+    background: repeating-linear-gradient(45deg, #2d3436, #2d3436 14px, #3d4446 14px, #3d4446 28px);
+  }
+  .carta .chico {
+    font-weight: 800;
+    opacity: 0.85;
+  }
+  .opciones-config {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    border: 2px solid #e2d6ff;
+    background: #fff;
+    border-radius: 14px;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-weight: 800;
+    color: var(--texto);
+    cursor: pointer;
+  }
+  .chip.activo {
+    border-color: var(--morado);
+    background: var(--morado);
+    color: #fff;
+  }
+  .resultado-titulo {
+    font-size: 1.6rem;
+    font-weight: 900;
+    text-align: center;
+    margin: 0;
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>Junten mínimo 3 personas, cada quien con su cel.</li>
+  <li>A todos les sale la misma palabra… menos al <b>impostor</b>.</li>
+  <li>Por turnos, cada quien dice una palabra relacionada (sin decirla directo).</li>
+  <li>El impostor tiene que disimular 🤫.</li>
+  <li>Al final votan: si atrapan al impostor, ganan todos los demás.</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  const CATEGORIAS = {{ categorias | tojson }};
+  let opciones = { categoria: "Aleatoria", num_impostores: 1, pista: true };
+  let cartaVisible = false;
+  let rondaVista = 0;
+
+  function elegir(campo, valor) {
+    opciones[campo] = valor;
+    pintar(ultimoEstado, document.getElementById("zona-juego"));
+  }
+
+  function chips(campo, valores, etiquetas) {
+    return valores
+      .map(
+        (v, i) =>
+          `<button class="chip ${opciones[campo] === v ? "activo" : ""}"
+            onclick='elegir("${campo}", ${JSON.stringify(v)})'>${etiquetas ? etiquetas[i] : Fiesta.esc(v)}</button>`,
+      )
+      .join("");
+  }
+
+  function iniciarRonda() {
+    Fiesta.accion("iniciar", {
+      categoria: opciones.categoria === "Aleatoria" ? null : opciones.categoria,
+      num_impostores: opciones.num_impostores,
+      pista: opciones.pista,
+    });
+  }
+
+  function voltearCarta() {
+    cartaVisible = !cartaVisible;
+    pintar(ultimoEstado, document.getElementById("zona-juego"));
+  }
+
+  let ultimoEstado = null;
+
+  function pintar(e, zona) {
+    ultimoEstado = e;
+    if (e.ronda !== rondaVista) {
+      rondaVista = e.ronda;
+      cartaVisible = false;
+    }
+    const n = e.jugadores.length;
+
+    if (e.fase === "lobby") {
+      if (!e.soy_host) {
+        zona.innerHTML = `<div class="tarjeta centro pila">
+          <div class="grande">⏳</div>
+          <p class="nota">Esperando a que <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b> empiece la partida…</p>
+        </div>`;
+        return;
+      }
+      zona.innerHTML = `<div class="tarjeta pila">
+        <h2>⚙️ Configura la partida</h2>
+        <p class="nota" style="text-align:left">Categoría</p>
+        <div class="opciones-config">${chips("categoria", ["Aleatoria", ...CATEGORIAS])}</div>
+        <p class="nota" style="text-align:left">Impostores</p>
+        <div class="opciones-config">${chips("num_impostores", [1, 2], ["1 impostor", "2 impostores (5+ jugadores)"])}</div>
+        <p class="nota" style="text-align:left">¿El impostor ve la categoría?</p>
+        <div class="opciones-config">${chips("pista", [true, false], ["Sí, como pista", "No, modo difícil"])}</div>
+        <button class="boton verde" ${n < 3 ? "disabled" : ""} onclick="iniciarRonda()">
+          ${n < 3 ? `Faltan ${3 - n} jugador(es) más` : "🚀 ¡Empezar!"}
+        </button>
+      </div>`;
+      return;
+    }
+
+    if (e.fase === "jugando") {
+      const carta = !cartaVisible
+        ? `<div class="carta tapada aparecer" onclick="voltearCarta()">
+             <div class="grande">👆</div><div class="chico">Toca para ver tu palabra<br/>(que nadie más vea tu pantalla)</div>
+           </div>`
+        : e.soy_impostor
+          ? `<div class="carta impostor aparecer" onclick="voltearCarta()">
+               <div class="chico">Eres el…</div>
+               <div class="grande">🕵️ IMPOSTOR</div>
+               <div class="chico">Categoría: <b>${Fiesta.esc(e.categoria)}</b>${e.num_impostores > 1 ? "<br/>(hay 2 impostores)" : ""}</div>
+               <div class="chico" style="margin-top:8px">Toca para ocultar</div>
+             </div>`
+          : `<div class="carta aparecer" onclick="voltearCarta()">
+               <div class="chico">Categoría: ${Fiesta.esc(e.categoria)}</div>
+               <div class="grande">${Fiesta.esc(e.palabra)}</div>
+               <div class="chico">Toca para ocultar</div>
+             </div>`;
+      zona.innerHTML = `${carta}
+        <div class="tarjeta centro pila">
+          <p class="nota">Empieza a hablar:</p>
+          <div style="font-size:1.4rem;font-weight:900;color:var(--rosa)">🎤 ${Fiesta.esc(Fiesta.nombreDe(e.empieza))}</div>
+          <p class="nota">Y siguen en orden de la lista. Pueden dar varias vueltas.</p>
+          ${e.soy_host ? `<button class="boton morado" onclick="Fiesta.accion('a_votar')">🗳️ ¡A votar!</button>` : ""}
+        </div>`;
+      return;
+    }
+
+    if (e.fase === "votando") {
+      zona.innerHTML = `<div class="tarjeta pila">
+        <h2>🗳️ ¿Quién es el impostor?</h2>
+        ${e.ya_vote ? `<p class="nota">Ya votaste por <b>${Fiesta.esc(Fiesta.nombreDe(e.mi_voto))}</b>. Esperando a los demás… (${e.votaron.length}/${n})</p>` : ""}
+        ${Fiesta.botonesVoto(true)}
+        ${e.soy_host ? `<button class="boton claro" onclick="Fiesta.accion('revelar')">Revelar ya (${e.votaron.length}/${n} votaron)</button>` : ""}
+      </div>`;
+      return;
+    }
+
+    if (e.fase === "resultado") {
+      const r = e.resultado;
+      const max = Math.max(1, ...Object.values(r.conteo));
+      const votos = Object.entries(r.conteo)
+        .sort((a, b) => b[1] - a[1])
+        .map(
+          ([pid, v]) => `<div>
+            <div style="display:flex;justify-content:space-between;font-weight:800">
+              <span>${Fiesta.esc(Fiesta.nombreDe(pid))}</span><span>${v} voto${v === 1 ? "" : "s"}</span>
+            </div>
+            <div class="barra-votos"><div style="width:${(v / max) * 100}%"></div></div>
+          </div>`,
+        )
+        .join("");
+      const titulo = r.atrapado
+        ? `<p class="resultado-titulo" style="color:var(--verde)">🎉 ¡Atraparon al impostor!</p>`
+        : r.expulsado_nombre
+          ? `<p class="resultado-titulo" style="color:var(--rojo)">😈 ¡Ganó el impostor!</p>
+             <p class="nota">Sacaron a ${Fiesta.esc(r.expulsado_nombre)}, pero era inocente.</p>`
+          : `<p class="resultado-titulo" style="color:var(--rojo)">😈 ¡Ganó el impostor!</p>
+             <p class="nota">Hubo empate y nadie salió.</p>`;
+      zona.innerHTML = `<div class="tarjeta pila centro aparecer">
+          ${titulo}
+          <p class="nota">${r.impostores.length > 1 ? "Los impostores eran" : "El impostor era"}</p>
+          <div style="font-size:1.5rem;font-weight:900;color:var(--rojo)">🕵️ ${r.impostores.map(Fiesta.esc).join(" y ") || "—"}</div>
+          <p class="nota">La palabra era</p>
+          <div style="font-size:1.5rem;font-weight:900;color:var(--morado)">${Fiesta.esc(r.palabra)} <small>(${Fiesta.esc(r.categoria)})</small></div>
+        </div>
+        <div class="tarjeta pila"><h2>📊 Votos</h2>${votos || '<p class="nota">Nadie votó</p>'}</div>
+        ${
+          e.soy_host
+            ? `<div class="fila">
+                 <button class="boton claro" onclick="Fiesta.accion('lobby')">⚙️ Ajustes</button>
+                 <button class="boton verde" onclick="iniciarRonda()">🔁 Otra ronda</button>
+               </div>`
+            : `<p class="nota">Esperando a que el anfitrión empiece otra ronda…</p>`
+        }`;
+    }
+  }
+
+  Fiesta.iniciar({ juego: "impostor", titulo: "El Impostor 🕵️", pintar });
+</script>
+{% endblock %}

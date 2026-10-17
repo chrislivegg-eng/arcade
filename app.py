@@ -3,8 +3,10 @@ import json
 import random
 import string
 from flask import Flask, render_template, request, redirect, jsonify
+from fiesta import fiesta_bp
 
 app = Flask(__name__)
+app.register_blueprint(fiesta_bp)  # 🎉 Juegos de fiesta (Impostor, etc.)
 
 # --- Archivos de Datos ---
 
@@ -118,7 +120,7 @@ def secreto():
                            records_shooter=leer_records(ARCHIVO_SHOOTER),
                            records_cafe=leer_records(ARCHIVO_CAFE),
                            records_vuelo=leer_records(ARCHIVO_VUELO),
-                           records_pixel_art=leer_records(ARCHIVO_PIXEL_ART)
+                           records_pixel_art=leer_records(ARCHIVO_PIXEL_ART),
                            victorias_dados=leer_records(ARCHIVO_DADOS),
                            victorias_adivina_vs=leer_records(ARCHIVO_ADIVINA_VS),
                            victorias_fantasma=leer_records(ARCHIVO_FANTASMA),
