@@ -9,6 +9,7 @@ import random
 import string
 import threading
 import time
+import unicodedata
 
 from flask import Blueprint, render_template, request, jsonify
 
@@ -277,6 +278,26 @@ def accion_sala():
                     _cerrar_votacion(sala)
             return jsonify({'status': 'ok'})
 
+        if sala['juego'] == 'impostor' and accion == 'adivinar':
+            if sala['fase'] not in ('jugando', 'votando'):
+                return jsonify({'error': 'La ronda ya no está en juego'}), 400
+            if pid not in sala['impostores']:
+                return jsonify({'error': 'Solo el impostor puede adivinar la palabra'}), 403
+            intento = datos.get('palabra')
+            if not isinstance(intento, str) or not intento.strip() or len(intento) > 80:
+                return jsonify({'error': 'Escribe una palabra de hasta 80 caracteres'}), 400
+
+            def normalizar_palabra(texto):
+                texto = unicodedata.normalize('NFD', texto.casefold())
+                texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')
+                return ' '.join(texto.split())
+
+            acerto = normalizar_palabra(intento) == normalizar_palabra(sala['palabra'])
+            if acerto:
+                _resultado_impostor(sala, adivino=pid)
+                sala['fase'] = 'resultado'
+            return jsonify({'acerto': acerto})
+
         if not es_host:
             return jsonify({'error': 'Solo el anfitrión puede hacer eso'}), 403
 
@@ -341,10 +362,10 @@ def _accion_impostor(sala, accion, datos):
     return jsonify({'status': 'ok'})
 
 
-def _resultado_impostor(sala):
+def _resultado_impostor(sala, adivino=None):
     conteo = _contar_votos(sala)
     expulsado = None
-    if conteo:
+    if conteo and adivino is None:
         maximo = max(conteo.values())
         mas_votados = [p for p, v in conteo.items() if v == maximo]
         if len(mas_votados) == 1:
@@ -368,6 +389,8 @@ def _resultado_impostor(sala):
         'palabra': sala['palabra'],
         'categoria': sala['categoria'],
         'conteo': conteo,
+        'motivo': 'palabra' if adivino is not None else 'votacion',
+        'adivino_nombre': sala['jugadores'][adivino]['nombre'] if adivino is not None else None,
     }
 
 

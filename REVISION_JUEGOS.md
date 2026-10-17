@@ -2,6 +2,7 @@
 
 ## Correcciones
 
+- El Impostor permite adivinar la palabra durante la ronda o la votación: acertar termina la ronda y da la victoria inmediata al equipo impostor. Un fallo deja seguir jugando. La comparación acepta diferencias de mayúsculas, acentos y espacios.
 - Completa la Frase conserva la votación con dos jugadores y permite sumar puntos.
 - Espía vuelve a exigir tres jugadores al iniciar otra ronda después de una salida.
 - Los duelos procesan los movimientos recibidos antes de la primera consulta del rival.
@@ -19,7 +20,7 @@ Instalar las dependencias de `requirements.txt` en un entorno virtual y ejecutar
 python -m unittest discover -s tests -v
 ```
 
-Las 12 pruebas cubren páginas y recursos de los juegos nuevos, salas y eventos de los ocho juegos de duelo, récords, turnos/victoria/revancha de Dardos, partidas completas de los seis juegos de fiesta adicionales, los dos juegos originales de salas y actualización desde el app.py antiguo.
+Las 14 pruebas cubren páginas y recursos de los juegos nuevos, salas y eventos de los ocho juegos de duelo, récords, turnos/victoria/revancha de Dardos, partidas completas de los seis juegos de fiesta adicionales, los dos juegos originales de salas, victoria del impostor al adivinar, control de permisos y actualización desde el app.py antiguo.
 
 Para las pruebas de navegador se necesita Node.js, Playwright y Microsoft Edge. Con la aplicación disponible en `http://127.0.0.1:5055`:
 
@@ -29,6 +30,7 @@ python -m flask --app app run --port 5055
 node tests/browser-check.cjs
 node tests/online-check.cjs
 node tests/shared-regression.cjs
+node tests/impostor-check.cjs
 ```
 
 Se puede indicar `PLAYWRIGHT_PATH` para usar una instalación existente de Playwright y `PLAYWRIGHT_CHANNEL` para seleccionar otro canal de Chromium.
@@ -36,6 +38,7 @@ Se puede indicar `PLAYWRIGHT_PATH` para usar una instalación existente de Playw
 - `browser-check.cjs`: arranque y controles de los nueve juegos arcade en vistas de PC y celular, en los modos solo/bot/local que cada uno ofrece.
 - `online-check.cjs`: dos sesiones independientes conectadas en cada uno de los nueve juegos arcade, intercambio de eventos y arranque de las ocho interfaces de fiesta con salas.
 - `shared-regression.cjs`: entrada tardía, primer movimiento, cambio de sala después de jugar local y récord del invitado.
+- `impostor-check.cjs`: tres sesiones móviles, formulario exclusivo del impostor, intento incorrecto, conservación del texto al pasar a votación y victoria inmediata visible para todos.
 
 Las pruebas de navegador usan Edge en modo headless y una vista móvil emulada. No sustituyen una partida manual completa de cada juego 3D ni una prueba en teléfonos físicos.
 

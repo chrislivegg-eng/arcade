@@ -65,6 +65,7 @@
   <li>A todos les sale la misma palabra… menos al <b>impostor</b>.</li>
   <li>Por turnos, cada quien dice una palabra relacionada (sin decirla directo).</li>
   <li>El impostor tiene que disimular 🤫.</li>
+  <li>El impostor puede escribir la palabra durante la ronda o la votación: si acierta, gana de inmediato. Si falla, la ronda continúa.</li>
   <li>Al final votan: si atrapan al impostor, ganan todos los demás.</li>
 </ol>
 {% endblock %}
@@ -75,6 +76,31 @@
   let opciones = { categoria: "Aleatoria", num_impostores: 1, pista: true };
   let cartaVisible = false;
   let rondaVista = 0;
+  let intentoPalabra = "";
+  let enviandoPalabra = false;
+
+  function formularioPalabra() {
+    return `<form class="tarjeta pila" onsubmit="adivinarPalabra(event)">
+      <label for="palabra-impostor"><b>🕵️ ¿Ya sabes la palabra?</b></label>
+      <p class="nota">Si aciertas, ganas la ronda al instante. Si fallas, siguen jugando.</p>
+      <input id="palabra-impostor" class="campo" maxlength="80" placeholder="Escribe la palabra secreta" autocomplete="off" required oninput="intentoPalabra=this.value" />
+      <button class="boton morado" type="submit" ${enviandoPalabra ? "disabled" : ""}>🎯 Adivinar palabra</button>
+    </form>`;
+  }
+
+  async function adivinarPalabra(evento) {
+    evento.preventDefault();
+    if (enviandoPalabra || !intentoPalabra.trim()) return;
+    enviandoPalabra = true;
+    try {
+      const respuesta = await Fiesta.accion("adivinar", { palabra: intentoPalabra });
+      if (respuesta && respuesta.acerto === false) Fiesta.flotante("❌ No es la palabra. La ronda continúa.");
+    } finally {
+      enviandoPalabra = false;
+      const boton = document.querySelector("#palabra-impostor + button");
+      if (boton) boton.disabled = false;
+    }
+  }
 
   function elegir(campo, valor) {
     opciones[campo] = valor;
@@ -111,6 +137,7 @@
     if (e.ronda !== rondaVista) {
       rondaVista = e.ronda;
       cartaVisible = false;
+      intentoPalabra = "";
     }
     const n = e.jugadores.length;
 
@@ -160,7 +187,10 @@
           <div style="font-size:1.4rem;font-weight:900;color:var(--rosa)">🎤 ${Fiesta.esc(Fiesta.nombreDe(e.empieza))}</div>
           <p class="nota">Y siguen en orden de la lista. Pueden dar varias vueltas.</p>
           ${e.soy_host ? `<button class="boton morado" onclick="Fiesta.accion('a_votar')">🗳️ ¡A votar!</button>` : ""}
-        </div>`;
+        </div>
+        ${e.soy_impostor && cartaVisible ? formularioPalabra() : ""}`;
+      const campo = zona.querySelector("#palabra-impostor");
+      if (campo) campo.value = intentoPalabra;
       return;
     }
 
@@ -170,7 +200,9 @@
         ${e.ya_vote ? `<p class="nota">Ya votaste por <b>${Fiesta.esc(Fiesta.nombreDe(e.mi_voto))}</b>. Esperando a los demás… (${e.votaron.length}/${n})</p>` : ""}
         ${Fiesta.botonesVoto(true)}
         ${e.soy_host ? `<button class="boton claro" onclick="Fiesta.accion('revelar')">Revelar ya (${e.votaron.length}/${n} votaron)</button>` : ""}
-      </div>`;
+      </div>${e.soy_impostor ? formularioPalabra() : ""}`;
+      const campo = zona.querySelector("#palabra-impostor");
+      if (campo) campo.value = intentoPalabra;
       return;
     }
 
@@ -188,7 +220,10 @@
           </div>`,
         )
         .join("");
-      const titulo = r.atrapado
+      const titulo = r.motivo === "palabra"
+        ? `<p class="resultado-titulo" style="color:var(--rojo)">🎯 ¡El impostor adivinó la palabra!</p>
+           <p class="nota">${Fiesta.esc(r.adivino_nombre)} acertó y ${r.impostores.length > 1 ? "los impostores ganaron" : "ganó"} la ronda al instante.</p>`
+        : r.atrapado
         ? `<p class="resultado-titulo" style="color:var(--verde)">🎉 ¡Atraparon al impostor!</p>`
         : r.expulsado_nombre
           ? `<p class="resultado-titulo" style="color:var(--rojo)">😈 ¡Ganó el impostor!</p>

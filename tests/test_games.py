@@ -212,6 +212,48 @@ class GamesTest(unittest.TestCase):
                 self.action(code, 'votar', pid=pid, voto=next(p for p in room['orden'] if p != pid))
             self.assertEqual(self.view(code)['fase'], 'resultado')
 
+    def test_impostor_correct_guess_wins_immediately(self):
+        for phase in ['jugando', 'votando']:
+            with self.subTest(phase=phase):
+                code, room = self.room('impostor', 5)
+                self.action(code, 'iniciar', num_impostores=2)
+                room['palabra'] = 'Avión'
+                spy = room['impostores'][0]
+                if phase == 'votando':
+                    self.action(code, 'a_votar')
+                    room['votos']['p0'] = spy
+                self.assertTrue(self.action(code, 'adivinar', pid=spy, palabra='  AVION  ')['acerto'])
+                for pid in room['orden']:
+                    state = self.view(code, pid)
+                    self.assertEqual(state['fase'], 'resultado')
+                    self.assertEqual(state['resultado']['motivo'], 'palabra')
+                    self.assertEqual(state['resultado']['palabra'], 'Avión')
+                    self.assertFalse(state['resultado']['atrapado'])
+                    expected = 2 if pid in room['impostores'] else 0
+                    self.assertEqual(room['jugadores'][pid]['puntos'], expected)
+                self.assertIn('error', self.action(code, 'adivinar', pid=spy, palabra='Avión'))
+                self.assertEqual(room['jugadores'][spy]['puntos'], 2)
+
+    def test_impostor_guess_rejects_innocents_invalid_and_wrong_words(self):
+        code, room = self.room('impostor')
+        self.assertIn('error', self.action(code, 'adivinar', palabra='Pizza'))
+        self.action(code, 'iniciar')
+        spy = room['impostores'][0]
+        innocent = next(p for p in room['orden'] if p != spy)
+        response = self.client.post('/api/fiesta/accion', json=dict(codigo=code, pid=innocent, accion='adivinar', palabra=room['palabra']))
+        self.assertEqual(response.status_code, 403)
+        for value in ['', '   ', None, 123, ['Pizza'], 'x' * 81]:
+            self.assertIn('error', self.action(code, 'adivinar', pid=spy, palabra=value))
+        wrong = self.action(code, 'adivinar', pid=spy, palabra='Una palabra incorrecta')
+        self.assertFalse(wrong['acerto'])
+        self.assertEqual(room['fase'], 'jugando')
+        self.assertIsNone(self.view(code, spy)['palabra'])
+        self.assertTrue(all(j['puntos'] == 0 for j in room['jugadores'].values()))
+        self.assertTrue(self.action(code, 'adivinar', pid=spy, palabra=room['palabra'])['acerto'])
+        self.action(code, 'iniciar')
+        self.assertEqual(room['fase'], 'jugando')
+        self.assertIsNone(room['resultado'])
+
 
 if __name__ == '__main__':
     unittest.main()
