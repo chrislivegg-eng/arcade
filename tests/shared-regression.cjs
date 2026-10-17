@@ -50,7 +50,3 @@ const assert=require('node:assert/strict');
  console.log('PASS: primer evento con entrada tardía, nueva sala tras partidas locales, segunda sala y récord del invitado');
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});
-
-
-
-

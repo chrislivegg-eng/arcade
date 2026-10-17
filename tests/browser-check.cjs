@@ -25,4 +25,3 @@ const {chromium}=require(process.env.PLAYWRIGHT_PATH || 'playwright');
  }
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});
-
