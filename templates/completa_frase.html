@@ -1,0 +1,135 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}Completa la Frase{% endblock %}
+{% block emoji %}😂{% endblock %}
+{% block subtitulo %}La respuesta más chistosa gana{% endblock %}
+
+{% block estilos %}
+<style>
+  .frase-grande {
+    border-radius: 24px;
+    padding: 22px 16px;
+    text-align: center;
+    color: #fff;
+    font-size: 1.35rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #8854d0, #ff4f8b);
+    box-shadow: 0 12px 30px rgba(136, 84, 208, 0.3);
+  }
+  .respuesta {
+    width: 100%;
+    text-align: left;
+    border: 2px solid #e2d6ff;
+    background: #fff;
+    border-radius: 16px;
+    padding: 14px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 1.02rem;
+    color: var(--texto);
+    cursor: pointer;
+  }
+  .respuesta:disabled {
+    cursor: default;
+  }
+  .respuesta.elegida {
+    border-color: var(--rosa);
+    background: var(--rosa-claro);
+  }
+  .respuesta.ganadora {
+    border-color: var(--verde);
+    background: #e7fbef;
+  }
+  .respuesta small {
+    display: block;
+    color: #9a8aa8;
+    margin-top: 4px;
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>Sale una frase incompleta. Cada quien escribe cómo terminarla (¡lo más chistoso posible!).</li>
+  <li>Luego todos votan por la mejor respuesta (sin saber de quién es).</li>
+  <li>+100 por cada voto que recibas · +50 extra si la tuya fue la favorita.</li>
+  <li>Son 5 rondas.</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  let construido = "";
+  function resaltar(frase) {
+    return Fiesta.esc(frase).replace(/___/g, "<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>");
+  }
+  function enviar(ev) {
+    ev.preventDefault();
+    const texto = document.getElementById("respuesta").value.trim();
+    if (!texto) return Fiesta.flotante("✏️ Escribe algo");
+    Fiesta.accion("responder", { texto });
+  }
+
+  function pintar(e, zona) {
+    const n = e.jugadores.length;
+    const clave = [e.fase, e.n, e.ya_envie].join("|");
+    const reconstruir = clave !== construido;
+    construido = clave;
+
+    if (e.fase === "lobby") {
+      zona.innerHTML = e.soy_host
+        ? `<div class="tarjeta pila centro"><p class="nota">Mínimo 2, ¡pero es más divertido con 4 o más!</p>
+            <button class="boton verde" ${n < 2 ? "disabled" : ""} onclick="Fiesta.accion('iniciar')">${n < 2 ? "Invita al menos a 1 amigo" : "🚀 ¡Empezar!"}</button></div>`
+        : `<div class="tarjeta centro pila"><div class="grande">⏳</div><p class="nota">Esperando a que <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b> empiece…</p></div>`;
+      return;
+    }
+    const cabecera = `<div class="frase-grande aparecer"><div class="nota" style="color:#fff;opacity:.85">Ronda ${e.n} de ${e.total}</div>${resaltar(e.frase)}</div>`;
+
+    if (e.fase === "escribiendo") {
+      if (!e.ya_envie) {
+        if (!reconstruir) return;
+        zona.innerHTML = `${cabecera}
+          <form class="tarjeta pila" onsubmit="enviar(event)">
+            <div class="fila-titulo"><h2>✏️ Tu respuesta</h2><span class="reloj" data-limite="${e.limite}"></span></div>
+            <input id="respuesta" class="campo" maxlength="80" placeholder="Algo chistoso…" autocomplete="off" />
+            <button class="boton verde">Enviar</button>
+          </form>`;
+      } else {
+        zona.innerHTML = `${cabecera}<div class="tarjeta centro pila"><div class="grande">😏</div>
+          <p class="nota">¡Enviada! Esperando a los demás (${e.enviaron.length}/${n}) <span class="reloj" data-limite="${e.limite}"></span></p></div>`;
+      }
+      return;
+    }
+
+    if (e.fase === "votando" || e.fase === "revelar") {
+      const revelar = e.fase === "revelar";
+      const mayor = revelar ? Math.max(0, ...e.conteo) : 0;
+      const lista = e.opciones
+        .map((o, i) => {
+          let clase = "";
+          if (revelar && mayor > 0 && e.conteo[i] === mayor) clase = "ganadora";
+          else if (e.mi_voto === i) clase = "elegida";
+          const mia = i === e.mia;
+          const extra = revelar ? `<small>${mayor > 0 && e.conteo[i] === mayor ? "👑 " : ""}${Fiesta.esc(e.autores[i])} · ${e.conteo[i]} voto${e.conteo[i] === 1 ? "" : "s"}</small>` : mia ? "<small>(la tuya)</small>" : "";
+          const puede = !revelar && !e.ya_vote && !mia;
+          return `<button class="respuesta ${clase}" ${puede ? `onclick="Fiesta.accion('votar', {i:${i}})"` : "disabled"}>${Fiesta.esc(o)}${extra}</button>`;
+        })
+        .join("");
+      zona.innerHTML = `${cabecera}
+        <div class="tarjeta pila">
+          <div class="fila-titulo"><h2>${revelar ? "📊 Resultados" : "🗳️ Vota la mejor"}</h2>${!revelar ? `<span class="reloj" data-limite="${e.limite}"></span>` : ""}</div>
+          ${lista || '<p class="nota">Casi nadie contestó 😴</p>'}
+          ${!revelar ? `<p class="nota">${e.ya_vote ? `Voto enviado (${e.votaron.length}/${n})` : "No puedes votar por la tuya"}</p>` : ""}
+          ${e.soy_host && !revelar ? `<button class="boton claro" onclick="Fiesta.accion('siguiente')">⏭ Revelar ya</button>` : ""}
+        </div>`;
+      return;
+    }
+
+    if (e.fase === "final") {
+      zona.innerHTML = `<div class="tarjeta pila centro aparecer"><div class="grande">🏆</div><h2>¡El más chistoso!</h2>${Fiesta.ranking(e)}
+        ${e.soy_host ? `<button class="boton verde" onclick="Fiesta.accion('iniciar')">🔁 Jugar otra vez</button>` : `<p class="nota">Esperando al anfitrión…</p>`}</div>`;
+    }
+  }
+
+  Fiesta.iniciar({ juego: "frase", titulo: "Completa la Frase 😂", pintar });
+</script>
+{% endblock %}

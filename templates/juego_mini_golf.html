@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#7fc8ff" />
+    <title>Mini Golf 3D · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/cannon.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, gauss, lin, material, sonar } = Arcade;
+
+      // =========================================================
+      //  HOYOS (cada letra = 50 cm)
+      //  # nada · . pasto · S salida · H hoyo · X bloque · O poste
+      //  W agua · M molino · 1-9 puntos de referencia del bot
+      // =========================================================
+      const HOYOS = [
+        { par: 2, mapa: ["#######", "#..H..#", "#.....#", "#.....#", "#.....#", "#.....#", "#.....#", "#..S..#", "#######"] },
+        { par: 3, mapa: ["#########", "#.1...H.#", "#.......#", "#..######", "#..######", "#..######", "#..######", "#.S######", "#########"] },
+        { par: 3, mapa: ["#######", "#..H..#", "#....3#", "#.XXX.#", "#....2#", "#.O.O.#", "#...1.#", "#XXX..#", "#.....#", "#..S..#", "#######"] },
+        { par: 3, mapa: ["#######", "#..H..#", "#..1..#", "#WW..W#", "#WW..W#", "#.....#", "#.....#", "#..S..#", "#######"] },
+        { par: 3, mapa: ["#######", "#..H..#", "#.....#", "#.....#", "#..M..#", "#.....#", "#.....#", "#.....#", "#..S..#", "#######"] },
+        { par: 4, mapa: ["#########", "#H......#", "#.....3.#", "#####...#", "#####...#", "#.......#", "#1....2.#", "#...#####", "#...#####", "#.S.#####", "#########"] },
+      ];
+      const CELDA = 0.5,
+        RADIO_BOLA = 0.05,
+        RADIO_HOYO = 0.1,
+        MAX_GOLPES = 7;
+      const COLORES = [0xff4f8b, 0x4fb3ff];
+
+      // =========================================================
+      //  ESCENA
+      // =========================================================
+      const M = Arcade.mundo({
+        fondo: 0x9fd8ff,
+        niebla: [25, 60],
+        fov: 50,
+        exposicion: 1.0,
+        colorAmbiente: 0x9fd8ff,
+        lamparas: [
+          [0, 10, 0, 0xffffff, 3],
+          [-8, 3, 6, 0xbfe6ff, 1.5],
+          [8, 3, 6, 0xbfe6ff, 1.5],
+        ],
+      });
+      const { escena, camara } = M;
+      escena.add(new THREE.HemisphereLight(0xcfeaff, 0x4a7a3a, 0.7));
+      const sol = new THREE.DirectionalLight(0xfff4e0, 1.5);
+      sol.position.set(-4, 9, 5);
+      sol.castShadow = true;
+      sol.shadow.mapSize.set(2048, 2048);
+      Object.assign(sol.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 });
+      sol.shadow.bias = -0.0005;
+      escena.add(sol, sol.target);
+
+      const texturaPasto = M.textura(512, 512, (g, w, h) => {
+        for (let i = 0; i < 8; i++) {
+          g.fillStyle = i % 2 ? "#3fae4a" : "#48b853";
+          g.fillRect(0, (i * h) / 8, w, h / 8);
+        }
+        const img = g.getImageData(0, 0, w, h);
+        for (let p = 0; p < img.data.length; p += 4) {
+          const r = (Math.random() - 0.5) * 30;
+          img.data[p] += r * 0.5;
+          img.data[p + 1] += r;
+          img.data[p + 2] += r * 0.4;
+        }
+        g.putImageData(img, 0, 0);
+      });
+      texturaPasto.wrapS = texturaPasto.wrapT = THREE.RepeatWrapping;
+      const texturaCesped = texturaPasto.clone();
+      texturaCesped.needsUpdate = true;
+      texturaCesped.repeat.set(30, 30);
+      const alrededor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), material(0x6fbf5f, { map: texturaCesped, roughness: 1 }));
+      alrededor.rotation.x = -Math.PI / 2;
+      alrededor.position.y = -0.12;
+      alrededor.receiveShadow = true;
+      escena.add(alrededor);
+
+      // árboles y nubes de decoración
+      for (let i = 0; i < 26; i++) {
+        const a = (i / 26) * Math.PI * 2;
+        const r = azar(9, 16);
+        const arbol = new THREE.Group();
+        const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 1, 8), material(0x7a4a26));
+        tronco.position.y = 0.4;
+        const copa = new THREE.Mesh(new THREE.ConeGeometry(azar(0.7, 1.1), azar(1.8, 2.6), 10), material(Math.random() < 0.5 ? 0x2f8f3e : 0x3a9e4a));
+        copa.position.y = 1.9;
+        copa.castShadow = tronco.castShadow = true;
+        arbol.add(tronco, copa);
+        arbol.position.set(Math.cos(a) * r, -0.12, Math.sin(a) * r);
+        escena.add(arbol);
+      }
+
+      // =========================================================
+      //  FÍSICA
+      // =========================================================
+      const mundoFisico = new CANNON.World();
+      mundoFisico.gravity.set(0, -9.82, 0);
+      mundoFisico.solver.iterations = 10;
+      const mBola = new CANNON.Material("bola"),
+        mPiso = new CANNON.Material("piso"),
+        mPared = new CANNON.Material("pared");
+      mundoFisico.addContactMaterial(new CANNON.ContactMaterial(mBola, mPiso, { friction: 0.08, restitution: 0.15 }));
+      mundoFisico.addContactMaterial(new CANNON.ContactMaterial(mBola, mPared, { friction: 0.05, restitution: 0.72 }));
+
+      const cuerpoBola = new CANNON.Body({ mass: 0.046, material: mBola, shape: new CANNON.Sphere(RADIO_BOLA), linearDamping: 0.45, angularDamping: 0.45 });
+      mundoFisico.addBody(cuerpoBola);
+      let ultimoGolpe = 0;
+      cuerpoBola.addEventListener("collide", (e) => {
+        const v = Math.abs(e.contact.getImpactVelocityAlongNormal());
+        if (e.body.material === mPared && v > 0.3 && performance.now() - ultimoGolpe > 60) {
+          ultimoGolpe = performance.now();
+          sonar("golpe", Math.min(0.6, v / 6));
+        }
+      });
+      const texturasBola = COLORES.map((c) =>
+        M.textura(128, 64, (g, w, h) => {
+          g.fillStyle = "#ffffff";
+          g.fillRect(0, 0, w, h);
+          g.fillStyle = "#" + new THREE.Color(c).getHexString();
+          g.fillRect(0, h * 0.42, w, h * 0.16);
+          g.fillStyle = "rgba(0,0,0,0.08)";
+          for (let i = 0; i < 60; i++) {
+            g.beginPath();
+            g.arc(Math.random() * w, Math.random() * h, 2, 0, Math.PI * 2);
+            g.fill();
+          }
+        }),
+      );
+      const bola = new THREE.Mesh(new THREE.SphereGeometry(RADIO_BOLA, 24, 18), material(0xffffff, { map: texturasBola[0], roughness: 0.35 }));
+      bola.castShadow = true;
+      escena.add(bola);
+
+      // Flecha para apuntar
+      const flecha = new THREE.Group();
+      const cuerpoFlecha = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 1), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }));
+      cuerpoFlecha.position.z = 0.5;
+      const puntaFlecha = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.2, 12), cuerpoFlecha.material);
+      puntaFlecha.rotation.x = Math.PI / 2;
+      puntaFlecha.position.z = 1.05;
+      flecha.add(cuerpoFlecha, puntaFlecha);
+      flecha.visible = false;
+      escena.add(flecha);
+
+      // =========================================================
+      //  CONSTRUIR UN HOYO
+      // =========================================================
+      let hoyoActual = null;
+      const objetosHoyo = [];
+      const cuerposHoyo = [];
+      let molino = null;
+
+      function limpiarHoyo() {
+        objetosHoyo.forEach((o) => escena.remove(o));
+        cuerposHoyo.forEach((c) => mundoFisico.removeBody(c));
+        objetosHoyo.length = cuerposHoyo.length = 0;
+        molino = null;
+      }
+      function agregar(malla) {
+        malla.castShadow = malla.receiveShadow = true;
+        escena.add(malla);
+        objetosHoyo.push(malla);
+        return malla;
+      }
+      function cajaFisica(hx, hy, hz, x, y, z, mat, tipo) {
+        const c = new CANNON.Body({ mass: 0, material: mat, type: tipo || CANNON.Body.STATIC });
+        c.addShape(new CANNON.Box(new CANNON.Vec3(hx, hy, hz)));
+        c.position.set(x, y, z);
+        mundoFisico.addBody(c);
+        cuerposHoyo.push(c);
+        return c;
+      }
+
+      const matMadera = material(0xffffff, {
+        map: M.textura(256, 64, (g, w, h) => Arcade.dibujarMadera(g, w, h, { tono: 28, sat: 45, luz: 45, tablas: 2, vertical: false })),
+        roughness: 0.7,
+      });
+      const matPiedra = material(0x9a9aa5, { roughness: 0.85 });
+
+      function construirHoyo(n) {
+        limpiarHoyo();
+        const datos = HOYOS[n];
+        const mapa = datos.mapa;
+        const filas = mapa.length,
+          cols = mapa[0].length;
+        const esPiso = (f, c) => f >= 0 && f < filas && c >= 0 && c < cols && mapa[f][c] !== "#";
+        const centro = (f, c) => ({ x: (c - (cols - 1) / 2) * CELDA, z: (f - (filas - 1) / 2) * CELDA });
+        const info = { salida: null, hoyo: null, agua: [], puntos: {}, filas, cols, par: datos.par };
+        const texturaVerde = texturaPasto.clone();
+        texturaVerde.needsUpdate = true;
+
+        for (let f = 0; f < filas; f++) {
+          // piso: une celdas seguidas de cada fila
+          let c = 0;
+          while (c < cols) {
+            if (!esPiso(f, c)) {
+              c++;
+              continue;
+            }
+            let fin = c;
+            while (fin + 1 < cols && esPiso(f, fin + 1)) fin++;
+            const largo = (fin - c + 1) * CELDA;
+            const p0 = centro(f, c),
+              p1 = centro(f, fin);
+            const x = (p0.x + p1.x) / 2;
+            const t = texturaVerde.clone();
+            t.needsUpdate = true;
+            t.repeat.set(largo, CELDA);
+            const piso = agregar(new THREE.Mesh(new THREE.BoxGeometry(largo, 0.1, CELDA), material(0xffffff, { map: t, roughness: 0.95 })));
+            piso.position.set(x, -0.05, p0.z);
+            piso.castShadow = false;
+            cajaFisica(largo / 2, 0.05, CELDA / 2, x, -0.05, p0.z, mPiso);
+            c = fin + 1;
+          }
+          for (let c2 = 0; c2 < cols; c2++) {
+            const letra = mapa[f][c2];
+            if (letra === "#") continue;
+            const p = centro(f, c2);
+            // paredes en las orillas
+            [
+              [-1, 0],
+              [1, 0],
+              [0, -1],
+              [0, 1],
+            ].forEach(([df, dc]) => {
+              if (esPiso(f + df, c2 + dc)) return;
+              const horizontal = df !== 0;
+              const ancho = horizontal ? CELDA + 0.1 : 0.1,
+                fondo = horizontal ? 0.1 : CELDA + 0.1;
+              const x = p.x + dc * (CELDA / 2 + 0.05),
+                z = p.z + df * (CELDA / 2 + 0.05);
+              const pared = agregar(new THREE.Mesh(new THREE.BoxGeometry(ancho, 0.16, fondo), matMadera));
+              pared.position.set(x, 0.08, z);
+              cajaFisica(ancho / 2, 0.15, fondo / 2, x, 0.08, z, mPared);
+            });
+            if (letra === "S") info.salida = p;
+            if (letra === "H") info.hoyo = p;
+            if (/[1-9]/.test(letra)) info.puntos[letra] = p;
+            if (letra === "X") {
+              const bloque = agregar(new THREE.Mesh(new THREE.BoxGeometry(CELDA, 0.25, CELDA), matPiedra));
+              bloque.position.set(p.x, 0.125, p.z);
+              cajaFisica(CELDA / 2, 0.15, CELDA / 2, p.x, 0.125, p.z, mPared);
+            }
+            if (letra === "O") {
+              const poste = agregar(new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.22, 20), material(0xff4f8b, { roughness: 0.3 })));
+              poste.position.set(p.x, 0.11, p.z);
+              const c = new CANNON.Body({ mass: 0, material: mPared });
+              const q = new CANNON.Quaternion();
+              q.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+              c.addShape(new CANNON.Cylinder(0.11, 0.11, 0.22, 12), new CANNON.Vec3(), q);
+              c.position.set(p.x, 0.11, p.z);
+              mundoFisico.addBody(c);
+              cuerposHoyo.push(c);
+            }
+            if (letra === "W") {
+              info.agua.push(p);
+              const agua = agregar(new THREE.Mesh(new THREE.BoxGeometry(CELDA, 0.02, CELDA), material(0x2e8fe0, { roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.85 })));
+              agua.position.set(p.x, 0.005, p.z);
+              agua.receiveShadow = false;
+            }
+            if (letra === "M") {
+              const torre = agregar(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.5, 12), material(0xffffff)));
+              torre.position.set(p.x, 0.25, p.z);
+              const aspa = agregar(new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.1, 0.09), material(0xff4f4f, { roughness: 0.4 })));
+              aspa.position.set(p.x, 0.09, p.z);
+              const cuerpo = cajaFisica(0.85, 0.06, 0.045, p.x, 0.09, p.z, mPared, CANNON.Body.KINEMATIC);
+              cuerpo.angularVelocity.set(0, 1.3, 0);
+              molino = { aspa, cuerpo };
+            }
+          }
+        }
+        // hoyo con bandera
+        const hoyo = agregar(new THREE.Mesh(new THREE.CircleGeometry(RADIO_HOYO, 32), new THREE.MeshBasicMaterial({ color: 0x0a0a0a })));
+        hoyo.rotation.x = -Math.PI / 2;
+        hoyo.position.set(info.hoyo.x, 0.002, info.hoyo.z);
+        const asta = agregar(new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.9, 8), material(0xeeeeee, { metalness: 0.6 })));
+        asta.position.set(info.hoyo.x, 0.45, info.hoyo.z);
+        const bandera = agregar(new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.18), material(0xff3b3b, { side: THREE.DoubleSide })));
+        bandera.position.set(info.hoyo.x + 0.15, 0.8, info.hoyo.z);
+        info.bandera = bandera;
+        // número del hoyo
+        const letrero = agregar(
+          new THREE.Mesh(
+            new THREE.PlaneGeometry(0.9, 0.45),
+            material(0xffffff, {
+              map: M.textura(256, 128, (g, w, h) => {
+                g.fillStyle = "#2b1d63";
+                g.fillRect(0, 0, w, h);
+                g.fillStyle = "#fff";
+                g.font = "900 46px Nunito, Arial Black, sans-serif";
+                g.textAlign = "center";
+                g.fillText(`HOYO ${n + 1}`, w / 2, 58);
+                g.font = "800 34px Nunito, Arial, sans-serif";
+                g.fillStyle = "#ffd84f";
+                g.fillText(`PAR ${datos.par}`, w / 2, 104);
+              }),
+            }),
+          ),
+        );
+        letrero.position.set(info.salida.x - (cols / 2) * CELDA - 0.3, 0.4, info.salida.z);
+        letrero.rotation.y = Math.PI / 6;
+        letrero.castShadow = false;
+        hoyoActual = info;
+        sol.target.position.set(0, 0, 0);
+        return info;
+      }
+
+      // =========================================================
+      //  CÁMARA
+      // =========================================================
+      let vistaMenu = true;
+      function moverCamara(ahora) {
+        const aspecto = window.innerWidth / window.innerHeight;
+        const t = ahora / 1000;
+        if (!hoyoActual) return;
+        const ancho = hoyoActual.cols * CELDA + 0.6,
+          largo = hoyoActual.filas * CELDA + 0.6;
+        const tanMitad = Math.tan((25 * Math.PI) / 180);
+        let d = Math.max(largo / 2 / tanMitad, ancho / 2 / (tanMitad * aspecto)) * 0.95 + 0.6;
+        camara.fov = 50;
+        let pos;
+        if (vistaMenu) pos = new THREE.Vector3(Math.sin(t * 0.2) * d * 0.6, d * 0.7, Math.cos(t * 0.2) * d * 0.6);
+        else pos = new THREE.Vector3(0, d * 0.86, d * 0.5);
+        camara.position.lerp(pos, 0.06);
+        camara.lookAt(0, 0, vistaMenu ? 0 : -0.15);
+        camara.updateProjectionMatrix();
+      }
+
+      // =========================================================
+      //  GOLPEAR
+      // =========================================================
+      let quieta = true;
+      let tiempoQuieta = 0;
+      let enHoyo = false;
+      let cayoAgua = false;
+
+      M.alCuadro((dt, ahora) => {
+        if (molino) molino.aspa.quaternion.copy(molino.cuerpo.quaternion);
+        mundoFisico.step(1 / 120, dt, 10);
+        if (hoyoActual) hoyoActual.bandera.rotation.y = Math.sin(ahora / 400) * 0.25;
+        if (!quieta && !enHoyo) {
+          const p = cuerpoBola.position,
+            v = cuerpoBola.velocity;
+          const rapidez = Math.hypot(v.x, v.z);
+          const h = hoyoActual.hoyo;
+          if (Math.hypot(p.x - h.x, p.z - h.z) < RADIO_HOYO && rapidez < 2.4) {
+            enHoyo = true;
+            cuerpoBola.velocity.setZero();
+            cuerpoBola.type = CANNON.Body.KINEMATIC;
+            const desde = new THREE.Vector3(p.x, p.y, p.z);
+            M.animar(260, (t) => {
+              cuerpoBola.position.set(desde.x + (h.x - desde.x) * t, RADIO_BOLA - t * 0.12, desde.z + (h.z - desde.z) * t);
+            });
+            sonar("aro", 0.6);
+          }
+          for (const w of hoyoActual.agua)
+            if (Math.abs(p.x - w.x) < CELDA / 2 && Math.abs(p.z - w.z) < CELDA / 2 && !cayoAgua) {
+              cayoAgua = true;
+              sonar("agua");
+            }
+          if (rapidez < 0.06 && Math.abs(v.y) < 0.05) tiempoQuieta += dt;
+          else tiempoQuieta = 0;
+          if (tiempoQuieta > 0.25) {
+            cuerpoBola.velocity.setZero();
+            cuerpoBola.angularVelocity.setZero();
+          }
+        }
+        bola.position.copy(cuerpoBola.position);
+        bola.quaternion.copy(cuerpoBola.quaternion);
+        moverCamara(ahora);
+      });
+
+      function ponerBola(x, z, jugador) {
+        cuerpoBola.type = CANNON.Body.DYNAMIC;
+        cuerpoBola.position.set(x, RADIO_BOLA + 0.001, z);
+        cuerpoBola.velocity.setZero();
+        cuerpoBola.angularVelocity.setZero();
+        bola.material.map = texturasBola[jugador];
+        bola.material.needsUpdate = true;
+        bola.visible = true;
+      }
+
+      async function simularGolpe(golpe) {
+        const desde = { x: cuerpoBola.position.x, z: cuerpoBola.position.z };
+        enHoyo = false;
+        cayoAgua = false;
+        quieta = false;
+        tiempoQuieta = 0;
+        cuerpoBola.velocity.set(golpe.vx, 0, golpe.vz);
+        sonar("patada", 0.25 + Math.hypot(golpe.vx, golpe.vz) / 14);
+        const inicio = performance.now();
+        await new Promise((r) => {
+          const revisar = setInterval(() => {
+            if (enHoyo || cayoAgua || tiempoQuieta > 0.3 || performance.now() - inicio > 12000 || cuerpoBola.position.y < -1) {
+              clearInterval(revisar);
+              r();
+            }
+          }, 50);
+        });
+        if (enHoyo) await esperar(300);
+        quieta = true;
+        cuerpoBola.velocity.setZero();
+        let final = { x: cuerpoBola.position.x, z: cuerpoBola.position.z };
+        if (cayoAgua || cuerpoBola.position.y < -1) {
+          final = desde;
+          await esperar(600);
+        }
+        return { x: +final.x.toFixed(4), z: +final.z.toFixed(4), enHoyo, agua: cayoAgua };
+      }
+
+      // Apuntar: jalas desde cualquier parte, como resortera
+      let esperandoGolpe = null;
+      function puntoEnPiso(px, py) {
+        const r = M.pantallaARayo(px, py);
+        const p = new THREE.Vector3();
+        return r.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), p) ? p : null;
+      }
+      let inicioJalon = null;
+      function golpeDesdePuntos(a, b) {
+        if (!a || !b) return null;
+        const dx = a.x - b.x,
+          dz = a.z - b.z;
+        const largo = Math.hypot(dx, dz);
+        const fuerza = limitar(largo / 1.5, 0, 1);
+        if (fuerza < 0.04) return null;
+        const v = 0.4 + fuerza * 6.2;
+        return { vx: (dx / largo) * v, vz: (dz / largo) * v, fuerza };
+      }
+      Arcade.deslizar(M.lienzo, {
+        puede: () => !!esperandoGolpe,
+        inicio: (p) => (inicioJalon = puntoEnPiso(p.x, p.y)),
+        mover: (p) => {
+          const g = golpeDesdePuntos(inicioJalon, puntoEnPiso(p.x, p.y));
+          flecha.visible = !!g;
+          if (!g) return;
+          flecha.position.copy(cuerpoBola.position).setY(0.03);
+          flecha.rotation.y = Math.atan2(g.vx, g.vz);
+          flecha.scale.set(1, 1, 0.25 + g.fuerza * 1.6);
+          cuerpoFlecha.material.color.setHSL(0.33 - g.fuerza * 0.33, 1, 0.55);
+        },
+        soltar: (gesto) => {
+          flecha.visible = false;
+          const g = golpeDesdePuntos(inicioJalon, puntoEnPiso(gesto.fin.x, gesto.fin.y));
+          if (!g || !esperandoGolpe) return;
+          const r = esperandoGolpe;
+          esperandoGolpe = null;
+          r({ vx: +g.vx.toFixed(4), vz: +g.vz.toFixed(4) });
+        },
+        cancelar: () => (flecha.visible = false),
+      });
+
+      // Bot: busca el punto más lejano del camino que pueda ver y le tira
+      const ERROR_BOT = { facil: 0.22, normal: 0.11, pro: 0.05 };
+      function golpeBot() {
+        const p = cuerpoBola.position;
+        const camino = Object.keys(hoyoActual.puntos)
+          .sort()
+          .map((k) => hoyoActual.puntos[k])
+          .concat([hoyoActual.hoyo]);
+        let objetivo = camino[0];
+        for (let i = camino.length - 1; i >= 0; i--) {
+          const destino = new CANNON.Vec3(camino[i].x, RADIO_BOLA, camino[i].z);
+          const resultado = new CANNON.RaycastResult();
+          // el rayo sale justo afuera de la bola para no chocar con ella misma
+          const dir = new CANNON.Vec3(destino.x - p.x, 0, destino.z - p.z);
+          dir.normalize();
+          const desde = new CANNON.Vec3(p.x + dir.x * (RADIO_BOLA + 0.02), RADIO_BOLA, p.z + dir.z * (RADIO_BOLA + 0.02));
+          mundoFisico.raycastClosest(desde, destino, { skipBackfaces: true }, resultado);
+          const libre = !resultado.hasHit;
+          if (libre) {
+            objetivo = camino[i];
+            break;
+          }
+        }
+        const dx = objetivo.x - p.x,
+          dz = objetivo.z - p.z;
+        const dist = Math.hypot(dx, dz);
+        const alHoyo = objetivo === hoyoActual.hoyo;
+        const v = limitar((alHoyo ? 0.55 + dist * 1.05 : 1.2 + dist * 1.25) * (1 + gauss() * ERROR_BOT[J.dificultad] * 0.5), 0.4, 6.6);
+        const ang = Math.atan2(dx, dz) + gauss() * ERROR_BOT[J.dificultad] * 0.35;
+        return { vx: Math.sin(ang) * v, vz: Math.cos(ang) * v };
+      }
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      const J = { modo: null, nombres: [], golpes: [[], []], hoyo: 0, activa: false, dificultad: "normal", recibido: {}, orden: [0] };
+
+      const ui = Arcade.ui({
+        juego: "mini_golf",
+        titulo: "Mini Golf 3D",
+        emoji: "⛳",
+        subtitulo: `${HOYOS.length} hoyos · gana quien use menos golpes`,
+        modos: ["solo", "bot", "online", "local"],
+        dificultad: true,
+        records: true,
+        unidadRecord: "golpes",
+        reglas: [
+          "Pon el dedo en cualquier lado y jala hacia atrás, como resortera.",
+          "La flecha te dice a dónde va y qué tan fuerte (verde suave · rojo fuerte).",
+          "Si caes al agua 💦 regresas a donde estabas y cuenta el golpe.",
+          `Máximo ${MAX_GOLPES} golpes por hoyo. Gana quien use menos en total.`,
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.activa = false;
+          vistaMenu = true;
+          esperandoGolpe = null;
+        },
+      });
+      ui.alEvento = (tipo, datos) => {
+        if (tipo !== "golpe" || !datos || datos.partida !== J.partida) return;
+        J.recibido[datos.clave] = datos;
+        if (J.esperando && J.esperando.clave === datos.clave) {
+          const r = J.esperando.r;
+          J.esperando = null;
+          r(datos);
+        }
+      };
+
+      construirHoyo(0);
+      ponerBola(hoyoActual.salida.x, hoyoActual.salida.z, 0);
+
+      function soyYo(i) {
+        if (J.modo === "online") return i === ui.yo;
+        if (J.modo === "bot") return i === 0;
+        return true;
+      }
+      const suma = (l) => l.reduce((s, x) => s + x, 0);
+      function marcador(jugador, golpe) {
+        const paneles = [0, 1].map((i) => ({
+          nombre: J.nombres[i],
+          valor: `${suma(J.golpes[i])}`,
+          detalle: i === jugador ? `Hoyo ${J.hoyo + 1}/${HOYOS.length} · golpe ${golpe} · par ${HOYOS[J.hoyo].par}` : `Hoyo ${J.hoyo + 1}/${HOYOS.length}`,
+          activo: i === jugador,
+        }));
+        ui.marcador(J.modo === "solo" ? [paneles[0], null] : paneles);
+      }
+
+      function empezar(modo, info) {
+        J.modo = modo;
+        J.nombres = info.nombres;
+        J.dificultad = info.dificultad;
+        J.partida = info.partida;
+        J.golpes = [[], []];
+        J.recibido = {};
+        J.activa = true;
+        const r = Arcade.rng(info.semilla);
+        J.orden = modo === "solo" ? [0] : modo === "bot" ? [0, 1] : r() < 0.5 ? [0, 1] : [1, 0];
+        vistaMenu = false;
+        jugar(info.partida);
+      }
+
+      async function jugar(partida) {
+        for (let h = 0; h < HOYOS.length; h++) {
+          J.hoyo = h;
+          construirHoyo(h);
+          for (const p of J.orden) {
+            const golpes = await jugarHoyo(p, h);
+            if (!J.activa || partida !== J.partida) return;
+            J.golpes[p][h] = golpes;
+            marcador(p, golpes);
+            const dif = golpes - HOYOS[h].par;
+            const nombre = golpes === 1 ? "⛳ ¡HOYO EN UNO!" : dif <= -2 ? "🦅 ¡Águila!" : dif === -1 ? "🐦 ¡Birdie!" : dif === 0 ? "👍 Par" : dif === 1 ? "Bogey" : `+${dif}`;
+            ui.avisar(`${nombre}<small>${golpes} golpe${golpes === 1 ? "" : "s"}${J.modo === "solo" ? "" : " · " + J.nombres[p]}</small>`, dif < 0 ? "#26de81" : dif === 0 ? "#4fb3ff" : "#ffb84f");
+            if (golpes === 1 || dif < 0) sonar("publico");
+            await esperar(1800);
+          }
+        }
+        terminar();
+      }
+
+      async function jugarHoyo(p, h) {
+        const s = hoyoActual.salida;
+        ponerBola(s.x, s.z, p);
+        if (J.modo !== "solo") ui.avisar(soyYo(p) && J.modo !== "local" ? "¡Tu turno!" : `Turno de ${J.nombres[p]}`, p ? "#4fb3ff" : "#ff4f8b");
+        for (let golpe = 1; golpe <= MAX_GOLPES; golpe++) {
+          marcador(p, golpe);
+          const clave = `${h}-${p}-${golpe}`;
+          let tiro,
+            rival = null;
+          if (soyYo(p)) {
+            ui.ayuda("👆 Jala hacia atrás y suelta para pegarle");
+            tiro = await new Promise((r) => (esperandoGolpe = r));
+            ui.ayuda("");
+          } else if (J.modo === "bot") {
+            await esperar(900);
+            tiro = golpeBot();
+          } else {
+            ui.ayuda(`${J.nombres[p]} está apuntando…`);
+            rival = J.recibido[clave] || (await new Promise((r) => (J.esperando = { clave, r })));
+            ui.ayuda("");
+            tiro = rival.tiro;
+          }
+          if (!J.activa) return 0;
+          let fin = await simularGolpe(tiro);
+          if (rival) fin = rival.fin;
+          else if (J.modo === "online") ui.enviar("golpe", { partida: J.partida, clave, tiro, fin });
+          if (fin.agua) ui.avisar("💦 ¡Al agua!<small>+1 golpe</small>", "#2e8fe0");
+          if (fin.enHoyo) {
+            bola.visible = false;
+            return golpe;
+          }
+          // deja la bola exactamente donde quedó en el celular que tiró
+          cuerpoBola.type = CANNON.Body.DYNAMIC;
+          cuerpoBola.position.set(fin.x, RADIO_BOLA + 0.001, fin.z);
+          cuerpoBola.velocity.setZero();
+        }
+        ui.avisar("😅 Máximo de golpes", "#888");
+        return MAX_GOLPES + 1;
+      }
+
+      function terminar() {
+        J.activa = false;
+        vistaMenu = true;
+        const a = suma(J.golpes[0]),
+          b = suma(J.golpes[1]);
+        const par = HOYOS.reduce((s, x) => s + x.par, 0);
+        if (J.modo === "solo") {
+          sonar("ganar");
+          const vsPar = a - par;
+          return ui.terminar({ emoji: "⛳", texto: `${a} golpes`, nota: vsPar === 0 ? "¡Justo en par!" : vsPar < 0 ? `${vsPar} bajo par 🔥` : `+${vsPar} sobre par`, record: a });
+        }
+        const empate = a === b,
+          gana0 = a < b;
+        const gane = J.modo === "online" ? (ui.yo === 0 ? gana0 : !gana0 && !empate) : gana0;
+        sonar(gane || J.modo === "local" ? "ganar" : "perder");
+        ui.terminar({
+          emoji: empate ? "🤝" : gane || J.modo === "local" ? "🏆" : "😿",
+          texto: empate ? "¡Empate!" : J.modo === "local" ? `¡Ganó ${J.nombres[gana0 ? 0 : 1]}!` : gane ? "¡Ganaste!" : `Ganó ${J.nombres[gana0 ? 0 : 1]}`,
+          nota: `${J.nombres[0]} ${a} golpes · ${J.nombres[1]} ${b} golpes`,
+        });
+      }
+    </script>
+  </body>
+</html>

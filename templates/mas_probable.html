@@ -1,0 +1,105 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}¿Quién es más probable?{% endblock %}
+{% block emoji %}🤔{% endblock %}
+{% block subtitulo %}Voten por sus amigos… sin piedad{% endblock %}
+
+{% block estilos %}
+<style>
+  .pregunta {
+    border-radius: 26px;
+    padding: 26px 18px;
+    text-align: center;
+    color: #fff;
+    background: linear-gradient(135deg, #fa8231, #ff3385);
+    box-shadow: 0 12px 30px rgba(255, 51, 133, 0.3);
+  }
+  .pregunta .chico {
+    font-weight: 800;
+    opacity: 0.9;
+  }
+  .pregunta .texto {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin-top: 6px;
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>Junten mínimo 2 personas, cada quien con su cel.</li>
+  <li>Sale una pregunta: "¿Quién es más probable que…?"</li>
+  <li>Todos votan en secreto por alguien de la sala (¡puedes votar por ti!).</li>
+  <li>Se revelan los votos y el más votado gana un punto 👑.</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  function tarjetaPregunta(e) {
+    return `<div class="pregunta aparecer">
+      <div class="chico">Pregunta ${e.ronda} · ¿Quién es más probable que…</div>
+      <div class="texto">${Fiesta.esc(e.pregunta.replace(/^\.\.\./, ""))}</div>
+    </div>`;
+  }
+
+  function pintar(e, zona) {
+    const n = e.jugadores.length;
+
+    if (e.fase === "lobby") {
+      zona.innerHTML = e.soy_host
+        ? `<div class="tarjeta pila centro">
+             <p class="nota">Cuando estén todos, ¡empiecen!</p>
+             <button class="boton verde" ${n < 2 ? "disabled" : ""} onclick="Fiesta.accion('iniciar')">
+               ${n < 2 ? "Invita al menos a 1 amigo" : "🚀 ¡Empezar!"}
+             </button>
+           </div>`
+        : `<div class="tarjeta centro pila">
+             <div class="grande">⏳</div>
+             <p class="nota">Esperando a que <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b> empiece…</p>
+           </div>`;
+      return;
+    }
+
+    if (e.fase === "votando") {
+      zona.innerHTML = `${tarjetaPregunta(e)}
+        <div class="tarjeta pila">
+          <h2>${e.ya_vote ? "✅ Voto enviado" : "👇 Vota por alguien"}</h2>
+          ${e.ya_vote ? `<p class="nota">Esperando a los demás… (${e.votaron.length}/${n})</p>` : ""}
+          ${Fiesta.botonesVoto(false)}
+          ${e.soy_host ? `<button class="boton claro" onclick="Fiesta.accion('revelar')">Revelar ya (${e.votaron.length}/${n} votaron)</button>` : ""}
+        </div>`;
+      return;
+    }
+
+    if (e.fase === "resultado") {
+      const entradas = Object.entries(e.conteo).sort((a, b) => b[1] - a[1]);
+      const max = entradas.length ? entradas[0][1] : 1;
+      const ganadores = entradas.filter(([, v]) => v === max).map(([pid]) => Fiesta.nombreDe(pid));
+      const barras = entradas
+        .map(
+          ([pid, v]) => `<div>
+            <div style="display:flex;justify-content:space-between;font-weight:800">
+              <span>${v === max ? "👑 " : ""}${Fiesta.esc(Fiesta.nombreDe(pid))}</span><span>${v} voto${v === 1 ? "" : "s"}</span>
+            </div>
+            <div class="barra-votos"><div style="width:${(v / max) * 100}%"></div></div>
+          </div>`,
+        )
+        .join("");
+      zona.innerHTML = `${tarjetaPregunta(e)}
+        <div class="tarjeta pila centro aparecer">
+          <p class="nota">El más votado fue…</p>
+          <div style="font-size:1.8rem;font-weight:900;color:var(--rosa)">👑 ${ganadores.map(Fiesta.esc).join(" y ") || "Nadie"}</div>
+        </div>
+        <div class="tarjeta pila"><h2>📊 Votos</h2>${barras || '<p class="nota">Nadie votó</p>'}</div>
+        ${
+          e.soy_host
+            ? `<button class="boton verde" onclick="Fiesta.accion('siguiente')">➡️ Siguiente pregunta</button>`
+            : `<p class="nota">Esperando la siguiente pregunta…</p>`
+        }`;
+    }
+  }
+
+  Fiesta.iniciar({ juego: "probable", titulo: "¿Quién es más probable? 🤔", pintar });
+</script>
+{% endblock %}

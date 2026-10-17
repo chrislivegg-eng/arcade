@@ -1,0 +1,138 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}Trivia Rápida{% endblock %}
+{% block emoji %}🧠{% endblock %}
+{% block subtitulo %}10 preguntas · el más rápido gana más{% endblock %}
+
+{% block estilos %}
+<style>
+  .opciones-trivia {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .opcion-trivia {
+    border: none;
+    border-radius: 18px;
+    padding: 18px 10px;
+    min-height: 92px;
+    font-family: inherit;
+    font-weight: 900;
+    font-size: 1.02rem;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    transition: transform 0.1s, opacity 0.2s;
+  }
+  .opcion-trivia:active {
+    transform: scale(0.96);
+  }
+  .opcion-trivia:disabled {
+    cursor: default;
+  }
+  .o0 {
+    background: linear-gradient(135deg, #ff4f6d, #e0284a);
+  }
+  .o1 {
+    background: linear-gradient(135deg, #4f8bff, #2d5fd6);
+  }
+  .o2 {
+    background: linear-gradient(135deg, #ffbe3d, #e8930c);
+  }
+  .o3 {
+    background: linear-gradient(135deg, #2ed47a, #12a457);
+  }
+  .opcion-trivia.apagada {
+    opacity: 0.3;
+  }
+  .opcion-trivia.mia {
+    outline: 4px solid #fff;
+    outline-offset: -6px;
+  }
+  .opcion-trivia small {
+    display: block;
+    opacity: 0.9;
+    font-size: 0.8rem;
+    margin-top: 4px;
+  }
+  .pregunta-texto {
+    font-size: 1.35rem;
+    font-weight: 900;
+    text-align: center;
+    color: var(--texto);
+  }
+  .barra-tiempo {
+    height: 8px;
+    border-radius: 4px;
+    background: #f0e8ff;
+    overflow: hidden;
+  }
+  .barra-tiempo div {
+    height: 100%;
+    background: linear-gradient(90deg, var(--rosa), var(--morado));
+    transition: width 0.25s linear;
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>Salen 10 preguntas de cultura general, videojuegos, cine, deportes y más.</li>
+  <li>Toca la respuesta correcta antes de que se acabe el tiempo (15 s).</li>
+  <li>Entre más rápido contestes, más puntos. ¡Las rachas dan bonus! 🔥</li>
+  <li>Se puede jugar hasta solo.</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  let limiteActual = 0;
+  setInterval(() => {
+    const barra = document.getElementById("barra");
+    if (barra && limiteActual) barra.style.width = (Fiesta.segundosHasta(limiteActual) / 15) * 100 + "%";
+  }, 250);
+
+  function pintar(e, zona) {
+    if (e.fase === "lobby") {
+      zona.innerHTML = e.soy_host
+        ? `<div class="tarjeta pila centro"><p class="nota">¡Pueden jugar de 1 a 20!</p>
+            <button class="boton verde" onclick="Fiesta.accion('iniciar')">🚀 ¡Empezar!</button></div>`
+        : `<div class="tarjeta centro pila"><div class="grande">⏳</div><p class="nota">Esperando a que <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b> empiece…</p></div>`;
+      return;
+    }
+    if (e.fase === "pregunta" || e.fase === "revelar") {
+      limiteActual = e.fase === "pregunta" ? e.limite : 0;
+      const revelar = e.fase === "revelar";
+      const n = e.jugadores.length;
+      const opciones = e.opciones
+        .map((o, i) => {
+          let clase = `o${i}`;
+          if (revelar && i !== e.correcta) clase += " apagada";
+          if (e.mi_respuesta === i) clase += " mia";
+          if (!revelar && e.ya_respondi && e.mi_respuesta !== i) clase += " apagada";
+          const extra = revelar ? `<small>${i === e.correcta ? "✅ " : ""}${e.conteo[i]} 👤</small>` : "";
+          return `<button class="opcion-trivia ${clase}" ${revelar || e.ya_respondi ? "disabled" : ""} onclick="Fiesta.accion('responder', {i:${i}})">${Fiesta.esc(o)}${extra}</button>`;
+        })
+        .join("");
+      let nota;
+      if (revelar) {
+        const gane = e.ganancias[Fiesta.pid];
+        nota = gane ? `<b style="color:var(--verde)">🎉 ¡Correcto! +${gane}${e.racha > 1 ? ` · 🔥 racha de ${e.racha}` : ""}</b>` : e.mi_respuesta == null ? "⏰ No contestaste" : "<b style='color:var(--rojo)'>❌ Incorrecto</b>";
+      } else nota = e.ya_respondi ? `Respuesta enviada · esperando (${e.respondieron.length}/${n})` : "¡Rápido! 🏃";
+      zona.innerHTML = `<div class="tarjeta pila">
+          <div class="fila-titulo"><span class="nota">${e.categoria} · ${e.n}/${e.total}</span>${!revelar ? `<span class="reloj" data-limite="${e.limite}"></span>` : ""}</div>
+          ${!revelar ? `<div class="barra-tiempo"><div id="barra" style="width:100%"></div></div>` : ""}
+          <div class="pregunta-texto">${Fiesta.esc(e.pregunta)}</div>
+        </div>
+        <div class="opciones-trivia">${opciones}</div>
+        <p class="nota">${nota}</p>`;
+      return;
+    }
+    if (e.fase === "final") {
+      zona.innerHTML = `<div class="tarjeta pila centro aparecer"><div class="grande">🏆</div><h2>¡Resultados!</h2>${Fiesta.ranking(e)}
+        ${e.soy_host ? `<button class="boton verde" onclick="Fiesta.accion('iniciar')">🔁 Otra trivia</button>` : `<p class="nota">Esperando al anfitrión…</p>`}</div>`;
+    }
+  }
+
+  Fiesta.iniciar({ juego: "trivia", titulo: "Trivia Rápida 🧠", pintar, intervalo: 1000 });
+</script>
+{% endblock %}

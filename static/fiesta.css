@@ -1,0 +1,384 @@
+/* =======================================================
+   🎉 ESTILO DE LOS JUEGOS DE FIESTA (pensado para celular)
+   ======================================================= */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  --rosa: #ff3385;
+  --rosa-claro: #ffe6f0;
+  --morado: #6c5ce7;
+  --morado-claro: #a29bfe;
+  --texto: #4a2a3a;
+  --verde: #20bf6b;
+  --rojo: #eb3b5a;
+}
+
+body {
+  font-family: "Nunito", sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: linear-gradient(160deg, #ffe6f0 0%, #f3e8ff 55%, #e6f0ff 100%);
+  color: var(--texto);
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+
+.app {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.encabezado {
+  text-align: center;
+  padding-top: 6px;
+}
+.encabezado .emoji {
+  font-size: 3rem;
+  line-height: 1;
+}
+.encabezado h1 {
+  margin: 6px 0 2px;
+  font-size: 1.9rem;
+  font-weight: 900;
+  color: var(--rosa);
+}
+.encabezado p {
+  margin: 0;
+  color: #9a6a80;
+  font-weight: 700;
+}
+
+.tarjeta {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 26px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(108, 92, 231, 0.15);
+}
+.tarjeta h2 {
+  margin: 0 0 12px;
+  font-size: 1.2rem;
+  color: var(--morado);
+}
+
+.campo {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 2px solid #e2d6ff;
+  font-size: 1.1rem;
+  font-family: inherit;
+  font-weight: 700;
+  color: var(--texto);
+  background: #fff;
+  outline: none;
+}
+.campo:focus {
+  border-color: var(--morado);
+}
+.campo.codigo {
+  text-align: center;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  font-size: 1.5rem;
+}
+
+.boton {
+  width: 100%;
+  border: none;
+  border-radius: 18px;
+  padding: 16px;
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6b9d, var(--rosa));
+  box-shadow: 0 6px 18px rgba(255, 51, 133, 0.35);
+  cursor: pointer;
+  transition: transform 0.1s;
+  text-decoration: none;
+  display: block;
+  text-align: center;
+}
+.boton:active {
+  transform: scale(0.97);
+}
+.boton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.boton.morado {
+  background: linear-gradient(135deg, var(--morado), var(--morado-claro));
+  box-shadow: 0 6px 18px rgba(108, 92, 231, 0.35);
+}
+.boton.verde {
+  background: linear-gradient(135deg, #26de81, var(--verde));
+  box-shadow: 0 6px 18px rgba(32, 191, 107, 0.35);
+}
+.boton.claro {
+  background: #fff;
+  color: var(--morado);
+  border: 2px solid #e2d6ff;
+  box-shadow: none;
+}
+.boton.whatsapp {
+  background: #25d366;
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.3);
+}
+
+.fila {
+  display: flex;
+  gap: 10px;
+}
+.fila > * {
+  flex: 1;
+}
+.pila {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.separador {
+  text-align: center;
+  color: #b9a3c9;
+  font-weight: 800;
+  margin: 4px 0;
+}
+
+.error {
+  background: #ffe3e8;
+  color: var(--rojo);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 800;
+  text-align: center;
+  display: none;
+}
+
+/* --- Barra de sala --- */
+.barra-sala {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 20px;
+  padding: 10px 14px;
+  box-shadow: 0 6px 18px rgba(108, 92, 231, 0.12);
+}
+.barra-sala .codigo-grande {
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: var(--morado);
+}
+.barra-sala small {
+  display: block;
+  color: #9a8aa8;
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+}
+.barra-sala button {
+  border: none;
+  background: var(--rosa-claro);
+  color: var(--rosa);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+/* --- Jugadores --- */
+.lista-jugadores {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.jugador {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #faf7ff;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-weight: 800;
+}
+.jugador .avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.jugador .nombre {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jugador .etiqueta {
+  font-size: 0.75rem;
+  background: var(--morado);
+  color: #fff;
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+.jugador .puntos {
+  color: var(--rosa);
+  font-weight: 900;
+}
+.jugador .quitar {
+  border: none;
+  background: none;
+  color: #c9b6d6;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.jugador.listo {
+  background: #e7fbef;
+}
+
+/* --- Botones de votación --- */
+.opciones-voto {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.opcion-voto {
+  border: 2px solid #e2d6ff;
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--texto);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.opcion-voto:active {
+  transform: scale(0.97);
+}
+.opcion-voto.elegido {
+  border-color: var(--rosa);
+  background: var(--rosa-claro);
+  color: var(--rosa);
+}
+.opcion-voto:disabled {
+  opacity: 0.45;
+}
+
+.barra-votos {
+  height: 12px;
+  border-radius: 6px;
+  background: #f0e8ff;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.barra-votos div {
+  height: 100%;
+  background: linear-gradient(90deg, var(--rosa), var(--morado));
+  border-radius: 6px;
+  transition: width 0.5s;
+}
+
+.centro {
+  text-align: center;
+}
+.nota {
+  color: #9a8aa8;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-align: center;
+  margin: 0;
+}
+.grande {
+  font-size: 2.2rem;
+  font-weight: 900;
+  margin: 8px 0;
+  word-break: break-word;
+}
+
+.pie {
+  text-align: center;
+  padding-bottom: 10px;
+}
+.pie a {
+  color: var(--morado);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.oculto {
+  display: none !important;
+}
+
+@keyframes aparecer {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.aparecer {
+  animation: aparecer 0.35s ease-out;
+}
+
+/* --- Reloj y extras de los juegos de fiesta --- */
+.reloj {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--morado);
+  color: #fff;
+  border-radius: 14px;
+  padding: 4px 12px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.reloj::before {
+  content: "⏱";
+}
+.poco-tiempo {
+  color: #fff;
+  background: var(--rojo) !important;
+  animation: aparecer 0.5s infinite alternate;
+}
+.fila-titulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.fila-titulo h2 {
+  margin: 0;
+}
+.mensaje-flotante {
+  position: fixed;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  background: #fff;
+  border-radius: 20px;
+  padding: 14px 22px;
+  font-weight: 900;
+  font-size: 1.3rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  z-index: 50;
+  animation: aparecer 0.25s ease-out;
+}

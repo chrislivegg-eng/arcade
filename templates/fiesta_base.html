@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ff3385" />
+    <title>{% block titulo %}{% endblock %} · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='fiesta.css') }}" />
+    {% block estilos %}{% endblock %}
+  </head>
+  <body>
+    <div class="app">
+      <div class="encabezado">
+        <div class="emoji">{% block emoji %}{% endblock %}</div>
+        <h1>{{ self.titulo() }}</h1>
+        <p>{% block subtitulo %}{% endblock %}</p>
+      </div>
+
+      <div id="error" class="error"></div>
+
+      <!-- ===== Pantalla de inicio: nombre + crear / unirse ===== -->
+      <div id="pantalla-inicio" class="pila">
+        <div class="tarjeta pila">
+          <h2>¿Cómo te llamas?</h2>
+          <input id="nombre" class="campo" maxlength="16" placeholder="Tu nombre" autocomplete="nickname" />
+        </div>
+
+        <div class="tarjeta pila" id="bloque-crear">
+          <button id="btn-crear" class="boton">✨ Crear sala nueva</button>
+          <p class="nota">Luego compartes el código con tus amigos</p>
+        </div>
+
+        <div class="tarjeta pila">
+          <h2>¿Te pasaron un código?</h2>
+          <input id="codigo" class="campo codigo" maxlength="4" placeholder="ABCD" autocomplete="off" />
+          <button id="btn-unirse" class="boton morado">🚪 Unirme</button>
+        </div>
+
+        <div class="tarjeta">
+          <h2>📖 Cómo se juega</h2>
+          {% block como_jugar %}{% endblock %}
+        </div>
+      </div>
+
+      <!-- ===== Pantalla de la sala ===== -->
+      <div id="pantalla-sala" class="pila oculto">
+        <div class="barra-sala">
+          <div>
+            <small>CÓDIGO DE SALA</small>
+            <span id="codigo-sala" class="codigo-grande"></span>
+          </div>
+          <button id="btn-salir">Salir</button>
+        </div>
+
+        <div id="zona-juego" class="pila"></div>
+
+        <div class="tarjeta pila">
+          <h2>👥 Jugadores (<span id="total-jugadores">0</span>)</h2>
+          <div id="lista-jugadores" class="lista-jugadores"></div>
+          <button id="btn-compartir" class="boton whatsapp">📲 Invitar amigos</button>
+        </div>
+      </div>
+
+      <div class="pie"><a href="/secreto">← Volver al menú de juegos</a></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/fiesta.js') }}"></script>
+    {% block script %}{% endblock %}
+  </body>
+</html>

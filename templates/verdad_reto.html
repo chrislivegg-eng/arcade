@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ff3385" />
+    <title>Verdad o Reto · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='fiesta.css') }}" />
+    <style>
+      .turno {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: var(--morado);
+        text-align: center;
+      }
+      .carta-vr {
+        border-radius: 26px;
+        padding: 30px 18px;
+        text-align: center;
+        color: #fff;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 8px;
+      }
+      .carta-vr.verdad {
+        background: linear-gradient(135deg, #3867d6, #a29bfe);
+      }
+      .carta-vr.reto {
+        background: linear-gradient(135deg, #eb3b5a, #fa8231);
+      }
+      .carta-vr .tipo {
+        font-weight: 900;
+        letter-spacing: 3px;
+        opacity: 0.9;
+      }
+      .carta-vr .texto {
+        font-size: 1.35rem;
+        font-weight: 900;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip-jugador {
+        background: #faf7ff;
+        border-radius: 14px;
+        padding: 8px 12px;
+        font-weight: 800;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .chip-jugador button {
+        border: none;
+        background: none;
+        color: #c9b6d6;
+        cursor: pointer;
+        font-size: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="encabezado">
+        <div class="emoji">🔥</div>
+        <h1>Verdad o Reto</h1>
+        <p>Un solo cel que se van pasando</p>
+      </div>
+
+      <!-- Paso 1: anotar jugadores -->
+      <div id="pantalla-jugadores" class="pila">
+        <div class="tarjeta pila">
+          <h2>👥 ¿Quiénes juegan?</h2>
+          <div class="fila">
+            <input id="nuevo" class="campo" maxlength="16" placeholder="Nombre" style="flex: 2" />
+            <button class="boton morado" onclick="agregar()" style="flex: 1">+</button>
+          </div>
+          <div id="chips" class="chips"></div>
+          <button id="btn-jugar" class="boton verde" onclick="empezar()">🚀 ¡A jugar!</button>
+        </div>
+      </div>
+
+      <!-- Paso 2: el juego -->
+      <div id="pantalla-juego" class="pila oculto">
+        <div class="tarjeta pila">
+          <p class="nota">Le toca a…</p>
+          <div id="turno" class="turno"></div>
+        </div>
+
+        <div id="eleccion" class="fila">
+          <button class="boton morado" onclick="sacar('verdad')">🤫 Verdad</button>
+          <button class="boton" onclick="sacar('reto')">🔥 Reto</button>
+        </div>
+
+        <div id="carta" class="oculto"></div>
+
+        <button id="btn-siguiente" class="boton verde oculto" onclick="siguiente()">➡️ Siguiente jugador</button>
+        <button class="boton claro" onclick="editar()">✏️ Cambiar jugadores</button>
+      </div>
+
+      <div class="pie"><a href="/secreto">← Volver al menú de juegos</a></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/fiesta.js') }}"></script>
+    <script>
+      const VERDADES = [
+        "¿Cuál es la cosa más vergonzosa que te ha pasado en la escuela?",
+        "¿A quién de aquí le contarías un secreto?",
+        "¿Cuál es tu mayor miedo?",
+        "¿Qué es lo más raro que has comido?",
+        "¿Cuál fue la última mentira que dijiste?",
+        "¿Qué app usas más en tu celular?",
+        "¿Cuál es tu canción favorita para cantar a solas?",
+        "¿Alguna vez te has quedado dormido en clase?",
+        "¿Cuál es tu apodo más vergonzoso?",
+        "¿Qué superpoder te gustaría tener y por qué?",
+        "¿Cuál es el peor regalo que has recibido?",
+        "¿Qué es lo más tonto por lo que has llorado?",
+        "¿Cuál es tu mayor manía?",
+        "Si pudieras cambiar de vida con alguien de aquí por un día, ¿con quién?",
+        "¿Qué es lo que más te enoja?",
+        "¿Cuál ha sido tu peor corte de pelo?",
+        "¿Has stalkeado a alguien en redes? ¿A quién?",
+        "¿Cuál es tu mayor logro hasta ahora?",
+        "¿Qué búsqueda rara has hecho en Google?",
+        "¿Qué es lo más vergonzoso que tienes en tu galería?",
+        "¿De qué te arrepientes de esta semana?",
+        "¿Cuál es tu comida culposa favorita?",
+        "¿Quién de aquí crees que es el más gracioso?",
+        "¿Qué serie o película viste más de 3 veces?",
+        "¿Alguna vez culpaste a alguien más por algo que hiciste tú?",
+      ];
+      const RETOS = [
+        "Imita a alguien del grupo hasta que adivinen quién es.",
+        "Habla con acento extranjero durante 2 rondas.",
+        "Haz 10 sentadillas ahorita.",
+        "Canta el coro de una canción que elija el grupo.",
+        "Baila sin música durante 20 segundos.",
+        "Deja que el grupo te ponga un apodo por el resto del juego.",
+        "Di el abecedario al revés lo más rápido que puedas.",
+        "Haz tu mejor imitación de un animal por 15 segundos.",
+        "Cuenta un chiste. Si nadie se ríe, haces otro reto.",
+        "Habla sin cerrar la boca durante 1 ronda.",
+        "Haz una pose de modelo y deja que te tomen una foto.",
+        "Di 5 cumplidos a la persona de tu derecha.",
+        "Intenta tocarte la nariz con la lengua.",
+        "Haz una declaración dramática de amor a un objeto de la mesa.",
+        "Narra lo que hace el grupo como comentarista de fútbol por 30 segundos.",
+        "Mantén el equilibrio en un pie durante 30 segundos.",
+        "Haz una cara chistosa y mantenla por 10 segundos sin reírte.",
+        "Escribe un poema de 4 líneas sobre el jugador de tu izquierda.",
+        "Di un trabalenguas 3 veces seguidas sin equivocarte.",
+        "Camina como pingüino hasta la puerta y regresa.",
+        "Haz un comercial inventado de algo que tengas a la mano.",
+        "Habla como robot hasta tu próximo turno.",
+        "Deja que el grupo elija tu foto de perfil por 1 hora.",
+        "Manda un sticker random al último chat que tengas abierto.",
+        "Haz 15 segundos de beatbox.",
+      ];
+
+      let jugadores = [];
+      try {
+        jugadores = JSON.parse(localStorage.getItem("vr_jugadores") || "[]");
+      } catch (e) {}
+      let turno = 0;
+      const usadas = { verdad: [], reto: [] };
+      const $ = (id) => document.getElementById(id);
+
+      function guardar() {
+        try {
+          localStorage.setItem("vr_jugadores", JSON.stringify(jugadores));
+        } catch (e) {}
+      }
+
+      function pintarChips() {
+        $("chips").innerHTML = jugadores
+          .map(
+            (j, i) =>
+              `<span class="chip-jugador">${Fiesta.esc(j)}<button onclick="quitar(${i})">✕</button></span>`,
+          )
+          .join("");
+        $("btn-jugar").disabled = jugadores.length < 2;
+        $("btn-jugar").textContent = jugadores.length < 2 ? "Agrega al menos 2 jugadores" : "🚀 ¡A jugar!";
+      }
+
+      function agregar() {
+        const nombre = $("nuevo").value.trim();
+        if (!nombre) return;
+        jugadores.push(nombre);
+        $("nuevo").value = "";
+        $("nuevo").focus();
+        guardar();
+        pintarChips();
+      }
+
+      function quitar(i) {
+        jugadores.splice(i, 1);
+        guardar();
+        pintarChips();
+      }
+
+      function empezar() {
+        turno = Math.floor(Math.random() * jugadores.length);
+        $("pantalla-jugadores").classList.add("oculto");
+        $("pantalla-juego").classList.remove("oculto");
+        mostrarTurno();
+      }
+
+      function editar() {
+        $("pantalla-juego").classList.add("oculto");
+        $("pantalla-jugadores").classList.remove("oculto");
+        pintarChips();
+      }
+
+      function mostrarTurno() {
+        $("turno").textContent = jugadores[turno];
+        $("eleccion").classList.remove("oculto");
+        $("carta").classList.add("oculto");
+        $("btn-siguiente").classList.add("oculto");
+      }
+
+      function sacar(tipo) {
+        const lista = tipo === "verdad" ? VERDADES : RETOS;
+        if (usadas[tipo].length >= lista.length) usadas[tipo] = [];
+        let i;
+        do {
+          i = Math.floor(Math.random() * lista.length);
+        } while (usadas[tipo].includes(i));
+        usadas[tipo].push(i);
+
+        const carta = $("carta");
+        carta.className = `carta-vr ${tipo} aparecer`;
+        carta.innerHTML = `<div class="tipo">${tipo === "verdad" ? "🤫 VERDAD" : "🔥 RETO"}</div>
+          <div class="texto">${Fiesta.esc(lista[i])}</div>`;
+        $("eleccion").classList.add("oculto");
+        $("btn-siguiente").classList.remove("oculto");
+      }
+
+      function siguiente() {
+        turno = (turno + 1) % jugadores.length;
+        mostrarTurno();
+      }
+
+      $("nuevo").addEventListener("keydown", (e) => e.key === "Enter" && agregar());
+      pintarChips();
+    </script>
+  </body>
+</html>

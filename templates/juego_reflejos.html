@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c14" />
+    <title>Duelo de Reflejos · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: #120c14;
+      }
+      .zona-toque {
+        position: fixed;
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        touch-action: none;
+        transition: background 0.08s;
+        padding: 20px;
+        cursor: pointer;
+      }
+      #zona-1 {
+        inset: 0;
+      }
+      .partida-dividida #zona-1 {
+        top: 50%;
+      }
+      #zona-2 {
+        top: 0;
+        bottom: 50%;
+        transform: rotate(180deg);
+        border-bottom: 3px solid rgba(255, 255, 255, 0.25);
+      }
+      .zona-toque .grande {
+        font-size: clamp(2.4rem, 11vw, 5rem);
+        font-weight: 900;
+        line-height: 1.05;
+        text-shadow: 0 6px 30px rgba(0, 0, 0, 0.35);
+      }
+      .zona-toque .chico {
+        font-size: 1.1rem;
+        font-weight: 800;
+        opacity: 0.85;
+        margin-top: 10px;
+      }
+      .zona-toque .puntos-local {
+        position: absolute;
+        bottom: 18px;
+        font-weight: 900;
+        font-size: 1.2rem;
+        opacity: 0.9;
+      }
+      .esperando {
+        background: radial-gradient(circle at 50% 40%, #ff4f6d, #9b1230);
+      }
+      .ya {
+        background: radial-gradient(circle at 50% 40%, #3dffa0, #0b9e55);
+      }
+      .pronto {
+        background: radial-gradient(circle at 50% 40%, #ffb84f, #c25b00);
+      }
+      .neutral {
+        background: radial-gradient(circle at 50% 40%, #3a2a55, #160f24);
+      }
+      .gano {
+        background: radial-gradient(circle at 50% 40%, #4fb3ff, #1c4fae);
+      }
+      .pulso .grande {
+        animation: latido 0.6s infinite alternate;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona-2" class="zona-toque neutral oculto"><div class="grande"></div><div class="chico"></div><div class="puntos-local"></div></div>
+    <div id="zona-1" class="zona-toque neutral oculto"><div class="grande"></div><div class="chico"></div><div class="puntos-local"></div></div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, gauss, sonar } = Arcade;
+      const RONDAS_SOLO = 5,
+        PARA_GANAR = 3;
+
+      const J = { modo: null, nombres: [], victorias: [0, 0], tiempos: [], ronda: 0, activa: false, dificultad: "normal", r: Math.random, recibido: {} };
+
+      const ui = Arcade.ui({
+        juego: "reflejos",
+        titulo: "Duelo de Reflejos",
+        emoji: "⚡",
+        subtitulo: "Toca cuando se ponga verde… ¡ni antes!",
+        modos: ["solo", "bot", "online", "local"],
+        dificultad: true,
+        records: true,
+        unidadRecord: "ms",
+        reglas: [
+          "La pantalla está roja: espera…",
+          "Cuando se ponga <b style='color:#3dffa0'>VERDE</b>, ¡toca lo más rápido que puedas!",
+          "Si tocas antes de tiempo, pierdes esa ronda 😬",
+          `En duelo gana el primero en llevarse ${PARA_GANAR} rondas.`,
+          "En 2 jugadores cada quien toca su mitad de la pantalla.",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.activa = false;
+          ocultarZonas();
+        },
+      });
+      ui.alEvento = (tipo, datos) => {
+        if (tipo !== "reaccion" || !datos || datos.partida !== J.partida) return;
+        J.recibido[datos.ronda] = datos.ms;
+        if (J.esperandoRival && J.esperandoRival.ronda === datos.ronda) {
+          const r = J.esperandoRival.r;
+          J.esperandoRival = null;
+          r(datos.ms);
+        }
+      };
+
+      const zona = (n) => $("zona-" + n);
+      function pintar(n, clase, grande, chico) {
+        const z = zona(n);
+        z.className = "zona-toque " + clase;
+        z.querySelector(".grande").innerHTML = grande;
+        z.querySelector(".chico").innerHTML = chico || "";
+      }
+      function ocultarZonas() {
+        zona(1).classList.add("oculto");
+        zona(2).classList.add("oculto");
+        document.body.classList.remove("partida-dividida");
+      }
+
+      // Toques: cada zona avisa a quien esté esperando
+      let alTocar = null;
+      [1, 2].forEach((n) =>
+        zona(n).addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          if (alTocar) alTocar(n, performance.now());
+        }),
+      );
+
+      function empezar(modo, info) {
+        J.modo = modo;
+        J.nombres = info.nombres;
+        J.dificultad = info.dificultad;
+        J.partida = info.partida;
+        J.victorias = [0, 0];
+        J.tiempos = [];
+        J.ronda = 0;
+        J.recibido = {};
+        J.r = Arcade.rng(info.semilla);
+        J.activa = true;
+        const dividida = modo === "local";
+        document.body.classList.toggle("partida-dividida", dividida);
+        zona(1).classList.remove("oculto");
+        zona(2).classList.toggle("oculto", !dividida);
+        ui.ayuda("");
+        marcador();
+        jugar(info.partida);
+      }
+
+      function marcador() {
+        if (J.modo === "local") {
+          ui.marcador([null, null]); // solo queda el botón ☰ arriba
+          zona(1).querySelector(".puntos-local").textContent = `${J.nombres[0]}: ${J.victorias[0]} 🏆`;
+          zona(2).querySelector(".puntos-local").textContent = `${J.nombres[1]}: ${J.victorias[1]} 🏆`;
+          return;
+        }
+        if (J.modo === "solo") {
+          const prom = J.tiempos.length ? Math.round(J.tiempos.reduce((s, t) => s + t, 0) / J.tiempos.length) : "—";
+          return ui.marcador([{ nombre: J.nombres[0], valor: `${prom} ms`, detalle: `Ronda ${Math.min(J.ronda + 1, RONDAS_SOLO)} de ${RONDAS_SOLO}`, activo: true }, null]);
+        }
+        const yo = J.modo === "online" ? ui.yo : 0;
+        ui.marcador(
+          [0, 1].map((i) => ({
+            nombre: J.nombres[i] + (i === yo ? " (tú)" : ""),
+            valor: J.victorias[i],
+            detalle: `Primero a ${PARA_GANAR}`,
+            activo: false,
+          })),
+        );
+      }
+
+      async function cuentaRegresiva() {
+        for (const t of ["3", "2", "1"]) {
+          [1, 2].forEach((n) => pintar(n, "neutral pulso", t, J.ronda === 0 ? "Prepárate…" : `Ronda ${J.ronda + 1}`));
+          sonar("click");
+          await esperar(650);
+        }
+      }
+
+      // Una ronda: devuelve los ms de cada lado (Infinity = tocó antes)
+      async function ronda(partida) {
+        const espera = 1300 + J.r() * 3200; // igual en los dos celulares
+        await cuentaRegresiva();
+        if (!J.activa || partida !== J.partida) return null;
+        [1, 2].forEach((n) => pintar(n, "esperando", "Espera…", "No toques todavía ✋"));
+        const resultados = {};
+        let verdeEn = null;
+        const quiero = J.modo === "local" ? [1, 2] : [1];
+        const listo = new Promise((fin) => {
+          alTocar = (n, ahora) => {
+            if (!quiero.includes(n) || resultados[n] != null) return;
+            if (verdeEn == null) {
+              resultados[n] = Infinity;
+              pintar(n, "pronto", "¡Muy pronto! 😬", "Tocaste antes del verde");
+              sonar("perder");
+            } else {
+              resultados[n] = Math.round(ahora - verdeEn);
+              pintar(n, "gano", `${resultados[n]} ms`, "");
+              sonar("click");
+            }
+            if (quiero.every((k) => resultados[k] != null) || J.modo === "local") {
+              // en local basta con que uno toque bien (ganó) o con que ambos fallen
+              const alguienBien = quiero.some((k) => Number.isFinite(resultados[k]));
+              if (J.modo !== "local" || alguienBien || quiero.every((k) => resultados[k] != null)) fin();
+            }
+          };
+        });
+        const temporizador = setTimeout(() => {
+          if (Object.keys(resultados).length && J.modo !== "local") return;
+          verdeEn = performance.now();
+          quiero.forEach((n) => resultados[n] == null && pintar(n, "ya", "¡YA! 👆", ""));
+          sonar("perfecto", 1.2);
+        }, espera);
+        // si nadie toca en 3 s después del verde, cuenta como lentísimo
+        const limite = setTimeout(() => {
+          quiero.forEach((n) => resultados[n] == null && (resultados[n] = 3000));
+          alTocar && alTocar(-1);
+        }, espera + 3000);
+        await Promise.race([listo, esperar(espera + 3100)]);
+        clearTimeout(temporizador);
+        clearTimeout(limite);
+        alTocar = null;
+        quiero.forEach((n) => resultados[n] == null && (resultados[n] = Infinity));
+        return resultados;
+      }
+
+      async function jugar(partida) {
+        while (J.activa && partida === J.partida) {
+          const res = await ronda(partida);
+          if (!res || !J.activa || partida !== J.partida) return;
+          let mio = res[1];
+
+          if (J.modo === "solo") {
+            if (!Number.isFinite(mio)) {
+              await esperar(1200);
+              continue; // se repite la ronda
+            }
+            J.tiempos.push(mio);
+            J.ronda++;
+            marcador();
+            pintar(1, "gano", `${mio} ms`, mio < 200 ? "⚡ ¡Rapidísimo!" : mio < 260 ? "🔥 ¡Muy bien!" : mio < 330 ? "👍 Bien" : "🐢 Puedes mejorar");
+            await esperar(1500);
+            if (J.ronda >= RONDAS_SOLO) return terminar();
+            continue;
+          }
+
+          let rival;
+          if (J.modo === "local") rival = res[2];
+          else if (J.modo === "bot") {
+            const base = { facil: [390, 60], normal: [300, 45], pro: [225, 28] }[J.dificultad];
+            rival = Math.random() < 0.03 ? Infinity : Math.max(150, Math.round(base[0] + gauss() * base[1]));
+          } else {
+            const ronda = J.ronda;
+            ui.enviar("reaccion", { partida: J.partida, ronda, ms: Number.isFinite(mio) ? mio : -1 });
+            if (J.recibido[ronda] == null) pintar(1, zona(1).className.split(" ")[1], zona(1).querySelector(".grande").innerHTML, "Esperando a tu rival…");
+            rival = J.recibido[ronda] != null ? J.recibido[ronda] : await new Promise((r) => (J.esperandoRival = { ronda, r }));
+            if (rival === -1) rival = Infinity;
+          }
+
+          // ¿quién ganó la ronda? (en online, el índice 0/1 depende de quién soy)
+          const yo = J.modo === "online" ? ui.yo : 0;
+          const tiempos = yo === 0 ? [mio, rival] : [rival, mio];
+          let ganador = null;
+          if (Number.isFinite(tiempos[0]) || Number.isFinite(tiempos[1])) ganador = tiempos[0] <= tiempos[1] ? 0 : 1;
+          J.ronda++;
+          if (ganador != null) J.victorias[ganador]++;
+          marcador();
+
+          const fmt = (t) => (Number.isFinite(t) ? `${t} ms` : "antes de tiempo");
+          if (J.modo === "local") {
+            [1, 2].forEach((n) => {
+              const i = n - 1;
+              pintar(n, ganador === i ? "gano" : "pronto", ganador === i ? "¡Ganaste! 🏆" : ganador == null ? "Nadie 🤷" : "Perdiste 😿", `${J.nombres[0]}: ${fmt(tiempos[0])}<br>${J.nombres[1]}: ${fmt(tiempos[1])}`);
+            });
+          } else {
+            const gane = ganador === yo;
+            pintar(1, gane ? "gano" : "pronto", gane ? "¡Ronda tuya! ⚡" : ganador == null ? "Nadie 🤷" : "Ronda del rival", `Tú: ${fmt(mio)}<br>${J.nombres[1 - yo]}: ${fmt(rival)}`);
+            sonar(gane ? "ganar" : "perder");
+          }
+          await esperar(2200);
+          if (J.victorias[0] >= PARA_GANAR || J.victorias[1] >= PARA_GANAR) return terminar();
+        }
+      }
+
+      function terminar() {
+        J.activa = false;
+        if (J.modo === "solo") {
+          const prom = Math.round(J.tiempos.reduce((s, t) => s + t, 0) / J.tiempos.length);
+          const mejor = Math.min(...J.tiempos);
+          sonar("ganar");
+          return ui.terminar({ emoji: "⚡", texto: `Promedio: ${prom} ms`, nota: `Tu mejor: ${mejor} ms`, record: prom });
+        }
+        const g = J.victorias[0] > J.victorias[1] ? 0 : 1;
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const gane = g === yo;
+        ocultarZonas();
+        sonar(gane || J.modo === "local" ? "ganar" : "perder");
+        ui.terminar({
+          emoji: gane || J.modo === "local" ? "🏆" : "😿",
+          texto: J.modo === "local" ? `¡Ganó ${J.nombres[g]}!` : gane ? "¡Eres el más rápido!" : `Ganó ${J.nombres[g]}`,
+          nota: `${J.nombres[0]} ${J.victorias[0]} - ${J.victorias[1]} ${J.nombres[1]}`,
+        });
+      }
+    </script>
+  </body>
+</html>

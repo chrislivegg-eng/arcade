@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#2b1d63" />
+    <title>Stack 3D · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      #altura {
+        position: fixed;
+        top: calc(100px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 4rem;
+        font-weight: 900;
+        z-index: 4;
+        text-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+    <div id="altura" class="oculto">0</div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, limitar, lin, sonar } = Arcade;
+
+      const ALTO = 0.32,
+        TAMANO = 3,
+        TOLERANCIA = 0.07;
+
+      const M = Arcade.mundo({ fondo: 0x2b1d63, fov: 40, exposicion: 1.05, sombras: true, colorAmbiente: 0x6a5acd });
+      const { escena, camara } = M;
+      escena.add(new THREE.HemisphereLight(0xffffff, 0x443366, 0.7));
+      const sol = new THREE.DirectionalLight(0xffffff, 1.0);
+      sol.castShadow = true;
+      sol.shadow.mapSize.set(1024, 1024);
+      Object.assign(sol.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 40 });
+      escena.add(sol, sol.target);
+
+      const colorDe = (n) => new THREE.Color().setHSL(((n * 0.022 + J.tono) % 1 + 1) % 1, 0.62, 0.62).convertSRGBToLinear();
+      function bloque(w, d, n) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, ALTO, d), new THREE.MeshStandardMaterial({ color: colorDe(n), roughness: 0.45 }));
+        m.castShadow = m.receiveShadow = true;
+        escena.add(m);
+        return m;
+      }
+
+      // Base
+      const base = new THREE.Mesh(new THREE.BoxGeometry(TAMANO, 6, TAMANO), new THREE.MeshStandardMaterial({ color: lin(0x3a2a7a), roughness: 0.6 }));
+      base.position.y = -3 - ALTO / 2;
+      base.receiveShadow = true;
+      escena.add(base);
+
+      const J = { modo: null, nombres: [], pila: [], movil: null, cayendo: [], jugando: false, puntos: 0, combo: 0, tono: Math.random(), velocidad: 2.6, partida: 0, rival: 0, resultados: [null, null], turno: 0 };
+
+      function reiniciar() {
+        J.pila.forEach((b) => escena.remove(b.malla));
+        J.cayendo.forEach((c) => escena.remove(c.malla));
+        if (J.movil) escena.remove(J.movil.malla);
+        J.tono = Math.random();
+        J.pila = [{ x: 0, z: 0, w: TAMANO, d: TAMANO, malla: bloque(TAMANO, TAMANO, 0) }];
+        J.pila[0].malla.position.set(0, 0, 0);
+        J.cayendo = [];
+        J.movil = null;
+        J.puntos = 0;
+        J.combo = 0;
+        J.velocidad = 2.6;
+        $("altura").textContent = "0";
+      }
+
+      function nuevoMovil() {
+        const ultimo = J.pila[J.pila.length - 1];
+        const n = J.pila.length;
+        const eje = n % 2 ? "x" : "z";
+        const m = bloque(ultimo.w, ultimo.d, n);
+        J.movil = { eje, x: ultimo.x, z: ultimo.z, w: ultimo.w, d: ultimo.d, malla: m, t: 0, dir: 1 };
+        J.movil[eje] = -4.2;
+        m.position.set(J.movil.x, n * ALTO, J.movil.z);
+      }
+
+      function colocar() {
+        if (!J.jugando || !J.movil) return;
+        const b = J.movil;
+        const prev = J.pila[J.pila.length - 1];
+        const eje = b.eje,
+          tam = eje === "x" ? "w" : "d";
+        let diferencia = b[eje] - prev[eje];
+        const n = J.pila.length;
+        if (Math.abs(diferencia) <= TOLERANCIA) {
+          // ¡perfecto! se acomoda solo
+          b[eje] = prev[eje];
+          diferencia = 0;
+          J.combo++;
+          sonar("perfecto", 1 + Math.min(J.combo, 8) * 0.12);
+          if (J.combo >= 3) {
+            b[tam] = Math.min(TAMANO, b[tam] + 0.12);
+            b.malla.geometry.dispose();
+            b.malla.geometry = new THREE.BoxGeometry(b.w, ALTO, b.d);
+          }
+          ui.avisar(J.combo >= 3 ? `✨ ¡PERFECTO x${J.combo}!` : "✨ ¡Perfecto!", "#ffd84f");
+          onda(b);
+        } else {
+          J.combo = 0;
+          const traslape = b[tam] - Math.abs(diferencia);
+          if (traslape <= 0) {
+            // se cayó todo el bloque
+            J.cayendo.push({ malla: b.malla, vy: 0, giro: diferencia > 0 ? -1 : 1, eje });
+            J.movil = null;
+            return perder();
+          }
+          // corta el pedazo que sobra y lo deja caer
+          const sobra = Math.abs(diferencia);
+          const signo = Math.sign(diferencia);
+          const nuevoCentro = prev[eje] + diferencia / 2;
+          const cortado = eje === "x" ? bloque(sobra, b.d, n) : bloque(b.w, sobra, n);
+          const centroCortado = nuevoCentro + signo * (traslape / 2 + sobra / 2);
+          cortado.position.set(eje === "x" ? centroCortado : b.x, n * ALTO, eje === "z" ? centroCortado : b.z);
+          J.cayendo.push({ malla: cortado, vy: 0, giro: signo, eje });
+          b[tam] = traslape;
+          b[eje] = nuevoCentro;
+          b.malla.geometry.dispose();
+          b.malla.geometry = new THREE.BoxGeometry(b.w, ALTO, b.d);
+          sonar("click");
+        }
+        b.malla.position.set(b.x, n * ALTO, b.z);
+        J.pila.push({ x: b.x, z: b.z, w: b.w, d: b.d, malla: b.malla });
+        J.puntos = J.pila.length - 1;
+        $("altura").textContent = J.puntos;
+        J.velocidad = Math.min(6.5, 2.6 + J.puntos * 0.07);
+        marcador();
+        if (J.modo === "online") ui.enviar("puntos", { partida: J.partida, puntos: J.puntos });
+        nuevoMovil();
+      }
+
+      function onda(b) {
+        const anillo = new THREE.Mesh(
+          new THREE.RingGeometry(0.1, 0.16, 4),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide }),
+        );
+        anillo.rotation.x = -Math.PI / 2;
+        anillo.rotation.z = Math.PI / 4;
+        anillo.position.set(b.x, J.pila.length * ALTO - ALTO / 2 + 0.01, b.z);
+        escena.add(anillo);
+        M.animar(500, (t) => {
+          const s = Math.max(b.w, b.d) * (0.8 + t * 0.9) * 8.8;
+          anillo.scale.set(s, s, 1);
+          anillo.material.opacity = 0.8 * (1 - t);
+          if (t >= 1) escena.remove(anillo);
+        });
+      }
+
+      M.alCuadro((dt, ahora) => {
+        if (J.movil && J.jugando) {
+          const b = J.movil;
+          b[b.eje] += b.dir * J.velocidad * dt;
+          if (b[b.eje] > 4.2) b.dir = -1;
+          if (b[b.eje] < -4.2) b.dir = 1;
+          b.malla.position[b.eje] = b[b.eje];
+        }
+        for (let i = J.cayendo.length - 1; i >= 0; i--) {
+          const c = J.cayendo[i];
+          c.vy -= 14 * dt;
+          c.malla.position.y += c.vy * dt;
+          c.malla.rotation[c.eje === "x" ? "z" : "x"] += c.giro * dt * 1.8 * (c.eje === "x" ? -1 : 1);
+          if (c.malla.position.y < -12) {
+            escena.remove(c.malla);
+            J.cayendo.splice(i, 1);
+          }
+        }
+        // cámara que sube con la torre
+        const h = J.pila.length * ALTO;
+        const aspecto = window.innerWidth / window.innerHeight;
+        const d = aspecto < 1 ? 19 : 12.5;
+        const t = ahora / 1000;
+        const objetivo = J.jugando || J.modo ? new THREE.Vector3(d * 0.62, h + d * 0.55, d * 0.62) : new THREE.Vector3(Math.sin(t * 0.3) * d * 0.85, h + d * 0.5, Math.cos(t * 0.3) * d * 0.85);
+        camara.position.lerp(objetivo, 0.06);
+        camara.lookAt(0, h - 1.3, 0);
+        sol.position.set(4, h + 10, 6);
+        sol.target.position.set(0, h, 0);
+        const fondo = new THREE.Color().setHSL(((J.tono + 0.55 + h * 0.01) % 1 + 1) % 1, 0.45, 0.22);
+        escena.background.lerp(fondo, 0.05);
+      });
+
+      // Tocar en cualquier parte (o espacio) para colocar
+      M.lienzo.addEventListener("pointerdown", () => colocar());
+      window.addEventListener("keydown", (e) => {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          colocar();
+        }
+      });
+
+      async function perder() {
+        J.jugando = false;
+        sonar("choque");
+        ui.avisar("💥 ¡Se cayó!", "#ff6b81");
+        await esperar(1500);
+        terminarRonda();
+      }
+
+      const ui = Arcade.ui({
+        juego: "stack",
+        titulo: "Stack 3D",
+        emoji: "🧱",
+        subtitulo: "Apila bloques lo más alto que puedas",
+        modos: ["solo", "online", "local"],
+        textosModo: { online: "🌐 Carrera online con un amigo", local: "👥 2 jugadores (por turnos)" },
+        records: true,
+        unidadRecord: "pisos",
+        reglas: [
+          "Toca la pantalla cuando el bloque esté encima de la torre.",
+          "Lo que quede afuera se corta y se cae ✂️",
+          "Si lo pones exacto es PERFECTO ✨ y 3 perfectos seguidos hacen crecer el bloque.",
+          "Cada vez va más rápido 😵",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.jugando = false;
+          $("altura").classList.add("oculto");
+        },
+      });
+      ui.alEvento = (tipo, datos) => {
+        if (!datos || datos.partida !== J.partida) return;
+        if (tipo === "puntos" || tipo === "fin") J.rival = datos.puntos;
+        if (tipo === "fin") {
+          J.rivalTermino = true;
+          J.alTerminarRival && J.alTerminarRival();
+        }
+        marcador();
+      };
+
+      function marcador() {
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: J.puntos, detalle: J.combo >= 2 ? `✨ combo x${J.combo}` : "pisos", activo: true }, null]);
+        if (J.modo === "online") {
+          const yo = ui.yo;
+          const v = yo === 0 ? [J.puntos, J.rival] : [J.rival, J.puntos];
+          return ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (i === yo ? " (tú)" : ""), valor: v[i], detalle: i === yo ? "jugando" : J.rivalTermino ? "terminó" : "🌐 en vivo", activo: i === yo })));
+        }
+        ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i], valor: i === J.turno ? J.puntos : J.resultados[i] ?? "—", detalle: i === J.turno ? "jugando" : J.resultados[i] == null ? "espera" : "terminó", activo: i === J.turno })));
+      }
+
+      function empezar(modo, info) {
+        J.modo = modo;
+        J.nombres = info.nombres;
+        J.partida = info.partida;
+        J.resultados = [null, null];
+        J.turno = 0;
+        J.rival = 0;
+        J.rivalTermino = false;
+        J.alTerminarRival = null;
+        nuevaTorre();
+      }
+      function nuevaTorre() {
+        reiniciar();
+        $("altura").classList.remove("oculto");
+        J.jugando = true;
+        nuevoMovil();
+        marcador();
+        ui.ayuda("👆 Toca para soltar el bloque");
+        setTimeout(() => ui.ayuda(""), 3000);
+        if (J.modo === "local") ui.avisar(`Turno de ${J.nombres[J.turno]}`, J.turno ? "#4fb3ff" : "#ff4f8b");
+      }
+
+      async function terminarRonda() {
+        if (!J.modo) return;
+        if (J.modo === "solo") {
+          sonar("ganar");
+          return ui.terminar({ emoji: "🧱", texto: `¡${J.puntos} pisos!`, nota: J.puntos >= 30 ? "¡Torre épica! 🏰" : "¿Puedes llegar más alto?", record: J.puntos });
+        }
+        if (J.modo === "local") {
+          J.resultados[J.turno] = J.puntos;
+          if (J.turno === 0) {
+            J.turno = 1;
+            await esperar(400);
+            return nuevaTorre();
+          }
+          const [a, b] = J.resultados;
+          sonar("ganar");
+          return ui.terminar({ emoji: a === b ? "🤝" : "🏆", texto: a === b ? "¡Empate!" : `¡Ganó ${J.nombres[a > b ? 0 : 1]}!`, nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}` });
+        }
+        ui.enviar("fin", { partida: J.partida, puntos: J.puntos });
+        if (!J.rivalTermino) {
+          ui.avisar("Esperando a tu rival…", "#4fb3ff");
+          await Promise.race([new Promise((r) => (J.alTerminarRival = r)), esperar(90000)]);
+        }
+        const yo = ui.yo;
+        const gane = J.puntos > J.rival,
+          empate = J.puntos === J.rival;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({
+          emoji: empate ? "🤝" : gane ? "🏆" : "😿",
+          texto: empate ? "¡Empate!" : gane ? "¡Tu torre fue más alta!" : `Ganó ${J.nombres[1 - yo]}`,
+          nota: `Tú: ${J.puntos} · ${J.nombres[1 - yo]}: ${J.rival}`,
+          record: J.puntos,
+        });
+      }
+
+      reiniciar();
+      // torre de muestra para el menú
+      for (let i = 1; i < 12; i++) {
+        const b = { x: Math.sin(i) * 0.1, z: Math.cos(i * 1.3) * 0.1, w: TAMANO - i * 0.05, d: TAMANO - i * 0.04 };
+        b.malla = bloque(b.w, b.d, i);
+        b.malla.position.set(b.x, i * ALTO, b.z);
+        J.pila.push(b);
+      }
+    </script>
+  </body>
+</html>

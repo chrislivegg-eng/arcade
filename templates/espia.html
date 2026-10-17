@@ -1,0 +1,206 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}Espía{% endblock %}
+{% block emoji %}🕵️‍♂️{% endblock %}
+{% block subtitulo %}Todos saben dónde están… menos el espía{% endblock %}
+
+{% block estilos %}
+<style>
+  .carta {
+    border-radius: 26px;
+    padding: 26px 18px;
+    text-align: center;
+    color: #fff;
+    background: linear-gradient(135deg, #20bf6b, #0fb9b1);
+    box-shadow: 0 12px 30px rgba(15, 185, 177, 0.35);
+    cursor: pointer;
+    user-select: none;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .carta.espia {
+    background: linear-gradient(135deg, #2d3436, #636e72);
+  }
+  .carta.tapada {
+    background: repeating-linear-gradient(45deg, #2d3436, #2d3436 14px, #3d4446 14px, #3d4446 28px);
+  }
+  .carta .chico {
+    font-weight: 800;
+    opacity: 0.9;
+  }
+  .lugares {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .lugar {
+    border: 2px solid #e2d6ff;
+    background: #fff;
+    border-radius: 12px;
+    padding: 6px 10px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: var(--texto);
+  }
+  button.lugar {
+    cursor: pointer;
+  }
+  .lugar.tachado {
+    text-decoration: line-through;
+    opacity: 0.4;
+  }
+  .chips-min {
+    display: flex;
+    gap: 8px;
+  }
+  .chip {
+    flex: 1;
+    border: 2px solid #e2d6ff;
+    background: #fff;
+    border-radius: 14px;
+    padding: 8px;
+    font-family: inherit;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .chip.activo {
+    background: var(--morado);
+    border-color: var(--morado);
+    color: #fff;
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>A todos les sale un <b>lugar</b> y un <b>personaje</b>… menos a uno: el <b>espía</b> 🕵️.</li>
+  <li>Por turnos se hacen preguntas: "¿Aquí se usa ropa especial?", "¿Hace calor?"…</li>
+  <li>El espía tiene que disimular y descubrir el lugar. Si cree saberlo, puede arriesgarse a adivinar.</li>
+  <li>Cuando se acaba el tiempo (o el anfitrión lo decide) todos votan quién es el espía.</li>
+  <li>Mínimo 3 jugadores.</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  let minutos = 6;
+  let cartaVisible = false;
+  let rondaVista = 0;
+  let tachados = new Set();
+  let ultimoEstado = null;
+  let modoAdivinar = false;
+
+  function voltear() {
+    cartaVisible = !cartaVisible;
+    pintar(ultimoEstado, document.getElementById("zona-juego"));
+  }
+  function tocarLugar(lugar) {
+    if (modoAdivinar) return adivinarLugar(lugar);
+    tachados.has(lugar) ? tachados.delete(lugar) : tachados.add(lugar);
+    pintar(ultimoEstado, document.getElementById("zona-juego"));
+  }
+  function adivinarLugar(lugar) {
+    modoAdivinar = false;
+    if (confirm(`¿Seguro que es "${lugar}"? Si fallas, pierdes 😬`)) Fiesta.accion("adivinar", { lugar });
+    else pintar(ultimoEstado, document.getElementById("zona-juego"));
+  }
+  function cambiarModo() {
+    modoAdivinar = !modoAdivinar;
+    pintar(ultimoEstado, document.getElementById("zona-juego"));
+  }
+  function elegirMinutos(m) {
+    minutos = m;
+    pintar(ultimoEstado, document.getElementById("zona-juego"));
+  }
+
+  function pintar(e, zona) {
+    ultimoEstado = e;
+    const n = e.jugadores.length;
+    if (e.ronda !== rondaVista) {
+      rondaVista = e.ronda;
+      cartaVisible = false;
+      tachados = new Set();
+    }
+
+    if (e.fase === "lobby") {
+      zona.innerHTML = e.soy_host
+        ? `<div class="tarjeta pila">
+            <h2>⚙️ Duración de la ronda</h2>
+            <div class="chips-min">${[4, 6, 8].map((m) => `<button class="chip ${m === minutos ? "activo" : ""}" onclick="elegirMinutos(${m})">${m} min</button>`).join("")}</div>
+            <button class="boton verde" ${n < 3 ? "disabled" : ""} onclick="Fiesta.accion('iniciar', {minutos})">${n < 3 ? `Faltan ${3 - n} jugador(es)` : "🚀 ¡Empezar!"}</button>
+          </div>`
+        : `<div class="tarjeta centro pila"><div class="grande">⏳</div><p class="nota">Esperando a que <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b> empiece…</p></div>`;
+      return;
+    }
+
+    if (e.fase === "jugando" || e.fase === "votando") {
+      const carta = !cartaVisible
+        ? `<div class="carta tapada aparecer" onclick="voltear()"><div class="grande">👆</div><div class="chico">Toca para ver tu carta<br>(que nadie más vea)</div></div>`
+        : e.soy_espia
+          ? `<div class="carta espia aparecer" onclick="voltear()"><div class="chico">Eres el…</div><div class="grande">🕵️ ESPÍA</div><div class="chico">Descubre dónde están sin que te cachen</div></div>`
+          : `<div class="carta aparecer" onclick="voltear()"><div class="chico">Están en</div><div class="grande">📍 ${Fiesta.esc(e.lugar)}</div><div class="chico">Eres: <b>${Fiesta.esc(e.rol)}</b></div></div>`;
+      const lugares = e.lugares
+        .map((l) =>
+          e.soy_espia
+            ? `<button class="lugar ${tachados.has(l) ? "tachado" : ""}" onclick="tocarLugar('${l.replace(/'/g, "\\'")}')">${Fiesta.esc(l)}</button>`
+            : `<span class="lugar">${Fiesta.esc(l)}</span>`,
+        )
+        .join("");
+      let centro;
+      if (e.fase === "jugando") {
+        centro = `<div class="tarjeta pila centro">
+            <div class="fila-titulo"><span class="nota">Empieza a preguntar</span><span class="reloj" data-limite="${e.limite}"></span></div>
+            <div style="font-size:1.3rem;font-weight:900;color:var(--rosa)">🎤 ${Fiesta.esc(Fiesta.nombreDe(e.empieza))}</div>
+            <p class="nota">Pregúntale a alguien, y el que contesta pregunta al siguiente.</p>
+            ${e.soy_host ? `<button class="boton morado" onclick="Fiesta.accion('a_votar')">🗳️ ¡A votar ya!</button>` : ""}
+          </div>`;
+      } else {
+        centro = `<div class="tarjeta pila">
+            <div class="fila-titulo"><h2>🗳️ ¿Quién es el espía?</h2><span class="reloj" data-limite="${e.limite}"></span></div>
+            ${e.ya_vote ? `<p class="nota">Votaste por <b>${Fiesta.esc(Fiesta.nombreDe(e.mi_voto))}</b> (${e.votaron.length}/${n})</p>` : ""}
+            ${Fiesta.botonesVoto(true)}
+          </div>`;
+      }
+      zona.innerHTML = `${carta}${centro}
+        <div class="tarjeta pila">
+          <h2>📍 Lugares posibles</h2>
+          ${
+            e.soy_espia
+              ? `<p class="nota" style="text-align:left">${modoAdivinar ? "<b>🎯 Toca el lugar que crees que es</b> (¡si fallas pierdes!)" : "Toca los lugares para tacharlos mientras descartas"}</p>
+                 <button class="boton ${modoAdivinar ? "claro" : ""}" onclick="cambiarModo()">${modoAdivinar ? "Cancelar" : "🎯 Adivinar lugar"}</button>`
+              : ""
+          }
+          <div class="lugares">${lugares}</div>
+        </div>`;
+      return;
+    }
+
+    if (e.fase === "resultado") {
+      const r = e.resultado;
+      const ganoEspia = r.gano === "espia";
+      const como = {
+        votacion: ganoEspia ? (r.acusado ? `Acusaron a ${Fiesta.esc(r.acusado)}, pero era inocente` : "Hubo empate en la votación") : "¡Lo descubrieron en la votación!",
+        adivino: "¡El espía adivinó el lugar!",
+        fallo: `El espía dijo "${Fiesta.esc(r.intento || "")}" y falló`,
+        salio: "El espía se salió de la sala",
+      }[r.como];
+      zona.innerHTML = `<div class="tarjeta pila centro aparecer">
+          <div class="grande">${ganoEspia ? "🕵️" : "🎉"}</div>
+          <h2 style="color:${ganoEspia ? "var(--rojo)" : "var(--verde)"}">${ganoEspia ? "¡Ganó el espía!" : "¡Ganó el grupo!"}</h2>
+          <p class="nota">${como}</p>
+          <p class="nota">El espía era <b>${Fiesta.esc(r.espia)}</b> y estaban en <b>📍 ${Fiesta.esc(r.lugar)}</b></p>
+        </div>
+        ${
+          e.soy_host
+            ? `<div class="fila"><button class="boton claro" onclick="Fiesta.accion('lobby')">⚙️ Ajustes</button>
+               <button class="boton verde" onclick="Fiesta.accion('iniciar', {minutos})">🔁 Otra ronda</button></div>`
+            : `<p class="nota">Esperando al anfitrión…</p>`
+        }`;
+    }
+  }
+
+  Fiesta.iniciar({ juego: "espia", titulo: "Espía 🕵️", pintar });
+</script>
+{% endblock %}

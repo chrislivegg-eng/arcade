@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#7ed0ff" />
+    <title>Cruza la Calle · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, sonar } = Arcade;
+
+      const ANCHO = 6; // columnas de -6 a 6
+      const VISIBLES_ATRAS = 6,
+        VISIBLES_ADELANTE = 22;
+
+      // =========================================================
+      //  ESCENA (estilo de bloques)
+      // =========================================================
+      const M = Arcade.mundo({ fondo: 0x7ed0ff, fov: 42, exposicion: 1.0, colorAmbiente: 0xbfe8ff });
+      const { escena, camara } = M;
+      const plano = (color, extra = {}) => new THREE.MeshStandardMaterial({ color: lin(color), roughness: 0.85, flatShading: true, ...extra });
+      escena.add(new THREE.HemisphereLight(0xffffff, 0x6a8a5a, 0.75));
+      const sol = new THREE.DirectionalLight(0xfff2dd, 1.25);
+      sol.castShadow = true;
+      sol.shadow.mapSize.set(2048, 2048);
+      Object.assign(sol.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 40 });
+      sol.shadow.bias = -0.0008;
+      escena.add(sol, sol.target);
+
+      const caja = (w, h, d, mat, x = 0, y = 0, z = 0) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        m.position.set(x, y, z);
+        m.castShadow = m.receiveShadow = true;
+        return m;
+      };
+
+      // --- Pollito ---
+      function crearPollito() {
+        const g = new THREE.Group();
+        const cuerpo = new THREE.Group();
+        g.add(cuerpo);
+        cuerpo.add(caja(0.5, 0.5, 0.55, plano(0xffffff), 0, 0.42, 0));
+        cuerpo.add(caja(0.42, 0.3, 0.32, plano(0xffffff), 0, 0.78, -0.05));
+        cuerpo.add(caja(0.12, 0.14, 0.2, plano(0xff3b3b), 0, 0.98, -0.02));
+        cuerpo.add(caja(0.12, 0.08, 0.14, plano(0xffa31a), 0, 0.74, -0.27));
+        cuerpo.add(caja(0.08, 0.1, 0.06, plano(0xff3b3b), 0, 0.64, -0.24));
+        [-1, 1].forEach((l) => {
+          cuerpo.add(caja(0.06, 0.06, 0.02, plano(0x111111), l * 0.14, 0.82, -0.21));
+          cuerpo.add(caja(0.08, 0.17, 0.08, plano(0xffa31a), l * 0.12, 0.08, 0));
+          cuerpo.add(caja(0.08, 0.28, 0.36, plano(0xf2f2f2), l * 0.28, 0.45, 0.02));
+        });
+        g.userData.cuerpo = cuerpo;
+        return g;
+      }
+      const pollito = crearPollito();
+      escena.add(pollito);
+
+      // --- Filas del mundo ---
+      const filas = new Map(); // z → fila
+      const grupoMundo = new THREE.Group();
+      escena.add(grupoMundo);
+      const COLORES_CARRO = [0xff4f8b, 0x4fb3ff, 0xffd84f, 0x26de81, 0xff7a59, 0xa29bfe, 0xffffff];
+      let rnd = Math.random;
+
+      function crearCarro(color, largo) {
+        const g = new THREE.Group();
+        g.add(caja(largo, 0.45, 0.8, plano(color), 0, 0.38, 0));
+        g.add(caja(largo * 0.55, 0.35, 0.72, plano(0xdff3ff, { roughness: 0.2, metalness: 0.3 }), -largo * 0.05, 0.75, 0));
+        [-1, 1].forEach((lx) =>
+          [-1, 1].forEach((lz) => g.add(caja(0.28, 0.28, 0.12, plano(0x222222), lx * largo * 0.32, 0.16, lz * 0.4))),
+        );
+        return g;
+      }
+      function crearTronco(largo) {
+        const g = new THREE.Group();
+        g.add(caja(largo, 0.3, 0.75, plano(0x8a5a2b), 0, 0.02, 0));
+        g.add(caja(largo - 0.1, 0.06, 0.6, plano(0xa8743c), 0, 0.2, 0));
+        return g;
+      }
+      function crearArbol() {
+        const g = new THREE.Group();
+        const alto = 0.6 + Math.floor(rnd() * 3) * 0.35;
+        g.add(caja(0.3, 0.4, 0.3, plano(0x7a4a26), 0, 0.2, 0));
+        g.add(caja(0.75, alto, 0.75, plano(rnd() < 0.5 ? 0x3aa34a : 0x2f8f3e), 0, 0.4 + alto / 2, 0));
+        return g;
+      }
+
+      function crearFila(z) {
+        // primeras filas siempre pasto; después al azar con rachas
+        let tipo = "pasto";
+        if (z < -3) {
+          const r = rnd();
+          const anterior = filas.get(z + 1);
+          if (anterior && anterior.tipo !== "pasto" && rnd() < 0.55) tipo = anterior.tipo;
+          else tipo = r < 0.33 ? "pasto" : r < 0.68 ? "calle" : r < 0.88 ? "rio" : "tren";
+        }
+        const fila = { z, tipo, objetos: [], arboles: new Set(), grupo: new THREE.Group(), dir: rnd() < 0.5 ? -1 : 1, vel: 0 };
+        fila.grupo.position.z = z;
+        const ancho = 30;
+        if (tipo === "pasto") {
+          fila.grupo.add(caja(ancho, 0.2, 1, plano(Math.abs(z) % 2 ? 0x8ee05a : 0x84d652), 0, -0.1, 0));
+          if (z < -1)
+            for (let x = -ANCHO; x <= ANCHO; x++)
+              if (rnd() < 0.16 && !(x === 0 && z > -6)) {
+                fila.arboles.add(x);
+                const a = crearArbol();
+                a.position.x = x;
+                fila.grupo.add(a);
+              }
+          [-ANCHO - 1, ANCHO + 1].forEach((x) => {
+            const a = crearArbol();
+            a.position.x = x;
+            fila.grupo.add(a);
+          });
+        } else if (tipo === "calle") {
+          fila.grupo.add(caja(ancho, 0.2, 1, plano(0x50505c), 0, -0.12, 0));
+          for (let x = -14; x < 14; x += 1.6) fila.grupo.add(caja(0.7, 0.01, 0.07, plano(0xf2f2f2), x, 0.0, 0.47));
+          fila.vel = azar(1.8, 4.8) * (1 + Math.min(1.2, -z / 220));
+          const largo = rnd() < 0.2 ? 2.4 : 1.4;
+          const cuantos = largo > 2 ? 2 : 2 + Math.floor(rnd() * 2);
+          const color = COLORES_CARRO[Math.floor(rnd() * COLORES_CARRO.length)];
+          for (let i = 0; i < cuantos; i++) {
+            const c = crearCarro(color, largo);
+            c.rotation.y = fila.dir > 0 ? 0 : Math.PI;
+            const o = { x: -14 + (i * 28) / cuantos + rnd() * 3, largo, malla: c };
+            fila.objetos.push(o);
+            fila.grupo.add(c);
+          }
+        } else if (tipo === "rio") {
+          const agua = caja(ancho, 0.2, 1, plano(0x3fa9f5, { roughness: 0.25, metalness: 0.1 }), 0, -0.25, 0);
+          agua.receiveShadow = true;
+          agua.castShadow = false;
+          fila.grupo.add(agua);
+          fila.vel = azar(1.0, 2.4);
+          const cuantos = 3 + Math.floor(rnd() * 2);
+          for (let i = 0; i < cuantos; i++) {
+            const largo = 2 + Math.floor(rnd() * 3);
+            const t = crearTronco(largo);
+            const o = { x: -14 + (i * 28) / cuantos + rnd() * 2, largo, malla: t };
+            fila.objetos.push(o);
+            fila.grupo.add(t);
+          }
+        } else {
+          fila.grupo.add(caja(ancho, 0.2, 1, plano(0x6e6457), 0, -0.1, 0));
+          [-0.25, 0.25].forEach((dz) => fila.grupo.add(caja(ancho, 0.06, 0.06, plano(0xb0b0b8, { metalness: 0.7, roughness: 0.3 }), 0, 0.03, dz)));
+          for (let x = -14; x < 14; x += 0.7) fila.grupo.add(caja(0.12, 0.04, 0.8, plano(0x5a3a1e), x, 0.0, 0));
+          const poste = caja(0.12, 1.2, 0.12, plano(0x333333), -ANCHO - 0.8, 0.6, 0.5);
+          const foco = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), new THREE.MeshBasicMaterial({ color: 0x441111 }));
+          foco.position.set(-ANCHO - 0.8, 1.25, 0.5);
+          fila.grupo.add(poste, foco);
+          fila.foco = foco;
+          const tren = new THREE.Group();
+          for (let k = 0; k < 4; k++) tren.add(caja(2.6, 0.9, 0.8, plano(k === 0 ? 0xff3b3b : 0xd8d8e0), k * 2.75, 0.5, 0));
+          tren.visible = false;
+          fila.grupo.add(tren);
+          fila.tren = { malla: tren, x: 40, proximo: 2 + rnd() * 5, avisando: false };
+          fila.vel = 22;
+        }
+        fila.objetos.forEach((o) => (o.malla.position.x = o.x));
+        grupoMundo.add(fila.grupo);
+        filas.set(z, fila);
+        return fila;
+      }
+
+      function asegurarFilas(zJugador) {
+        for (let z = zJugador + VISIBLES_ATRAS; z >= zJugador - VISIBLES_ADELANTE; z--) if (!filas.has(z)) crearFila(z);
+        for (const [z, f] of filas)
+          if (z > zJugador + VISIBLES_ATRAS + 2) {
+            grupoMundo.remove(f.grupo);
+            filas.delete(z);
+          }
+      }
+
+      function reiniciarMundo(semilla) {
+        filas.forEach((f) => grupoMundo.remove(f.grupo));
+        filas.clear();
+        rnd = Arcade.rng(semilla);
+        for (let z = 3; z > -VISIBLES_ADELANTE; z--) crearFila(z);
+      }
+
+      // =========================================================
+      //  JUGADOR
+      // =========================================================
+      const P = { x: 0, z: 0, saltando: false, vivo: true, maxZ: 0, ultimoAvance: 0, cola: [] };
+      function colocarPollito() {
+        pollito.position.set(P.x, 0, P.z);
+        pollito.rotation.set(0, Math.PI, 0);
+        pollito.scale.set(1, 1, 1);
+        pollito.userData.cuerpo.position.y = 0;
+      }
+
+      function intentarMover(dx, dz) {
+        if (!P.vivo || !J.jugando) return;
+        if (P.saltando) {
+          if (P.cola.length < 2) P.cola.push([dx, dz]);
+          return;
+        }
+        const nx = Math.round(P.x) + dx;
+        const nz = P.z + dz;
+        if (Math.abs(nx) > ANCHO || nz > 2) return girar(dx, dz);
+        const destino = filas.get(nz);
+        if (destino && destino.tipo === "pasto" && destino.arboles.has(nx)) return girar(dx, dz);
+        saltar(P.x, P.z, (filas.get(nz) || {}).tipo === "rio" ? P.x + dx : nx, nz, dx, dz);
+      }
+      function girar(dx, dz) {
+        pollito.rotation.y = Math.atan2(-dx, -dz) + Math.PI;
+      }
+      async function saltar(x0, z0, x1, z1, dx, dz) {
+        P.saltando = true;
+        girar(dx, dz);
+        sonar("salto");
+        const c = pollito.userData.cuerpo;
+        await M.animar(130, (t) => {
+          pollito.position.x = x0 + (x1 - x0) * t;
+          pollito.position.z = z0 + (z1 - z0) * t;
+          c.position.y = Math.sin(t * Math.PI) * 0.45;
+          c.scale.set(1, 1 - Math.sin(t * Math.PI) * 0.1 + (t < 0.2 ? -0.15 : 0), 1);
+        });
+        c.scale.set(1, 1, 1);
+        P.x = x1;
+        P.z = z1;
+        P.saltando = false;
+        if (P.z < P.maxZ) {
+          P.maxZ = P.z;
+          J.puntos = -P.maxZ;
+          J.ultimoAvance = performance.now();
+          marcador();
+          if (J.modo === "online" && J.puntos % 3 === 0) ui.enviar("puntos", { partida: J.partida, puntos: J.puntos });
+        }
+        asegurarFilas(P.z);
+        revisarAterrizaje();
+        if (P.vivo && P.cola.length) intentarMover(...P.cola.shift());
+      }
+
+      function revisarAterrizaje() {
+        const f = filas.get(P.z);
+        if (!f) return;
+        if (f.tipo === "rio") {
+          const tronco = f.objetos.find((o) => Math.abs(o.x - P.x) < o.largo / 2 + 0.05);
+          if (!tronco) return morir("agua");
+          P.x = limitar(P.x, tronco.x - tronco.largo / 2 + 0.3, tronco.x + tronco.largo / 2 - 0.3);
+        } else {
+          P.x = Math.round(P.x);
+        }
+      }
+
+      async function morir(como) {
+        if (!P.vivo) return;
+        P.vivo = false;
+        J.jugando = false;
+        P.cola = [];
+        if (como === "agua") {
+          sonar("agua");
+          ui.avisar("💦 ¡Al agua!", "#3fa9f5");
+          await M.animar(500, (t) => (pollito.position.y = -t * 0.8));
+        } else if (como === "aguila") {
+          sonar("perder");
+          ui.avisar("🦅 ¡Te ganó el águila!<small>muy lento</small>", "#ffb84f");
+          await M.animar(600, (t) => (pollito.position.y = t * 6));
+        } else {
+          sonar("choque");
+          ui.avisar(como === "tren" ? "🚂 ¡El tren!" : "🚗 ¡Atropellado!", "#ff3b3b");
+          pollito.scale.set(1.3, 0.12, 1.3);
+        }
+        await esperar(1300);
+        terminarRonda();
+      }
+
+      // =========================================================
+      //  CICLO
+      // =========================================================
+      M.alCuadro((dt, ahora) => {
+        for (const f of filas.values()) {
+          if (f.tipo === "calle" || f.tipo === "rio") {
+            for (const o of f.objetos) {
+              o.x += f.dir * f.vel * dt;
+              if (o.x > 15) o.x -= 30;
+              if (o.x < -15) o.x += 30;
+              o.malla.position.x = o.x;
+            }
+          }
+          if (f.tipo === "rio") f.objetos.forEach((o) => (o.malla.position.y = Math.sin(ahora / 400 + o.x) * 0.03));
+          if (f.tipo === "tren") {
+            const t = f.tren;
+            t.proximo -= dt;
+            if (t.proximo < 1.4 && t.proximo > 0 && !t.avisando) {
+              t.avisando = true;
+              if (Math.abs(f.z - P.z) < 8) sonar("silbato");
+            }
+            if (t.avisando) f.foco.material.color.setHex(Math.floor(ahora / 200) % 2 ? 0xff2020 : 0x441111);
+            if (t.proximo <= 0) {
+              t.malla.visible = true;
+              t.x = f.dir > 0 ? -25 : 25;
+              t.proximo = 999;
+              t.corriendo = true;
+            }
+            if (t.corriendo) {
+              t.x += f.dir * f.vel * dt;
+              t.malla.position.x = t.x - (f.dir > 0 ? 8 : 0);
+              if (Math.abs(t.x) > 26) {
+                t.corriendo = false;
+                t.avisando = false;
+                t.malla.visible = false;
+                f.foco.material.color.setHex(0x441111);
+                t.proximo = 3 + Math.random() * 6;
+              }
+            }
+          }
+        }
+
+        if (P.vivo && J.jugando) {
+          const f = filas.get(P.z);
+          if (f && !P.saltando) {
+            if (f.tipo === "rio") {
+              const tronco = f.objetos.find((o) => Math.abs(o.x - P.x) < o.largo / 2 + 0.05);
+              if (!tronco) morir("agua");
+              else {
+                P.x += f.dir * f.vel * dt;
+                pollito.position.x = P.x;
+                if (Math.abs(P.x) > ANCHO + 0.5) morir("agua");
+              }
+            }
+          }
+          if (f && f.tipo === "calle" && f.objetos.some((o) => Math.abs(o.x - pollito.position.x) < o.largo / 2 + 0.25)) morir("carro");
+          if (f && f.tipo === "tren" && f.tren.corriendo) {
+            const ini = f.tren.malla.position.x - 1.3,
+              fin = ini + 4 * 2.75;
+            if (pollito.position.x > ini - 0.3 && pollito.position.x < fin + 0.3) morir("tren");
+          }
+          if (performance.now() - J.ultimoAvance > 9000) morir("aguila");
+        }
+
+        // cámara que sigue al pollito
+        const aspecto = window.innerWidth / window.innerHeight;
+        const lejos = aspecto < 1 ? 15 : 11;
+        const objetivo = new THREE.Vector3(pollito.position.x * 0.5 + 2.2, lejos * 0.95, pollito.position.z + lejos * 0.62);
+        camara.position.lerp(objetivo, J.modo ? 0.08 : 0.02);
+        camara.lookAt(pollito.position.x * 0.5, 0, pollito.position.z - 2.6);
+        sol.position.set(pollito.position.x - 5, 12, pollito.position.z + 6);
+        sol.target.position.set(pollito.position.x, 0, pollito.position.z - 2);
+      });
+
+      // =========================================================
+      //  CONTROLES
+      // =========================================================
+      Arcade.deslizar(M.lienzo, {
+        puede: () => J.jugando,
+        soltar: (g) => {
+          const d = Math.hypot(g.dx, g.dy);
+          if (d < 25) return intentarMover(0, -1);
+          if (Math.abs(g.dx) > Math.abs(g.dy)) intentarMover(Math.sign(g.dx), 0);
+          else intentarMover(0, g.dy < 0 ? -1 : 1);
+        },
+      });
+      window.addEventListener("keydown", (e) => {
+        const teclas = { ArrowUp: [0, -1], w: [0, -1], ArrowDown: [0, 1], s: [0, 1], ArrowLeft: [-1, 0], a: [-1, 0], ArrowRight: [1, 0], d: [1, 0], " ": [0, -1] };
+        const t = teclas[e.key];
+        if (t && J.jugando) {
+          e.preventDefault();
+          intentarMover(...t);
+        }
+      });
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      const J = { modo: null, nombres: [], puntos: 0, resultados: [null, null], rival: 0, turno: 0, jugando: false, partida: 0, semilla: 1, ultimoAvance: 0 };
+
+      const ui = Arcade.ui({
+        juego: "cruza_calle",
+        titulo: "Cruza la Calle",
+        emoji: "🐔",
+        subtitulo: "¿Qué tan lejos llegas sin que te aplasten?",
+        modos: ["solo", "online", "local"],
+        textosModo: { online: "🌐 Carrera online con un amigo", local: "👥 2 jugadores (por turnos)" },
+        records: true,
+        unidadRecord: "pasos",
+        reglas: [
+          "Toca la pantalla para avanzar. Desliza a los lados o hacia atrás para moverte.",
+          "En la compu también puedes usar las flechas ⬆️⬇️⬅️➡️",
+          "🚗 Esquiva los carros · 🪵 en el río solo puedes pisar los troncos · 🚂 si parpadea la luz roja, ¡viene el tren!",
+          "Si te quedas quieto mucho tiempo, te lleva el águila 🦅",
+          "Online: los dos juegan el mismo camino al mismo tiempo.",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.jugando = false;
+          P.vivo = false;
+        },
+      });
+      ui.alEvento = (tipo, datos) => {
+        if (!datos || datos.partida !== J.partida) return;
+        if (tipo === "puntos") J.rival = datos.puntos;
+        if (tipo === "fin") {
+          J.rival = datos.puntos;
+          J.rivalTermino = true;
+          if (J.alTerminarRival) J.alTerminarRival();
+        }
+        marcador();
+      };
+
+      function marcador() {
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: J.puntos, detalle: "pasos", activo: true }, null]);
+        if (J.modo === "online") {
+          const yo = ui.yo;
+          const valores = yo === 0 ? [J.puntos, J.rival] : [J.rival, J.puntos];
+          return ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (i === yo ? " (tú)" : ""), valor: valores[i], detalle: i === yo ? "jugando" : J.rivalTermino ? "terminó" : "🌐 en vivo", activo: i === yo })));
+        }
+        ui.marcador(
+          [0, 1].map((i) => ({
+            nombre: J.nombres[i],
+            valor: i === J.turno ? J.puntos : J.resultados[i] == null ? "—" : J.resultados[i],
+            detalle: i === J.turno ? "jugando" : J.resultados[i] == null ? "espera su turno" : "terminó",
+            activo: i === J.turno,
+          })),
+        );
+      }
+
+      function empezar(modo, info) {
+        J.modo = modo;
+        J.nombres = info.nombres;
+        J.partida = info.partida;
+        J.semilla = info.semilla;
+        J.resultados = [null, null];
+        J.turno = 0;
+        J.rival = 0;
+        J.rivalTermino = false;
+        J.alTerminarRival = null;
+        nuevaCorrida();
+      }
+
+      function nuevaCorrida() {
+        reiniciarMundo(J.semilla);
+        Object.assign(P, { x: 0, z: 0, saltando: false, vivo: true, maxZ: 0, cola: [] });
+        J.puntos = 0;
+        J.ultimoAvance = performance.now();
+        colocarPollito();
+        camara.position.set(2, 14, 9);
+        J.jugando = true;
+        marcador();
+        ui.ayuda("👆 Toca para avanzar · desliza para moverte");
+        setTimeout(() => ui.ayuda(""), 3500);
+        if (J.modo === "local") ui.avisar(`Turno de ${J.nombres[J.turno]}`, J.turno ? "#4fb3ff" : "#ff4f8b");
+      }
+
+      async function terminarRonda() {
+        if (!J.modo) return;
+        if (J.modo === "solo") {
+          sonar("ganar");
+          return ui.terminar({ emoji: "🐔", texto: `¡${J.puntos} pasos!`, nota: J.puntos > 50 ? "¡Pollito legendario! 🏆" : "¿Llegarás más lejos?", record: J.puntos });
+        }
+        if (J.modo === "local") {
+          J.resultados[J.turno] = J.puntos;
+          if (J.turno === 0) {
+            J.turno = 1;
+            return nuevaCorrida();
+          }
+          const [a, b] = J.resultados;
+          sonar("ganar");
+          return ui.terminar({ emoji: a === b ? "🤝" : "🏆", texto: a === b ? "¡Empate!" : `¡Ganó ${J.nombres[a > b ? 0 : 1]}!`, nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}` });
+        }
+        // online: espera a que el rival también termine
+        ui.enviar("fin", { partida: J.partida, puntos: J.puntos });
+        if (!J.rivalTermino) {
+          ui.avisar("Esperando a tu rival…<small>sigue jugando él</small>", "#4fb3ff");
+          await Promise.race([new Promise((r) => (J.alTerminarRival = r)), esperar(90000)]);
+        }
+        const gane = J.puntos > J.rival,
+          empate = J.puntos === J.rival;
+        sonar(gane ? "ganar" : "perder");
+        const yo = ui.yo;
+        ui.terminar({
+          emoji: empate ? "🤝" : gane ? "🏆" : "😿",
+          texto: empate ? "¡Empate!" : gane ? "¡Llegaste más lejos!" : `Ganó ${J.nombres[1 - yo]}`,
+          nota: `Tú: ${J.puntos} pasos · ${J.nombres[1 - yo]}: ${J.rival} pasos`,
+          record: J.puntos,
+        });
+      }
+
+      reiniciarMundo(12345);
+      colocarPollito();
+    </script>
+  </body>
+</html>
