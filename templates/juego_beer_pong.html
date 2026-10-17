@@ -2,14 +2,100 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#160f1c" />
     <title>Vaso Pong 3D · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
+    <style>
+      #control-tiro {
+        position: fixed;
+        z-index: 5;
+        bottom: calc(80px + env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(310px, calc(100% - 36px));
+        padding: 12px 16px;
+        border: 1px solid #ffffff25;
+        background: #160f1ce8;
+        border-radius: 16px;
+        pointer-events: none;
+      }
+      #control-tiro.oculto {
+        display: none;
+      }
+      .medidor-titulo {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+      .medidor {
+        height: 7px;
+        background: #ffffff1c;
+        border-radius: 9px;
+        overflow: hidden;
+      }
+      #potencia {
+        width: 0;
+        height: 100%;
+        background: linear-gradient(90deg, #4fb3ff, #ff4f8b);
+        border-radius: inherit;
+      }
+      .medidor-nota {
+        display: flex;
+        justify-content: space-between;
+        color: #c1b5cc;
+        font-size: 10px;
+        margin-top: 6px;
+      }
+      #estado-tiro {
+        position: fixed;
+        z-index: 5;
+        left: 50%;
+        top: calc(130px + env(safe-area-inset-top));
+        transform: translateX(-50%);
+        padding: 9px 16px;
+        max-width: calc(100% - 30px);
+        border: 1px solid #4fb3ff66;
+        border-radius: 25px;
+        background: #160f1cdd;
+        font-size: 13px;
+        text-align: center;
+        pointer-events: none;
+      }
+      #ayuda {
+        max-width: calc(100% - 24px);
+        white-space: normal;
+        text-align: center;
+      }
+      @media (max-width: 600px) {
+        #estado-tiro {
+          top: calc(110px + env(safe-area-inset-top));
+          font-size: 12px;
+        }
+      }
+    </style>
   </head>
   <body>
     <canvas id="lienzo"></canvas>
+    <div id="estado-tiro" class="oculto" role="status" aria-live="polite"></div>
+    <div id="control-tiro" class="oculto">
+      <div class="medidor-titulo">
+        <span>Potencia del lanzamiento</span><b id="potencia-texto">0%</b>
+      </div>
+      <div class="medidor"><div id="potencia"></div></div>
+      <div class="medidor-nota"><span>Corto</span><span>Largo</span></div>
+    </div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/cannon.min.js') }}"></script>
@@ -21,7 +107,9 @@
       const VASO = { arriba: 0.046, abajo: 0.032, alto: 0.12, liquido: 0.085 };
       const RADIO_PELOTA = 0.02;
       const COLORES = [0xff4f8b, 0x4fb3ff];
-      const ALTURA_ARCO = 0.38;
+      const ALTURA_ARCO = 0.52;
+      // La pelota completa debe caber dentro del borde del vaso.
+      const RADIO_ENTRADA = VASO.arriba - 0.004 - RADIO_PELOTA;
 
       // Vasos de cada jugador: el 0 tiene los suyos del lado +z, el 1 del lado -z
       function posicionesVasos(jugador) {
@@ -30,7 +118,11 @@
           fila = sep * 0.866;
         const pos = [];
         [1, 2, 3].forEach((n, f) => {
-          for (let k = 0; k < n; k++) pos.push([(k - (n - 1) / 2) * sep, lado * (MESA.largo / 2 - 0.26 + f * fila)]);
+          for (let k = 0; k < n; k++)
+            pos.push([
+              (k - (n - 1) / 2) * sep,
+              lado * (MESA.largo / 2 - 0.26 + f * fila),
+            ]);
         });
         return pos;
       }
@@ -38,12 +130,27 @@
       // =========================================================
       //  ESCENA
       // =========================================================
-      const M = Arcade.mundo({ fondo: 0x160f1c, niebla: [6, 16], fov: 55, exposicion: 1.1 });
+      const M = Arcade.mundo({
+        fondo: 0x160f1c,
+        niebla: [6, 16],
+        fov: 55,
+        exposicion: 1.1,
+      });
       const { escena, camara } = M;
 
       const piso = new THREE.Mesh(
         new THREE.PlaneGeometry(14, 14),
-        material(0xffffff, { map: M.textura(1024, 1024, (g, w, h) => Arcade.dibujarMadera(g, w, h, { tono: 25, sat: 35, luz: 28, tablas: 10 })), roughness: 0.6 }),
+        material(0xffffff, {
+          map: M.textura(1024, 1024, (g, w, h) =>
+            Arcade.dibujarMadera(g, w, h, {
+              tono: 25,
+              sat: 35,
+              luz: 28,
+              tablas: 10,
+            }),
+          ),
+          roughness: 0.6,
+        }),
       );
       piso.rotation.x = -Math.PI / 2;
       piso.receiveShadow = true;
@@ -94,8 +201,15 @@
         [-1, 1],
         [1, 1],
       ].forEach(([x, z]) => {
-        const pata = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, MESA.alto - 0.04, 10), material(0x888888, { metalness: 0.8, roughness: 0.3 }));
-        pata.position.set(x * (MESA.ancho / 2 - 0.05), (MESA.alto - 0.04) / 2, z * (MESA.largo / 2 - 0.08));
+        const pata = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.025, 0.025, MESA.alto - 0.04, 10),
+          material(0x888888, { metalness: 0.8, roughness: 0.3 }),
+        );
+        pata.position.set(
+          x * (MESA.ancho / 2 - 0.05),
+          (MESA.alto - 0.04) / 2,
+          z * (MESA.largo / 2 - 0.08),
+        );
         escena.add(pata);
       });
 
@@ -112,7 +226,10 @@
         const l = new THREE.PointLight(c, 0.6, 5);
         l.position.set(Math.cos(i * 1.57) * 2.5, 2.2, Math.sin(i * 1.57) * 2.5);
         escena.add(l);
-        const foquito = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), new THREE.MeshBasicMaterial({ color: c }));
+        const foquito = new THREE.Mesh(
+          new THREE.SphereGeometry(0.05, 10, 8),
+          new THREE.MeshBasicMaterial({ color: c }),
+        );
         foquito.position.copy(l.position);
         escena.add(foquito);
         return l;
@@ -127,37 +244,73 @@
       const mPelota = new CANNON.Material("pelota"),
         mMesa = new CANNON.Material("mesa"),
         mVaso = new CANNON.Material("vaso");
-      mundoFisico.addContactMaterial(new CANNON.ContactMaterial(mPelota, mMesa, { restitution: 0.78, friction: 0.2 }));
-      mundoFisico.addContactMaterial(new CANNON.ContactMaterial(mPelota, mVaso, { restitution: 0.5, friction: 0.1 }));
+      mundoFisico.addContactMaterial(
+        new CANNON.ContactMaterial(mPelota, mMesa, {
+          restitution: 0.78,
+          friction: 0.2,
+        }),
+      );
+      mundoFisico.addContactMaterial(
+        new CANNON.ContactMaterial(mPelota, mVaso, {
+          restitution: 0.5,
+          friction: 0.1,
+        }),
+      );
 
       const cuerpoMesa = new CANNON.Body({ mass: 0, material: mMesa });
-      cuerpoMesa.addShape(new CANNON.Box(new CANNON.Vec3(MESA.ancho / 2, 0.02, MESA.largo / 2)));
+      cuerpoMesa.addShape(
+        new CANNON.Box(new CANNON.Vec3(MESA.ancho / 2, 0.02, MESA.largo / 2)),
+      );
       cuerpoMesa.position.set(0, MESA.alto - 0.02, 0);
       mundoFisico.addBody(cuerpoMesa);
       const cuerpoPiso = new CANNON.Body({ mass: 0, material: mMesa });
       cuerpoPiso.addShape(new CANNON.Plane());
-      cuerpoPiso.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+      cuerpoPiso.quaternion.setFromAxisAngle(
+        new CANNON.Vec3(1, 0, 0),
+        -Math.PI / 2,
+      );
       mundoFisico.addBody(cuerpoPiso);
 
       // Vasos
       const matVasoFuera = material(0xd81e2c, { roughness: 0.35 });
-      const matVasoDentro = material(0xf5f5f5, { roughness: 0.5, side: THREE.BackSide });
-      const matRefresco = material(0x3b1a0a, { roughness: 0.1, metalness: 0.2 });
-      const geoVaso = new THREE.CylinderGeometry(VASO.arriba, VASO.abajo, VASO.alto, 28, 1, true);
+      const matVasoDentro = material(0xf5f5f5, {
+        roughness: 0.5,
+        side: THREE.BackSide,
+      });
+      const matRefresco = material(0x3b1a0a, {
+        roughness: 0.1,
+        metalness: 0.2,
+      });
+      const geoVaso = new THREE.CylinderGeometry(
+        VASO.arriba,
+        VASO.abajo,
+        VASO.alto,
+        28,
+        1,
+        true,
+      );
       const geoBorde = new THREE.TorusGeometry(VASO.arriba, 0.003, 6, 28);
-      const radioLiquido = VASO.abajo + (VASO.arriba - VASO.abajo) * (VASO.liquido / VASO.alto);
+      const radioLiquido =
+        VASO.abajo + (VASO.arriba - VASO.abajo) * (VASO.liquido / VASO.alto);
       const geoLiquido = new THREE.CircleGeometry(radioLiquido - 0.002, 24);
 
       const vasos = [[], []]; // { grupo, cuerpo, x, z, vivo }
       function crearVasos() {
-        vasos.forEach((lista) => lista.forEach((v) => (escena.remove(v.grupo), mundoFisico.removeBody(v.cuerpo))));
+        vasos.forEach((lista) =>
+          lista.forEach(
+            (v) => (escena.remove(v.grupo), mundoFisico.removeBody(v.cuerpo)),
+          ),
+        );
         [0, 1].forEach((j) => {
           vasos[j] = posicionesVasos(j).map(([x, z]) => {
             const grupo = new THREE.Group();
             const fuera = new THREE.Mesh(geoVaso, matVasoFuera);
             fuera.castShadow = true;
             const dentro = new THREE.Mesh(geoVaso, matVasoDentro);
-            const borde = new THREE.Mesh(geoBorde, material(0xffffff, { roughness: 0.4 }));
+            const borde = new THREE.Mesh(
+              geoBorde,
+              material(0xffffff, { roughness: 0.4 }),
+            );
             borde.rotation.x = Math.PI / 2;
             borde.position.y = VASO.alto / 2;
             const liquido = new THREE.Mesh(geoLiquido, matRefresco);
@@ -170,10 +323,21 @@
             const cuerpo = new CANNON.Body({ mass: 0, material: mVaso });
             const q = new CANNON.Quaternion();
             q.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-            cuerpo.addShape(new CANNON.Cylinder(radioLiquido, VASO.abajo, VASO.liquido, 16), new CANNON.Vec3(0, VASO.liquido / 2 - VASO.alto / 2, 0), q);
+            cuerpo.addShape(
+              new CANNON.Cylinder(radioLiquido, VASO.abajo, VASO.liquido, 16),
+              new CANNON.Vec3(0, VASO.liquido / 2 - VASO.alto / 2, 0),
+              q,
+            );
             for (let i = 0; i < 14; i++) {
               const a = (i / 14) * Math.PI * 2;
-              cuerpo.addShape(new CANNON.Sphere(0.004), new CANNON.Vec3(Math.cos(a) * VASO.arriba, VASO.alto / 2, Math.sin(a) * VASO.arriba));
+              cuerpo.addShape(
+                new CANNON.Sphere(0.004),
+                new CANNON.Vec3(
+                  Math.cos(a) * VASO.arriba,
+                  VASO.alto / 2,
+                  Math.sin(a) * VASO.arriba,
+                ),
+              );
             }
             cuerpo.position.set(x, MESA.alto + VASO.alto / 2, z);
             mundoFisico.addBody(cuerpo);
@@ -198,23 +362,60 @@
       }
 
       // Pelota
-      const pelota = new THREE.Mesh(new THREE.SphereGeometry(RADIO_PELOTA, 20, 16), material(0xfffaf0, { roughness: 0.3 }));
+      const pelota = new THREE.Mesh(
+        new THREE.SphereGeometry(RADIO_PELOTA * 1.12, 20, 16),
+        material(0xfffaf0, {
+          roughness: 0.3,
+          emissive: 0x665533,
+          emissiveIntensity: 0.22,
+        }),
+      );
       pelota.castShadow = true;
       escena.add(pelota);
-      const cuerpoPelota = new CANNON.Body({ mass: 0.0027, material: mPelota, shape: new CANNON.Sphere(RADIO_PELOTA), linearDamping: 0.08 });
+      const cuerpoPelota = new CANNON.Body({
+        mass: 0.0027,
+        material: mPelota,
+        shape: new CANNON.Sphere(RADIO_PELOTA),
+        linearDamping: 0,
+      });
       mundoFisico.addBody(cuerpoPelota);
+      const puntosEstela = [];
+      const geoEstela = new THREE.BufferGeometry();
+      geoEstela.setAttribute(
+        "position",
+        new THREE.BufferAttribute(new Float32Array(22 * 3), 3),
+      );
+      geoEstela.setDrawRange(0, 0);
+      const estela = new THREE.Line(
+        geoEstela,
+        new THREE.LineBasicMaterial({
+          color: 0xffd890,
+          transparent: true,
+          opacity: 0.65,
+        }),
+      );
+      estela.frustumCulled = false;
+      estela.visible = false;
+      escena.add(estela);
       let ultimoRebote = 0;
       cuerpoPelota.addEventListener("collide", (e) => {
         const v = Math.abs(e.contact.getImpactVelocityAlongNormal());
         if (v > 0.4 && performance.now() - ultimoRebote > 50) {
           ultimoRebote = performance.now();
-          sonar(e.body.material === mVaso ? "ping" : "rebote", Math.min(1, v / 4) * 0.5);
+          sonar(
+            e.body.material === mVaso ? "ping" : "rebote",
+            Math.min(1, v / 4) * 0.5,
+          );
         }
       });
 
       function puntoDeTiro(jugador) {
         const lado = jugador === 0 ? 1 : -1;
-        return new CANNON.Vec3(0, MESA.alto + 0.38, lado * (MESA.largo / 2 + 0.25));
+        return new CANNON.Vec3(
+          0,
+          MESA.alto + 0.38,
+          lado * (MESA.largo / 2 + 0.25),
+        );
       }
       function pelotaEnMano(jugador) {
         const p = puntoDeTiro(jugador);
@@ -229,50 +430,104 @@
       function velocidadHacia(desde, tx, tz) {
         const g = 9.82;
         const vy = Math.sqrt(2 * g * ALTURA_ARCO);
-        const caida = desde.y + ALTURA_ARCO - (MESA.alto + VASO.liquido);
+        // El objetivo es la boca, no el fondo: así la trayectoria coincide con la puntería.
+        const caida = desde.y + ALTURA_ARCO - (MESA.alto + VASO.alto);
         const T = vy / g + Math.sqrt((2 * caida) / g);
-        return new CANNON.Vec3((tx - desde.x) / T, vy, (tz - desde.z) / T);
+        // Compensa medio paso de gravedad del integrador de Cannon (120 Hz).
+        return new CANNON.Vec3(
+          (tx - desde.x) / T,
+          vy + g / 240,
+          (tz - desde.z) / T,
+        );
       }
 
       // =========================================================
       //  SIMULAR TIRO → índice del vaso donde cayó (o -1)
       // =========================================================
       let simulando = false;
+      let tiroActual = null,
+        acumuladoFisica = 0;
+      function resolverTiro(resultado) {
+        const tiro = tiroActual;
+        if (!tiro) return;
+        tiroActual = null;
+        simulando = false;
+        tiro.resolver(resultado);
+      }
+      function revisarTiro(anterior) {
+        if (!tiroActual) return;
+        if (!sesionActiva(tiroActual.sesion)) return resolverTiro(null);
+        const p = cuerpoPelota.position,
+          borde = MESA.alto + VASO.alto;
+        if (anterior.y >= borde && p.y < borde && cuerpoPelota.velocity.y < 0) {
+          const fraccion = (anterior.y - borde) / (anterior.y - p.y);
+          const x = anterior.x + (p.x - anterior.x) * fraccion;
+          const z = anterior.z + (p.z - anterior.z) * fraccion;
+          for (const [k, vaso] of vasos[tiroActual.destino].entries()) {
+            if (
+              vaso.vivo &&
+              Math.hypot(x - vaso.x, z - vaso.z) <= RADIO_ENTRADA
+            )
+              return resolverTiro(k);
+          }
+        }
+        if (
+          p.y < MESA.alto - 0.1 ||
+          performance.now() - tiroActual.inicio > 5000 ||
+          Math.abs(p.z) > MESA.largo / 2 + 0.8
+        )
+          resolverTiro(-1);
+      }
       M.alCuadro((dt, ahora) => {
-        mundoFisico.step(1 / 120, dt, 10);
+        acumuladoFisica += dt * (simulando && J.camaraRival ? 0.78 : 1);
+        while (acumuladoFisica >= 1 / 120) {
+          const anterior = cuerpoPelota.position.clone();
+          mundoFisico.step(1 / 120);
+          revisarTiro(anterior);
+          acumuladoFisica -= 1 / 120;
+        }
         pelota.position.copy(cuerpoPelota.position);
-        if (cuerpoPelota.type === CANNON.Body.KINEMATIC) pelota.position.y += Math.sin(ahora / 300) * 0.01;
-        luces.forEach((l, i) => (l.intensity = 0.45 + Math.sin(ahora / 400 + i * 1.6) * 0.25));
+        if (simulando) {
+          puntosEstela.push(pelota.position.clone());
+          if (puntosEstela.length > 22) puntosEstela.shift();
+          puntosEstela.forEach((punto, i) =>
+            geoEstela.attributes.position.setXYZ(i, punto.x, punto.y, punto.z),
+          );
+          geoEstela.attributes.position.needsUpdate = true;
+          geoEstela.setDrawRange(0, puntosEstela.length);
+          estela.visible = puntosEstela.length > 1;
+        }
+        if (cuerpoPelota.type === CANNON.Body.KINEMATIC)
+          pelota.position.y += Math.sin(ahora / 300) * 0.01;
+        luces.forEach(
+          (l, i) =>
+            (l.intensity = 0.45 + Math.sin(ahora / 400 + i * 1.6) * 0.25),
+        );
         moverCamara(ahora);
       });
 
-      async function simular(jugador, objetivo) {
+      async function simular(jugador, objetivo, sesion = J.sesion) {
+        if (!sesionActiva(sesion)) return null;
         const objetivoJugador = 1 - jugador;
         const desde = puntoDeTiro(jugador);
         cuerpoPelota.type = CANNON.Body.DYNAMIC;
         cuerpoPelota.position.copy(desde);
-        cuerpoPelota.velocity.copy(velocidadHacia(desde, objetivo.x, objetivo.z));
+        cuerpoPelota.velocity.copy(
+          velocidadHacia(desde, objetivo.x, objetivo.z),
+        );
         sonar("swoosh", 0.4);
         simulando = true;
-        const inicio = performance.now();
-        const resultado = await new Promise((r) => {
-          const revisar = setInterval(() => {
-            const p = cuerpoPelota.position;
-            // ¿cayó dentro de algún vaso?
-            for (const [k, v] of vasos[objetivoJugador].entries()) {
-              if (!v.vivo) continue;
-              if (Math.hypot(p.x - v.x, p.z - v.z) < VASO.arriba - RADIO_PELOTA * 0.4 && p.y < MESA.alto + VASO.alto && p.y > MESA.alto) {
-                clearInterval(revisar);
-                return r(k);
-              }
-            }
-            if (p.y < MESA.alto - 0.1 || performance.now() - inicio > 3500 || Math.abs(p.z) > MESA.largo / 2 + 0.8) {
-              clearInterval(revisar);
-              r(-1);
-            }
-          }, 16);
+        puntosEstela.length = 0;
+        estela.visible = false;
+        estela.material.color.set(COLORES[jugador]);
+        const resultado = await new Promise((resolver) => {
+          tiroActual = {
+            destino: objetivoJugador,
+            sesion,
+            resolver,
+            inicio: performance.now(),
+          };
         });
-        simulando = false;
         return resultado;
       }
 
@@ -287,11 +542,30 @@
         let pos, mira;
         if (vistaMenu) {
           const t = ahora / 1000;
-          pos = new THREE.Vector3(Math.sin(t * 0.2) * 2.2, 1.7, Math.cos(t * 0.2) * 2.2);
+          pos = new THREE.Vector3(
+            Math.sin(t * 0.2) * 2.2,
+            1.7,
+            Math.cos(t * 0.2) * 2.2,
+          );
           mira = new THREE.Vector3(0, MESA.alto, 0);
+        } else if (J.camaraRival) {
+          // Plano abierto: se ven los dos extremos y el impacto en tus vasos.
+          pos =
+            aspecto < 1
+              ? new THREE.Vector3(0.85, 2.8, J.lado * 2.45)
+              : new THREE.Vector3(1.9, 2.25, J.lado * 0.65);
+          mira = new THREE.Vector3(0, MESA.alto + 0.12, 0);
         } else {
-          pos = new THREE.Vector3(0, MESA.alto + 0.62, lado * (MESA.largo / 2 + (aspecto < 1 ? 0.75 : 0.55)));
-          mira = new THREE.Vector3(0, MESA.alto + 0.02, -lado * (MESA.largo / 2 - 0.35));
+          pos = new THREE.Vector3(
+            0,
+            MESA.alto + 0.62,
+            lado * (MESA.largo / 2 + (aspecto < 1 ? 0.75 : 0.55)),
+          );
+          mira = new THREE.Vector3(
+            0,
+            MESA.alto + 0.02,
+            -lado * (MESA.largo / 2 - 0.35),
+          );
         }
         camara.position.lerp(pos, 0.08);
         camara.lookAt(mira);
@@ -302,27 +576,39 @@
       //  CONTROLES
       // =========================================================
       let esperandoTiro = null;
-      const VELOCIDAD_IDEAL = 2.4;
+      function potenciaGesto(dy) {
+        return limitar(-dy / (window.innerHeight * 0.46), 0, 1);
+      }
+      function mostrarPotencia(dy) {
+        const valor = Math.round(potenciaGesto(dy) * 100);
+        $("potencia").style.width = valor + "%";
+        $("potencia-texto").textContent = valor + "%";
+      }
       Arcade.deslizar(M.lienzo, {
         puede: () => !!esperandoTiro,
+        inicio: () => mostrarPotencia(0),
+        mover: (punto, puntos) => mostrarPotencia(punto.y - puntos[0].y),
+        cancelar: () => mostrarPotencia(0),
         soltar: (g) => {
           if (!esperandoTiro) return;
           const H = window.innerHeight;
-          if (g.dy > -H * 0.05) return;
-          const velocidad = Math.hypot(g.vx, g.vy) / H;
-          const error = limitar((velocidad - VELOCIDAD_IDEAL) / VELOCIDAD_IDEAL, -1, 1.5);
-          const centro = -J.lado * (MESA.largo / 2 - 0.26 + 0.08); // centro del triángulo rival
+          if (g.dy > -H * 0.07) {
+            mostrarPotencia(0);
+            return;
+          }
+          const potencia = potenciaGesto(g.dy);
           const objetivo = {
-            x: +(limitar(g.dx / Math.max(80, -g.dy), -1, 1) * 0.42 + gauss() * 0.006).toFixed(4), // en pantalla
-            z: +(centro - J.lado * error * 0.55 + gauss() * 0.006).toFixed(4),
+            x: +(limitar(g.dx / Math.max(60, -g.dy), -1, 1) * 0.6).toFixed(4),
+            z: +(-J.lado * (0.45 + potencia * 1.2)).toFixed(4),
           };
           const r = esperandoTiro;
           esperandoTiro = null;
+          $("control-tiro").classList.add("oculto");
           r(objetivo);
         },
       });
 
-      const ERROR_BOT = { facil: 0.075, normal: 0.045, pro: 0.026 };
+      const ERROR_BOT = { facil: 0.04, normal: 0.018, pro: 0.009 };
       function tiroBot(jugador) {
         const vivos = vasos[1 - jugador].filter((v) => v.vivo);
         const v = vivos[(Math.random() * vivos.length) | 0];
@@ -333,7 +619,41 @@
       // =========================================================
       //  PARTIDA
       // =========================================================
-      const J = { modo: null, nombres: [], turno: 0, activa: false, dificultad: "normal", recibido: {}, lado: 1, tiroN: 0 };
+      const J = {
+        modo: null,
+        nombres: [],
+        turno: 0,
+        activa: false,
+        dificultad: "normal",
+        recibido: {},
+        lado: 1,
+        tiroN: 0,
+        sesion: 0,
+        camaraRival: false,
+      };
+      function sesionActiva(sesion) {
+        return J.activa && J.sesion === sesion;
+      }
+      function cancelarPartida() {
+        J.activa = false;
+        J.sesion++;
+        J.camaraRival = false;
+        resolverTiro(null);
+        if (esperandoTiro) {
+          const resolver = esperandoTiro;
+          esperandoTiro = null;
+          resolver(null);
+        }
+        if (J.esperando) {
+          const resolver = J.esperando.r;
+          J.esperando = null;
+          resolver(null);
+        }
+        estela.visible = false;
+        puntosEstela.length = 0;
+        $("control-tiro").classList.add("oculto");
+        $("estado-tiro").classList.add("oculto");
+      }
 
       const ui = Arcade.ui({
         juego: "beer_pong",
@@ -346,15 +666,16 @@
         unidadRecord: "vasos de sobra",
         reglas: [
           "Desliza hacia arriba para lanzar la pelotita.",
-          "Más rápido = más lejos · más chueco = más de lado.",
+          "Un deslizamiento más largo da más potencia. Inclínalo para apuntar a los lados.",
+          "La pelota tiene que entrar completa por la boca del vaso: rozar el borde no cuenta.",
           "Tienes 2 tiros por turno. Si la metes, ese vaso se va.",
+          "Después de tus dos tiros le toca al rival, aunque aciertes ambos. Sin turnos extra.",
           "Gana quien elimine primero los 6 vasos del otro 🥤",
         ],
         alEmpezar: empezar,
         alSalir: () => {
-          J.activa = false;
+          cancelarPartida();
           vistaMenu = true;
-          esperandoTiro = null;
         },
       });
       ui.alEvento = (tipo, datos) => {
@@ -387,6 +708,7 @@
       }
 
       function empezar(modo, info) {
+        cancelarPartida();
         J.modo = modo;
         J.nombres = info.nombres;
         J.dificultad = info.dificultad;
@@ -397,74 +719,120 @@
         J.turno = modo === "bot" ? 0 : Arcade.rng(info.semilla)() < 0.5 ? 0 : 1;
         crearVasos();
         vistaMenu = false;
-        jugar(info.partida);
+        jugar(J.sesion);
       }
 
-      async function jugar(partida) {
-        while (J.activa && partida === J.partida) {
+      async function jugar(sesion) {
+        while (sesionActiva(sesion)) {
           const t = J.turno;
           // la cámara: desde mi lado (online/bot) o del que tira (local)
-          J.lado = (J.modo === "local" ? t : J.modo === "online" ? ui.yo : 0) === 0 ? 1 : -1;
+          J.lado =
+            (J.modo === "local" ? t : J.modo === "online" ? ui.yo : 0) === 0
+              ? 1
+              : -1;
           lado = J.lado;
-          if (J.modo === "local") ui.avisar(`Tira ${J.nombres[t]}`, t ? "#4fb3ff" : "#ff4f8b");
-          else ui.avisar(soyYo(t) ? "¡Tu turno!" : `Turno de ${J.nombres[t]}`, t ? "#4fb3ff" : "#ff4f8b");
-          let atinados = 0;
+          if (J.modo === "local")
+            ui.avisar(`Tira ${J.nombres[t]}`, t ? "#4fb3ff" : "#ff4f8b");
+          else
+            ui.avisar(
+              soyYo(t) ? "¡Tu turno!" : `Turno de ${J.nombres[t]}`,
+              t ? "#4fb3ff" : "#ff4f8b",
+            );
           for (let k = 0; k < 2; k++) {
             marcador(k);
-            const r = await unTiro(t);
-            if (!J.activa || partida !== J.partida) return;
+            const r = await unTiro(t, sesion);
+            if (!sesionActiva(sesion) || r === null) return;
             if (r >= 0) {
-              atinados++;
               const v = vasos[1 - t][r];
-              ui.avisar(quedan(1 - t) === 1 ? "🥤 ¡ÚLTIMO VASO!" : "🥤 ¡ADENTRO!", "#26de81");
+              const esMio = soyYo(t) || J.modo === "local";
+              ui.avisar(
+                esMio ? "🥤 ¡ADENTRO!" : "💥 ¡El rival metió la pelota!",
+                esMio ? "#26de81" : "#4fb3ff",
+              );
+              $("estado-tiro").textContent = esMio
+                ? "Acierto confirmado: se retira el vaso rival"
+                : "Impacto en tu lado: se retira tu vaso";
               await quitarVaso(v);
+              if (!sesionActiva(sesion)) return;
               marcador(k);
               if (quedan(1 - t) === 0) return terminar(t);
-            } else ui.avisar("💨 Fallaste", "#888");
+            } else {
+              ui.avisar(soyYo(t) ? "💨 No entró" : "💨 El rival falló", "#aaa");
+              $("estado-tiro").textContent =
+                "No entró en ningún vaso. Los vasos siguen en su lugar.";
+            }
             await esperar(900);
+            if (!sesionActiva(sesion)) return;
           }
-          if (atinados === 2) {
-            ui.avisar("🔥 ¡Dos de dos!<small>tiras otra vez</small>", "#ff7a59");
-            await esperar(1200);
-          } else J.turno = 1 - t;
+          J.turno = 1 - t;
         }
       }
 
-      async function unTiro(jugador) {
+      async function unTiro(jugador, sesion) {
+        J.camaraRival = !soyYo(jugador);
+        $("estado-tiro").classList.remove("oculto");
+        $("estado-tiro").textContent = soyYo(jugador)
+          ? "Tu lanzamiento · ajusta dirección y potencia"
+          : `${J.nombres[jugador]} lanza hacia tus vasos`;
+        $("control-tiro").classList.add("oculto");
         pelotaEnMano(jugador);
         const n = J.tiroN++;
-        let objetivo, rival = null;
+        let objetivo,
+          rival = null;
         if (soyYo(jugador)) {
-          ui.ayuda("👆 Desliza hacia arriba para lanzar");
+          mostrarPotencia(0);
+          $("control-tiro").classList.remove("oculto");
+          ui.ayuda("Desliza hacia arriba: más recorrido = más potencia");
           objetivo = await new Promise((r) => (esperandoTiro = r));
+          if (!sesionActiva(sesion) || !objetivo) return null;
           ui.ayuda("");
           // viendo desde el otro lado de la mesa, la derecha de la pantalla es -x
           objetivo.x = +(objetivo.x * J.lado).toFixed(4);
         } else if (J.modo === "bot") {
-          await esperar(1000);
+          ui.ayuda("Observa el tiro del bot y el impacto en tus vasos");
+          await esperar(1400);
+          if (!sesionActiva(sesion)) return null;
           objetivo = tiroBot(jugador);
         } else {
           ui.ayuda(`${J.nombres[jugador]} está apuntando…`);
-          rival = J.recibido[n] || (await new Promise((r) => (J.esperando = { n, r })));
+          rival =
+            J.recibido[n] ||
+            (await new Promise((r) => (J.esperando = { n, r })));
+          if (!sesionActiva(sesion) || !rival) return null;
           ui.ayuda("");
           objetivo = rival.objetivo;
         }
-        let resultado = await simular(jugador, objetivo);
+        if (!sesionActiva(sesion)) return null;
+        $("estado-tiro").textContent = soyYo(jugador)
+          ? "Pelota en el aire…"
+          : `${J.nombres[jugador]} está tirando a tus vasos`;
+        let resultado = await simular(jugador, objetivo, sesion);
+        if (!sesionActiva(sesion) || resultado === null) return null;
         if (rival) resultado = rival.resultado;
-        else if (J.modo === "online") ui.enviar("tiro", { partida: J.partida, n, objetivo, resultado });
+        else if (J.modo === "online")
+          ui.enviar("tiro", { partida: J.partida, n, objetivo, resultado });
         if (resultado < 0) await esperar(400);
+        if (!sesionActiva(sesion)) return null;
         pelota.visible = false;
+        estela.visible = false;
         return resultado;
       }
 
       function terminar(g) {
         J.activa = false;
+        $("estado-tiro").classList.add("oculto");
+        $("control-tiro").classList.add("oculto");
         vistaMenu = true;
         const gane = soyYo(g) && J.modo !== "local";
         sonar(gane || J.modo === "local" ? "ganar" : "perder");
         ui.terminar({
           emoji: gane || J.modo === "local" ? "🏆" : "😿",
-          texto: J.modo === "local" ? `¡Ganó ${J.nombres[g]}!` : gane ? "¡Ganaste!" : `Ganó ${J.nombres[g]}`,
+          texto:
+            J.modo === "local"
+              ? `¡Ganó ${J.nombres[g]}!`
+              : gane
+                ? "¡Ganaste!"
+                : `Ganó ${J.nombres[g]}`,
           nota: `Le quedaron ${quedan(g)} vasos al ganador`,
           record: J.modo === "bot" && gane ? quedan(g) : null,
         });

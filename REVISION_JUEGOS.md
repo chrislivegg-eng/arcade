@@ -32,6 +32,7 @@ node tests/online-check.cjs
 node tests/shared-regression.cjs
 node tests/impostor-check.cjs
 node tests/naval-check.cjs
+node tests/pong-check.cjs
 ```
 
 Se puede indicar `PLAYWRIGHT_PATH` para usar una instalación existente de Playwright y `PLAYWRIGHT_CHANNEL` para seleccionar otro canal de Chromium.
@@ -41,6 +42,7 @@ Se puede indicar `PLAYWRIGHT_PATH` para usar una instalación existente de Playw
 - `shared-regression.cjs`: entrada tardía, primer movimiento, cambio de sala después de jugar local y récord del invitado.
 - `impostor-check.cjs`: tres sesiones móviles, formulario exclusivo del impostor, intento incorrecto, conservación del texto al pasar a votación y victoria inmediata visible para todos.
 - `naval-check.cjs`: Batalla Naval 3D, colocación/disparos con el ratón sobre las casillas 3D, victoria contra el bot en PC y móvil emulado, guardado del ranking, reinicio, cancelación de turnos pendientes, partida online PC/móvil completa y alternativa accesible sin WebGL. El guardado del ranking se intercepta para no escribir victorias de prueba.
+- `pong-check.cjs`: entrada limpia en los doce vasos de ambos lados, rechazo de roces, 360 tiros de calibración de las tres dificultades del bot, partidas completas PC/móvil con gestos reales, potencia, alternancia de turnos aunque haya dos aciertos, cámara y estela del bot, retirada de tus vasos, revancha, cancelación de partidas y sincronización online. El guardado del ranking se intercepta.
 
 Las pruebas de navegador usan Edge en modo headless y una vista móvil emulada. No sustituyen una partida manual completa de cada juego 3D ni una prueba en teléfonos físicos.
 
@@ -57,3 +59,9 @@ Durante la revisión general también se detectó un problema anterior en `/memo
 La ruta `/juego_naval` ahora muestra dos tableros con perspectiva, agua animada, barcos modelados con iluminación y sombras, proyectiles, salpicaduras, fuego y humo. Conserva los modos bot y online, los tres barcos de una casilla y las APIs y rankings existentes. El sonido es opcional; la preferencia de movimiento reducido detiene el vaivén del agua y los barcos. Si WebGL no está disponible se muestran controles de casillas accesibles para seguir jugando.
 
 El actualizador incluye `templates/juego_naval.html`, `static/naval3d.css` y `static/js/naval3d.js` en su lista de archivos.
+
+## Vaso Pong: puntería y turno del rival
+
+El lanzamiento usa la longitud y dirección del deslizamiento, con un medidor de potencia. Para puntuar, la pelota completa debe cruzar hacia abajo la boca del vaso; la trayectoria se calibra sobre esa altura y la comprobación ocurre en cada subpaso de física de 120 Hz.
+
+Cada jugador dispone de dos tiros y después cambia el turno, sin encadenar turnos extra por acertar ambos. El bot tiene tres niveles de dispersión distintos. Durante un tiro del rival, la cámara muestra los dos extremos de la mesa, la pelota deja una estela y se conserva el plano hasta ver el resultado y la retirada del vaso. Los lanzamientos pendientes se cancelan al salir o iniciar otra partida.
