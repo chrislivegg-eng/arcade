@@ -20,3 +20,4 @@ templates/juego_boliche.html
 templates/juego_beer_pong.html
 templates/juego_mini_golf.html
 templates/juego_reflejos.html
+templates/juego_cruza_calle.html
