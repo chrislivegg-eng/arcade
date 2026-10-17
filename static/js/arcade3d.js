@@ -501,6 +501,7 @@ const Arcade = (() => {
     };
     let intervalo = null;
     let ultimoSeq = 0;
+    let consultando = false;
 
     const capas = ["menu", "menu-online", "menu-espera", "menu-fin"];
     function mostrar(id) {
@@ -568,6 +569,7 @@ const Arcade = (() => {
     async function entrarSala(codigo) {
       $("error-online").textContent = "";
       estado.online = { codigo, yo: 0, semilla: 0, nombres: [] };
+      estado.partida = 0;
       ultimoSeq = 0;
       $("codigo-espera").textContent = codigo;
       history.replaceState(null, "", location.pathname + "?sala=" + codigo);
@@ -583,11 +585,22 @@ const Arcade = (() => {
       history.replaceState(null, "", location.pathname);
     }
     async function consultar() {
+      if (consultando) return;
+      consultando = true;
+      try {
+        await consultarEstado();
+      } finally {
+        consultando = false;
+      }
+    }
+    async function consultarEstado() {
       if (!estado.online) return;
+      const salaConsultada = estado.online;
       let e;
       try {
         e = await api(`/api/duelo/estado/${estado.online.codigo}?pid=${encodeURIComponent(PID)}&desde=${ultimoSeq}`);
       } catch (err) {
+        if (estado.online !== salaConsultada) return;
         if (/no existe|No estás/.test(err.message)) {
           salirOnline(false);
           estado.modo = null;
@@ -596,12 +609,10 @@ const Arcade = (() => {
         }
         return;
       }
-      if (!estado.online) return;
+      if (estado.online !== salaConsultada) return;
       Object.assign(estado.online, { yo: e.yo, semilla: e.semilla, nombres: e.nombres });
       if (e.listo && estado.modo !== "online") {
-        ultimoSeq = e.seq;
         empezar("online", e.nombres);
-        return;
       }
       e.eventos.forEach((ev) => {
         ultimoSeq = Math.max(ultimoSeq, ev.seq);
@@ -609,6 +620,7 @@ const Arcade = (() => {
         if (ev.tipo === "salio") {
           avisar("Tu rival salió 😿", "#ff3b3b");
           setTimeout(() => {
+            if (estado.online !== salaConsultada) return;
             salirOnline(false);
             estado.modo = null;
             config.alSalir && config.alSalir();
@@ -737,7 +749,8 @@ const Arcade = (() => {
       mostrar("menu-fin");
       if (record != null && config.records) {
         try {
-          const r = await api(`/api/records/${config.juego}`, { nombre: estado.nombres[0], puntos: record });
+          const yo = estado.online ? estado.online.yo : 0;
+          const r = await api(`/api/records/${config.juego}`, { nombre: estado.nombres[yo], puntos: record });
           if (r.nuevo_record) $("fin-record").classList.remove("oculto");
         } catch (e) {}
       }

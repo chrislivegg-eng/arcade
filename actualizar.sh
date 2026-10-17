@@ -41,6 +41,11 @@ with open("app.py") as f:
     codigo = f.read()
 
 cambios = False
+# La versión original tenía una coma faltante que impedía importar app.py.
+codigo, corregidas = re.subn(
+    r"(records_pixel_art=leer_records\(ARCHIVO_PIXEL_ART\))([ \t]*\n)",
+    r"\1,\2", codigo)
+cambios = bool(corregidas)
 for modulo, bp in [("fiesta", "fiesta_bp"), ("dardos", "dardos_bp"), ("duelo", "duelo_bp")]:
     if f"register_blueprint({bp})" in codigo:
         continue
@@ -51,6 +56,7 @@ for modulo, bp in [("fiesta", "fiesta_bp"), ("dardos", "dardos_bp"), ("duelo", "
     cambios = True
 
 if cambios:
+    compile(codigo, "app.py", "exec")
     with open("app.py", "w") as f:
         f.write(codigo)
     print("   ✅ app.py actualizado")

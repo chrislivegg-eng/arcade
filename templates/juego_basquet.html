@@ -467,7 +467,8 @@
       function empezar(modo, info) {
         detener();
         J.modo = modo;
-        J.nombres = info.nombres;
+        // Los puntos locales siempre están en [0], también en el segundo celular.
+        J.nombres = modo === "online" && info.online.yo === 1 ? [...info.nombres].reverse() : info.nombres;
         J.dificultad = info.dificultad;
         J.partida = info.partida;
         J.puntos = [0, 0];

@@ -575,7 +575,8 @@ class Frase(JuegoBase):
         if f == 'escribiendo' and (ahora() > sala['limite'] or all(p in sala['respuestas'] for p in activos(sala))):
             self._a_votar(sala)
         elif f == 'votando':
-            votantes = [p for p in activos(sala) if not (len(sala['lista']) == 2 and p in sala['lista'])]
+            votantes = [p for p in activos(sala)
+                        if any(autor != p for autor in sala['lista'])]
             if ahora() > sala['limite'] or all(p in sala['votos'] for p in votantes):
                 self._revelar(sala)
         elif f == 'revelar' and ahora() > sala['limite']:
@@ -797,6 +798,8 @@ class Espia(JuegoBase):
             error = self.puede_iniciar(sala, es_host) if sala['fase'] != 'resultado' else (None if es_host else {'error': 'Solo el anfitrión'})
             if error:
                 return error
+            if len(sala['jugadores']) < self.minimo:
+                return {'error': f'Se necesitan al menos {self.minimo} jugadores'}
             if datos.get('minutos') in (4, 6, 8):
                 sala['minutos'] = datos['minutos']
             jugadores = activos(sala)
