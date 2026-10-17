@@ -29,3 +29,6 @@ templates/trivia.html
 templates/completa_frase.html
 templates/basta.html
 templates/espia.html
+templates/juego_naval.html
+static/naval3d.css
+static/js/naval3d.js
