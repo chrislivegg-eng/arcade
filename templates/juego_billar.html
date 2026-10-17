@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0d1a12" />
+    <title>Billar 8 · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, gauss, lin, material, sonar } = Arcade;
+
+      // Mesa de 8 pies: área de juego 1.12 × 2.24 m (x de lado a lado, z a lo largo)
+      const MX = 0.56,
+        MZ = 1.12,
+        R = 0.0286,
+        R_BUCHACA = 0.062,
+        FRICCION = 0.75, // m/s² de frenado al rodar
+        VEL_MAX = 5.2;
+      const BUCHACAS = [
+        [-MX, -MZ],
+        [MX, -MZ],
+        [-MX - 0.01, 0],
+        [MX + 0.01, 0],
+        [-MX, MZ],
+        [MX, MZ],
+      ];
+      const COLORES_BOLAS = ["#ffffff", "#f7c600", "#1f4fd6", "#d81e2c", "#6a2fa0", "#f07800", "#138a3f", "#7a1c1c", "#111111"];
+
+      // =========================================================
+      //  ESCENA
+      // =========================================================
+      const M = Arcade.mundo({ fondo: 0x0d1a12, niebla: [6, 14], fov: 50, exposicion: 1.1, lamparas: [[0, 6, 0, 0xfff2d8, 4], [-5, 2, 3, 0xffd8a0, 1], [5, 2, -3, 0xffd8a0, 1]] });
+      const { escena, camara } = M;
+      escena.add(new THREE.HemisphereLight(0xfff2e0, 0x1a1a10, 0.45));
+      const lampara = new THREE.SpotLight(0xfff0d0, 2.6, 0, 0.75, 0.55, 1);
+      lampara.position.set(0, 2.6, 0);
+      lampara.castShadow = true;
+      lampara.shadow.mapSize.set(2048, 2048);
+      lampara.shadow.bias = -0.0003;
+      escena.add(lampara, lampara.target);
+      const pantalla = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.55, 0.25, 32, 1, true), material(0x1d6b3a, { side: THREE.DoubleSide, roughness: 0.5 }));
+      pantalla.position.set(0, 2.3, 0);
+      escena.add(pantalla);
+
+      const pisoMadera = new THREE.Mesh(
+        new THREE.PlaneGeometry(14, 14),
+        material(0xffffff, { map: M.textura(1024, 1024, (g, w, h) => Arcade.dibujarMadera(g, w, h, { tono: 22, sat: 40, luz: 26, tablas: 12 })), roughness: 0.7 }),
+      );
+      pisoMadera.rotation.x = -Math.PI / 2;
+      pisoMadera.position.y = -0.8;
+      escena.add(pisoMadera);
+
+      const texturaPano = M.textura(512, 1024, (g, w, h) => {
+        g.fillStyle = "#1b7a3e";
+        g.fillRect(0, 0, w, h);
+        const img = g.getImageData(0, 0, w, h);
+        for (let p = 0; p < img.data.length; p += 4) {
+          const r = (Math.random() - 0.5) * 18;
+          img.data[p] += r * 0.4;
+          img.data[p + 1] += r;
+          img.data[p + 2] += r * 0.5;
+        }
+        g.putImageData(img, 0, 0);
+        g.strokeStyle = "rgba(255,255,255,0.18)";
+        g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(0, h * 0.75);
+        g.lineTo(w, h * 0.75);
+        g.stroke();
+        g.fillStyle = "rgba(255,255,255,0.35)";
+        [0.25, 0.75].forEach((f) => {
+          g.beginPath();
+          g.arc(w / 2, h * f, 4, 0, Math.PI * 2);
+          g.fill();
+        });
+      });
+      const pano = new THREE.Mesh(new THREE.BoxGeometry(MX * 2, 0.04, MZ * 2), [
+        material(0x1b7a3e),
+        material(0x1b7a3e),
+        material(0xffffff, { map: texturaPano, roughness: 0.95 }),
+        material(0x1b7a3e),
+        material(0x1b7a3e),
+        material(0x1b7a3e),
+      ]);
+      pano.position.y = -0.02;
+      pano.receiveShadow = true;
+      escena.add(pano);
+      // bandas y marco de madera
+      const matMadera = material(0xffffff, { map: M.textura(256, 64, (g, w, h) => Arcade.dibujarMadera(g, w, h, { tono: 20, sat: 55, luz: 30, tablas: 2, vertical: false })), roughness: 0.4 });
+      const matBanda = material(0x14612f, { roughness: 0.9 });
+      [
+        [MX * 2 + 0.24, MZ * 2 + 0.24, 0, 0],
+      ].forEach(() => {});
+      const marco = (w, d, x, z) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.09, d), matMadera);
+        m.position.set(x, 0.02, z);
+        m.castShadow = m.receiveShadow = true;
+        escena.add(m);
+      };
+      marco(0.12, MZ * 2 + 0.24, -MX - 0.09, 0);
+      marco(0.12, MZ * 2 + 0.24, MX + 0.09, 0);
+      marco(MX * 2 + 0.06, 0.12, 0, -MZ - 0.09);
+      marco(MX * 2 + 0.06, 0.12, 0, MZ + 0.09);
+      const banda = (w, d, x, z) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.04, d), matBanda);
+        m.position.set(x, 0.02, z);
+        escena.add(m);
+      };
+      const tramoLargo = MZ - R_BUCHACA * 1.3;
+      [-1, 1].forEach((lx) => [-1, 1].forEach((lz) => banda(0.03, tramoLargo - R_BUCHACA * 0.5, lx * (MX + 0.015), lz * (tramoLargo / 2 + R_BUCHACA * 0.55))));
+      [-1, 1].forEach((lz) => banda(MX * 2 - R_BUCHACA * 2.4, 0.03, 0, lz * (MZ + 0.015)));
+      const cuerpoMesa = new THREE.Mesh(new THREE.BoxGeometry(MX * 2 + 0.2, 0.7, MZ * 2 + 0.2), matMadera);
+      cuerpoMesa.position.y = -0.4;
+      escena.add(cuerpoMesa);
+      // buchacas
+      BUCHACAS.forEach(([x, z]) => {
+        const b = new THREE.Mesh(new THREE.CylinderGeometry(R_BUCHACA, R_BUCHACA, 0.045, 24), new THREE.MeshBasicMaterial({ color: 0x050505 }));
+        b.position.set(x, 0.002, z);
+        escena.add(b);
+      });
+
+      // Bolas
+      function texturaBola(n) {
+        return M.textura(256, 128, (g, w, h) => {
+          const color = COLORES_BOLAS[n > 8 ? n - 8 : n];
+          const rayada = n > 8;
+          g.fillStyle = rayada ? "#f6f2e6" : color;
+          g.fillRect(0, 0, w, h);
+          if (rayada) {
+            g.fillStyle = color;
+            g.fillRect(0, h * 0.28, w, h * 0.44);
+          }
+          if (n > 0) {
+            [0.25, 0.75].forEach((u) => {
+              g.fillStyle = "#f6f2e6";
+              g.beginPath();
+              g.ellipse(u * w, h / 2, 17, 24, 0, 0, Math.PI * 2);
+              g.fill();
+              g.fillStyle = "#111";
+              g.font = "900 26px Arial";
+              g.textAlign = "center";
+              g.textBaseline = "middle";
+              g.fillText(n, u * w, h / 2 + 1);
+            });
+          } else {
+            g.fillStyle = "#d81e2c";
+            g.beginPath();
+            g.arc(w * 0.25, h / 2, 4, 0, Math.PI * 2);
+            g.fill();
+          }
+        });
+      }
+      const geoBola = new THREE.SphereGeometry(R, 28, 20);
+      const bolas = [];
+      for (let n = 0; n <= 15; n++) {
+        const malla = new THREE.Mesh(geoBola, material(0xffffff, { map: texturaBola(n), roughness: 0.12, metalness: 0.05 }));
+        malla.castShadow = true;
+        escena.add(malla);
+        bolas.push({ n, x: 0, z: 0, vx: 0, vz: 0, dentro: false, malla, rot: new THREE.Quaternion() });
+      }
+      const blanca = bolas[0];
+
+      function acomodar() {
+        // triángulo con la 8 en medio y una lisa y una rayada en las esquinas de atrás
+        const orden = [1, 9, 2, 10, 8, 3, 11, 4, 12, 5, 13, 14, 6, 15, 7];
+        let k = 0;
+        for (let fila = 0; fila < 5; fila++)
+          for (let i = 0; i <= fila; i++) {
+            const b = bolas[orden[k++]];
+            b.x = (i - fila / 2) * R * 2.02;
+            b.z = -MZ / 2 - fila * R * 1.75;
+          }
+        bolas.forEach((b) => {
+          b.vx = b.vz = 0;
+          b.dentro = false;
+          b.malla.visible = true;
+          b.malla.position.y = R;
+          b.malla.quaternion.setFromEuler(new THREE.Euler(azar(0, 6), azar(0, 6), azar(0, 6)));
+        });
+        blanca.x = 0;
+        blanca.z = MZ / 2;
+      }
+
+      // =========================================================
+      //  FÍSICA (2D, determinista: dos celulares calculan lo mismo)
+      // =========================================================
+      function cercaDeBuchaca(b) {
+        return BUCHACAS.some(([x, z]) => Math.hypot(b.x - x, b.z - z) < R_BUCHACA * 1.45);
+      }
+      function pasoFisica(dt, eventos) {
+        for (const b of bolas) {
+          if (b.dentro) continue;
+          const v = Math.hypot(b.vx, b.vz);
+          if (v > 0) {
+            const nueva = Math.max(0, v - FRICCION * dt);
+            b.vx *= nueva / v;
+            b.vz *= nueva / v;
+            if (nueva < 0.004) b.vx = b.vz = 0;
+          }
+          b.x += b.vx * dt;
+          b.z += b.vz * dt;
+          // buchacas
+          for (const [x, z] of BUCHACAS) {
+            if (Math.hypot(b.x - x, b.z - z) < R_BUCHACA) {
+              b.dentro = true;
+              b.vx = b.vz = 0;
+              eventos.metidas.push(b.n);
+              break;
+            }
+          }
+          if (b.dentro) continue;
+          // bandas (salvo en la boca de las buchacas)
+          if (!cercaDeBuchaca(b)) {
+            if (Math.abs(b.x) > MX - R) {
+              b.x = Math.sign(b.x) * (MX - R);
+              b.vx *= -0.78;
+              eventos.bandas++;
+            }
+            if (Math.abs(b.z) > MZ - R) {
+              b.z = Math.sign(b.z) * (MZ - R);
+              b.vz *= -0.78;
+              eventos.bandas++;
+            }
+          } else if (Math.abs(b.x) > MX + R * 2 || Math.abs(b.z) > MZ + R * 2) {
+            b.dentro = true;
+            eventos.metidas.push(b.n);
+          }
+        }
+        // choques entre bolas
+        for (let i = 0; i < 16; i++) {
+          const a = bolas[i];
+          if (a.dentro) continue;
+          for (let j = i + 1; j < 16; j++) {
+            const c = bolas[j];
+            if (c.dentro) continue;
+            const dx = c.x - a.x,
+              dz = c.z - a.z;
+            const d2 = dx * dx + dz * dz;
+            if (d2 >= 4 * R * R || d2 === 0) continue;
+            const d = Math.sqrt(d2),
+              nx = dx / d,
+              nz = dz / d;
+            const solape = (2 * R - d) / 2;
+            a.x -= nx * solape;
+            a.z -= nz * solape;
+            c.x += nx * solape;
+            c.z += nz * solape;
+            const rel = (a.vx - c.vx) * nx + (a.vz - c.vz) * nz;
+            if (rel <= 0) continue;
+            const imp = rel * 0.97;
+            a.vx -= imp * nx;
+            a.vz -= imp * nz;
+            c.vx += imp * nx;
+            c.vz += imp * nz;
+            if (eventos.primera == null && (a.n === 0 || c.n === 0)) eventos.primera = a.n === 0 ? c.n : a.n;
+            eventos.choques.push(Math.min(1, rel / 3));
+          }
+        }
+      }
+      const enMovimiento = () => bolas.some((b) => !b.dentro && (b.vx || b.vz));
+
+      // corre el tiro hasta que todo se detiene (animado), regresa lo que pasó
+      async function simular(tiro) {
+        const eventos = { metidas: [], primera: null, bandas: 0, choques: [] };
+        blanca.vx = tiro.dx * tiro.v;
+        blanca.vz = tiro.dz * tiro.v;
+        sonar("golpe", 0.3 + tiro.v / 8);
+        let pendiente = 0;
+        await new Promise((listo) => {
+          const DT = 1 / 240;
+          let pasos = 0;
+          M.alCuadro.siguiente = (dt) => {
+            pendiente += dt;
+            while (pendiente >= DT) {
+              pendiente -= DT;
+              pasos++;
+              const antes = eventos.metidas.length;
+              pasoFisica(DT, eventos);
+              if (eventos.metidas.length > antes) sonar("golpe", 0.4);
+              eventos.choques.splice(0).forEach((f) => f > 0.05 && sonar("ping", f));
+              if (!enMovimiento() || pasos > 240 * 25) {
+                M.alCuadro.siguiente = null;
+                return listo();
+              }
+            }
+          };
+        });
+        return eventos;
+      }
+
+      // =========================================================
+      //  DIBUJO Y APUNTAR
+      // =========================================================
+      const lineaMira = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.03, gapSize: 0.02 }));
+      const lineaSalida = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0xffd84f }));
+      const fantasma = new THREE.Mesh(new THREE.RingGeometry(R * 0.8, R, 24), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 }));
+      fantasma.rotation.x = -Math.PI / 2;
+      const taco = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.013, 1.2, 12), material(0xd8b47a, { roughness: 0.4 }));
+      taco.castShadow = true;
+      const puntaTaco = new THREE.Mesh(new THREE.CylinderGeometry(0.0062, 0.0062, 0.02, 12), material(0x2a6bd8));
+      [lineaMira, lineaSalida, fantasma, taco, puntaTaco].forEach((o) => {
+        o.visible = false;
+        escena.add(o);
+      });
+
+      // a dónde llega la blanca en esa dirección (primera bola o banda)
+      function trazarMira(dx, dz) {
+        let mejor = Infinity,
+          golpeada = null;
+        for (const b of bolas) {
+          if (b === blanca || b.dentro) continue;
+          const px = b.x - blanca.x,
+            pz = b.z - blanca.z;
+          const t = px * dx + pz * dz;
+          if (t <= 0) continue;
+          const perp2 = px * px + pz * pz - t * t;
+          if (perp2 > 4 * R * R) continue;
+          const dist = t - Math.sqrt(4 * R * R - perp2);
+          if (dist < mejor) {
+            mejor = dist;
+            golpeada = b;
+          }
+        }
+        const tx = dx ? ((Math.sign(dx) * (MX - R) - blanca.x) / dx) : Infinity;
+        const tz = dz ? ((Math.sign(dz) * (MZ - R) - blanca.z) / dz) : Infinity;
+        const aBanda = Math.min(tx, tz);
+        if (!golpeada || aBanda < mejor) return { dist: aBanda, golpeada: null };
+        return { dist: mejor, golpeada };
+      }
+
+      function mostrarMira(dx, dz, fuerza) {
+        const m = trazarMira(dx, dz);
+        const fx = blanca.x + dx * m.dist,
+          fz = blanca.z + dz * m.dist;
+        lineaMira.geometry.setFromPoints([new THREE.Vector3(blanca.x, R, blanca.z), new THREE.Vector3(fx, R, fz)]);
+        lineaMira.computeLineDistances();
+        fantasma.position.set(fx, 0.003, fz);
+        lineaSalida.visible = !!m.golpeada;
+        if (m.golpeada) {
+          const nx = m.golpeada.x - fx,
+            nz = m.golpeada.z - fz;
+          const l = Math.hypot(nx, nz) || 1;
+          lineaSalida.geometry.setFromPoints([new THREE.Vector3(m.golpeada.x, R, m.golpeada.z), new THREE.Vector3(m.golpeada.x + (nx / l) * 0.35, R, m.golpeada.z + (nz / l) * 0.35)]);
+        }
+        // el taco se hace para atrás según la fuerza
+        const atras = 0.03 + fuerza * 0.18;
+        const centro = new THREE.Vector3(blanca.x - dx * (atras + 0.6), R + 0.04, blanca.z - dz * (atras + 0.6));
+        taco.position.copy(centro);
+        taco.lookAt(blanca.x, R + 0.01, blanca.z);
+        taco.rotateX(Math.PI / 2);
+        puntaTaco.position.set(blanca.x - dx * (atras + 0.005), R + 0.012, blanca.z - dz * (atras + 0.005));
+        puntaTaco.quaternion.copy(taco.quaternion);
+        [lineaMira, fantasma, taco, puntaTaco].forEach((o) => (o.visible = true));
+      }
+      function ocultarMira() {
+        [lineaMira, lineaSalida, fantasma, taco, puntaTaco].forEach((o) => (o.visible = false));
+      }
+
+      let esperandoTiro = null;
+      const planoMesa = new THREE.Plane(new THREE.Vector3(0, 1, 0), -R);
+      function puntoMesa(px, py) {
+        const p = new THREE.Vector3();
+        return M.pantallaARayo(px, py).ray.intersectPlane(planoMesa, p) ? p : null;
+      }
+      let inicioJalon = null;
+      function tiroDesdeJalon(a, b) {
+        if (!a || !b) return null;
+        // jalas hacia atrás: la blanca sale hacia el lado contrario
+        let dx = a.x - b.x,
+          dz = a.z - b.z;
+        const largo = Math.hypot(dx, dz);
+        if (largo < 0.02) return null;
+        dx /= largo;
+        dz /= largo;
+        const fuerza = limitar((largo - 0.02) / 0.55, 0.03, 1);
+        return { dx, dz, fuerza, v: 0.35 + fuerza * (VEL_MAX - 0.35) };
+      }
+      Arcade.deslizar(M.lienzo, {
+        puede: () => !!esperandoTiro,
+        inicio: (p) => (inicioJalon = puntoMesa(p.x, p.y)),
+        mover: (p) => {
+          const t = tiroDesdeJalon(inicioJalon, puntoMesa(p.x, p.y));
+          if (t) mostrarMira(t.dx, t.dz, t.fuerza);
+        },
+        cancelar: ocultarMira,
+        soltar: (g) => {
+          const t = tiroDesdeJalon(inicioJalon, puntoMesa(g.fin.x, g.fin.y));
+          ocultarMira();
+          if (!t || !esperandoTiro) return;
+          const r = esperandoTiro;
+          esperandoTiro = null;
+          r({ dx: +t.dx.toFixed(5), dz: +t.dz.toFixed(5), v: +t.v.toFixed(4) });
+        },
+      });
+
+      // =========================================================
+      //  BOT
+      // =========================================================
+      const ERROR_BOT = { facil: 0.05, normal: 0.022, pro: 0.008 };
+      function bolasDe(grupo) {
+        return bolas.filter((b) => !b.dentro && b.n !== 0 && (grupo === "lisas" ? b.n < 8 : grupo === "rayadas" ? b.n > 8 : b.n !== 8));
+      }
+      function caminoLibre(x1, z1, x2, z2, ignorar) {
+        const dx = x2 - x1,
+          dz = z2 - z1,
+          largo = Math.hypot(dx, dz);
+        return !bolas.some((b) => {
+          if (b.dentro || ignorar.includes(b)) return false;
+          const t = ((b.x - x1) * dx + (b.z - z1) * dz) / (largo * largo);
+          if (t <= 0 || t >= 1) return false;
+          return Math.hypot(x1 + dx * t - b.x, z1 + dz * t - b.z) < 2 * R * 0.98;
+        });
+      }
+      function tiroBot(jugador) {
+        const grupo = J.grupos[jugador];
+        let objetivos = grupo ? bolasDe(grupo) : bolasDe(null);
+        if (grupo && !objetivos.length) objetivos = [bolas[8]];
+        let mejor = null;
+        for (const o of objetivos)
+          for (const [px, pz] of BUCHACAS) {
+            const ax = px - o.x,
+              az = pz - o.z,
+              l = Math.hypot(ax, az);
+            const gx = o.x - (ax / l) * 2 * R,
+              gz = o.z - (az / l) * 2 * R; // bola fantasma
+            const tx = gx - blanca.x,
+              tz = gz - blanca.z,
+              tl = Math.hypot(tx, tz);
+            const corte = Math.acos(limitar((tx * ax + tz * az) / (tl * l), -1, 1));
+            if (corte > 1.3) continue;
+            if (!caminoLibre(blanca.x, blanca.z, gx, gz, [blanca, o]) || !caminoLibre(o.x, o.z, px, pz, [o])) continue;
+            const puntaje = corte * 2 + tl + l * 0.6;
+            if (!mejor || puntaje < mejor.puntaje) mejor = { puntaje, dx: tx / tl, dz: tz / tl, dist: tl + l };
+          }
+        if (!mejor) {
+          const o = objetivos.sort((a, b) => Math.hypot(a.x - blanca.x, a.z - blanca.z) - Math.hypot(b.x - blanca.x, b.z - blanca.z))[0];
+          const tx = o.x - blanca.x,
+            tz = o.z - blanca.z,
+            tl = Math.hypot(tx, tz);
+          mejor = { dx: tx / tl, dz: tz / tl, dist: tl * 2 };
+        }
+        const ang = Math.atan2(mejor.dz, mejor.dx) + gauss() * ERROR_BOT[J.dificultad];
+        return { dx: Math.cos(ang), dz: Math.sin(ang), v: limitar(1.2 + mejor.dist * 1.6, 1.2, VEL_MAX) };
+      }
+
+      // =========================================================
+      //  CICLO
+      // =========================================================
+      M.alCuadro((dt, ahora) => {
+        if (M.alCuadro.siguiente) M.alCuadro.siguiente(dt);
+        const eje = new THREE.Vector3();
+        for (const b of bolas) {
+          if (b.dentro) {
+            if (b.malla.visible) {
+              b.malla.position.y -= dt * 0.6;
+              if (b.malla.position.y < -0.08) b.malla.visible = false;
+            }
+            continue;
+          }
+          // la bola rueda (gira según hacia dónde va)
+          const v = Math.hypot(b.vx, b.vz);
+          if (v > 0) {
+            eje.set(b.vz, 0, -b.vx).normalize();
+            b.malla.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(eje, (v * dt) / R));
+          }
+          b.malla.position.set(b.x, R, b.z);
+        }
+        const aspecto = window.innerWidth / window.innerHeight;
+        if (J.modo) {
+          // que quepa toda la mesa (y el marcador de arriba); la lámpara se esconde para no tapar
+          pantalla.visible = false;
+          camara.fov = 50;
+          const lado = J.modo === "online" && J.yo === 1 ? -1 : 1;
+          const tanMitad = Math.tan((25 * Math.PI) / 180);
+          const alto = Math.max(1.42 / tanMitad, 0.68 / (tanMitad * aspecto));
+          camara.position.set(0, alto, lado * alto * 0.12);
+          camara.lookAt(0, 0, -lado * 0.06);
+        } else {
+          const t = ahora / 1000;
+          pantalla.visible = true;
+          camara.position.set(Math.sin(t * 0.2) * 2.2, 1.5, Math.cos(t * 0.2) * 2.2);
+          camara.lookAt(0, 0, 0);
+        }
+        camara.updateProjectionMatrix();
+      });
+
+      // =========================================================
+      //  REGLAS Y PARTIDA
+      // =========================================================
+      const J = { modo: null, nombres: [], turno: 0, grupos: [null, null], yo: 0, dificultad: "normal", partida: 0, activa: false, tiroN: 0, recibido: {} };
+
+      const ui = Arcade.ui({
+        juego: "billar",
+        titulo: "Billar 8",
+        emoji: "🎱",
+        subtitulo: "Lisas contra rayadas · la 8 al final",
+        modos: ["bot", "online", "local"],
+        dificultad: true,
+        reglas: [
+          "Pon el dedo en la mesa y jala hacia atrás como resortera: la blanca sale hacia el otro lado.",
+          "La línea punteada te dice a dónde llega la blanca, y la amarilla hacia dónde sale la bola que golpeas.",
+          "El primero que meta una bola se queda con ese grupo: lisas (1-7) o rayadas (9-15).",
+          "Si metes una de las tuyas, sigues tirando. Si metes la blanca o le pegas primero a una del otro, es falta.",
+          "Cuando metas todas las tuyas, mete la 8 para ganar. ¡Si metes la 8 antes, pierdes!",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.activa = false;
+          esperandoTiro = null;
+          ocultarMira();
+        },
+      });
+      ui.alEvento = (tipo, datos) => {
+        if (tipo !== "tiro" || !datos || datos.partida !== J.partida) return;
+        J.recibido[datos.n] = datos;
+        if (J.esperando && J.esperando.n === datos.n) {
+          const r = J.esperando.r;
+          J.esperando = null;
+          r(datos);
+        }
+      };
+
+      function soyYo(i) {
+        if (J.modo === "online") return i === J.yo;
+        if (J.modo === "bot") return i === 0;
+        return true;
+      }
+      const nombreGrupo = (g) => (g === "lisas" ? "🔴 Lisas" : g === "rayadas" ? "🟡 Rayadas" : "");
+      function marcador() {
+        ui.marcador(
+          [0, 1].map((i) => {
+            const g = J.grupos[i];
+            const quedan = g ? bolasDe(g).length : null;
+            return {
+              nombre: J.nombres[i] + (J.modo === "online" && i === J.yo ? " (tú)" : ""),
+              valor: g ? (quedan ? `${quedan}` : "🎱") : "—",
+              detalle: g ? `${nombreGrupo(g)}${quedan ? " por meter" : " · ¡va por la 8!"}` : "sin grupo",
+              activo: J.turno === i,
+            };
+          }),
+        );
+      }
+
+      function empezar(modo, info) {
+        J.modo = modo;
+        J.nombres = info.nombres;
+        J.dificultad = info.dificultad;
+        J.partida = info.partida;
+        J.yo = modo === "online" ? ui.yo : 0;
+        J.grupos = [null, null];
+        J.tiroN = 0;
+        J.recibido = {};
+        J.activa = true;
+        J.turno = modo === "bot" ? 0 : Arcade.rng(info.semilla)() < 0.5 ? 0 : 1;
+        acomodar();
+        marcador();
+        jugar(info.partida);
+      }
+
+      function colocarBlanca() {
+        // bola en mano simplificada: la blanca vuelve a su punto (o lo más cerca que se pueda)
+        blanca.dentro = false;
+        blanca.malla.visible = true;
+        blanca.vx = blanca.vz = 0;
+        for (let k = 0; k < 40; k++) {
+          blanca.x = (k % 2 ? 1 : -1) * Math.floor(k / 2) * R * 2.2;
+          blanca.z = MZ / 2;
+          if (!bolas.some((b) => b !== blanca && !b.dentro && Math.hypot(b.x - blanca.x, b.z - blanca.z) < 2.2 * R)) break;
+        }
+      }
+
+      async function jugar(partida) {
+        while (J.activa && partida === J.partida) {
+          const t = J.turno;
+          marcador();
+          ui.avisar(J.modo === "local" ? `Tira ${J.nombres[t]}` : soyYo(t) ? "¡Tu turno!" : `Turno de ${J.nombres[t]}`, t ? "#4fb3ff" : "#ff4f8b");
+          const n = J.tiroN++;
+          let tiro, rival = null;
+          if (soyYo(t)) {
+            ui.ayuda("👆 Jala hacia atrás desde la mesa y suelta");
+            tiro = await new Promise((r) => (esperandoTiro = r));
+            ui.ayuda("");
+          } else if (J.modo === "bot") {
+            await esperar(1100);
+            tiro = tiroBot(t);
+            mostrarMira(tiro.dx, tiro.dz, tiro.v / VEL_MAX);
+            await esperar(700);
+            ocultarMira();
+          } else {
+            ui.ayuda(`${J.nombres[t]} está apuntando…`);
+            rival = J.recibido[n] || (await new Promise((r) => (J.esperando = { n, r })));
+            ui.ayuda("");
+            tiro = rival.tiro;
+          }
+          if (!J.activa || partida !== J.partida) return;
+          const ev = await simular(tiro);
+          if (!J.activa || partida !== J.partida) return;
+          if (rival) {
+            // deja las bolas exactamente como quedaron en el cel que tiró
+            rival.final.forEach(([x, z, dentro], i) => {
+              Object.assign(bolas[i], { x, z, dentro: !!dentro, vx: 0, vz: 0 });
+              if (!dentro) {
+                bolas[i].malla.visible = true;
+                bolas[i].malla.position.y = R;
+              }
+            });
+            ev.metidas = rival.metidas;
+            ev.primera = rival.primera;
+          } else if (J.modo === "online") {
+            ui.enviar("tiro", { partida: J.partida, n, tiro, metidas: ev.metidas, primera: ev.primera, final: bolas.map((b) => [+b.x.toFixed(5), +b.z.toFixed(5), b.dentro ? 1 : 0]) });
+          }
+          const fin = aplicarReglas(t, ev);
+          marcador();
+          if (fin != null) return terminar(fin.ganador, fin.motivo);
+          await esperar(900);
+        }
+      }
+
+      // decide falta, grupos, si sigue tirando y si alguien ganó
+      function aplicarReglas(t, ev) {
+        const otro = 1 - t;
+        const metioBlanca = ev.metidas.includes(0);
+        const metio8 = ev.metidas.includes(8);
+        const grupo = J.grupos[t];
+        let falta = metioBlanca || ev.primera == null;
+        if (grupo && ev.primera != null) {
+          const primeraEsMia = ev.primera === 8 ? !bolasDe(grupo).length : grupo === "lisas" ? ev.primera < 8 : ev.primera > 8;
+          if (!primeraEsMia) falta = true;
+        }
+        if (metio8) {
+          const tocaba = grupo && !bolasDe(grupo).length;
+          if (tocaba && !metioBlanca) return { ganador: t, motivo: "8" };
+          return { ganador: otro, motivo: metioBlanca ? "8_blanca" : "8_antes" };
+        }
+        // grupos: el primero que mete (sin falta) se queda con lo que metió
+        const buenas = ev.metidas.filter((n) => n !== 0 && n !== 8);
+        if (!grupo && buenas.length && !falta) {
+          J.grupos[t] = buenas[0] < 8 ? "lisas" : "rayadas";
+          J.grupos[otro] = J.grupos[t] === "lisas" ? "rayadas" : "lisas";
+          ui.avisar(`${nombreGrupo(J.grupos[t])}<small>para ${J.nombres[t]}</small>`, "#ffd84f");
+        }
+        const g = J.grupos[t];
+        const metiMias = g ? buenas.some((n) => (g === "lisas" ? n < 8 : n > 8)) : buenas.length > 0;
+        if (metioBlanca) colocarBlanca();
+        if (falta) {
+          ui.avisar(metioBlanca ? "⚠️ ¡Falta! Metiste la blanca" : ev.primera == null ? "⚠️ ¡Falta! No le pegaste a nada" : "⚠️ ¡Falta! Le pegaste a una del otro", "#ff6b81");
+          sonar("abucheo");
+          J.turno = otro;
+        } else if (metiMias) {
+          ui.avisar("🎱 ¡Adentro!<small>sigues tirando</small>", "#26de81");
+          sonar("publico");
+        } else {
+          J.turno = otro;
+        }
+        return null;
+      }
+
+      function terminar(g, motivo) {
+        J.activa = false;
+        const yo = J.modo === "online" ? J.yo : 0;
+        const gane = g === yo;
+        sonar(gane || J.modo === "local" ? "ganar" : "perder");
+        const razones = { 8: "¡Metió la 8 limpiamente! 🎱", "8_blanca": "Metió la 8 junto con la blanca 😬", "8_antes": "Metió la 8 antes de tiempo 😬" };
+        ui.terminar({
+          emoji: J.modo === "local" || gane ? "🏆" : "😿",
+          texto: J.modo === "local" ? `¡Ganó ${J.nombres[g]}!` : gane ? "¡Ganaste!" : `Ganó ${J.nombres[g]}`,
+          nota: razones[motivo] || "",
+        });
+      }
+
+      acomodar();
+    </script>
+  </body>
+</html>

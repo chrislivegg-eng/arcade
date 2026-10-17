@@ -31,3 +31,4 @@ templates/basta.html
 templates/espia.html
 templates/juego_air_hockey.html
 templates/juego_ping_pong.html
+templates/juego_billar.html
