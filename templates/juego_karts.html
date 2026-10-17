@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#7ed0ff" />
+    <title>Karts 3D · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      #info-carrera {
+        position: fixed;
+        top: calc(96px + env(safe-area-inset-top));
+        left: 10px;
+        right: 10px;
+        display: flex;
+        justify-content: space-between;
+        z-index: 5;
+        pointer-events: none;
+      }
+      #info-carrera div {
+        background: rgba(20, 12, 24, 0.72);
+        border-radius: 14px;
+        padding: 6px 12px;
+        font-weight: 900;
+        font-size: 1.05rem;
+      }
+      #posicion {
+        font-size: 1.8rem !important;
+        color: #ffd84f;
+      }
+      #cuenta-salida {
+        position: fixed;
+        left: 50%;
+        top: 38%;
+        transform: translate(-50%, -50%);
+        font-size: 6rem;
+        font-weight: 900;
+        z-index: 6;
+        text-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        pointer-events: none;
+      }
+      #btn-inclinar {
+        position: fixed;
+        right: 12px;
+        bottom: calc(70px + env(safe-area-inset-bottom));
+        z-index: 6;
+        border: none;
+        border-radius: 14px;
+        padding: 8px 12px;
+        font-family: inherit;
+        font-weight: 900;
+        background: rgba(20, 12, 24, 0.72);
+        color: #fff;
+      }
+      .flecha-lado {
+        position: fixed;
+        bottom: calc(18px + env(safe-area-inset-bottom));
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.18);
+        display: grid;
+        place-items: center;
+        font-size: 2rem;
+        z-index: 4;
+        pointer-events: none;
+        transition: background 0.1s;
+      }
+      .flecha-lado.activa {
+        background: rgba(255, 216, 79, 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+    <div id="info-carrera" class="oculto">
+      <div id="posicion">1º</div>
+      <div id="vuelta">Vuelta 1/3</div>
+      <div id="tiempo">0:00.0</div>
+    </div>
+    <div id="cuenta-salida" class="oculto"></div>
+    <button id="btn-inclinar" class="oculto">📱 Inclinar: no</button>
+    <div class="flecha-lado oculto" id="flecha-izq" style="left: 18px">⬅️</div>
+    <div class="flecha-lado oculto" id="flecha-der" style="right: 18px">➡️</div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, material, sonar } = Arcade;
+
+      const VUELTAS = 3;
+      const ANCHO_PISTA = 9;
+      const COLORES = [0xff4f8b, 0x4fb3ff, 0x26de81, 0xffb84f];
+
+      // =========================================================
+      //  PISTA (curva cerrada)
+      // =========================================================
+      const PUNTOS = [
+        [0, 0], [45, -2], [75, 12], [82, 42], [62, 66], [32, 58], [14, 82], [-22, 92], [-50, 70], [-40, 40], [-62, 18], [-48, -14], [-18, -20],
+      ];
+      const curva = new THREE.CatmullRomCurve3(PUNTOS.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, "centripetal");
+      const N = 700;
+      const muestras = curva.getSpacedPoints(N).slice(0, N);
+      const tangentes = muestras.map((_, i) => {
+        const t = new THREE.Vector3().subVectors(muestras[(i + 1) % N], muestras[(i - 1 + N) % N]).normalize();
+        return t;
+      });
+      const normales = tangentes.map((t) => new THREE.Vector3(t.z, 0, -t.x)); // hacia la izquierda
+      const largoVuelta = curva.getLength();
+      const TURBOS = [110, 300, 520];
+
+      const M = Arcade.mundo({
+        fondo: 0x8fd3ff,
+        niebla: [60, 170],
+        fov: 65,
+        lejos: 400,
+        exposicion: 1.0,
+        colorAmbiente: 0xaee0ff,
+        lamparas: [
+          [0, 20, 0, 0xffffff, 3],
+          [-20, 5, 10, 0xbfe6ff, 1.5],
+          [20, 5, -10, 0xbfe6ff, 1.5],
+        ],
+      });
+      const { escena, camara } = M;
+      escena.add(new THREE.HemisphereLight(0xdff2ff, 0x4a7a3a, 0.8));
+      const sol = new THREE.DirectionalLight(0xfff1dd, 1.3);
+      sol.castShadow = true;
+      sol.shadow.mapSize.set(2048, 2048);
+      Object.assign(sol.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 120 });
+      sol.shadow.bias = -0.0006;
+      escena.add(sol, sol.target);
+
+      // pasto
+      const texturaPasto = M.textura(256, 256, (g, w, h) => {
+        g.fillStyle = "#5cb85c";
+        g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 3000; i++) {
+          g.fillStyle = `rgba(${Math.random() < 0.5 ? "40,120,40" : "120,200,90"},0.35)`;
+          g.fillRect(Math.random() * w, Math.random() * h, 2, 3);
+        }
+      });
+      texturaPasto.wrapS = texturaPasto.wrapT = THREE.RepeatWrapping;
+      texturaPasto.repeat.set(60, 60);
+      const pasto = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), material(0xffffff, { map: texturaPasto, roughness: 1 }));
+      pasto.rotation.x = -Math.PI / 2;
+      pasto.position.y = -0.02;
+      pasto.receiveShadow = true;
+      escena.add(pasto);
+
+      // asfalto
+      const texturaAsfalto = M.textura(256, 256, (g, w, h) => {
+        g.fillStyle = "#4a4a52";
+        g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 4000; i++) {
+          g.fillStyle = `rgba(${Math.random() < 0.5 ? "0,0,0" : "255,255,255"},0.08)`;
+          g.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+        }
+        g.fillStyle = "rgba(255,255,255,0.85)";
+        g.fillRect(w / 2 - 3, 0, 6, h / 2);
+      });
+      texturaAsfalto.wrapS = texturaAsfalto.wrapT = THREE.RepeatWrapping;
+      function franja(desde, hasta, alto, mat, repetirV) {
+        const pos = [],
+          uv = [],
+          idx = [];
+        let acumulado = 0;
+        for (let i = 0; i <= N; i++) {
+          const k = i % N;
+          if (i > 0) acumulado += muestras[k].distanceTo(muestras[(k - 1 + N) % N]);
+          const a = muestras[k].clone().addScaledVector(normales[k], desde),
+            b = muestras[k].clone().addScaledVector(normales[k], hasta);
+          pos.push(a.x, alto, a.z, b.x, alto, b.z);
+          uv.push(0, acumulado / repetirV, 1, acumulado / repetirV);
+          if (i < N) idx.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+        geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+        geo.setIndex(idx);
+        geo.computeVertexNormals();
+        const m = new THREE.Mesh(geo, mat);
+        m.receiveShadow = true;
+        escena.add(m);
+        return m;
+      }
+      franja(ANCHO_PISTA / 2, -ANCHO_PISTA / 2, 0.01, material(0xffffff, { map: texturaAsfalto, roughness: 0.85, side: THREE.DoubleSide }), 8);
+      const texturaPiano = M.textura(16, 64, (g, w, h) => {
+        g.fillStyle = "#e8e8e8";
+        g.fillRect(0, 0, w, h);
+        g.fillStyle = "#d81e2c";
+        g.fillRect(0, 0, w, h / 2);
+      });
+      texturaPiano.wrapS = texturaPiano.wrapT = THREE.RepeatWrapping;
+      const matPiano = material(0xffffff, { map: texturaPiano, roughness: 0.6, side: THREE.DoubleSide });
+      franja(ANCHO_PISTA / 2 + 1.1, ANCHO_PISTA / 2, 0.03, matPiano, 2.5);
+      franja(-ANCHO_PISTA / 2, -ANCHO_PISTA / 2 - 1.1, 0.03, matPiano, 2.5);
+
+      // meta a cuadros
+      const texturaMeta = M.textura(128, 32, (g, w, h) => {
+        for (let x = 0; x < 16; x++) for (let y = 0; y < 4; y++) {
+          g.fillStyle = (x + y) % 2 ? "#111" : "#fff";
+          g.fillRect((x * w) / 16, (y * h) / 4, w / 16, h / 4);
+        }
+      });
+      const meta = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO_PISTA, 2.2), material(0xffffff, { map: texturaMeta }));
+      meta.rotation.x = -Math.PI / 2;
+      meta.rotation.z = Math.atan2(tangentes[0].x, tangentes[0].z);
+      meta.position.copy(muestras[0]).setY(0.04);
+      escena.add(meta);
+      // arco de meta
+      const arco = new THREE.Group();
+      [-1, 1].forEach((l) => {
+        const poste = new THREE.Mesh(new THREE.BoxGeometry(0.4, 6, 0.4), material(0x2b1d63));
+        poste.position.set(l * (ANCHO_PISTA / 2 + 1.5), 3, 0);
+        poste.castShadow = true;
+        arco.add(poste);
+      });
+      const letrero = new THREE.Mesh(
+        new THREE.BoxGeometry(ANCHO_PISTA + 3.4, 1.4, 0.3),
+        material(0xffffff, {
+          map: M.textura(512, 80, (g, w, h) => {
+            g.fillStyle = "#2b1d63";
+            g.fillRect(0, 0, w, h);
+            g.font = "900 54px Nunito, Arial Black, sans-serif";
+            g.textAlign = "center";
+            g.fillStyle = "#ffd84f";
+            g.fillText("🏁 ARCADE GP 🏁", w / 2, 60);
+          }),
+        }),
+      );
+      letrero.position.y = 6.2;
+      arco.add(letrero);
+      arco.position.copy(muestras[0]);
+      arco.rotation.y = Math.atan2(normales[0].x, normales[0].z);
+      escena.add(arco);
+
+      // turbos
+      const texturaTurbo = M.textura(64, 128, (g, w, h) => {
+        g.fillStyle = "#ff8a00";
+        g.fillRect(0, 0, w, h);
+        g.fillStyle = "#ffe14f";
+        for (let k = 0; k < 3; k++) {
+          const y = k * 42 + 8;
+          g.beginPath();
+          g.moveTo(w / 2, y);
+          g.lineTo(w - 6, y + 28);
+          g.lineTo(6, y + 28);
+          g.fill();
+        }
+      });
+      TURBOS.forEach((i) => {
+        const t = new THREE.Mesh(new THREE.PlaneGeometry(3, 5), material(0xffffff, { map: texturaTurbo, emissive: lin(0xff8a00), emissiveIntensity: 0.5 }));
+        t.rotation.x = -Math.PI / 2;
+        t.rotation.z = Math.atan2(tangentes[i].x, tangentes[i].z) + Math.PI;
+        t.position.copy(muestras[i]).setY(0.05);
+        escena.add(t);
+      });
+
+      // árboles y llantas
+      const rnd = Arcade.rng(7);
+      for (let k = 0; k < 140; k++) {
+        const i = Math.floor(rnd() * N);
+        const lado = rnd() < 0.5 ? -1 : 1;
+        const p = muestras[i].clone().addScaledVector(normales[i], lado * (ANCHO_PISTA / 2 + 5 + rnd() * 25));
+        // que no quede encima de otra parte de la pista
+        if (muestras.some((m) => m.distanceTo(p) < ANCHO_PISTA / 2 + 3)) continue;
+        const arbol = new THREE.Group();
+        const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 2, 8), material(0x7a4a26));
+        tronco.position.y = 1;
+        const copa = new THREE.Mesh(new THREE.ConeGeometry(1.8 + rnd(), 4.5 + rnd() * 2, 9), material(rnd() < 0.5 ? 0x2f8f3e : 0x3aa34a));
+        copa.position.y = 4.2;
+        tronco.castShadow = copa.castShadow = true;
+        arbol.add(tronco, copa);
+        arbol.position.copy(p);
+        escena.add(arbol);
+      }
+
+      // =========================================================
+      //  KARTS
+      // =========================================================
+      function crearKart(color) {
+        const g = new THREE.Group();
+        const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.45, 2.4), material(color, { roughness: 0.35, metalness: 0.2 }));
+        cuerpo.position.y = 0.45;
+        const frente = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.3, 0.6), material(color, { roughness: 0.35 }));
+        frente.position.set(0, 0.55, 1.2);
+        const asiento = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.6, 0.5), material(0x222222));
+        asiento.position.set(0, 0.85, -0.5);
+        const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 12), material(color, { roughness: 0.2, metalness: 0.3 }));
+        cabeza.position.set(0, 1.45, -0.2);
+        const visor = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.18, 0.1), material(0x111122, { roughness: 0.1 }));
+        visor.position.set(0, 1.48, 0.15);
+        const aleron = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.1, 0.4), material(0x222222));
+        aleron.position.set(0, 1.0, -1.25);
+        g.add(cuerpo, frente, asiento, cabeza, visor, aleron);
+        const llantas = [];
+        [
+          [-0.85, 0.85],
+          [0.85, 0.85],
+          [-0.85, -0.85],
+          [0.85, -0.85],
+        ].forEach(([x, z]) => {
+          const l = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.35, 14), material(0x1a1a1a, { roughness: 0.9 }));
+          l.rotation.z = Math.PI / 2;
+          l.position.set(x, 0.35, z);
+          g.add(l);
+          llantas.push(l);
+        });
+        g.traverse((m) => (m.castShadow = true));
+        escena.add(g);
+        return { malla: g, llantas, x: 0, z: 0, h: 0, v: 0, idx: 0, vuelta: 0, turbo: 0, fin: null, carril: 0, objetivo: null };
+      }
+
+      function colocarEnSalida(k, fila) {
+        const i = (N - 6 - fila * 6) % N;
+        const p = muestras[i].clone().addScaledVector(normales[i], (fila % 2 ? -1 : 1) * 2);
+        Object.assign(k, { x: p.x, z: p.z, h: Math.atan2(tangentes[i].x, tangentes[i].z), v: 0, idx: i, vuelta: -1, turbo: 0, fin: null });
+      }
+
+      // índice de la pista más cercano (busca cerca del último)
+      function seguirPista(k) {
+        let mejor = k.idx,
+          dMejor = Infinity;
+        for (let d = -25; d <= 25; d++) {
+          const i = (k.idx + d + N) % N;
+          const dd = (muestras[i].x - k.x) ** 2 + (muestras[i].z - k.z) ** 2;
+          if (dd < dMejor) {
+            dMejor = dd;
+            mejor = i;
+          }
+        }
+        // ¿cruzó la meta?
+        if (k.idx > N * 0.85 && mejor < N * 0.15) k.vuelta++;
+        if (k.idx < N * 0.15 && mejor > N * 0.85) k.vuelta--;
+        k.idx = mejor;
+        const lateral = (k.x - muestras[mejor].x) * normales[mejor].x + (k.z - muestras[mejor].z) * normales[mejor].z;
+        return lateral;
+      }
+
+      const VEL_MAX = 30,
+        VEL_PASTO = 12,
+        VEL_TURBO = 42;
+      function moverKart(k, dir, dt, factor = 1) {
+        const lateral = seguirPista(k);
+        const enPasto = Math.abs(lateral) > ANCHO_PISTA / 2 + 1.1;
+        if (TURBOS.some((t) => Math.abs(k.idx - t) < 4) && Math.abs(lateral) < 2.2 && k.turbo <= 0) {
+          k.turbo = 1.3;
+          if (k === yo()) {
+            sonar("swoosh", 1.2);
+            sonar("perfecto", 1.6);
+          }
+        }
+        k.turbo -= dt;
+        const tope = (k.turbo > 0 ? VEL_TURBO : enPasto ? VEL_PASTO : VEL_MAX) * factor;
+        k.v += (k.v < tope ? 16 : -30) * dt;
+        k.v = Math.max(0, k.v);
+        k.h -= dir * 2.1 * Math.min(1, k.v / 10) * dt;
+        k.x += Math.sin(k.h) * k.v * dt;
+        k.z += Math.cos(k.h) * k.v * dt;
+        // muy lejos de la pista: te regresa
+        if (Math.abs(lateral) > ANCHO_PISTA / 2 + 22) {
+          const p = muestras[k.idx];
+          k.x = p.x;
+          k.z = p.z;
+          k.h = Math.atan2(tangentes[k.idx].x, tangentes[k.idx].z);
+          k.v = 8;
+        }
+      }
+
+      function dibujarKart(k, dt) {
+        k.malla.position.set(k.x, 0, k.z);
+        k.malla.rotation.y = k.h;
+        k.llantas.forEach((l) => (l.rotation.x += k.v * dt * 2.5));
+      }
+
+      // =========================================================
+      //  CONTROLES: tocar izquierda/derecha, flechas o inclinar
+      // =========================================================
+      const dedos = new Map();
+      let inclinacion = null,
+        usarInclinacion = false,
+        teclas = { izq: false, der: false };
+      M.lienzo.addEventListener("pointerdown", (e) => {
+        dedos.set(e.pointerId, e.clientX < window.innerWidth / 2 ? -1 : 1);
+      });
+      const quitarDedo = (e) => dedos.delete(e.pointerId);
+      M.lienzo.addEventListener("pointerup", quitarDedo);
+      M.lienzo.addEventListener("pointercancel", quitarDedo);
+      M.lienzo.addEventListener("pointermove", (e) => {
+        if (dedos.has(e.pointerId)) dedos.set(e.pointerId, e.clientX < window.innerWidth / 2 ? -1 : 1);
+      });
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowLeft" || e.key === "a") teclas.izq = true;
+        if (e.key === "ArrowRight" || e.key === "d") teclas.der = true;
+      });
+      window.addEventListener("keyup", (e) => {
+        if (e.key === "ArrowLeft" || e.key === "a") teclas.izq = false;
+        if (e.key === "ArrowRight" || e.key === "d") teclas.der = false;
+      });
+      window.addEventListener("deviceorientation", (e) => {
+        if (e.gamma == null) return;
+        const horizontal = Math.abs(window.orientation || 0) === 90;
+        inclinacion = horizontal ? (e.beta || 0) * Math.sign(window.orientation) : e.gamma;
+      });
+      $("btn-inclinar").onclick = async () => {
+        if (!usarInclinacion && typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission) {
+          try {
+            await DeviceOrientationEvent.requestPermission();
+          } catch (e) {}
+        }
+        usarInclinacion = !usarInclinacion;
+        $("btn-inclinar").textContent = `📱 Inclinar: ${usarInclinacion ? "sí" : "no"}`;
+      };
+      function direccion() {
+        if (usarInclinacion && inclinacion != null) return limitar(inclinacion / 25, -1, 1);
+        let d = (teclas.der ? 1 : 0) - (teclas.izq ? 1 : 0);
+        dedos.forEach((v) => (d += v));
+        $("flecha-izq").classList.toggle("activa", d < 0);
+        $("flecha-der").classList.toggle("activa", d > 0);
+        return limitar(d, -1, 1);
+      }
+
+      // =========================================================
+      //  CARRERA
+      // =========================================================
+      const J = { modo: null, karts: [], yo: 0, corriendo: false, inicio: 0, dificultad: "normal", partida: 0, nombres: [], ultimoEnvio: 0, remoto: null };
+      const yo = () => J.karts[J.yo];
+      const FACTOR_BOT = { facil: 0.8, normal: 0.9, pro: 0.98 };
+
+      function progreso(k) {
+        return k.vuelta * N + k.idx;
+      }
+
+      function moverBot(k, dt) {
+        const mira = (k.idx + 14) % N;
+        const destino = muestras[mira].clone().addScaledVector(normales[mira], k.carril);
+        let deseado = Math.atan2(destino.x - k.x, destino.z - k.z);
+        let dif = deseado - k.h;
+        while (dif > Math.PI) dif -= Math.PI * 2;
+        while (dif < -Math.PI) dif += Math.PI * 2;
+        // un poco de "liga": si va muy adelante afloja, si va atrás aprieta
+        const ventaja = (progreso(k) - progreso(yo())) / N;
+        const factor = FACTOR_BOT[J.dificultad] * limitar(1 - ventaja * 0.12, 0.85, 1.12);
+        moverKart(k, limitar(-dif * 2.5, -1, 1), dt, factor);
+        if (Math.random() < dt * 0.3) k.carril = azar(-2.5, 2.5);
+      }
+
+      function choques() {
+        const ks = J.karts;
+        for (let i = 0; i < ks.length; i++)
+          for (let j = i + 1; j < ks.length; j++) {
+            const a = ks[i],
+              b = ks[j];
+            const dx = b.x - a.x,
+              dz = b.z - a.z,
+              d = Math.hypot(dx, dz);
+            if (d < 1.9 && d > 0) {
+              const empuje = (1.9 - d) / 2;
+              a.x -= (dx / d) * empuje;
+              a.z -= (dz / d) * empuje;
+              b.x += (dx / d) * empuje;
+              b.z += (dz / d) * empuje;
+              if (a === yo() || b === yo()) sonar("golpe", 0.3);
+            }
+          }
+      }
+
+      const fmt = (ms) => {
+        const s = ms / 1000;
+        return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
+      };
+
+      let ruidoMotor = 0;
+      M.alCuadro((dt, ahora) => {
+        if (J.modo) {
+          J.karts.forEach((k, i) => {
+            if (i === J.yo) {
+              if (J.corriendo && !k.fin) moverKart(k, direccion(), dt);
+              else if (k.fin) moverKart(k, 0, dt, 0.4);
+            } else if (J.modo === "bot") {
+              if (J.corriendo) moverBot(k, dt);
+            } else if (J.remoto) {
+              // kart del amigo: se acerca suave a la última posición recibida
+              const r = J.remoto;
+              const prediccionX = r.x + Math.sin(r.h) * r.v * Math.min(0.3, (performance.now() - r.t) / 1000);
+              const prediccionZ = r.z + Math.cos(r.h) * r.v * Math.min(0.3, (performance.now() - r.t) / 1000);
+              k.x += (prediccionX - k.x) * Math.min(1, dt * 8);
+              k.z += (prediccionZ - k.z) * Math.min(1, dt * 8);
+              let dh = r.h - k.h;
+              while (dh > Math.PI) dh -= Math.PI * 2;
+              while (dh < -Math.PI) dh += Math.PI * 2;
+              k.h += dh * Math.min(1, dt * 8);
+              k.v = r.v;
+              k.vuelta = r.vuelta;
+              k.idx = r.idx;
+            }
+            dibujarKart(k, dt);
+          });
+          if (J.modo === "bot") choques();
+          if (J.corriendo) revisarCarrera(ahora);
+          // cámara detrás de mi kart
+          const k = yo();
+          const atras = new THREE.Vector3(k.x - Math.sin(k.h) * 7.5, 3.6 + (k.turbo > 0 ? -0.3 : 0), k.z - Math.cos(k.h) * 7.5);
+          camara.position.lerp(atras, Math.min(1, dt * 6));
+          camara.fov = (window.innerWidth < window.innerHeight ? 75 : 62) + (k.turbo > 0 ? 8 : 0);
+          camara.updateProjectionMatrix();
+          camara.lookAt(k.x + Math.sin(k.h) * 6, 1.2, k.z + Math.cos(k.h) * 6);
+          sol.position.set(k.x - 20, 40, k.z + 15);
+          sol.target.position.set(k.x, 0, k.z);
+          ruidoMotor -= dt;
+          if (J.corriendo && ruidoMotor <= 0 && k.v > 5) {
+            ruidoMotor = 0.35;
+            sonar("rodar", 0.15 + (k.v / VEL_MAX) * 0.25);
+          }
+          if (J.modo === "online" && performance.now() - J.ultimoEnvio > 125) {
+            J.ultimoEnvio = performance.now();
+            ui.enviar("pos", { partida: J.partida, x: +k.x.toFixed(2), z: +k.z.toFixed(2), h: +k.h.toFixed(3), v: +k.v.toFixed(1), vuelta: k.vuelta, idx: k.idx });
+          }
+        } else {
+          const t = ahora / 1000;
+          const i = Math.floor((t * 40) % N);
+          camara.position.copy(muestras[i]).add(new THREE.Vector3(0, 14, 0)).addScaledVector(normales[i], 18);
+          camara.lookAt(muestras[(i + 30) % N]);
+          sol.position.set(camara.position.x - 20, 40, camara.position.z);
+          sol.target.position.copy(muestras[i]);
+        }
+      });
+
+      function revisarCarrera(ahora) {
+        const k = yo();
+        const t = performance.now() - J.inicio;
+        $("tiempo").textContent = fmt(t);
+        $("vuelta").textContent = `Vuelta ${limitar(k.vuelta + 1, 1, VUELTAS)}/${VUELTAS}`;
+        const orden = J.karts.slice().sort((a, b) => (a.fin && b.fin ? a.fin - b.fin : a.fin ? -1 : b.fin ? 1 : progreso(b) - progreso(a)));
+        $("posicion").textContent = `${orden.indexOf(k) + 1}º`;
+        if (k.vueltaVista !== k.vuelta) {
+          if (k.vuelta > 0 && k.vuelta < VUELTAS) ui.avisar(k.vuelta === VUELTAS - 1 ? "🏁 ¡ÚLTIMA VUELTA!" : `Vuelta ${k.vuelta + 1}`, "#ffd84f");
+          k.vueltaVista = k.vuelta;
+        }
+        J.karts.forEach((kk, i) => {
+          if (!kk.fin && kk.vuelta >= VUELTAS && (i === J.yo || J.modo === "bot")) kk.fin = t;
+        });
+        if (k.fin && !J.anuncieMeta) {
+          J.anuncieMeta = true;
+          sonar("publico");
+          ui.avisar(`🏁 ¡META!<small>${orden.indexOf(k) + 1}º lugar · ${fmt(k.fin)}</small>`, "#26de81");
+          if (J.modo === "online") ui.enviar("meta", { partida: J.partida, tiempo: k.fin });
+          setTimeout(terminar, J.modo === "online" && !J.remotoMeta ? 15000 : 3500);
+        }
+      }
+
+      async function cuentaSalida() {
+        const c = $("cuenta-salida");
+        c.classList.remove("oculto");
+        for (const t of ["3", "2", "1"]) {
+          c.textContent = t;
+          c.style.color = "#ff6b81";
+          sonar("click");
+          await esperar(800);
+        }
+        c.textContent = "¡YA!";
+        c.style.color = "#26de81";
+        sonar("silbato");
+        J.corriendo = true;
+        J.inicio = performance.now();
+        await esperar(700);
+        c.classList.add("oculto");
+      }
+
+      // =========================================================
+      //  INTERFAZ
+      // =========================================================
+      const ui = Arcade.ui({
+        juego: "karts",
+        titulo: "Karts 3D",
+        emoji: "🏎️",
+        subtitulo: `${VUELTAS} vueltas · pisa las flechas naranjas para turbo`,
+        modos: ["bot", "online"],
+        textosModo: { bot: "🏁 Carrera contra 3 bots" },
+        dificultad: true,
+        records: true,
+        unidadRecord: "ms",
+        intervaloOnline: 150,
+        reglas: [
+          "El kart acelera solo. Toca el <b>lado izquierdo</b> o <b>derecho</b> de la pantalla para dar vuelta.",
+          "También puedes inclinar el cel (botón 📱 Inclinar) o usar las flechas del teclado.",
+          "Pisa las flechas naranjas para un turbo 🔥. En el pasto vas más lento.",
+          `Gana el primero en dar ${VUELTAS} vueltas. Tu mejor tiempo contra los bots queda en los récords.`,
+        ],
+        alEmpezar: empezar,
+        alSalir: limpiar,
+      });
+      ui.alEvento = (tipo, datos) => {
+        if (!datos || datos.partida !== J.partida || J.modo !== "online") return;
+        if (tipo === "pos") J.remoto = { ...datos, t: performance.now() };
+        if (tipo === "meta") {
+          J.remotoMeta = true;
+          J.karts[1 - J.yo].fin = datos.tiempo;
+          if (J.anuncieMeta) setTimeout(terminar, 1500);
+        }
+      };
+
+      function limpiar() {
+        J.corriendo = false;
+        J.modo = null;
+        J.karts.forEach((k) => escena.remove(k.malla));
+        J.karts = [];
+        ["info-carrera", "btn-inclinar", "flecha-izq", "flecha-der", "cuenta-salida"].forEach((id) => $(id).classList.add("oculto"));
+      }
+
+      function empezar(modo, info) {
+        limpiar();
+        J.modo = modo;
+        J.nombres = info.nombres;
+        J.dificultad = info.dificultad;
+        J.partida = info.partida;
+        J.anuncieMeta = false;
+        J.remotoMeta = false;
+        J.terminado = false;
+        J.remoto = null;
+        J.yo = modo === "online" ? ui.yo : 0;
+        const cuantos = modo === "bot" ? 4 : 2;
+        for (let i = 0; i < cuantos; i++) {
+          const k = crearKart(COLORES[i]);
+          k.carril = azar(-2, 2);
+          colocarEnSalida(k, i);
+          k.vueltaVista = -1;
+          J.karts.push(k);
+        }
+        J.karts.forEach((k) => dibujarKart(k, 0));
+        const k = yo();
+        camara.position.set(k.x - Math.sin(k.h) * 7.5, 3.6, k.z - Math.cos(k.h) * 7.5);
+        ["info-carrera", "btn-inclinar", "flecha-izq", "flecha-der"].forEach((id) => $(id).classList.remove("oculto"));
+        const nombres = modo === "bot" ? [J.nombres[0], "Bot Rayo", "Bot Turbo", "Bot Nitro"] : J.nombres;
+        ui.marcador([
+          { nombre: nombres[J.yo] + " (tú)", valor: "🏎️", detalle: "", activo: true, color: "#" + new THREE.Color(COLORES[J.yo]).getHexString() },
+          modo === "online" ? { nombre: nombres[1 - J.yo], valor: "🏎️", detalle: "🌐 en vivo", color: "#" + new THREE.Color(COLORES[1 - J.yo]).getHexString() } : { nombre: "3 bots", valor: "🤖", detalle: J.dificultad, color: "#26de81" },
+        ]);
+        ui.ayuda("👈 Toca izquierda o derecha para dar vuelta 👉");
+        setTimeout(() => ui.ayuda(""), 4500);
+        cuentaSalida();
+      }
+
+      function terminar() {
+        if (J.terminado || !J.modo) return;
+        J.terminado = true;
+        J.corriendo = false;
+        const k = yo();
+        const orden = J.karts.slice().sort((a, b) => (a.fin && b.fin ? a.fin - b.fin : a.fin ? -1 : b.fin ? 1 : progreso(b) - progreso(a)));
+        const lugar = orden.indexOf(k) + 1;
+        const medalla = ["🥇", "🥈", "🥉", "🏁"][lugar - 1];
+        sonar(lugar === 1 ? "ganar" : "perder");
+        ["info-carrera", "btn-inclinar", "flecha-izq", "flecha-der"].forEach((id) => $(id).classList.add("oculto"));
+        ui.terminar({
+          emoji: medalla,
+          texto: lugar === 1 ? "¡Ganaste la carrera!" : `Llegaste en ${lugar}º lugar`,
+          nota: k.fin ? `Tu tiempo: ${fmt(k.fin)}` : "No terminaste las vueltas",
+          record: J.modo === "bot" && k.fin ? Math.round(k.fin) : null,
+        });
+      }
+    </script>
+  </body>
+</html>

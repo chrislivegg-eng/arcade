@@ -36,7 +36,7 @@ JUEGOS = {
     'zombis': 'juego_zombis.html',
 }
 # En estos juegos el récord es "menos es mejor" (golpes, milisegundos)
-RECORD_MENOR = {'mini_golf', 'reflejos'}
+RECORD_MENOR = {'mini_golf', 'reflejos', 'karts'}
 
 salas = {}
 candado = threading.Lock()
