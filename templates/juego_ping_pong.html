@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#101828" />
+    <title>Ping Pong 3D · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, gauss, lin, material, sonar } = Arcade;
+
+      // Mesa real: 2.74 × 1.525 m, 76 cm de alto, red de 15.25 cm
+      const MEDIO_LARGO = 1.37,
+        MEDIO_ANCHO = 0.7625,
+        ALTO = 0.76,
+        RED = 0.1525,
+        R = 0.02,
+        G = 9.8;
+      const PLANO_GOLPE = 1.62; // distancia desde el centro donde cada quien le pega
+      const PUNTOS_PARA_GANAR = 11;
+
+      // =========================================================
+      //  ESCENA
+      // =========================================================
+      const M = Arcade.mundo({ fondo: 0x101828, niebla: [8, 22], fov: 50, exposicion: 1.1 });
+      const { escena, camara } = M;
+      escena.add(new THREE.HemisphereLight(0xeaf2ff, 0x202830, 0.6));
+      const foco = new THREE.SpotLight(0xffffff, 2.4, 0, 0.7, 0.5, 1);
+      foco.position.set(0.5, 4.5, 0.5);
+      foco.target.position.set(0, ALTO, 0);
+      foco.castShadow = true;
+      foco.shadow.mapSize.set(1024, 1024);
+      foco.shadow.bias = -0.0004;
+      escena.add(foco, foco.target);
+
+      const piso = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), material(0x2c3a52, { roughness: 0.6 }));
+      piso.rotation.x = -Math.PI / 2;
+      piso.receiveShadow = true;
+      escena.add(piso);
+      const texturaMesa = M.textura(512, 920, (g, w, h) => {
+        g.fillStyle = "#1565c0";
+        g.fillRect(0, 0, w, h);
+        g.strokeStyle = "#ffffff";
+        g.lineWidth = 10;
+        g.strokeRect(5, 5, w - 10, h - 10);
+        g.lineWidth = 4;
+        g.beginPath();
+        g.moveTo(w / 2, 0);
+        g.lineTo(w / 2, h);
+        g.stroke();
+      });
+      const mesa = new THREE.Mesh(new THREE.BoxGeometry(MEDIO_ANCHO * 2, 0.04, MEDIO_LARGO * 2), [
+        material(0x0d47a1),
+        material(0x0d47a1),
+        material(0xffffff, { map: texturaMesa, roughness: 0.35 }),
+        material(0x0d47a1),
+        material(0x0d47a1),
+        material(0x0d47a1),
+      ]);
+      mesa.position.y = ALTO - 0.02;
+      mesa.receiveShadow = mesa.castShadow = true;
+      escena.add(mesa);
+      [
+        [-1, -1],
+        [1, -1],
+        [-1, 1],
+        [1, 1],
+      ].forEach(([x, z]) => {
+        const pata = new THREE.Mesh(new THREE.BoxGeometry(0.05, ALTO - 0.04, 0.05), material(0x222222, { metalness: 0.5 }));
+        pata.position.set(x * (MEDIO_ANCHO - 0.1), (ALTO - 0.04) / 2, z * (MEDIO_LARGO - 0.2));
+        escena.add(pata);
+      });
+      const texturaRed = M.textura(256, 32, (g, w, h) => {
+        g.clearRect(0, 0, w, h);
+        g.strokeStyle = "rgba(255,255,255,0.8)";
+        for (let x = 0; x < w; x += 6) {
+          g.beginPath();
+          g.moveTo(x, 0);
+          g.lineTo(x, h);
+          g.stroke();
+        }
+        for (let y = 0; y < h; y += 6) {
+          g.beginPath();
+          g.moveTo(0, y);
+          g.lineTo(w, y);
+          g.stroke();
+        }
+        g.fillStyle = "#fff";
+        g.fillRect(0, 0, w, 4);
+      });
+      const red = new THREE.Mesh(new THREE.PlaneGeometry(MEDIO_ANCHO * 2 + 0.3, RED), new THREE.MeshStandardMaterial({ map: texturaRed, transparent: true, side: THREE.DoubleSide, alphaTest: 0.2 }));
+      red.position.set(0, ALTO + RED / 2, 0);
+      escena.add(red);
+
+      const pelota = new THREE.Mesh(new THREE.SphereGeometry(R, 20, 14), material(0xffffff, { roughness: 0.3, emissive: lin(0xffa040), emissiveIntensity: 0.15 }));
+      pelota.castShadow = true;
+      escena.add(pelota);
+
+      function crearPaleta(color) {
+        const g = new THREE.Group();
+        const cara = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.012, 32), material(color, { roughness: 0.6 }));
+        cara.rotation.x = Math.PI / 2;
+        const mango = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.1, 0.022), material(0xb07a3a, { roughness: 0.7 }));
+        mango.position.y = -0.12;
+        g.add(cara, mango);
+        g.traverse((m) => (m.castShadow = true));
+        escena.add(g);
+        return g;
+      }
+      const paletas = [crearPaleta(0xd81e2c), crearPaleta(0x1f1f1f)];
+
+      // =========================================================
+      //  PELOTA (física propia, predecible para que los dos cel la vean igual)
+      // =========================================================
+      const B = { x: 0, y: 1, z: 0, vx: 0, vy: 0, vz: 0, activa: false, botes: [], ultimo: 0 };
+
+      // un paso de física; devuelve un evento: 'bote', 'red', 'piso' o null
+      function paso(b, dt) {
+        b.vy -= G * dt;
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        const zAntes = b.z;
+        b.z += b.vz * dt;
+        // red
+        if (Math.sign(zAntes) !== Math.sign(b.z) && b.y < ALTO + RED + R && Math.abs(b.x) < MEDIO_ANCHO + 0.15) {
+          b.z = Math.sign(zAntes) * 0.03;
+          b.vz *= -0.15;
+          b.vx *= 0.3;
+          return "red";
+        }
+        // mesa
+        if (b.y < ALTO + R && b.vy < 0 && Math.abs(b.x) < MEDIO_ANCHO && Math.abs(b.z) < MEDIO_LARGO && b.y > ALTO - 0.05) {
+          b.y = ALTO + R;
+          b.vy *= -0.86;
+          b.vx *= 0.97;
+          b.vz *= 0.97;
+          return "bote";
+        }
+        if (b.y < R) {
+          b.y = R;
+          b.vy *= -0.5;
+          return "piso";
+        }
+        return null;
+      }
+
+      // ¿el tiro cae bien del otro lado? (se simula antes, igual en los dos cel)
+      function clasificar(pos, vel, lado) {
+        const b = { ...pos, vx: vel.x, vy: vel.y, vz: vel.z };
+        for (let i = 0; i < 400; i++) {
+          const ev = paso(b, 1 / 200);
+          if (ev === "red") return "red";
+          if (ev === "bote") return Math.sign(b.z) === -lado ? "bueno" : "fuera";
+          if (ev === "piso") return "fuera";
+        }
+        return "fuera";
+      }
+
+      // velocidad para que la pelota caiga en (tx, tz) tardando T segundos
+      function velocidadA(desde, tx, tz, T) {
+        return {
+          x: (tx - desde.x) / T,
+          z: (tz - desde.z) / T,
+          y: (ALTO + R - desde.y + 0.5 * G * T * T) / T,
+        };
+      }
+
+      // =========================================================
+      //  GOLPES
+      // =========================================================
+      const VENTANA = 0.38; // metros alrededor del plano de golpe donde se puede pegar
+      function puedePegar(lado) {
+        // la pelota viene hacia mí, ya botó en mi lado y está cerca de mi paleta
+        return B.activa && Math.sign(B.vz) === lado && B.botes.length && B.botes[B.botes.length - 1] === lado && Math.abs(B.z - lado * PLANO_GOLPE) < VENTANA;
+      }
+
+      // tiro desde un gesto: lado al que deslizas = dirección; rapidez = fuerza
+      function tiroDesdeGesto(g, lado) {
+        const H = window.innerHeight;
+        const rapidez = Math.hypot(g.vx, g.vy) / H;
+        const fuerza = limitar((rapidez - 0.6) / 4, 0, 1.2);
+        const desvio = limitar(g.dx / Math.max(60, -g.dy), -1.2, 1.2);
+        const T = limitar(0.95 - fuerza * 0.5, 0.42, 0.95) + gauss() * 0.02;
+        const destinoZ = -lado * limitar(0.55 + fuerza * 0.72 + gauss() * 0.05, 0.25, 1.6); // un remate muy fuerte se puede salir
+        // viendo desde el lado -z, la derecha de la pantalla es -x
+        const destinoX = limitar(desvio * 0.6, -0.85, 0.85) * lado + gauss() * 0.04;
+        return { T: +T.toFixed(3), x: +destinoX.toFixed(3), z: +destinoZ.toFixed(3) };
+      }
+
+      const ACIERTO_BOT = { facil: 0.62, normal: 0.8, pro: 0.92 };
+      function tiroBot(lado) {
+        const rapido = Math.hypot(B.vx, B.vz);
+        const dificultadTiro = limitar((rapido - 4) / 6, 0, 1) * 0.25 + (Math.abs(B.x) > 0.6 ? 0.1 : 0);
+        if (Math.random() > ACIERTO_BOT[J.dificultad] - dificultadTiro) return null; // falla
+        const fuerza = J.dificultad === "pro" ? azar(0.4, 0.95) : azar(0.2, 0.7);
+        return { T: limitar(0.95 - fuerza * 0.5, 0.45, 0.95), x: azar(-0.6, 0.6), z: -lado * (0.55 + fuerza * 0.6) };
+      }
+
+      function lanzar(lado, tiro) {
+        const desde = { x: B.x, y: Math.max(B.y, ALTO + 0.12), z: lado * PLANO_GOLPE };
+        const v = velocidadA(desde, tiro.x, tiro.z, tiro.T);
+        Object.assign(B, { x: desde.x, y: desde.y, z: desde.z, vx: v.x, vy: v.y, vz: v.z, activa: true, botes: [], ultimo: lado });
+        sonar("ping", 1.2);
+        return clasificar(desde, v, lado);
+      }
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      const J = { modo: null, nombres: [], puntos: [0, 0], saca: 0, yo: 0, dificultad: "normal", partida: 0, jugando: false, esperando: null, golpeN: 0, recibido: {} };
+      const ladoDe = (i) => (i === 0 ? 1 : -1); // el jugador 0 está del lado +z
+
+      function soyYo(i) {
+        return J.modo === "online" ? i === J.yo : i === 0;
+      }
+
+      // Espera a que yo deslice en el momento correcto
+      let alDeslizar = null;
+      Arcade.deslizar(M.lienzo, {
+        puede: () => !!alDeslizar,
+        soltar: (g) => {
+          if (!alDeslizar || g.dy > -window.innerHeight * 0.04) return;
+          alDeslizar(g);
+        },
+      });
+
+      async function punto(ganador, motivo) {
+        if (!J.jugando) return;
+        B.activa = false;
+        J.puntos[ganador]++;
+        const yoGane = J.modo === "online" ? ganador === J.yo : ganador === 0;
+        const textos = { red: "🕸️ ¡A la red!", fuera: "😬 ¡Fuera!", fallo: yoGane ? "🔥 ¡Punto!" : "😵 Se te pasó", tarde: "⏰ ¡Tarde!", pronto: "⚡ ¡Muy pronto!" };
+        ui.avisar(`${textos[motivo] || "Punto"}<small>${yoGane ? "punto para ti" : "punto del rival"}</small>`, yoGane ? "#26de81" : "#ff6b81");
+        sonar(yoGane ? "publico" : "abucheo");
+        marcador();
+        await esperar(1500);
+        if (!J.jugando) return;
+        const [a, b] = J.puntos;
+        if ((a >= PUNTOS_PARA_GANAR || b >= PUNTOS_PARA_GANAR) && Math.abs(a - b) >= 2) return terminar(a > b ? 0 : 1);
+        // el saque cambia cada 2 puntos (cada punto si van 10-10)
+        const total = a + b;
+        J.saca = (a >= 10 && b >= 10 ? total : Math.floor(total / 2)) % 2 === 0 ? J.primero : 1 - J.primero;
+        sacar();
+      }
+
+      function enviar(tipo, datos) {
+        if (J.modo === "online") ui.enviar(tipo, { partida: J.partida, ...datos });
+      }
+
+      async function sacar() {
+        alDeslizar = null;
+        J.pendiente = null;
+        ventanaAbierta = false;
+        const s = J.saca,
+          lado = ladoDe(s);
+        Object.assign(B, { x: 0.1 * lado, y: ALTO + 0.3, z: lado * PLANO_GOLPE, vx: 0, vy: 0, vz: 0, activa: false, botes: [] });
+        marcador();
+        J.golpeN++;
+        if (soyYo(s)) {
+          ui.ayuda("👆 Desliza hacia arriba para sacar");
+          const g = await new Promise((r) => (alDeslizar = r));
+          alDeslizar = null;
+          ui.ayuda("");
+          const tiro = tiroDesdeGesto(g, lado);
+          tiro.T = Math.max(tiro.T, 0.62);
+          golpear(s, tiro);
+        } else if (J.modo === "bot") {
+          await esperar(900);
+          golpear(s, { T: 0.75, x: azar(-0.5, 0.5), z: -lado * azar(0.6, 1.0) });
+        } else {
+          ui.ayuda(`Saca ${J.nombres[s]}…`);
+        }
+      }
+
+      // pega el jugador i con este tiro (también se usa cuando llega el golpe del rival)
+      function golpear(i, tiro) {
+        const lado = ladoDe(i);
+        B.x = limitar(B.x, -MEDIO_ANCHO - 0.3, MEDIO_ANCHO + 0.3);
+        const resultado = lanzar(lado, tiro);
+        J.esperando = { de: 1 - i, resultado, n: J.golpeN };
+        if (soyYo(i)) enviar("golpe", { n: J.golpeN, de: i, x: +B.x.toFixed(3), y: +B.y.toFixed(3), tiro });
+      }
+
+      // =========================================================
+      //  CICLO
+      // =========================================================
+      let ventanaAbierta = false;
+      M.alCuadro((dt, ahora) => {
+        if (J.jugando && B.activa) {
+          const pasos = 8;
+          for (let k = 0; k < pasos; k++) {
+            const ev = paso(B, dt / pasos);
+            if (ev === "bote") {
+              B.botes.push(Math.sign(B.z));
+              sonar("ping", 0.8);
+            }
+            if (ev === "red") sonar("red", 0.5);
+          }
+          revisarJugada();
+        }
+        pelota.position.set(B.x, B.y, B.z);
+
+        // paletas: se acomodan solas a la pelota (la tuya también; tú solo eliges cuándo y hacia dónde)
+        [0, 1].forEach((i) => {
+          const lado = ladoDe(i);
+          const p = paletas[i];
+          const quiere = new THREE.Vector3(limitar(B.x, -1, 1), Math.max(ALTO + 0.08, Math.min(B.y, ALTO + 0.5)), lado * (PLANO_GOLPE + 0.05));
+          const viene = Math.sign(B.vz) === lado;
+          if (!viene) quiere.set(0, ALTO + 0.18, lado * (PLANO_GOLPE + 0.15));
+          p.position.lerp(quiere, viene ? 0.2 : 0.06);
+          p.rotation.set(0, lado === 1 ? 0 : Math.PI, -lado * B.x * 0.4);
+        });
+
+        // cámara detrás de mí
+        const aspecto = window.innerWidth / window.innerHeight;
+        const lado = J.modo === "online" ? ladoDe(J.yo) : 1;
+        if (J.modo) {
+          camara.fov = aspecto < 1 ? 62 : 46;
+          camara.position.set(B.x * 0.15, ALTO + (aspecto < 1 ? 0.95 : 0.75), lado * (MEDIO_LARGO + (aspecto < 1 ? 1.45 : 1.25)));
+          camara.lookAt(0, ALTO - 0.05, -lado * 0.35);
+        } else {
+          const t = ahora / 1000;
+          camara.position.set(Math.sin(t * 0.2) * 3.4, 1.9, Math.cos(t * 0.2) * 3.4);
+          camara.lookAt(0, ALTO, 0);
+        }
+        camara.updateProjectionMatrix();
+      });
+
+      // decide qué pasa con la pelota que va hacia "esperando.de"
+      function revisarJugada() {
+        const e = J.esperando;
+        if (!e) return;
+        const lado = ladoDe(e.de);
+        // tiro malo (red o fuera): decide el que pegó
+        if (e.resultado !== "bueno") {
+          if (B.y < ALTO - 0.15 || Math.abs(B.z) > MEDIO_LARGO + 0.8 || (e.resultado === "red" && Math.abs(B.vz) < 0.5 && B.y < ALTO + 0.05)) {
+            J.esperando = null;
+            if (J.modo !== "online" || soyYo(1 - e.de)) {
+              enviar("punto", { n: e.n, ganador: e.de, motivo: e.resultado });
+              punto(e.de, e.resultado);
+            }
+          }
+          return;
+        }
+        // tiro bueno: le toca regresarla a "e.de"
+        if (soyYo(e.de)) {
+          // puedes deslizar desde que la pelota viene hacia ti; la paleta le pega cuando llega
+          if (!ventanaAbierta) {
+            ventanaAbierta = true;
+            J.pendiente = null;
+            ui.ayuda("👆 Desliza hacia arriba para regresarla");
+            alDeslizar = (g) => {
+              alDeslizar = null;
+              J.pendiente = tiroDesdeGesto(g, lado);
+              ui.ayuda("🏓 ¡Lista!");
+            };
+          }
+          // "ya llegó a la paleta" (no "justo en la paleta": en un cel lento la pelota se brinca esa franja)
+          if (J.pendiente && puedePegar(lado) && B.z * lado > PLANO_GOLPE - 0.12) {
+            const tiro = J.pendiente;
+            J.pendiente = null;
+            ventanaAbierta = false;
+            ui.ayuda("");
+            J.golpeN++;
+            golpear(e.de, tiro);
+            return;
+          }
+          // se pasó: punto del rival
+          if (Math.abs(B.z) > PLANO_GOLPE + VENTANA || B.y < ALTO - 0.2) {
+            alDeslizar = null;
+            J.pendiente = null;
+            ventanaAbierta = false;
+            ui.ayuda("");
+            J.esperando = null;
+            enviar("punto", { n: e.n, ganador: 1 - e.de, motivo: "fallo" });
+            punto(1 - e.de, "fallo");
+          }
+        } else if (J.modo === "bot") {
+          if (!e.fallaBot && B.z * lado > PLANO_GOLPE - 0.08 && B.botes.length && B.botes[B.botes.length - 1] === lado) {
+            const tiro = tiroBot(lado);
+            if (tiro) {
+              J.golpeN++;
+              golpear(e.de, tiro);
+            } else {
+              J.esperando = { ...e, fallaBot: true };
+            }
+          }
+          if (Math.abs(B.z) > PLANO_GOLPE + VENTANA || B.y < ALTO - 0.2) {
+            J.esperando = null;
+            punto(1 - e.de, "fallo");
+          }
+        } else {
+          // online: la pelota llegó al rival; se queda quieta cerca de su paleta hasta saber qué hizo
+          if (Math.abs(B.z) > PLANO_GOLPE) B.activa = false;
+        }
+      }
+
+      // =========================================================
+      //  INTERFAZ
+      // =========================================================
+      const ui = Arcade.ui({
+        juego: "ping_pong",
+        titulo: "Ping Pong 3D",
+        emoji: "🏓",
+        subtitulo: `A ${PUNTOS_PARA_GANAR} puntos · gana por 2`,
+        modos: ["bot", "online"],
+        dificultad: true,
+        intervaloOnline: 150,
+        reglas: [
+          "Tu paleta se acomoda sola: tú decides <b>cuándo</b> pegarle.",
+          "Cuando la pelota bote en tu lado y llegue a ti, <b>desliza hacia arriba</b>.",
+          "Desliza chueco para mandarla a un lado; rápido para rematar (¡cuidado con la red!).",
+          "Si se te pasa, si pega en la red o si sale de la mesa, es punto del otro.",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.jugando = false;
+          J.modo = null;
+          alDeslizar = null;
+        },
+      });
+      ui.alEvento = (tipo, datos) => {
+        if (!datos || datos.partida !== J.partida || J.modo !== "online") return;
+        if (tipo === "golpe" && datos.de !== J.yo) {
+          // el rival le pegó: la pelota sale de su paleta con el mismo tiro en mi celular
+          J.golpeN = datos.n;
+          B.x = datos.x;
+          B.y = datos.y;
+          ui.ayuda("");
+          golpear(datos.de, datos.tiro);
+        }
+        if (tipo === "punto" && J.jugando) {
+          J.esperando = null;
+          if (!J.puntosVistos[datos.n]) {
+            J.puntosVistos[datos.n] = true;
+            punto(datos.ganador, datos.motivo);
+          }
+        }
+      };
+      // evita contar dos veces el mismo punto
+      const puntoOriginal = punto;
+      punto = function (ganador, motivo) {
+        J.puntosVistos[J.golpeN] = true;
+        return puntoOriginal(ganador, motivo);
+      };
+
+      function marcador() {
+        const yo = J.modo === "online" ? J.yo : 0;
+        ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (J.modo === "online" && i === yo ? " (tú)" : ""), valor: J.puntos[i], detalle: J.saca === i ? "🏓 saca" : "", activo: J.saca === i })));
+      }
+
+      function empezar(modo, info) {
+        J.modo = modo;
+        J.nombres = info.nombres;
+        J.dificultad = info.dificultad;
+        J.partida = info.partida;
+        J.yo = modo === "online" ? ui.yo : 0;
+        J.puntos = [0, 0];
+        J.golpeN = 0;
+        J.puntosVistos = {};
+        J.jugando = true;
+        J.esperando = null;
+        J.primero = modo === "bot" ? 0 : Arcade.rng(info.semilla)() < 0.5 ? 0 : 1;
+        J.saca = J.primero;
+        alDeslizar = null;
+        J.pendiente = null;
+        ventanaAbierta = false;
+        ui.avisar("¡A jugar! 🏓", "#4fb3ff");
+        setTimeout(sacar, 900);
+      }
+
+      function terminar(g) {
+        J.jugando = false;
+        const yo = J.modo === "online" ? J.yo : 0;
+        const gane = g === yo;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({
+          emoji: gane ? "🏆" : "😿",
+          texto: gane ? "¡Ganaste!" : `Ganó ${J.nombres[g]}`,
+          nota: `${J.nombres[0]} ${J.puntos[0]} - ${J.puntos[1]} ${J.nombres[1]}`,
+        });
+      }
+    </script>
+  </body>
+</html>
