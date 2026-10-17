@@ -31,6 +31,7 @@ node tests/browser-check.cjs
 node tests/online-check.cjs
 node tests/shared-regression.cjs
 node tests/impostor-check.cjs
+node tests/naval-check.cjs
 ```
 
 Se puede indicar `PLAYWRIGHT_PATH` para usar una instalación existente de Playwright y `PLAYWRIGHT_CHANNEL` para seleccionar otro canal de Chromium.
@@ -39,6 +40,7 @@ Se puede indicar `PLAYWRIGHT_PATH` para usar una instalación existente de Playw
 - `online-check.cjs`: dos sesiones independientes conectadas en cada uno de los nueve juegos arcade, intercambio de eventos y arranque de las ocho interfaces de fiesta con salas.
 - `shared-regression.cjs`: entrada tardía, primer movimiento, cambio de sala después de jugar local y récord del invitado.
 - `impostor-check.cjs`: tres sesiones móviles, formulario exclusivo del impostor, intento incorrecto, conservación del texto al pasar a votación y victoria inmediata visible para todos.
+- `naval-check.cjs`: Batalla Naval 3D, colocación/disparos con el ratón sobre las casillas 3D, victoria contra el bot en PC y móvil emulado, guardado del ranking, reinicio, cancelación de turnos pendientes, partida online PC/móvil completa y alternativa accesible sin WebGL. El guardado del ranking se intercepta para no escribir victorias de prueba.
 
 Las pruebas de navegador usan Edge en modo headless y una vista móvil emulada. No sustituyen una partida manual completa de cada juego 3D ni una prueba en teléfonos físicos.
 
@@ -49,3 +51,9 @@ La revisión se realizó localmente; no confirma el estado de una instalación d
 Las salas nuevas viven en memoria: requieren un único proceso de aplicación y se pierden al reiniciar. Para varios procesos hace falta almacenamiento compartido.
 
 Durante la revisión general también se detectó un problema anterior en `/memorama_online`: falta su plantilla. No pertenece a los juegos agregados por esta rama y queda fuera de estas correcciones.
+
+## Batalla Naval 3D
+
+La ruta `/juego_naval` ahora muestra dos tableros con perspectiva, agua animada, barcos modelados con iluminación y sombras, proyectiles, salpicaduras, fuego y humo. Conserva los modos bot y online, los tres barcos de una casilla y las APIs y rankings existentes. El sonido es opcional; la preferencia de movimiento reducido detiene el vaivén del agua y los barcos. Si WebGL no está disponible se muestran controles de casillas accesibles para seguir jugando.
+
+El actualizador incluye `templates/juego_naval.html`, `static/naval3d.css` y `static/js/naval3d.js` en su lista de archivos.
