@@ -1,0 +1,1588 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c14" />
+    <title>Dardos 3D · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        background: #120c14;
+        font-family: "Nunito", sans-serif;
+        color: #fff;
+      }
+      #lienzo {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+        display: block;
+      }
+      .oculto {
+        display: none !important;
+      }
+
+      /* ===== Marcador ===== */
+      .marcador {
+        position: fixed;
+        top: calc(10px + env(safe-area-inset-top));
+        left: 10px;
+        right: 10px;
+        display: flex;
+        gap: 8px;
+        align-items: stretch;
+        pointer-events: none;
+      }
+      .panel-jugador {
+        flex: 1;
+        background: rgba(20, 12, 24, 0.72);
+        backdrop-filter: blur(8px);
+        border: 2px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        padding: 8px 12px;
+        transition: all 0.25s;
+        min-width: 0;
+      }
+      .panel-jugador.activo {
+        border-color: var(--color);
+        box-shadow: 0 0 18px var(--color);
+      }
+      .panel-jugador .nombre {
+        font-size: 0.8rem;
+        font-weight: 800;
+        opacity: 0.85;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .panel-jugador .nombre::before {
+        content: "";
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--color);
+        margin-right: 6px;
+      }
+      .panel-jugador .puntos {
+        font-size: 2rem;
+        font-weight: 900;
+        line-height: 1.05;
+      }
+      .panel-jugador .tiros {
+        display: flex;
+        gap: 4px;
+        margin-top: 3px;
+      }
+      .panel-jugador .tiros span {
+        flex: 1;
+        text-align: center;
+        font-size: 0.7rem;
+        font-weight: 900;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 6px;
+        padding: 2px 0;
+        min-height: 18px;
+      }
+      #j0 {
+        --color: #ff4f8b;
+      }
+      #j1 {
+        --color: #4fb3ff;
+        text-align: right;
+      }
+      #j1 .tiros {
+        flex-direction: row-reverse;
+      }
+      .centro-marcador {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: center;
+        justify-content: flex-start;
+        pointer-events: auto;
+      }
+      .boton-redondo {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(20, 12, 24, 0.72);
+        color: #fff;
+        font-size: 1.1rem;
+        cursor: pointer;
+      }
+      #sala-badge {
+        font-size: 0.65rem;
+        font-weight: 900;
+        letter-spacing: 1px;
+        background: rgba(20, 12, 24, 0.72);
+        border-radius: 8px;
+        padding: 3px 6px;
+      }
+
+      /* ===== Mensajes ===== */
+      #aviso {
+        position: fixed;
+        left: 50%;
+        top: 42%;
+        transform: translate(-50%, -50%);
+        font-size: 2.6rem;
+        font-weight: 900;
+        text-align: center;
+        pointer-events: none;
+        text-shadow:
+          0 4px 20px rgba(0, 0, 0, 0.8),
+          0 0 30px var(--brillo, #ff4f8b);
+        opacity: 0;
+        white-space: nowrap;
+      }
+      #aviso small {
+        display: block;
+        font-size: 1.1rem;
+        opacity: 0.9;
+      }
+      #aviso.mostrar {
+        animation: aviso 1.4s ease-out forwards;
+      }
+      @keyframes aviso {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.6);
+        }
+        15% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1.08);
+        }
+        25% {
+          transform: translate(-50%, -50%) scale(1);
+        }
+        80% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -60%) scale(1);
+        }
+      }
+      #ayuda {
+        position: fixed;
+        bottom: calc(18px + env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(20, 12, 24, 0.72);
+        backdrop-filter: blur(8px);
+        border-radius: 30px;
+        padding: 10px 18px;
+        font-weight: 800;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        pointer-events: none;
+        transition: opacity 0.3s;
+      }
+
+      /* ===== Mira ===== */
+      #mira {
+        position: fixed;
+        width: 46px;
+        height: 46px;
+        margin: -23px 0 0 -23px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.95);
+        box-shadow:
+          0 0 0 1px rgba(0, 0, 0, 0.5),
+          0 0 14px rgba(255, 79, 139, 0.8);
+        pointer-events: none;
+        left: 0;
+        top: 0;
+        will-change: transform;
+      }
+      #mira::before,
+      #mira::after {
+        content: "";
+        position: absolute;
+        background: rgba(255, 255, 255, 0.95);
+        left: 50%;
+        top: 50%;
+      }
+      #mira::before {
+        width: 2px;
+        height: 16px;
+        margin: -8px 0 0 -1px;
+      }
+      #mira::after {
+        width: 16px;
+        height: 2px;
+        margin: -1px 0 0 -8px;
+      }
+      #mira.bot {
+        border-color: #4fb3ff;
+        box-shadow: 0 0 14px rgba(79, 179, 255, 0.8);
+      }
+
+      /* ===== Menús ===== */
+      .capa {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: radial-gradient(ellipse at center, rgba(18, 12, 20, 0.55), rgba(18, 12, 20, 0.9));
+        overflow-y: auto;
+      }
+      .tarjeta {
+        width: 100%;
+        max-width: 400px;
+        background: rgba(30, 20, 36, 0.85);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 28px;
+        padding: 24px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+      }
+      .titulo {
+        text-align: center;
+      }
+      .titulo .emoji {
+        font-size: 3rem;
+      }
+      .titulo h1 {
+        font-size: 2.2rem;
+        font-weight: 900;
+        background: linear-gradient(90deg, #ff4f8b, #ffb84f);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .titulo p {
+        opacity: 0.7;
+        font-weight: 700;
+        font-size: 0.9rem;
+      }
+      .etiqueta {
+        font-size: 0.8rem;
+        font-weight: 800;
+        opacity: 0.7;
+        margin-bottom: -6px;
+      }
+      .campo {
+        width: 100%;
+        padding: 13px 16px;
+        border-radius: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        font-family: inherit;
+        font-size: 1.05rem;
+        font-weight: 800;
+        outline: none;
+        user-select: text;
+        -webkit-user-select: text;
+      }
+      .campo:focus {
+        border-color: #ff4f8b;
+      }
+      .campo.codigo {
+        text-align: center;
+        letter-spacing: 8px;
+        text-transform: uppercase;
+        font-size: 1.4rem;
+      }
+      .boton {
+        width: 100%;
+        border: none;
+        border-radius: 16px;
+        padding: 15px;
+        font-family: inherit;
+        font-size: 1.05rem;
+        font-weight: 900;
+        color: #fff;
+        cursor: pointer;
+        background: linear-gradient(135deg, #ff4f8b, #ff7a59);
+        box-shadow: 0 8px 22px rgba(255, 79, 139, 0.35);
+        transition: transform 0.1s;
+      }
+      .boton:active {
+        transform: scale(0.97);
+      }
+      .boton.azul {
+        background: linear-gradient(135deg, #4f7bff, #4fb3ff);
+        box-shadow: 0 8px 22px rgba(79, 140, 255, 0.35);
+      }
+      .boton.verde {
+        background: linear-gradient(135deg, #20bf6b, #26de81);
+        box-shadow: 0 8px 22px rgba(32, 191, 107, 0.35);
+      }
+      .boton.claro {
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: none;
+      }
+      .boton small {
+        display: block;
+        font-size: 0.75rem;
+        opacity: 0.85;
+        font-weight: 800;
+      }
+      .chips {
+        display: flex;
+        gap: 6px;
+      }
+      .chip {
+        flex: 1;
+        border: 2px solid rgba(255, 255, 255, 0.12);
+        background: transparent;
+        color: #fff;
+        border-radius: 12px;
+        padding: 8px 4px;
+        font-family: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .chip.activo {
+        background: #ff4f8b;
+        border-color: #ff4f8b;
+      }
+      .fila {
+        display: flex;
+        gap: 10px;
+      }
+      .fila > * {
+        flex: 1;
+      }
+      .nota {
+        text-align: center;
+        font-size: 0.85rem;
+        opacity: 0.7;
+        font-weight: 700;
+      }
+      .codigo-grande {
+        text-align: center;
+        font-size: 3rem;
+        font-weight: 900;
+        letter-spacing: 10px;
+        color: #ffb84f;
+      }
+      .error {
+        color: #ff6b81;
+        font-weight: 800;
+        text-align: center;
+        min-height: 1em;
+      }
+      .enlace {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.6);
+        font-weight: 800;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      .reglas {
+        font-size: 0.82rem;
+        opacity: 0.75;
+        font-weight: 700;
+        line-height: 1.45;
+        padding-left: 18px;
+      }
+      .trofeo {
+        text-align: center;
+        font-size: 4rem;
+      }
+      .ganador {
+        text-align: center;
+        font-size: 1.8rem;
+        font-weight: 900;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+
+    <!-- ===== Marcador del juego ===== -->
+    <div id="hud" class="oculto">
+      <div class="marcador">
+        <div class="panel-jugador" id="j0">
+          <div class="nombre">Jugador 1</div>
+          <div class="puntos">301</div>
+          <div class="tiros"><span></span><span></span><span></span></div>
+        </div>
+        <div class="centro-marcador">
+          <button class="boton-redondo" id="btn-menu" title="Menú">☰</button>
+          <div id="sala-badge" class="oculto"></div>
+        </div>
+        <div class="panel-jugador" id="j1">
+          <div class="nombre">Jugador 2</div>
+          <div class="puntos">301</div>
+          <div class="tiros"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+      <div id="ayuda">👆 Arrastra para apuntar · suelta para lanzar</div>
+    </div>
+    <div id="aviso"></div>
+    <div id="mira" class="oculto"></div>
+
+    <!-- ===== Menú principal ===== -->
+    <div id="menu" class="capa">
+      <div class="tarjeta">
+        <div class="titulo">
+          <div class="emoji">🎯</div>
+          <h1>Dardos 3D</h1>
+          <p>Llega exacto a 0 desde 301</p>
+        </div>
+
+        <div class="etiqueta">Tu nombre</div>
+        <input id="nombre" class="campo" maxlength="14" placeholder="Tu nombre" />
+
+        <div class="etiqueta">🤖 Contra el bot</div>
+        <div class="chips" id="chips-dificultad">
+          <button class="chip" data-dificultad="facil">Fácil</button>
+          <button class="chip activo" data-dificultad="normal">Normal</button>
+          <button class="chip" data-dificultad="pro">Pro</button>
+        </div>
+        <button class="boton" id="btn-bot">🤖 Jugar contra el bot</button>
+        <button class="boton azul" id="btn-online">🌐 Online con un amigo</button>
+        <button class="boton claro" id="btn-local">👥 2 jugadores en este aparato</button>
+
+        <details>
+          <summary class="nota" style="cursor: pointer">📖 Reglas</summary>
+          <ul class="reglas" style="margin-top: 8px">
+            <li>Cada quien empieza con 301 puntos y lanza 3 dardos por turno.</li>
+            <li>Lo que le atines se resta. Gana el primero en llegar <b>exacto a 0</b>.</li>
+            <li>Anillo de afuera = doble, anillo de en medio = triple, centro = 50.</li>
+            <li>Si te pasas de 0, pierdes ese turno 💥.</li>
+          </ul>
+        </details>
+        <a href="/secreto" class="enlace">← Volver al arcade</a>
+      </div>
+    </div>
+
+    <!-- ===== Online ===== -->
+    <div id="menu-online" class="capa oculto">
+      <div class="tarjeta">
+        <div class="titulo">
+          <div class="emoji">🌐</div>
+          <h1>Online</h1>
+        </div>
+        <div class="etiqueta">Tu nombre</div>
+        <input id="nombre-online" class="campo" maxlength="14" placeholder="Tu nombre" />
+        <button class="boton" id="btn-crear">✨ Crear sala</button>
+        <p class="nota">— o —</p>
+        <input id="codigo" class="campo codigo" maxlength="4" placeholder="CÓDIGO" />
+        <button class="boton azul" id="btn-unirse">🚪 Unirme</button>
+        <div class="error" id="error-online"></div>
+        <button class="boton claro" id="btn-volver-online">← Atrás</button>
+      </div>
+    </div>
+
+    <!-- ===== Esperando rival ===== -->
+    <div id="menu-espera" class="capa oculto">
+      <div class="tarjeta">
+        <div class="titulo">
+          <div class="emoji">⏳</div>
+          <p>Pásale este código a tu amigo</p>
+        </div>
+        <div class="codigo-grande" id="codigo-espera">----</div>
+        <button class="boton verde" id="btn-compartir">📲 Invitar por WhatsApp</button>
+        <p class="nota">Esperando a que se una…</p>
+        <button class="boton claro" id="btn-cancelar">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- ===== Fin de partida ===== -->
+    <div id="menu-fin" class="capa oculto">
+      <div class="tarjeta">
+        <div class="trofeo" id="fin-emoji">🏆</div>
+        <div class="ganador" id="fin-texto">¡Ganaste!</div>
+        <p class="nota" id="fin-nota"></p>
+        <button class="boton" id="btn-revancha">🔁 Revancha</button>
+        <button class="boton claro" id="btn-fin-menu">🏠 Menú</button>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script>
+      // =========================================================
+      //  REGLAS Y MEDIDAS (iguales a dardos.py)
+      // =========================================================
+      const SEGMENTOS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+      const R = {
+        bull: 0.00635,
+        bullExt: 0.0159,
+        tripleInt: 0.099,
+        tripleExt: 0.107,
+        dobleInt: 0.162,
+        dobleExt: 0.17,
+        diana: 0.2255,
+        contorno: 0.33,
+      };
+      const CARA = 0.04; // la cara de la diana sobresale 4 cm de la pared
+      const PUNTOS_INICIALES = 301;
+      const COLORES = [0xff4f8b, 0x4fb3ff];
+
+      function calcularTiro(x, y) {
+        const r = Math.hypot(x, y);
+        if (r <= R.bull) return { valor: 50, etiqueta: "BULL" };
+        if (r <= R.bullExt) return { valor: 25, etiqueta: "25" };
+        if (r > R.dobleExt) return { valor: 0, etiqueta: "FUERA" };
+        const angulo = ((Math.atan2(x, y) * 180) / Math.PI + 9 + 360) % 360;
+        const n = SEGMENTOS[Math.floor(angulo / 18)];
+        if (r >= R.tripleInt && r <= R.tripleExt) return { valor: n * 3, etiqueta: "T" + n };
+        if (r >= R.dobleInt && r <= R.dobleExt) return { valor: n * 2, etiqueta: "D" + n };
+        return { valor: n, etiqueta: String(n) };
+      }
+
+      // Los colores se escriben como en CSS; Three.js los necesita en espacio lineal
+      const lin = (hex) => new THREE.Color(hex).convertSRGBToLinear();
+      const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+      const azar = (a, b) => a + Math.random() * (b - a);
+      function gauss() {
+        let u = 0,
+          v = 0;
+        while (!u) u = Math.random();
+        while (!v) v = Math.random();
+        return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+      }
+      const $ = (id) => document.getElementById(id);
+
+      // =========================================================
+      //  ESCENA 3D
+      // =========================================================
+      const lienzo = $("lienzo");
+      const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+
+      const escena = new THREE.Scene();
+      escena.background = new THREE.Color(0x120c14);
+      escena.fog = new THREE.Fog(0x120c14, 2.5, 6);
+
+      const camara = new THREE.PerspectiveCamera(40, 1, 0.01, 20);
+      const CENTRO_VISTA = new THREE.Vector3(0, 0.03, 0);
+      let distanciaCamara = 1.2;
+
+      function lienzoTextura(ancho, alto, dibujar) {
+        const c = document.createElement("canvas");
+        c.width = ancho;
+        c.height = alto;
+        dibujar(c.getContext("2d"), ancho, alto);
+        const t = new THREE.CanvasTexture(c);
+        t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        return t;
+      }
+
+      // --- Pared de madera ---
+      const texturaPared = lienzoTextura(1024, 1024, (g, w, h) => {
+        const tablas = 6;
+        for (let i = 0; i < tablas; i++) {
+          const x = (i * w) / tablas;
+          const tono = 28 + Math.random() * 10;
+          g.fillStyle = `hsl(20, 35%, ${tono}%)`;
+          g.fillRect(x, 0, w / tablas, h);
+          for (let k = 0; k < 90; k++) {
+            g.strokeStyle = `rgba(${Math.random() < 0.5 ? "0,0,0" : "255,220,180"}, ${azar(0.03, 0.09)})`;
+            g.lineWidth = azar(0.5, 2.5);
+            g.beginPath();
+            const gx = x + Math.random() * (w / tablas);
+            g.moveTo(gx, 0);
+            for (let y = 0; y <= h; y += 64) g.lineTo(gx + Math.sin(y / azar(60, 160) + k) * azar(2, 6), y);
+            g.stroke();
+          }
+          g.fillStyle = "rgba(0,0,0,0.55)";
+          g.fillRect(x, 0, 4, h);
+        }
+      });
+      texturaPared.encoding = THREE.sRGBEncoding;
+      texturaPared.wrapS = texturaPared.wrapT = THREE.RepeatWrapping;
+      texturaPared.repeat.set(3, 2);
+      const pared = new THREE.Mesh(
+        new THREE.PlaneGeometry(8, 5),
+        new THREE.MeshStandardMaterial({ map: texturaPared, roughness: 0.85 }),
+      );
+      pared.receiveShadow = true;
+      escena.add(pared);
+
+      // --- Contorno negro (espuma alrededor de la diana) ---
+      const contorno = new THREE.Mesh(
+        new THREE.RingGeometry(R.diana - 0.002, R.contorno, 128),
+        new THREE.MeshStandardMaterial({ color: lin(0x141414), roughness: 0.95 }),
+      );
+      contorno.position.z = 0.012;
+      contorno.receiveShadow = true;
+      escena.add(contorno);
+      const borde = new THREE.Mesh(
+        new THREE.CylinderGeometry(R.contorno, R.contorno, 0.012, 128, 1, true),
+        new THREE.MeshStandardMaterial({ color: lin(0x0c0c0c), roughness: 0.9 }),
+      );
+      borde.rotation.x = Math.PI / 2;
+      borde.position.z = 0.006;
+      escena.add(borde);
+
+      // --- Diana ---
+      const PX = 2048;
+      const ESCALA = PX / 2 / R.diana; // pixeles por metro
+      const texturaDiana = lienzoTextura(PX, PX, (g) => {
+        const c = PX / 2;
+        g.fillStyle = "#111";
+        g.fillRect(0, 0, PX, PX);
+        const NEGRO = "#1b1b1b",
+          CREMA = "#efe0bd",
+          ROJO = "#c8202f",
+          VERDE = "#14834a";
+        const cuña = (r1, r2, a1, a2, color) => {
+          g.beginPath();
+          g.arc(c, c, r2 * ESCALA, a1, a2);
+          g.arc(c, c, r1 * ESCALA, a2, a1, true);
+          g.closePath();
+          g.fillStyle = color;
+          g.fill();
+        };
+        for (let i = 0; i < 20; i++) {
+          const a1 = ((i * 18 - 9 - 90) * Math.PI) / 180;
+          const a2 = ((i * 18 + 9 - 90) * Math.PI) / 180;
+          const base = i % 2 === 0 ? NEGRO : CREMA;
+          const anillo = i % 2 === 0 ? ROJO : VERDE;
+          cuña(R.bullExt, R.tripleInt, a1, a2, base);
+          cuña(R.tripleInt, R.tripleExt, a1, a2, anillo);
+          cuña(R.tripleExt, R.dobleInt, a1, a2, base);
+          cuña(R.dobleInt, R.dobleExt, a1, a2, anillo);
+        }
+        g.beginPath();
+        g.arc(c, c, R.bullExt * ESCALA, 0, Math.PI * 2);
+        g.fillStyle = VERDE;
+        g.fill();
+        g.beginPath();
+        g.arc(c, c, R.bull * ESCALA, 0, Math.PI * 2);
+        g.fillStyle = ROJO;
+        g.fill();
+
+        // fibras de sisal
+        const img = g.getImageData(0, 0, PX, PX);
+        const d = img.data;
+        for (let p = 0; p < d.length; p += 4) {
+          const ruido = (Math.random() - 0.5) * 26;
+          d[p] += ruido;
+          d[p + 1] += ruido;
+          d[p + 2] += ruido;
+        }
+        g.putImageData(img, 0, 0);
+
+        // números
+        g.fillStyle = "#f4f4f4";
+        g.font = `900 ${Math.round(0.03 * ESCALA)}px Arial Black, Arial, sans-serif`;
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        const rNum = ((R.dobleExt + R.diana) / 2) * ESCALA;
+        SEGMENTOS.forEach((n, i) => {
+          const a = ((i * 18) * Math.PI) / 180;
+          g.save();
+          g.translate(c + Math.sin(a) * rNum, c - Math.cos(a) * rNum);
+          g.rotate(a > Math.PI / 2 && a < (Math.PI * 3) / 2 ? a + Math.PI : a);
+          g.fillText(n, 0, 0);
+          g.restore();
+        });
+      });
+      texturaDiana.encoding = THREE.sRGBEncoding;
+      const texturaRelieve = lienzoTextura(1024, 1024, (g, w, h) => {
+        const img = g.createImageData(w, h);
+        for (let p = 0; p < img.data.length; p += 4) {
+          const v = 128 + (Math.random() - 0.5) * 255;
+          img.data[p] = img.data[p + 1] = img.data[p + 2] = v;
+          img.data[p + 3] = 255;
+        }
+        g.putImageData(img, 0, 0);
+      });
+
+      const caraDiana = new THREE.Mesh(
+        new THREE.CircleGeometry(R.diana, 160),
+        new THREE.MeshStandardMaterial({
+          map: texturaDiana,
+          bumpMap: texturaRelieve,
+          bumpScale: 0.0015,
+          roughness: 0.95,
+        }),
+      );
+      caraDiana.position.z = CARA;
+      caraDiana.receiveShadow = true;
+      escena.add(caraDiana);
+      const ladoDiana = new THREE.Mesh(
+        new THREE.CylinderGeometry(R.diana, R.diana, CARA, 128, 1, true),
+        new THREE.MeshStandardMaterial({ color: lin(0x1a1a1a), roughness: 0.6, metalness: 0.2 }),
+      );
+      ladoDiana.rotation.x = Math.PI / 2;
+      ladoDiana.position.z = CARA / 2;
+      ladoDiana.castShadow = true;
+      escena.add(ladoDiana);
+
+      // --- Alambres metálicos ---
+      const metal = new THREE.MeshStandardMaterial({ color: lin(0xe6e6e6), metalness: 0.75, roughness: 0.28 });
+      [R.bull, R.bullExt, R.tripleInt, R.tripleExt, R.dobleInt, R.dobleExt].forEach((radio) => {
+        const anillo = new THREE.Mesh(new THREE.TorusGeometry(radio, 0.0007, 6, 160), metal);
+        anillo.position.z = CARA + 0.0004;
+        anillo.castShadow = true;
+        escena.add(anillo);
+      });
+      for (let i = 0; i < 20; i++) {
+        const a = ((i * 18 + 9) * Math.PI) / 180;
+        const largo = R.dobleExt - R.bullExt;
+        const alambre = new THREE.Mesh(new THREE.BoxGeometry(0.0011, largo, 0.0011), metal);
+        const rm = R.bullExt + largo / 2;
+        alambre.position.set(Math.sin(a) * rm, Math.cos(a) * rm, CARA + 0.0005);
+        alambre.rotation.z = -a;
+        alambre.castShadow = true;
+        escena.add(alambre);
+      }
+
+      // --- Reflejos del bar (para que el metal brille) ---
+      const escenaReflejos = new THREE.Scene();
+      escenaReflejos.add(
+        new THREE.Mesh(
+          new THREE.BoxGeometry(10, 10, 10),
+          new THREE.MeshBasicMaterial({ color: 0x1a1218, side: THREE.BackSide }),
+        ),
+      );
+      [
+        [0, 4, 2, 0xfff0d8, 4],
+        [-4, 0.5, 3, 0xff4f8b, 1.2],
+        [4, 0.5, 3, 0x4fb3ff, 1.2],
+      ].forEach(([x, y, z, color, fuerza]) => {
+        const lampara = new THREE.Mesh(
+          new THREE.PlaneGeometry(3, 1.5),
+          new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(fuerza), side: THREE.DoubleSide }),
+        );
+        lampara.position.set(x, y, z);
+        lampara.lookAt(0, 0, 0);
+        escenaReflejos.add(lampara);
+      });
+      escena.environment = new THREE.PMREMGenerator(renderer).fromScene(escenaReflejos, 0.03).texture;
+
+      // --- Luces de bar ---
+      escena.add(new THREE.HemisphereLight(0xffeedd, 0x221822, 0.3));
+      const foco = new THREE.SpotLight(0xfff0d8, 2.4, 0, 0.55, 0.65, 1);
+      foco.position.set(0.15, 1.1, 1.0);
+      foco.target.position.set(0, 0, 0);
+      foco.castShadow = true;
+      foco.shadow.mapSize.set(1024, 1024);
+      foco.shadow.bias = -0.0004;
+      foco.shadow.camera.near = 0.5;
+      foco.shadow.camera.far = 3;
+      escena.add(foco, foco.target);
+      const relleno = new THREE.PointLight(0xff4f8b, 0.25, 3);
+      relleno.position.set(-1, -0.4, 1);
+      escena.add(relleno);
+
+      // =========================================================
+      //  DARDOS
+      // =========================================================
+      const matPunta = new THREE.MeshStandardMaterial({ color: lin(0xd9dde2), metalness: 0.9, roughness: 0.2 });
+      const matCuerpo = new THREE.MeshStandardMaterial({ color: lin(0x8d949c), metalness: 0.85, roughness: 0.32 });
+      const matRanura = new THREE.MeshStandardMaterial({ color: lin(0x3a3e44), metalness: 0.7, roughness: 0.5 });
+
+      function crearDardo(jugador) {
+        const color = COLORES[jugador];
+        const dardo = new THREE.Group();
+        const agregar = (geo, mat, z) => {
+          const m = new THREE.Mesh(geo, mat);
+          m.position.z = z;
+          m.castShadow = true;
+          dardo.add(m);
+          return m;
+        };
+        const punta = new THREE.ConeGeometry(0.0013, 0.032, 12);
+        punta.rotateX(-Math.PI / 2);
+        agregar(punta, matPunta, 0.016);
+        const cuerpo = new THREE.CylinderGeometry(0.0034, 0.0031, 0.045, 20);
+        cuerpo.rotateX(Math.PI / 2);
+        agregar(cuerpo, matCuerpo, 0.0545);
+        for (let i = 0; i < 6; i++) agregar(new THREE.TorusGeometry(0.0034, 0.00045, 6, 20), matRanura, 0.04 + i * 0.005);
+        const cana = new THREE.CylinderGeometry(0.0016, 0.0019, 0.036, 10);
+        cana.rotateX(Math.PI / 2);
+        agregar(cana, new THREE.MeshStandardMaterial({ color: lin(0x1d1d22), roughness: 0.4 }), 0.095);
+
+        const forma = new THREE.Shape();
+        forma.moveTo(0, 0);
+        forma.lineTo(0.015, 0.012);
+        forma.lineTo(0.017, 0.036);
+        forma.lineTo(0, 0.04);
+        forma.closePath();
+        const pluma = new THREE.ShapeGeometry(forma);
+        pluma.rotateX(Math.PI / 2);
+        const matPluma = new THREE.MeshStandardMaterial({
+          color: lin(color),
+          roughness: 0.45,
+          side: THREE.DoubleSide,
+          emissive: lin(color),
+          emissiveIntensity: 0.15,
+        });
+        for (let i = 0; i < 4; i++) {
+          const m = new THREE.Mesh(pluma, matPluma);
+          m.rotation.z = (i * Math.PI) / 2;
+          m.position.z = 0.09;
+          m.castShadow = true;
+          dardo.add(m);
+        }
+        return dardo;
+      }
+
+      const animaciones = [];
+      function animar(duracion, paso) {
+        return new Promise((fin) => {
+          const inicio = performance.now();
+          animaciones.push((ahora) => {
+            const t = Math.min(1, (ahora - inicio) / duracion);
+            paso(t, ahora);
+            if (t >= 1) {
+              fin();
+              return false;
+            }
+            return true;
+          });
+        });
+      }
+
+      const EJE_Z = new THREE.Vector3(0, 0, 1);
+      function orientar(dardo, colaHacia, giro) {
+        dardo.quaternion.setFromUnitVectors(EJE_Z, colaHacia.clone().normalize());
+        if (giro) dardo.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(EJE_Z, giro));
+      }
+
+      function profundidadImpacto(x, y) {
+        const r = Math.hypot(x, y);
+        if (r <= R.diana) return CARA;
+        if (r <= R.contorno) return 0.012;
+        return 0;
+      }
+
+      let dardosEnTablero = [];
+      let ultimoImpacto = 0;
+
+      // Lanza un dardo hasta (x, y). Regresa una promesa que termina al clavarse.
+      async function lanzarDardo(x, y, jugador, turnoN) {
+        const dardo = crearDardo(jugador);
+        escena.add(dardo);
+        const z = profundidadImpacto(x, y) - 0.008;
+        const fin = new THREE.Vector3(x, y, z);
+        const lado = jugador === 0 ? 1 : -1;
+        const inicio = camara.position.clone().add(new THREE.Vector3(0.07 * lado, -0.13, -0.18));
+        const altura = 0.07 + 0.25 * Math.max(0, inicio.distanceTo(fin) - 0.6) * 0.2;
+        const posicion = (t) =>
+          new THREE.Vector3().lerpVectors(inicio, fin, t).add(new THREE.Vector3(0, Math.sin(Math.PI * t) * altura, 0));
+        const giroTotal = azar(4, 7) * Math.PI;
+        sonido("lanzar");
+        await animar(340, (t) => {
+          const p = posicion(t);
+          const antes = posicion(Math.max(0, t - 0.02));
+          dardo.position.copy(p);
+          const cola = antes.sub(p);
+          if (cola.lengthSq() < 1e-10) cola.set(0, 0.2, 1);
+          orientar(dardo, cola, giroTotal * t);
+        });
+        // clavado con un poco de inclinación y temblor
+        const cola = new THREE.Vector3(azar(-0.12, 0.12), azar(0.16, 0.3), 1);
+        const giro = azar(0, Math.PI * 2);
+        dardo.position.copy(fin);
+        sonido(Math.hypot(x, y) <= R.diana ? "clavar" : "pared");
+        ultimoImpacto = performance.now();
+        dardosEnTablero.push({ dardo, turnoN });
+        animar(450, (t) => {
+          const temblor = Math.exp(-t * 6) * Math.sin(t * 40) * 0.09;
+          orientar(dardo, cola.clone().add(new THREE.Vector3(0, temblor, 0)), giro);
+        });
+        return dardo;
+      }
+
+      async function limpiarTablero() {
+        const quitar = dardosEnTablero;
+        dardosEnTablero = [];
+        if (!quitar.length) return;
+        sonido("sacar");
+        await animar(320, (t) => {
+          quitar.forEach(({ dardo }) => {
+            dardo.position.z += 0.012;
+            dardo.scale.setScalar(1 - t);
+          });
+        });
+        quitar.forEach(({ dardo }) => escena.remove(dardo));
+      }
+
+      function clavarSinAnimar(x, y, jugador, turnoN) {
+        const dardo = crearDardo(jugador);
+        dardo.position.set(x, y, profundidadImpacto(x, y) - 0.008);
+        orientar(dardo, new THREE.Vector3(azar(-0.1, 0.1), azar(0.16, 0.3), 1), azar(0, 6));
+        escena.add(dardo);
+        dardosEnTablero.push({ dardo, turnoN });
+      }
+
+      // =========================================================
+      //  SONIDO (sintetizado, sin archivos)
+      // =========================================================
+      let audio = null;
+      function activarAudio() {
+        if (!audio) {
+          try {
+            audio = new (window.AudioContext || window.webkitAudioContext)();
+          } catch (e) {}
+        }
+        if (audio && audio.state === "suspended") audio.resume();
+      }
+      function sonido(tipo) {
+        if (!audio) return;
+        const ahora = audio.currentTime;
+        const ruido = (dur, frecuencia, volumen, q) => {
+          const buffer = audio.createBuffer(1, audio.sampleRate * dur, audio.sampleRate);
+          const datos = buffer.getChannelData(0);
+          for (let i = 0; i < datos.length; i++) datos[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / datos.length, 3);
+          const fuente = audio.createBufferSource();
+          fuente.buffer = buffer;
+          const filtro = audio.createBiquadFilter();
+          filtro.type = "bandpass";
+          filtro.frequency.value = frecuencia;
+          filtro.Q.value = q || 1;
+          const g = audio.createGain();
+          g.gain.value = volumen;
+          fuente.connect(filtro).connect(g).connect(audio.destination);
+          fuente.start(ahora);
+        };
+        const golpe = (frecuencia, volumen, dur) => {
+          const osc = audio.createOscillator();
+          const g = audio.createGain();
+          osc.frequency.setValueAtTime(frecuencia, ahora);
+          osc.frequency.exponentialRampToValueAtTime(frecuencia * 0.5, ahora + dur);
+          g.gain.setValueAtTime(volumen, ahora);
+          g.gain.exponentialRampToValueAtTime(0.001, ahora + dur);
+          osc.connect(g).connect(audio.destination);
+          osc.start(ahora);
+          osc.stop(ahora + dur);
+        };
+        if (tipo === "lanzar") ruido(0.22, 1800, 0.12, 0.6);
+        if (tipo === "clavar") {
+          ruido(0.07, 900, 0.9, 1.4);
+          golpe(160, 0.5, 0.12);
+        }
+        if (tipo === "pared") {
+          ruido(0.09, 500, 0.8, 1);
+          golpe(90, 0.6, 0.15);
+        }
+        if (tipo === "sacar") ruido(0.15, 2500, 0.15, 2);
+      }
+
+      // =========================================================
+      //  CÁMARA Y PANTALLA
+      // =========================================================
+      function ajustarPantalla() {
+        const ancho = window.innerWidth,
+          alto = window.innerHeight;
+        renderer.setSize(ancho, alto, false);
+        camara.aspect = ancho / alto;
+        const tanMitad = Math.tan(((camara.fov / 2) * Math.PI) / 180);
+        distanciaCamara = Math.max(0.31 / tanMitad, 0.255 / (tanMitad * camara.aspect));
+        camara.updateProjectionMatrix();
+      }
+      window.addEventListener("resize", ajustarPantalla);
+      ajustarPantalla();
+
+      const raycaster = new THREE.Raycaster();
+      const planoDiana = new THREE.Plane(new THREE.Vector3(0, 0, 1), -CARA);
+      function pantallaAMundo(px, py) {
+        const ndc = new THREE.Vector2((px / window.innerWidth) * 2 - 1, -(py / window.innerHeight) * 2 + 1);
+        raycaster.setFromCamera(ndc, camara);
+        const punto = new THREE.Vector3();
+        return raycaster.ray.intersectPlane(planoDiana, punto) ? punto : null;
+      }
+      function mundoAPantalla(x, y) {
+        const v = new THREE.Vector3(x, y, CARA).project(camara);
+        return { x: ((v.x + 1) / 2) * window.innerWidth, y: ((1 - v.y) / 2) * window.innerHeight };
+      }
+
+      // =========================================================
+      //  APUNTAR (arrastrar y soltar)
+      // =========================================================
+      const mira = $("mira");
+      const apunte = { activo: false, base: null, inicio: 0, x: 0, y: 0, tipo: "mouse", visible: false };
+      let miraBot = null; // {x, y} cuando el bot está apuntando
+
+      function puntoDesdeEvento(e) {
+        const desfase = e.pointerType === "touch" ? -95 : 0; // en cel la mira sale arriba del dedo
+        return pantallaAMundo(e.clientX, e.clientY + desfase);
+      }
+
+      lienzo.addEventListener("pointerdown", (e) => {
+        activarAudio();
+        if (!puedoLanzar()) return;
+        apunte.activo = true;
+        apunte.tipo = e.pointerType;
+        apunte.inicio = performance.now();
+        apunte.base = puntoDesdeEvento(e);
+        lienzo.setPointerCapture(e.pointerId);
+        $("ayuda").style.opacity = 0;
+      });
+      lienzo.addEventListener("pointermove", (e) => {
+        if (apunte.activo || e.pointerType === "mouse") {
+          apunte.tipo = e.pointerType;
+          apunte.base = puntoDesdeEvento(e);
+        }
+      });
+      lienzo.addEventListener("pointerup", () => {
+        if (!apunte.activo) return;
+        apunte.activo = false;
+        if (!apunte.base || !puedoLanzar()) return;
+        const x = apunte.x + gauss() * 0.003;
+        const y = apunte.y + gauss() * 0.003;
+        alSoltar(x, y);
+      });
+      lienzo.addEventListener("pointercancel", () => (apunte.activo = false));
+
+      function actualizarMira(ahora) {
+        if (miraBot) {
+          const p = mundoAPantalla(miraBot.x, miraBot.y);
+          mira.classList.remove("oculto");
+          mira.classList.add("bot");
+          mira.style.transform = `translate(${p.x}px, ${p.y}px)`;
+          return;
+        }
+        mira.classList.remove("bot");
+        const mostrar = apunte.base && puedoLanzar() && (apunte.activo || apunte.tipo === "mouse");
+        if (!mostrar) {
+          mira.classList.add("oculto");
+          return;
+        }
+        // el pulso tiembla un poco, y más si te tardas mucho apuntando
+        const t = ahora / 1000;
+        const cansancio = apunte.activo ? Math.min(0.016, Math.max(0, (ahora - apunte.inicio) / 1000 - 2.5) * 0.004) : 0;
+        const amplitud = 0.0045 + cansancio;
+        apunte.x = apunte.base.x + amplitud * (Math.sin(t * 1.1) + 0.6 * Math.sin(t * 2.9 + 1.3));
+        apunte.y = apunte.base.y + amplitud * (0.8 * Math.cos(t * 1.6) + 0.5 * Math.sin(t * 3.7));
+        const p = mundoAPantalla(apunte.x, apunte.y);
+        mira.classList.remove("oculto");
+        mira.style.transform = `translate(${p.x}px, ${p.y}px)`;
+      }
+
+      // =========================================================
+      //  CICLO DE DIBUJO
+      // =========================================================
+      function cuadro(ahora) {
+        requestAnimationFrame(cuadro);
+        for (let i = animaciones.length - 1; i >= 0; i--) if (!animaciones[i](ahora)) animaciones.splice(i, 1);
+        const t = ahora / 1000;
+        const enMenu = !J.modo;
+        const d = distanciaCamara * (enMenu ? 1.25 : 1);
+        camara.position.set(
+          CENTRO_VISTA.x + (enMenu ? Math.sin(t * 0.25) * 0.25 : 0.1 * d + Math.sin(t * 0.4) * 0.003),
+          CENTRO_VISTA.y + (enMenu ? 0.05 + Math.sin(t * 0.3) * 0.05 : -0.07 * d + Math.sin(t * 0.5) * 0.002),
+          d,
+        );
+        camara.lookAt(CENTRO_VISTA);
+        actualizarMira(ahora);
+        renderer.render(escena, camara);
+      }
+
+      // =========================================================
+      //  ESTADO DEL JUEGO
+      // =========================================================
+      const J = {
+        modo: null, // 'bot' | 'local' | 'online'
+        nombres: ["", ""],
+        puntos: [PUNTOS_INICIALES, PUNTOS_INICIALES],
+        turno: 0,
+        turnoN: 1,
+        tirosTurno: [],
+        inicioTurno: PUNTOS_INICIALES,
+        ocupado: false,
+        terminado: false,
+        dificultad: "normal",
+      };
+
+      function nombreGuardado() {
+        try {
+          return localStorage.getItem("nombreUsuario") || "";
+        } catch (e) {
+          return "";
+        }
+      }
+      function miNombre() {
+        const n = $("nombre").value.trim() || "Jugador";
+        try {
+          localStorage.setItem("nombreUsuario", n);
+        } catch (e) {}
+        return n;
+      }
+
+      function puedoLanzar() {
+        if (!J.modo || J.ocupado || J.terminado) return false;
+        if (J.modo === "bot") return J.turno === 0;
+        if (J.modo === "online") return O.estado && O.estado.fase === "jugando" && J.turno === O.yo && !O.cola.length && !O.animando;
+        return true;
+      }
+
+      function aplicarTiro(jugador, x, y) {
+        const r = calcularTiro(x, y);
+        if (!J.tirosTurno.length) J.inicioTurno = J.puntos[jugador];
+        const restante = J.puntos[jugador] - r.valor;
+        r.pasado = restante < 0;
+        J.puntos[jugador] = r.pasado ? J.inicioTurno : restante;
+        J.tirosTurno.push(r.etiqueta);
+        r.gano = restante === 0;
+        r.finTurno = !r.gano && (r.pasado || J.tirosTurno.length >= 3);
+        return r;
+      }
+
+      function textoTiro(r) {
+        if (r.pasado) return { texto: "💥 ¡Te pasaste!<small>Pierdes el turno</small>", brillo: "#ff3b3b" };
+        if (r.etiqueta === "BULL") return { texto: "🎯 ¡BULLSEYE!<small>−50</small>", brillo: "#ff2a2a" };
+        if (r.etiqueta === "25") return { texto: "Bull 25<small>−25</small>", brillo: "#22c55e" };
+        if (r.etiqueta === "FUERA") return { texto: "Fuera 😬", brillo: "#888" };
+        if (r.etiqueta[0] === "T") return { texto: `TRIPLE ${r.etiqueta.slice(1)}<small>−${r.valor}</small>`, brillo: "#ff4f8b" };
+        if (r.etiqueta[0] === "D") return { texto: `DOBLE ${r.etiqueta.slice(1)}<small>−${r.valor}</small>`, brillo: "#22c55e" };
+        return { texto: `${r.etiqueta}<small>−${r.valor}</small>`, brillo: "#ffb84f" };
+      }
+
+      function avisar(html, brillo) {
+        const a = $("aviso");
+        a.innerHTML = html;
+        a.style.setProperty("--brillo", brillo || "#ff4f8b");
+        a.classList.remove("mostrar");
+        void a.offsetWidth;
+        a.classList.add("mostrar");
+      }
+
+      function actualizarHUD() {
+        for (let i = 0; i < 2; i++) {
+          const panel = $("j" + i);
+          panel.querySelector(".nombre").textContent = J.nombres[i];
+          panel.querySelector(".puntos").textContent = J.puntos[i];
+          panel.classList.toggle("activo", J.turno === i && !J.terminado);
+          const casillas = panel.querySelectorAll(".tiros span");
+          casillas.forEach((c, k) => (c.textContent = J.turno === i ? J.tirosTurno[k] || "" : ""));
+        }
+      }
+
+      function anunciarTurno() {
+        const nombre = J.nombres[J.turno];
+        let texto = `Turno de ${nombre}`;
+        if (J.modo === "bot") texto = J.turno === 0 ? "¡Tu turno!" : "Turno del bot 🤖";
+        if (J.modo === "online") texto = J.turno === O.yo ? "¡Tu turno!" : `Turno de ${nombre}`;
+        avisar(texto, COLORES[J.turno] === COLORES[0] ? "#ff4f8b" : "#4fb3ff");
+      }
+
+      function mostrarCapa(id) {
+        ["menu", "menu-online", "menu-espera", "menu-fin"].forEach((c) => $(c).classList.toggle("oculto", c !== id));
+        $("hud").classList.toggle("oculto", !!id && id !== "menu-fin");
+      }
+
+      function empezarPartida(modo, nombres) {
+        limpiarTablero();
+        Object.assign(J, {
+          modo,
+          nombres,
+          puntos: [PUNTOS_INICIALES, PUNTOS_INICIALES],
+          turno: modo === "bot" ? 0 : Math.round(Math.random()),
+          turnoN: 1,
+          tirosTurno: [],
+          ocupado: false,
+          terminado: false,
+        });
+        $("sala-badge").classList.toggle("oculto", modo !== "online");
+        $("ayuda").style.opacity = 1;
+        mostrarCapa(null);
+        actualizarHUD();
+        setTimeout(anunciarTurno, 300);
+      }
+
+      function mostrarFin(ganador) {
+        J.terminado = true;
+        actualizarHUD();
+        let texto = `¡Ganó ${J.nombres[ganador]}!`,
+          emoji = "🏆";
+        if (J.modo === "bot") {
+          texto = ganador === 0 ? "¡Le ganaste al bot!" : "El bot ganó esta vez";
+          emoji = ganador === 0 ? "🏆" : "🤖";
+        }
+        if (J.modo === "online") {
+          texto = ganador === O.yo ? "¡Ganaste!" : `Ganó ${J.nombres[ganador]}`;
+          emoji = ganador === O.yo ? "🏆" : "😿";
+        }
+        $("fin-emoji").textContent = emoji;
+        $("fin-texto").textContent = texto;
+        $("fin-nota").textContent = `${J.nombres[0]}: ${J.puntos[0]} · ${J.nombres[1]}: ${J.puntos[1]}`;
+        mostrarCapa("menu-fin");
+      }
+
+      // ---------- Partida local y contra el bot ----------
+      async function procesarTiro(x, y) {
+        const jugador = J.turno;
+        await lanzarDardo(x, y, jugador, J.turnoN);
+        const r = aplicarTiro(jugador, x, y);
+        const t = textoTiro(r);
+        avisar(t.texto, t.brillo);
+        actualizarHUD();
+        if (r.gano) {
+          await esperar(1200);
+          mostrarFin(jugador);
+          return;
+        }
+        if (r.finTurno) {
+          await esperar(1300);
+          await limpiarTablero();
+          J.turno = 1 - J.turno;
+          J.turnoN++;
+          J.tirosTurno = [];
+          actualizarHUD();
+          anunciarTurno();
+        }
+      }
+
+      async function alSoltar(x, y) {
+        if (J.modo === "online") return lanzarOnline(x, y);
+        J.ocupado = true;
+        await procesarTiro(x, y);
+        J.ocupado = false;
+        if (J.modo === "bot" && J.turno === 1 && !J.terminado) turnoBot();
+      }
+
+      const ERROR_BOT = { facil: 0.042, normal: 0.023, pro: 0.011 };
+
+      function puntoObjetivo(numero, anillo) {
+        if (anillo === "BULL") return { x: 0, y: 0 };
+        if (anillo === "25") return { x: 0, y: 0.011 };
+        const radio = { S: 0.135, T: 0.103, D: 0.166 }[anillo];
+        const a = (SEGMENTOS.indexOf(numero) * 18 * Math.PI) / 180;
+        return { x: Math.sin(a) * radio, y: Math.cos(a) * radio };
+      }
+
+      function objetivoBot(resta) {
+        if (resta > 60) return puntoObjetivo(20, "T");
+        if (resta === 50) return puntoObjetivo(0, "BULL");
+        if (resta <= 20) return puntoObjetivo(resta, "S");
+        if (resta % 3 === 0 && resta / 3 <= 20) return puntoObjetivo(resta / 3, "T");
+        if (resta % 2 === 0 && resta / 2 <= 20) return puntoObjetivo(resta / 2, "D");
+        if (resta === 25) return puntoObjetivo(0, "25");
+        return puntoObjetivo(Math.min(20, resta - 20) || 20, "S");
+      }
+
+      async function turnoBot() {
+        J.ocupado = true;
+        while (J.modo === "bot" && J.turno === 1 && !J.terminado) {
+          await esperar(650);
+          const objetivo = objetivoBot(J.puntos[1]);
+          const desde = miraBot ? { ...miraBot } : { x: azar(-0.15, 0.15), y: azar(-0.2, 0) };
+          miraBot = { ...desde };
+          await animar(700, (t) => {
+            const s = t * t * (3 - 2 * t);
+            miraBot.x = desde.x + (objetivo.x - desde.x) * s + Math.sin(t * 9) * 0.003;
+            miraBot.y = desde.y + (objetivo.y - desde.y) * s + Math.cos(t * 7) * 0.003;
+          });
+          await esperar(250);
+          const error = ERROR_BOT[J.dificultad];
+          const x = objetivo.x + gauss() * error,
+            y = objetivo.y + gauss() * error;
+          miraBot = null;
+          await procesarTiro(x, y);
+        }
+        miraBot = null;
+        J.ocupado = false;
+      }
+
+      // ---------- Online ----------
+      const O = { codigo: "", yo: 0, estado: null, ultimoSeq: 0, cola: [], animando: false, intervalo: null, turnoAnunciado: 0 };
+
+      function miId() {
+        let pid = null;
+        try {
+          pid = localStorage.getItem("fiesta_pid");
+        } catch (e) {}
+        if (!pid) {
+          pid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+          try {
+            localStorage.setItem("fiesta_pid", pid);
+          } catch (e) {}
+        }
+        return pid;
+      }
+      const PID = miId();
+
+      async function api(ruta, cuerpo) {
+        const resp = await fetch(ruta, {
+          method: cuerpo ? "POST" : "GET",
+          headers: cuerpo ? { "Content-Type": "application/json" } : {},
+          body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+        });
+        const datos = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(datos.error || "Algo salió mal");
+        return datos;
+      }
+
+      async function crearSala() {
+        try {
+          const r = await api("/api/dardos/crear", { pid: PID, nombre: miNombre() });
+          entrarSala(r.codigo);
+        } catch (e) {
+          $("error-online").textContent = e.message;
+        }
+      }
+
+      async function unirseSala() {
+        const codigo = $("codigo").value.trim().toUpperCase();
+        if (codigo.length !== 4) {
+          $("error-online").textContent = "El código tiene 4 letras";
+          return;
+        }
+        try {
+          const r = await api("/api/dardos/unirse", { pid: PID, nombre: miNombre(), codigo });
+          entrarSala(r.codigo);
+        } catch (e) {
+          $("error-online").textContent = e.message;
+        }
+      }
+
+      function entrarSala(codigo) {
+        O.codigo = codigo;
+        O.estado = null;
+        O.ultimoSeq = 0;
+        O.cola = [];
+        $("error-online").textContent = "";
+        $("codigo-espera").textContent = codigo;
+        $("sala-badge").textContent = "SALA " + codigo;
+        history.replaceState(null, "", location.pathname + "?sala=" + codigo);
+        mostrarCapa("menu-espera");
+        clearInterval(O.intervalo);
+        O.intervalo = setInterval(consultarSala, 800);
+        consultarSala();
+      }
+
+      function salirOnline() {
+        clearInterval(O.intervalo);
+        O.codigo = "";
+        O.estado = null;
+        history.replaceState(null, "", location.pathname);
+      }
+
+      async function consultarSala() {
+        if (!O.codigo) return;
+        let e;
+        try {
+          e = await api(`/api/dardos/estado/${O.codigo}?pid=${encodeURIComponent(PID)}`);
+        } catch (err) {
+          if (/no existe|No estás/.test(err.message)) {
+            salirOnline();
+            J.modo = null;
+            mostrarCapa("menu-online");
+            $("error-online").textContent = err.message;
+          }
+          return;
+        }
+        const anterior = O.estado;
+        O.estado = e;
+        O.yo = e.yo;
+
+        if (e.fase === "esperando") {
+          if (J.modo === "online") {
+            J.modo = null;
+            limpiarTablero();
+          }
+          mostrarCapa("menu-espera");
+          return;
+        }
+
+        // Empezó la partida (o una revancha)
+        if (J.modo !== "online" || (anterior && e.turno_n < J.turnoN) || (anterior && anterior.fase === "terminado" && e.fase === "jugando")) {
+          J.modo = "online";
+          J.terminado = false;
+          J.turnoN = e.turno_n;
+          await limpiarTablero();
+          O.cola = [];
+          O.ultimoSeq = Math.max(0, ...e.lanzamientos.map((l) => l.seq));
+          e.lanzamientos
+            .filter((l) => l.turno_n === e.turno_n && e.fase === "jugando")
+            .forEach((l) => clavarSinAnimar(l.x, l.y, l.jugador, l.turno_n));
+          $("sala-badge").classList.remove("oculto");
+          mostrarCapa(null);
+          sincronizar(e);
+          O.turnoAnunciado = e.turno_n;
+          anunciarTurno();
+          return;
+        }
+
+        // Tiros nuevos del rival
+        e.lanzamientos
+          .filter((l) => l.seq > O.ultimoSeq)
+          .forEach((l) => {
+            O.ultimoSeq = Math.max(O.ultimoSeq, l.seq);
+            if (l.jugador !== O.yo) O.cola.push(l);
+          });
+        procesarCola();
+
+        if (!O.cola.length && !O.animando && !J.ocupado) {
+          sincronizar(e);
+          if (e.fase === "terminado" && !J.terminado) mostrarFin(e.ganador);
+          else if (e.fase === "jugando" && O.turnoAnunciado !== e.turno_n) {
+            O.turnoAnunciado = e.turno_n;
+            anunciarTurno();
+          }
+          // si quedaron dardos de un turno anterior, se quitan
+          if (dardosEnTablero.some((d) => d.turnoN < e.turno_n) && performance.now() - ultimoImpacto > 1500) limpiarTablero();
+        }
+      }
+
+      function sincronizar(e) {
+        J.nombres = e.nombres;
+        J.puntos = e.puntos.slice();
+        J.turno = e.turno;
+        J.turnoN = e.turno_n;
+        J.tirosTurno = e.dardos_turno.map((d) => d.etiqueta);
+        actualizarHUD();
+      }
+
+      async function procesarCola() {
+        if (O.animando) return;
+        O.animando = true;
+        while (O.cola.length) {
+          const l = O.cola.shift();
+          if (dardosEnTablero.some((d) => d.turnoN !== l.turno_n)) await limpiarTablero();
+          if (J.tirosTurno.length && J.turno !== l.jugador) J.tirosTurno = [];
+          J.turno = l.jugador;
+          await lanzarDardo(l.x, l.y, l.jugador, l.turno_n);
+          const r = aplicarTiro(l.jugador, l.x, l.y);
+          const t = textoTiro(l);
+          avisar(t.texto, t.brillo);
+          actualizarHUD();
+          if (r.gano || r.finTurno) {
+            await esperar(1300);
+            J.tirosTurno = [];
+            if (!r.gano) await limpiarTablero();
+          }
+        }
+        O.animando = false;
+      }
+
+      async function lanzarOnline(x, y) {
+        J.ocupado = true;
+        const peticion = api("/api/dardos/lanzar", { codigo: O.codigo, pid: PID, x, y }).catch((e) => ({ error: e.message }));
+        await lanzarDardo(x, y, O.yo, J.turnoN);
+        const res = await peticion;
+        if (res.error) {
+          avisar(res.error, "#ff3b3b");
+          J.ocupado = false;
+          return;
+        }
+        const tiro = res.tiro;
+        O.ultimoSeq = Math.max(O.ultimoSeq, tiro.seq);
+        const r = aplicarTiro(O.yo, x, y);
+        const t = textoTiro(tiro);
+        avisar(t.texto, t.brillo);
+        actualizarHUD();
+        if (r.gano || r.finTurno) {
+          await esperar(1300);
+          if (!r.gano) await limpiarTablero();
+        }
+        J.ocupado = false;
+        consultarSala();
+      }
+
+      async function compartirSala() {
+        const link = location.origin + location.pathname + "?sala=" + O.codigo;
+        const texto = `¡Te reto a los Dardos 3D! 🎯 Código: ${O.codigo}`;
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: "Dardos 3D", text: texto, url: link });
+            return;
+          } catch (e) {
+            if (e.name === "AbortError") return;
+          }
+        }
+        window.open("https://wa.me/?text=" + encodeURIComponent(texto + " " + link), "_blank");
+      }
+
+      // =========================================================
+      //  BOTONES
+      // =========================================================
+      $("nombre").value = $("nombre-online").value = nombreGuardado();
+      $("nombre").addEventListener("input", () => ($("nombre-online").value = $("nombre").value));
+      $("nombre-online").addEventListener("input", () => ($("nombre").value = $("nombre-online").value));
+      document.querySelectorAll("#chips-dificultad .chip").forEach((chip) => {
+        chip.onclick = () => {
+          J.dificultad = chip.dataset.dificultad;
+          document.querySelectorAll("#chips-dificultad .chip").forEach((c) => c.classList.toggle("activo", c === chip));
+        };
+      });
+      $("btn-bot").onclick = () => {
+        activarAudio();
+        const nivel = { facil: "Fácil", normal: "Normal", pro: "Pro" }[J.dificultad];
+        empezarPartida("bot", [miNombre(), `Bot ${nivel}`]);
+      };
+      $("btn-local").onclick = () => {
+        activarAudio();
+        const otro = prompt("¿Cómo se llama el otro jugador?", "Jugador 2");
+        if (otro === null) return;
+        empezarPartida("local", [miNombre(), (otro.trim() || "Jugador 2").slice(0, 14)]);
+      };
+      $("btn-online").onclick = () => {
+        activarAudio();
+        miNombre();
+        mostrarCapa("menu-online");
+      };
+      $("btn-volver-online").onclick = () => mostrarCapa("menu");
+      $("btn-crear").onclick = crearSala;
+      $("btn-unirse").onclick = unirseSala;
+      $("codigo").addEventListener("keydown", (e) => e.key === "Enter" && unirseSala());
+      $("btn-compartir").onclick = compartirSala;
+      $("btn-cancelar").onclick = () => {
+        salirOnline();
+        mostrarCapa("menu-online");
+      };
+      $("btn-menu").onclick = () => {
+        if (!confirm("¿Salir de la partida?")) return;
+        if (J.modo === "online") salirOnline();
+        J.modo = null;
+        J.terminado = true;
+        miraBot = null;
+        limpiarTablero();
+        mostrarCapa("menu");
+        J.terminado = false;
+      };
+      $("btn-revancha").onclick = () => {
+        if (J.modo === "online") {
+          api("/api/dardos/revancha", { codigo: O.codigo, pid: PID }).then(consultarSala);
+          $("fin-nota").textContent = "Esperando revancha…";
+          return;
+        }
+        empezarPartida(J.modo, J.nombres);
+      };
+      $("btn-fin-menu").onclick = () => {
+        if (J.modo === "online") salirOnline();
+        J.modo = null;
+        J.terminado = false;
+        limpiarTablero();
+        mostrarCapa("menu");
+      };
+
+      // Si llegó con un link de invitación, abre el modo online con el código
+      const parametros = new URLSearchParams(location.search);
+      const salaLink = parametros.get("sala");
+      if (parametros.get("modo") === "online") mostrarCapa("menu-online");
+      if (salaLink) {
+        $("codigo").value = salaLink.toUpperCase();
+        mostrarCapa("menu-online");
+      }
+
+      requestAnimationFrame(cuadro);
+    </script>
+  </body>
+</html>

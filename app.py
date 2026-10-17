@@ -4,9 +4,11 @@ import random
 import string
 from flask import Flask, render_template, request, redirect, jsonify
 from fiesta import fiesta_bp
+from dardos import dardos_bp
 
 app = Flask(__name__)
 app.register_blueprint(fiesta_bp)  # 🎉 Juegos de fiesta (Impostor, etc.)
+app.register_blueprint(dardos_bp)  # 🎯 Dardos 3D
 
 # --- Archivos de Datos ---
 
