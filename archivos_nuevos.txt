@@ -18,3 +18,4 @@ templates/secreto.html
 templates/juego_basquet.html
 templates/juego_boliche.html
 templates/juego_beer_pong.html
+templates/juego_mini_golf.html
