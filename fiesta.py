@@ -16,6 +16,8 @@ fiesta_bp = Blueprint('fiesta', __name__)
 
 salas_fiesta = {}
 candado = threading.Lock()
+# Juegos extra (Dibuja y Adivina, Trivia, etc.) se registran aquí desde fiesta_juegos.py
+JUEGOS_EXTRA = {}
 HORAS_VIDA_SALA = 6
 
 # --- Palabras para El Impostor ---
@@ -151,7 +153,7 @@ def crear_sala():
     datos = request.json or {}
     juego = datos.get('juego')
     pid = datos.get('pid')
-    if juego not in ('impostor', 'probable') or not pid:
+    if (juego not in ('impostor', 'probable') and juego not in JUEGOS_EXTRA) or not pid:
         return jsonify({'error': 'Datos inválidos'}), 400
     with candado:
         _limpiar_salas_viejas()
@@ -166,6 +168,8 @@ def crear_sala():
             # Más probable
             'pregunta': '', 'preguntas_usadas': [],
         }
+        if juego in JUEGOS_EXTRA:
+            JUEGOS_EXTRA[juego].preparar(salas_fiesta[codigo])
     return jsonify({'codigo': codigo})
 
 
@@ -199,6 +203,9 @@ def estado_sala(codigo):
         if pid not in sala['jugadores']:
             return jsonify({'error': 'Ya no estás en esta sala'}), 403
 
+        extra = JUEGOS_EXTRA.get(sala['juego'])
+        if extra:
+            extra.tick(sala)
         estado = {
             'juego': sala['juego'], 'fase': sala['fase'], 'ronda': sala['ronda'],
             'host': sala['host'], 'soy_host': sala['host'] == pid,
@@ -207,7 +214,10 @@ def estado_sala(codigo):
             'votaron': [p for p in sala['orden'] if p in sala['votos']],
         }
 
-        if sala['juego'] == 'impostor':
+        if extra:
+            estado['ahora'] = _ahora()
+            estado.update(extra.vista(sala, pid, request.args))
+        elif sala['juego'] == 'impostor':
             estado['config'] = {'pista': sala['pista'], 'num_impostores': sala['num_impostores']}
             if sala['fase'] in ('jugando', 'votando'):
                 soy_impostor = pid in sala['impostores']
@@ -251,6 +261,12 @@ def accion_sala():
                 _sacar_jugador(sala, objetivo)
             return jsonify({'status': 'ok'})
 
+        extra = JUEGOS_EXTRA.get(sala['juego'])
+        if extra:
+            extra.tick(sala)
+            respuesta = extra.accion(sala, pid, accion, datos, es_host)
+            return jsonify(respuesta or {'status': 'ok'})
+
         if accion == 'votar':
             voto = datos.get('voto')
             if sala['fase'] == 'votando' and voto in sala['jugadores'] and pid not in sala['votos']:
@@ -276,7 +292,9 @@ def _sacar_jugador(sala, pid):
         sala['orden'].remove(pid)
     if sala['host'] == pid and sala['orden']:
         sala['host'] = sala['orden'][0]
-    if sala['fase'] == 'votando' and sala['orden'] and _todos_votaron(sala):
+    if sala['juego'] in JUEGOS_EXTRA:
+        JUEGOS_EXTRA[sala['juego']].al_salir(sala, pid)
+    elif sala['fase'] == 'votando' and sala['orden'] and _todos_votaron(sala):
         _cerrar_votacion(sala)
 
 
@@ -373,3 +391,7 @@ def _accion_probable(sala, accion):
         sala['fase'] = 'lobby'
         sala['votos'] = {}
     return jsonify({'status': 'ok'})
+
+
+# Los juegos extra se cargan al final para que puedan usar lo de arriba
+import fiesta_juegos  # noqa: E402,F401

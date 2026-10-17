@@ -11,6 +11,7 @@ const Fiesta = (() => {
   let estado = null;
   let intervalo = null;
   let ultimaFirma = "";
+  let desfaseReloj = 0; // diferencia entre el reloj del servidor y el del celular
 
   const $ = (id) => document.getElementById(id);
 
@@ -123,7 +124,7 @@ const Fiesta = (() => {
     $("codigo-sala").textContent = cod;
     ultimaFirma = "";
     clearInterval(intervalo);
-    intervalo = setInterval(actualizar, 1500);
+    intervalo = setInterval(actualizar, config.intervalo || 1500);
     actualizar();
   }
 
@@ -143,7 +144,12 @@ const Fiesta = (() => {
   async function actualizar() {
     if (!codigo) return;
     try {
-      const nuevo = await api(`/api/fiesta/estado/${codigo}?pid=${encodeURIComponent(PID)}`);
+      const extra = config.extraEstado ? config.extraEstado() : "";
+      const nuevo = await api(`/api/fiesta/estado/${codigo}?pid=${encodeURIComponent(PID)}${extra}`);
+      if (nuevo.ahora) {
+        desfaseReloj = nuevo.ahora * 1000 - Date.now();
+        delete nuevo.ahora; // así la "firma" no cambia cada segundo
+      }
       const firma = JSON.stringify(nuevo);
       if (firma === ultimaFirma) return; // nada cambió: no repintar (así no se borra lo que tocas)
       ultimaFirma = firma;
@@ -195,14 +201,57 @@ const Fiesta = (() => {
     window.open("https://wa.me/?text=" + encodeURIComponent(texto + " " + linkSala()), "_blank");
   }
 
-  async function accion(nombre, extra) {
+  async function accion(nombre, extra, silencioso) {
     try {
-      await api("/api/fiesta/accion", { codigo, pid: PID, accion: nombre, ...(extra || {}) });
-      ultimaFirma = "";
-      actualizar();
+      const r = await api("/api/fiesta/accion", { codigo, pid: PID, accion: nombre, ...(extra || {}) });
+      if (r && r.error) throw new Error(r.error);
+      if (!silencioso) {
+        ultimaFirma = "";
+        actualizar();
+      }
+      return r;
     } catch (e) {
       alert(e.message);
+      return null;
     }
+  }
+
+  // Tabla de posiciones (para el final de cada juego)
+  function ranking(e) {
+    const lista = e.jugadores.slice().sort((a, b) => b.puntos - a.puntos);
+    const medallas = ["🥇", "🥈", "🥉"];
+    return `<div class="lista-jugadores">${lista
+      .map(
+        (j, i) => `<div class="jugador ${i === 0 ? "listo" : ""}">
+          <div class="avatar" style="background:${colorDe(j.id)}">${medallas[i] || i + 1}</div>
+          <div class="nombre">${esc(j.nombre)}${j.id === PID ? " (tú)" : ""}</div>
+          <span class="puntos">${j.puntos} pts</span>
+        </div>`,
+      )
+      .join("")}</div>`;
+  }
+
+  // Mensaje que aparece un momento en medio de la pantalla
+  function flotante(texto, ms = 1400) {
+    const d = document.createElement("div");
+    d.className = "mensaje-flotante";
+    d.innerHTML = texto;
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), ms);
+  }
+
+  // Los elementos con data-limite="<segundos epoch>" muestran la cuenta regresiva solos
+  setInterval(() => {
+    document.querySelectorAll("[data-limite]").forEach((el) => {
+      const s = segundosHasta(+el.dataset.limite);
+      el.textContent = s;
+      el.classList.toggle("poco-tiempo", s <= 5);
+    });
+  }, 250);
+
+  // Segundos que faltan para un límite que mandó el servidor
+  function segundosHasta(limite) {
+    return Math.max(0, Math.ceil(limite - (Date.now() + desfaseReloj) / 1000));
   }
 
   function salir() {
@@ -259,6 +308,16 @@ const Fiesta = (() => {
   return {
     iniciar,
     accion,
+    segundosHasta,
+    ranking,
+    flotante,
+    refrescar: () => {
+      ultimaFirma = "";
+      actualizar();
+    },
+    get estado() {
+      return estado;
+    },
     expulsar,
     botonesVoto,
     nombreDe,

@@ -22,3 +22,10 @@ templates/juego_mini_golf.html
 templates/juego_reflejos.html
 templates/juego_cruza_calle.html
 templates/juego_stack.html
+fiesta_juegos.py
+templates/dibuja.html
+templates/verdades.html
+templates/trivia.html
+templates/completa_frase.html
+templates/basta.html
+templates/espia.html

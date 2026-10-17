@@ -1,0 +1,155 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}Dos Verdades y una Mentira{% endblock %}
+{% block emoji %}🤥{% endblock %}
+{% block subtitulo %}¿Qué tan bien conoces a tus amigos?{% endblock %}
+
+{% block estilos %}
+<style>
+  .frase-opcion {
+    width: 100%;
+    text-align: left;
+    border: 2px solid #e2d6ff;
+    background: #fff;
+    border-radius: 16px;
+    padding: 14px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--texto);
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .frase-opcion .letra {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--morado);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+  .frase-opcion.elegida {
+    border-color: var(--rosa);
+    background: var(--rosa-claro);
+  }
+  .frase-opcion.mentira {
+    border-color: var(--rojo);
+    background: #ffe3e8;
+  }
+  .frase-opcion.verdad {
+    border-color: var(--verde);
+    background: #e7fbef;
+  }
+  .marca-mentira {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: #9a8aa8;
+    cursor: pointer;
+  }
+  .marca-mentira input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--rojo);
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>Cada quien escribe 2 cosas verdaderas y 1 mentira sobre sí mismo.</li>
+  <li>Luego, por turnos, los demás votan cuál creen que es la mentira.</li>
+  <li>+100 si le atinas a la mentira · +50 al autor por cada uno que engañe 😏</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  let construido = "";
+  const LETRAS = ["A", "B", "C"];
+
+  function enviarFrases(ev) {
+    ev.preventDefault();
+    const frases = [0, 1, 2].map((i) => document.getElementById("f" + i).value.trim());
+    const marcada = document.querySelector("input[name=mentira]:checked");
+    if (frases.some((f) => !f)) return Fiesta.flotante("✏️ Escribe las 3 frases");
+    if (!marcada) return Fiesta.flotante("🤥 Marca cuál es la mentira");
+    Fiesta.accion("enviar", { frases, mentira: +marcada.value });
+  }
+
+  function pintar(e, zona) {
+    const n = e.jugadores.length;
+    const clave = [e.fase, e.ronda, e.ya_envie, e.autor].join("|");
+    const reconstruir = clave !== construido;
+    construido = clave;
+
+    if (e.fase === "lobby") {
+      zona.innerHTML = e.soy_host
+        ? `<div class="tarjeta pila centro"><p class="nota">Necesitan ser al menos 2</p>
+            <button class="boton verde" ${n < 2 ? "disabled" : ""} onclick="Fiesta.accion('iniciar')">${n < 2 ? "Invita al menos a 1 amigo" : "🚀 ¡Empezar!"}</button></div>`
+        : `<div class="tarjeta centro pila"><div class="grande">⏳</div><p class="nota">Esperando a que <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b> empiece…</p></div>`;
+      return;
+    }
+
+    if (e.fase === "escribiendo") {
+      if (!e.ya_envie) {
+        if (!reconstruir) return; // no borres lo que está escribiendo
+        zona.innerHTML = `<form class="tarjeta pila aparecer" onsubmit="enviarFrases(event)">
+            <div class="fila-titulo"><h2>✏️ Escribe sobre ti</h2><span class="reloj" data-limite="${e.limite}"></span></div>
+            <p class="nota" style="text-align:left">2 verdades y 1 mentira. Marca cuál es la mentira (nadie más lo verá).</p>
+            ${[0, 1, 2]
+              .map(
+                (i) => `<input id="f${i}" class="campo" maxlength="90" placeholder="${["Ej: Me he roto un brazo", "Ej: Sé tocar la guitarra", "Ej: Conocí a un famoso"][i]}" autocomplete="off" />
+                  <label class="marca-mentira"><input type="radio" name="mentira" value="${i}" /> Esta es la mentira 🤥</label>`,
+              )
+              .join("")}
+            <button class="boton verde">✅ Listo</button>
+          </form>`;
+      } else {
+        zona.innerHTML = `<div class="tarjeta centro pila"><div class="grande">✅</div>
+            <p class="nota">¡Listo! Esperando a los demás (${e.enviaron.length}/${n}) <span class="reloj" data-limite="${e.limite}"></span></p></div>`;
+      }
+      return;
+    }
+
+    if (e.fase === "votando" || e.fase === "revelar") {
+      const autor = Fiesta.esc(Fiesta.nombreDe(e.autor));
+      const revelar = e.fase === "revelar";
+      const opciones = e.frases
+        .map((f, i) => {
+          let clase = "";
+          if (revelar) clase = i === e.mentira ? "mentira" : "verdad";
+          else if (e.mi_voto === i) clase = "elegida";
+          const extra = revelar ? ` <small>${i === e.mentira ? "🤥 MENTIRA" : "✅"} · ${e.conteo[i]} voto${e.conteo[i] === 1 ? "" : "s"}</small>` : "";
+          const accion = !revelar && !e.soy_autor && !e.ya_vote ? `onclick="Fiesta.accion('votar', {i:${i}})"` : "";
+          return `<button class="frase-opcion ${clase}" ${accion} ${!accion && !revelar ? "disabled" : ""}><span class="letra">${LETRAS[i]}</span><span>${Fiesta.esc(f)}${extra}</span></button>`;
+        })
+        .join("");
+      let nota = "";
+      if (revelar) {
+        const atinaste = e.mi_voto === e.mentira;
+        nota = e.soy_autor ? "😏 Así votaron sobre ti" : e.mi_voto == null ? "No votaste 😴" : atinaste ? "🎉 ¡Le atinaste! +100" : "😵 ¡Te engañó!";
+      } else nota = e.soy_autor ? `😏 Están adivinando TU mentira… (${e.votaron.length}/${n - 1})` : e.ya_vote ? `Voto enviado. Esperando… (${e.votaron.length}/${n - 1})` : "Toca la que creas que es mentira";
+      zona.innerHTML = `<div class="tarjeta pila aparecer">
+          <div class="fila-titulo"><h2>🤔 ¿Cuál es la mentira de ${autor}?</h2>${!revelar ? `<span class="reloj" data-limite="${e.limite}"></span>` : ""}</div>
+          ${opciones}
+          <p class="nota">${nota}</p>
+          ${e.soy_host && !revelar ? `<button class="boton claro" onclick="Fiesta.accion('siguiente')">⏭ Revelar ya</button>` : ""}
+        </div>`;
+      return;
+    }
+
+    if (e.fase === "final") {
+      zona.innerHTML = `<div class="tarjeta pila centro aparecer"><div class="grande">🏆</div><h2>¡Fin del juego!</h2>${Fiesta.ranking(e)}
+        ${e.soy_host ? `<button class="boton verde" onclick="Fiesta.accion('iniciar')">🔁 Jugar otra vez</button>` : `<p class="nota">Esperando al anfitrión…</p>`}</div>`;
+    }
+  }
+
+  Fiesta.iniciar({ juego: "verdades", titulo: "Dos Verdades y una Mentira 🤥", pintar });
+</script>
+{% endblock %}

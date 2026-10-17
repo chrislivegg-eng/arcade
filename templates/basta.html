@@ -1,0 +1,175 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}Basta{% endblock %}
+{% block emoji %}🔤{% endblock %}
+{% block subtitulo %}Nombre, animal, cosa… ¡BASTA!{% endblock %}
+
+{% block estilos %}
+<style>
+  .letra-grande {
+    width: 110px;
+    height: 110px;
+    margin: 0 auto;
+    border-radius: 28px;
+    display: grid;
+    place-items: center;
+    font-size: 4rem;
+    font-weight: 900;
+    color: #fff;
+    background: linear-gradient(135deg, #ff4f8b, #8854d0);
+    box-shadow: 0 12px 30px rgba(255, 79, 139, 0.35);
+  }
+  .categoria label {
+    font-weight: 900;
+    font-size: 0.85rem;
+    color: var(--morado);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .banner-basta {
+    background: var(--rojo);
+    color: #fff;
+    border-radius: 18px;
+    padding: 12px;
+    text-align: center;
+    font-weight: 900;
+    font-size: 1.15rem;
+    animation: aparecer 0.4s ease-out;
+  }
+  .tabla-basta {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+  .tabla-basta td {
+    padding: 5px 4px;
+    border-bottom: 1px solid #f0e8ff;
+  }
+  .tabla-basta .cat {
+    color: var(--morado);
+    font-weight: 900;
+    padding-top: 10px;
+  }
+  .pts-100 {
+    color: var(--verde);
+    font-weight: 900;
+  }
+  .pts-50 {
+    color: #e8930c;
+    font-weight: 900;
+  }
+  .pts-0 {
+    color: #c9b6d6;
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>Sale una letra al azar. Escribe una palabra con esa letra para cada categoría.</li>
+  <li>El primero que llene todo puede gritar <b>¡BASTA!</b> y los demás tienen 5 segundos.</li>
+  <li>Respuesta única = 100 · repetida con alguien = 50 · vacía o con otra letra = 0.</li>
+  <li>El que grita BASTA gana 50 extra. Son 3 rondas.</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  let construido = "";
+  let ultimoEstado = null;
+  let temporizadorEnvio = null;
+
+  function leerRespuestas() {
+    const r = {};
+    (ultimoEstado.categorias || []).forEach((c, i) => {
+      const campo = document.getElementById("cat-" + i);
+      if (campo) r[c] = campo.value;
+    });
+    return r;
+  }
+  function guardarPronto() {
+    clearTimeout(temporizadorEnvio);
+    temporizadorEnvio = setTimeout(() => Fiesta.accion("respuestas", { respuestas: leerRespuestas() }, true), 500);
+  }
+  function gritarBasta() {
+    clearTimeout(temporizadorEnvio);
+    Fiesta.accion("basta", { respuestas: leerRespuestas() });
+  }
+
+  function pintar(e, zona) {
+    ultimoEstado = e;
+    const n = e.jugadores.length;
+    const clave = [e.fase === "cuenta" ? "escribiendo" : e.fase, e.n].join("|");
+    const reconstruir = clave !== construido;
+    construido = clave;
+
+    if (e.fase === "lobby") {
+      zona.innerHTML = e.soy_host
+        ? `<div class="tarjeta pila centro"><p class="nota">Mínimo 2 jugadores</p>
+            <button class="boton verde" ${n < 2 ? "disabled" : ""} onclick="Fiesta.accion('iniciar')">${n < 2 ? "Invita al menos a 1 amigo" : "🚀 ¡Empezar!"}</button></div>`
+        : `<div class="tarjeta centro pila"><div class="grande">⏳</div><p class="nota">Esperando a que <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b> empiece…</p></div>`;
+      return;
+    }
+
+    if (e.fase === "escribiendo" || e.fase === "cuenta") {
+      if (reconstruir) {
+        zona.innerHTML = `
+          <div class="tarjeta pila centro aparecer">
+            <div class="fila-titulo"><span class="nota">Ronda ${e.n} de ${e.total}</span><span class="reloj" id="reloj-basta" data-limite="${e.limite}"></span></div>
+            <div class="letra-grande">${e.letra}</div>
+          </div>
+          <div id="banner"></div>
+          <div class="tarjeta pila">
+            ${e.categorias
+              .map(
+                (c, i) => `<div class="categoria"><label for="cat-${i}">${c}</label>
+                  <input id="cat-${i}" class="campo" maxlength="30" autocomplete="off" autocapitalize="sentences" placeholder="${e.letra}…" value="${Fiesta.esc(e.mis_respuestas[c] || "")}" oninput="guardarPronto()" /></div>`,
+              )
+              .join("")}
+          </div>
+          <button class="boton" id="btn-basta" onclick="gritarBasta()">✋ ¡BASTA!</button>`;
+        setTimeout(() => document.getElementById("cat-0") && document.getElementById("cat-0").focus(), 50);
+      }
+      document.getElementById("reloj-basta").dataset.limite = e.limite;
+      if (e.fase === "cuenta") {
+        const banner = document.getElementById("banner");
+        if (!banner.innerHTML) {
+          banner.innerHTML = `<div class="banner-basta">✋ ¡${Fiesta.esc(e.basta_por)} gritó BASTA! Tienes <span data-limite="${e.limite}"></span> s</div>`;
+          // manda lo que tengas antes de que se acabe
+          Fiesta.accion("respuestas", { respuestas: leerRespuestas() }, true);
+        }
+        const boton = document.getElementById("btn-basta");
+        if (boton) boton.remove();
+      }
+      return;
+    }
+
+    if (e.fase === "revelar") {
+      const filas = Object.entries(e.resultados)
+        .map(
+          ([cat, lista]) =>
+            `<tr><td colspan="3" class="cat">${cat}</td></tr>` +
+            lista.map(([quien, r, pts]) => `<tr><td>${Fiesta.esc(quien)}</td><td>${Fiesta.esc(r) || "—"}</td><td class="pts-${pts}" style="text-align:right">${pts}</td></tr>`).join(""),
+        )
+        .join("");
+      zona.innerHTML = `
+        <div class="tarjeta pila aparecer">
+          <div class="fila-titulo"><h2>📋 Letra ${e.letra}</h2><span class="reloj" data-limite="${e.limite}"></span></div>
+          <div class="lista-jugadores">${e.puntos_ronda
+            .map(([quien, pts], i) => `<div class="jugador ${i === 0 ? "listo" : ""}"><div class="nombre">${i === 0 ? "👑 " : ""}${Fiesta.esc(quien)}</div><span class="puntos">+${pts}</span></div>`)
+            .join("")}</div>
+          <table class="tabla-basta">${filas}</table>
+          ${e.soy_host ? `<button class="boton claro" onclick="Fiesta.accion('siguiente')">⏭ Siguiente ronda</button>` : ""}
+        </div>`;
+      return;
+    }
+
+    if (e.fase === "final") {
+      zona.innerHTML = `<div class="tarjeta pila centro aparecer"><div class="grande">🏆</div><h2>¡Fin del Basta!</h2>${Fiesta.ranking(e)}
+        ${e.soy_host ? `<button class="boton verde" onclick="Fiesta.accion('iniciar')">🔁 Jugar otra vez</button>` : `<p class="nota">Esperando al anfitrión…</p>`}</div>`;
+    }
+  }
+
+  Fiesta.iniciar({ juego: "basta", titulo: "Basta 🔤", pintar, intervalo: 1000 });
+</script>
+{% endblock %}

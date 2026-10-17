@@ -1,0 +1,291 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}Dibuja y Adivina{% endblock %}
+{% block emoji %}🎨{% endblock %}
+{% block subtitulo %}Uno dibuja, los demás adivinan{% endblock %}
+
+{% block estilos %}
+<style>
+  .pizarra {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(108, 92, 231, 0.18);
+    touch-action: none;
+    display: block;
+  }
+  .pista {
+    text-align: center;
+    font-size: 1.7rem;
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: var(--morado);
+    word-break: break-word;
+  }
+  .herramientas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
+  }
+  .color {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px #e2d6ff;
+    cursor: pointer;
+  }
+  .color.activo {
+    box-shadow: 0 0 0 3px var(--morado);
+    transform: scale(1.12);
+  }
+  .herramienta {
+    border: 2px solid #e2d6ff;
+    background: #fff;
+    border-radius: 12px;
+    padding: 6px 10px;
+    font-family: inherit;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .herramienta.activo {
+    border-color: var(--morado);
+    background: #f0eaff;
+  }
+  .chat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 190px;
+    overflow-y: auto;
+    font-weight: 700;
+    font-size: 0.92rem;
+  }
+  .chat .sistema {
+    color: #9a8aa8;
+    font-style: italic;
+  }
+  .chat .acierto {
+    color: var(--verde);
+    font-weight: 900;
+  }
+  .chat b {
+    color: var(--morado);
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>Por turnos, a uno le toca dibujar una palabra (elige entre 3).</li>
+  <li>Los demás ven el dibujo en vivo y escriben qué creen que es.</li>
+  <li>Entre más rápido adivines, más puntos. El que dibuja gana puntos por cada uno que adivine.</li>
+  <li>Con el tiempo aparecen letras de pista 💡</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  const COLORES = ["#222222", "#ff3b3b", "#ff9f1a", "#ffd84f", "#26de81", "#3867d6", "#8854d0", "#ff6bcb", "#8b5a2b", "#ffffff"];
+  const GROSORES = [4, 9, 18];
+  let pincel = { color: "#222222", grosor: 9 };
+  let construido = "";
+  let trazos = [];
+  let tvLocal = -1;
+  let trazoActual = null;
+  let pendientes = [];
+  let ultimoEstado = null;
+
+  function dibujarTrazo(ctx, t) {
+    const escala = ctx.canvas.width;
+    ctx.strokeStyle = t.c;
+    ctx.lineWidth = (t.g * escala) / 600;
+    ctx.lineCap = ctx.lineJoin = "round";
+    ctx.beginPath();
+    t.p.forEach(([x, y], i) => (i ? ctx.lineTo(x * escala, y * escala) : ctx.moveTo(x * escala, y * escala)));
+    if (t.p.length === 1) ctx.lineTo(t.p[0][0] * escala + 0.1, t.p[0][1] * escala);
+    ctx.stroke();
+  }
+  function redibujar() {
+    const lienzo = document.getElementById("pizarra");
+    if (!lienzo) return;
+    const ctx = lienzo.getContext("2d");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+    trazos.forEach((t) => dibujarTrazo(ctx, t));
+  }
+
+  function prepararPizarra(puedoDibujar) {
+    const lienzo = document.getElementById("pizarra");
+    lienzo.width = lienzo.height = 900;
+    redibujar();
+    if (!puedoDibujar) return;
+    const punto = (e) => {
+      const r = lienzo.getBoundingClientRect();
+      return [+((e.clientX - r.left) / r.width).toFixed(3), +((e.clientY - r.top) / r.height).toFixed(3)];
+    };
+    lienzo.addEventListener("pointerdown", (e) => {
+      lienzo.setPointerCapture(e.pointerId);
+      const p = punto(e);
+      trazoActual = { id: Math.random().toString(36).slice(2, 9), c: pincel.color, g: pincel.grosor, p: [p] };
+      trazos.push(trazoActual);
+      pendientes.push(p);
+      redibujar();
+    });
+    lienzo.addEventListener("pointermove", (e) => {
+      if (!trazoActual) return;
+      const p = punto(e);
+      const ultimo = trazoActual.p[trazoActual.p.length - 1];
+      if (Math.hypot(p[0] - ultimo[0], p[1] - ultimo[1]) < 0.004) return;
+      trazoActual.p.push(p);
+      pendientes.push(p);
+      dibujarTrazo(lienzo.getContext("2d"), { ...trazoActual, p: trazoActual.p.slice(-2) });
+    });
+    const soltar = () => {
+      enviarPendientes();
+      trazoActual = null;
+    };
+    lienzo.addEventListener("pointerup", soltar);
+    lienzo.addEventListener("pointercancel", soltar);
+  }
+  // el que dibuja manda sus puntos cada 200 ms
+  function enviarPendientes() {
+    if (!trazoActual || !pendientes.length) return;
+    const puntos = pendientes;
+    pendientes = [];
+    Fiesta.accion("trazo", { id: trazoActual.id, puntos, color: trazoActual.c, grosor: trazoActual.g }, true);
+  }
+  setInterval(enviarPendientes, 200);
+
+  function herramientas() {
+    return `<div class="herramientas">
+      ${COLORES.map((c) => `<div class="color ${pincel.color === c ? "activo" : ""}" style="background:${c}" onclick="elegirColor('${c}', this)"></div>`).join("")}
+    </div>
+    <div class="herramientas">
+      ${GROSORES.map((g, i) => `<button class="herramienta grosor ${pincel.grosor === g ? "activo" : ""}" onclick="elegirGrosor(${g}, this)">${["✏️ Fino", "🖊 Medio", "🖌 Grueso"][i]}</button>`).join("")}
+      <button class="herramienta" onclick="deshacer()">↩️</button>
+      <button class="herramienta" onclick="borrarTodo()">🗑</button>
+    </div>`;
+  }
+  function elegirColor(c, el) {
+    pincel.color = c;
+    document.querySelectorAll(".color").forEach((x) => x.classList.toggle("activo", x === el));
+  }
+  function elegirGrosor(g, el) {
+    pincel.grosor = g;
+    document.querySelectorAll(".grosor").forEach((x) => x.classList.toggle("activo", x === el));
+  }
+  function deshacer() {
+    trazos.pop();
+    redibujar();
+    Fiesta.accion("deshacer", {}, true);
+  }
+  function borrarTodo() {
+    if (!confirm("¿Borrar todo el dibujo?")) return;
+    trazos = [];
+    redibujar();
+    Fiesta.accion("borrar", {}, true);
+  }
+
+  async function adivinar(ev) {
+    ev.preventDefault();
+    const campo = document.getElementById("intento");
+    const texto = campo.value.trim();
+    if (!texto) return;
+    campo.value = "";
+    const r = await Fiesta.accion("adivinar", { texto }, true);
+    if (r && r.acerto) Fiesta.flotante("✅ ¡Adivinaste!");
+    else if (r && r.casi) Fiesta.flotante("🔥 ¡Casi! Estás muy cerca");
+    Fiesta.refrescar();
+  }
+
+  function chat(e) {
+    return e.chat
+      .map((m) =>
+        m.tipo === "intento" ? `<div><b>${Fiesta.esc(m.de)}:</b> ${Fiesta.esc(m.texto)}</div>` : `<div class="${m.tipo}">${Fiesta.esc(m.texto)}</div>`,
+      )
+      .join("");
+  }
+
+  function pintar(e, zona) {
+    ultimoEstado = e;
+    const n = e.jugadores.length;
+    const clave = [e.fase, e.turno_n, e.soy_dibujante].join("|");
+    const nombreDibujante = Fiesta.esc(Fiesta.nombreDe(e.dibujante));
+
+    // el lobby y el final se redibujan siempre (cambian al entrar gente); lo demás solo al cambiar de fase
+    if (clave !== construido || e.fase === "lobby" || e.fase === "final") {
+      construido = clave;
+      if (e.fase === "lobby") {
+        zona.innerHTML = e.soy_host
+          ? `<div class="tarjeta pila centro"><p class="nota">Cuando estén todos, ¡a dibujar!</p>
+              <button class="boton verde" ${n < 2 ? "disabled" : ""} onclick="Fiesta.accion('iniciar')">${n < 2 ? "Invita al menos a 1 amigo" : "🚀 ¡Empezar!"}</button></div>`
+          : `<div class="tarjeta centro pila"><div class="grande">⏳</div><p class="nota">Esperando a que <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b> empiece…</p></div>`;
+      } else if (e.fase === "eligiendo") {
+        zona.innerHTML = e.soy_dibujante
+          ? `<div class="tarjeta pila centro aparecer">
+              <div class="fila-titulo"><h2>✏️ ¡Te toca dibujar!</h2><span class="reloj" data-limite="${e.limite}"></span></div>
+              <p class="nota">Elige una palabra:</p>
+              ${e.opciones.map((o, i) => `<button class="boton morado" onclick="Fiesta.accion('elegir', {i:${i}})">${Fiesta.esc(o)}</button>`).join("")}
+            </div>`
+          : `<div class="tarjeta centro pila aparecer"><div class="grande">🤔</div>
+              <p class="nota"><b>${nombreDibujante}</b> está eligiendo qué dibujar… <span class="reloj" data-limite="${e.limite}"></span></p></div>`;
+      } else if (e.fase === "dibujando" || e.fase === "revelar") {
+        const dibujo = e.soy_dibujante && e.fase === "dibujando";
+        if (e.fase === "dibujando" && !e.soy_dibujante) trazos = [];
+        if (dibujo && e.fase === "dibujando") trazos = [];
+        zona.innerHTML = `
+          <div class="tarjeta pila">
+            <div class="fila-titulo">
+              <span class="nota">${e.fase === "revelar" ? "La palabra era" : dibujo ? "Dibuja:" : `Dibuja <b>${nombreDibujante}</b>`} · turno ${e.turno_n}/${e.turnos}</span>
+              ${e.fase === "dibujando" ? `<span class="reloj" data-limite="${e.limite}"></span>` : ""}
+            </div>
+            <div class="pista" id="pista"></div>
+          </div>
+          <canvas id="pizarra" class="pizarra"></canvas>
+          ${dibujo ? `<div class="tarjeta pila">${herramientas()}</div>` : ""}
+          ${
+            !e.soy_dibujante && e.fase === "dibujando"
+              ? `<form class="fila" onsubmit="adivinar(event)" id="form-intento">
+                   <input id="intento" class="campo" placeholder="¿Qué es?" autocomplete="off" maxlength="40" style="flex:3" />
+                   <button class="boton morado" style="flex:1">➤</button>
+                 </form>`
+              : ""
+          }
+          <div class="tarjeta"><div class="chat" id="chat"></div></div>`;
+        prepararPizarra(dibujo);
+        if (e.fase === "revelar") Fiesta.flotante(`La palabra era: <b>${Fiesta.esc(e.palabra)}</b>`, 2500);
+      } else if (e.fase === "final") {
+        zona.innerHTML = `<div class="tarjeta pila centro aparecer"><div class="grande">🏆</div><h2>¡Fin del juego!</h2>${Fiesta.ranking(e)}
+          ${e.soy_host ? `<button class="boton verde" onclick="Fiesta.accion('iniciar')">🔁 Jugar otra vez</button>` : `<p class="nota">Esperando al anfitrión…</p>`}</div>`;
+      }
+    }
+
+    // partes que cambian sin reconstruir (para no borrar lo que estás dibujando o escribiendo)
+    const pista = document.getElementById("pista");
+    if (pista) pista.textContent = e.fase === "revelar" ? e.palabra : e.palabra || "";
+    const caja = document.getElementById("chat");
+    if (caja) {
+      caja.innerHTML = chat(e);
+      caja.scrollTop = caja.scrollHeight;
+    }
+    const form = document.getElementById("form-intento");
+    if (form && e.acertaron.includes(Fiesta.pid)) form.outerHTML = `<div class="tarjeta centro"><b style="color:var(--verde)">✅ ¡Ya adivinaste! Espera a los demás</b></div>`;
+    if (e.trazos && !(e.soy_dibujante && e.fase === "dibujando")) {
+      trazos = e.trazos;
+      redibujar();
+    }
+    tvLocal = e.tv;
+  }
+
+  Fiesta.iniciar({
+    juego: "dibuja",
+    titulo: "Dibuja y Adivina 🎨",
+    pintar,
+    intervalo: 700,
+    extraEstado: () => `&tv=${tvLocal}`,
+  });
+</script>
+{% endblock %}

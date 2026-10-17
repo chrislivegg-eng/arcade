@@ -338,3 +338,47 @@ body {
 .aparecer {
   animation: aparecer 0.35s ease-out;
 }
+
+/* --- Reloj y extras de los juegos de fiesta --- */
+.reloj {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--morado);
+  color: #fff;
+  border-radius: 14px;
+  padding: 4px 12px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.reloj::before {
+  content: "⏱";
+}
+.poco-tiempo {
+  color: #fff;
+  background: var(--rojo) !important;
+  animation: aparecer 0.5s infinite alternate;
+}
+.fila-titulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.fila-titulo h2 {
+  margin: 0;
+}
+.mensaje-flotante {
+  position: fixed;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  background: #fff;
+  border-radius: 20px;
+  padding: 14px 22px;
+  font-weight: 900;
+  font-size: 1.3rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  z-index: 50;
+  animation: aparecer 0.25s ease-out;
+}
