@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1220" />
+    <title>Penales 3D · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      #zonas {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 4;
+      }
+      .zona {
+        position: absolute;
+        border: 2px dashed rgba(255, 255, 255, 0.55);
+        background: rgba(79, 179, 255, 0.12);
+        border-radius: 8px;
+        pointer-events: auto;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        transition: background 0.15s;
+      }
+      .zona:active,
+      .zona.elegida {
+        background: rgba(79, 179, 255, 0.5);
+        border-style: solid;
+      }
+      #cuenta {
+        position: fixed;
+        left: 50%;
+        top: 22%;
+        transform: translateX(-50%);
+        font-size: 1.1rem;
+        font-weight: 900;
+        background: rgba(20, 12, 24, 0.75);
+        padding: 8px 16px;
+        border-radius: 20px;
+        z-index: 5;
+        white-space: nowrap;
+      }
+      #pantalla-turno {
+        position: fixed;
+        inset: 0;
+        z-index: 8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(11, 18, 32, 0.92);
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+    <div id="zonas" class="oculto"></div>
+    <div id="cuenta" class="oculto"></div>
+    <div id="pantalla-turno" class="oculto">
+      <div class="tarjeta">
+        <div class="trofeo">🧤</div>
+        <div class="ganador" id="turno-texto"></div>
+        <p class="nota" id="turno-nota"></p>
+        <button class="boton" id="btn-listo">¡Listo!</button>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, gauss, rng, lin, material, sonar } = Arcade;
+
+      // =========================================================
+      //  MEDIDAS (metros)
+      // =========================================================
+      const ANCHO_PORT = 7.32,
+        ALTO_PORT = 2.44,
+        MEDIO = ANCHO_PORT / 2,
+        PUNTO = 11,
+        RADIO_BALON = 0.11,
+        POSTE = 0.06;
+      const COLORES = [0xff4f8b, 0x4fb3ff];
+      const ZONAS = ["LA", "CA", "RA", "LB", "CB", "RB"];
+      const CENTRO_ZONA = { L: -2.15, C: 0, R: 2.15, A: 1.75, B: 0.6 };
+
+      // =========================================================
+      //  ESCENA
+      // =========================================================
+      const M = Arcade.mundo({
+        fondo: 0x0b1220,
+        niebla: [40, 120],
+        fov: 50,
+        exposicion: 1.05,
+        lamparas: [
+          [0, 10, 6, 0xffffff, 5],
+          [-10, 6, -6, 0xfff4dd, 2],
+          [10, 6, -6, 0xfff4dd, 2],
+        ],
+      });
+      const { escena, camara } = M;
+
+      // --- Césped con líneas ---
+      const PX_M = 40;
+      const pasto = M.textura(50 * PX_M, 40 * PX_M, (g, w, h) => {
+        for (let i = 0; i < 20; i++) {
+          g.fillStyle = i % 2 ? "#2f8a3a" : "#3a9a45";
+          g.fillRect(0, (i * h) / 20, w, h / 20);
+        }
+        const img = g.getImageData(0, 0, w, h);
+        for (let p = 0; p < img.data.length; p += 4) {
+          const r = (Math.random() - 0.5) * 22;
+          img.data[p] += r;
+          img.data[p + 1] += r;
+          img.data[p + 2] += r;
+        }
+        g.putImageData(img, 0, 0);
+        // x: -25..25 → 0..w, z: -5..35 → 0..h
+        const X = (x) => (x + 25) * PX_M,
+          Z = (z) => (z + 5) * PX_M;
+        g.strokeStyle = "rgba(255,255,255,0.9)";
+        g.lineWidth = 0.12 * PX_M;
+        g.beginPath();
+        g.moveTo(0, Z(0));
+        g.lineTo(w, Z(0));
+        g.strokeRect(X(-9.16), Z(0), 18.32 * PX_M, 5.5 * PX_M);
+        g.strokeRect(X(-20.16), Z(0), 40.32 * PX_M, 16.5 * PX_M);
+        g.stroke();
+        g.beginPath();
+        g.arc(X(0), Z(11), 9.15 * PX_M, 0.29 * Math.PI, 0.71 * Math.PI);
+        g.stroke();
+        g.fillStyle = "#fff";
+        g.beginPath();
+        g.arc(X(0), Z(11), 0.15 * PX_M, 0, Math.PI * 2);
+        g.fill();
+      });
+      const cesped = new THREE.Mesh(new THREE.PlaneGeometry(50, 40), material(0xffffff, { map: pasto, roughness: 0.95 }));
+      cesped.rotation.x = -Math.PI / 2;
+      cesped.position.set(0, 0, 15);
+      cesped.receiveShadow = true;
+      escena.add(cesped);
+      const afuera = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), material(0x2a7a34, { roughness: 1 }));
+      afuera.rotation.x = -Math.PI / 2;
+      afuera.position.y = -0.01;
+      escena.add(afuera);
+
+      // --- Portería ---
+      const matPoste = material(0xffffff, { roughness: 0.3, metalness: 0.2 });
+      const poste = (largo, x, y, z, horizontal) => {
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(POSTE, POSTE, largo, 16), matPoste);
+        m.position.set(x, y, z);
+        if (horizontal) m.rotation.z = Math.PI / 2;
+        m.castShadow = true;
+        escena.add(m);
+      };
+      poste(ALTO_PORT + POSTE, -MEDIO, ALTO_PORT / 2, 0);
+      poste(ALTO_PORT + POSTE, MEDIO, ALTO_PORT / 2, 0);
+      poste(ANCHO_PORT + POSTE * 2, 0, ALTO_PORT, 0, true);
+
+      const texturaRed = M.textura(256, 256, (g, w, h) => {
+        g.clearRect(0, 0, w, h);
+        g.strokeStyle = "rgba(255,255,255,0.85)";
+        g.lineWidth = 3;
+        for (let i = 0; i <= 8; i++) {
+          g.beginPath();
+          g.moveTo((i * w) / 8, 0);
+          g.lineTo((i * w) / 8, h);
+          g.moveTo(0, (i * h) / 8);
+          g.lineTo(w, (i * h) / 8);
+          g.stroke();
+        }
+      });
+      texturaRed.wrapS = texturaRed.wrapT = THREE.RepeatWrapping;
+      const matRed = (rx, ry) => {
+        const t = texturaRed.clone();
+        t.needsUpdate = true;
+        t.repeat.set(rx, ry);
+        return new THREE.MeshStandardMaterial({ map: t, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide, roughness: 0.8 });
+      };
+      const FONDO_RED = 2.0;
+      const geoRedFondo = new THREE.PlaneGeometry(ANCHO_PORT, ALTO_PORT, 24, 10);
+      const redFondo = new THREE.Mesh(geoRedFondo, matRed(30, 10));
+      redFondo.position.set(0, ALTO_PORT / 2, -FONDO_RED);
+      escena.add(redFondo);
+      const basePosRed = geoRedFondo.attributes.position.array.slice();
+      [-1, 1].forEach((lado) => {
+        const r = new THREE.Mesh(new THREE.PlaneGeometry(FONDO_RED, ALTO_PORT), matRed(8, 10));
+        r.rotation.y = Math.PI / 2;
+        r.position.set(lado * MEDIO, ALTO_PORT / 2, -FONDO_RED / 2);
+        escena.add(r);
+      });
+      const techoRed = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO_PORT, FONDO_RED), matRed(30, 8));
+      techoRed.rotation.x = Math.PI / 2;
+      techoRed.position.set(0, ALTO_PORT, -FONDO_RED / 2);
+      escena.add(techoRed);
+
+      let bultoRed = null; // { x, y, inicio }
+      function deformarRed(ahora) {
+        const pos = geoRedFondo.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          let z = 0;
+          if (bultoRed) {
+            const t = (ahora - bultoRed.inicio) / 1000;
+            const d = Math.hypot(basePosRed[i * 3] - bultoRed.x, basePosRed[i * 3 + 1] + ALTO_PORT / 2 - bultoRed.y);
+            z = -0.7 * Math.exp(-d * d * 1.2) * Math.exp(-t * 2.5) * Math.cos(t * 9);
+          }
+          pos.setZ(i, z);
+        }
+        pos.needsUpdate = true;
+      }
+
+      // --- Tribunas con público ---
+      const texturaPublico = M.textura(1024, 256, (g, w, h) => {
+        g.fillStyle = "#151b2b";
+        g.fillRect(0, 0, w, h);
+        const colores = ["#ff4f8b", "#4fb3ff", "#ffffff", "#ffd84f", "#26de81", "#ff7a59", "#a29bfe"];
+        for (let i = 0; i < 2600; i++) {
+          g.fillStyle = colores[(Math.random() * colores.length) | 0];
+          g.globalAlpha = azar(0.35, 0.9);
+          g.fillRect(Math.random() * w, Math.random() * h, 3, 4);
+        }
+        g.globalAlpha = 1;
+      });
+      texturaPublico.wrapS = THREE.RepeatWrapping;
+      texturaPublico.repeat.set(4, 1);
+      const tribuna = new THREE.Mesh(new THREE.CylinderGeometry(55, 55, 18, 64, 1, true, Math.PI * 0.6, Math.PI * 0.8), material(0xffffff, { map: texturaPublico, side: THREE.BackSide, roughness: 1 }));
+      tribuna.position.set(0, 9, 15);
+      escena.add(tribuna);
+      const tribuna2 = tribuna.clone();
+      tribuna2.rotation.y = Math.PI;
+      escena.add(tribuna2);
+
+      // --- Torres de luz ---
+      [[-30, -25], [30, -25], [-30, 45], [30, 45]].forEach(([x, z]) => {
+        const brillo = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: M.textura(64, 64, (g) => {
+              const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+              gr.addColorStop(0, "rgba(255,255,255,1)");
+              gr.addColorStop(0.3, "rgba(255,250,230,0.6)");
+              gr.addColorStop(1, "rgba(255,250,230,0)");
+              g.fillStyle = gr;
+              g.fillRect(0, 0, 64, 64);
+            }),
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+          }),
+        );
+        brillo.position.set(x, 26, z);
+        brillo.scale.set(10, 10, 1);
+        escena.add(brillo);
+      });
+
+      escena.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a3a1a, 0.55));
+      const sol = new THREE.DirectionalLight(0xffffff, 1.3);
+      sol.position.set(-8, 20, 18);
+      sol.castShadow = true;
+      sol.shadow.mapSize.set(2048, 2048);
+      Object.assign(sol.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12, near: 1, far: 60 });
+      sol.shadow.bias = -0.0005;
+      sol.target.position.set(0, 0, 6);
+      escena.add(sol, sol.target);
+
+      // --- Balón ---
+      const texturaBalon = M.textura(512, 256, (g, w, h) => {
+        g.fillStyle = "#f5f5f5";
+        g.fillRect(0, 0, w, h);
+        g.fillStyle = "#1c1c1c";
+        const pent = (cx, cy, r) => {
+          g.beginPath();
+          for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+            g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+          }
+          g.fill();
+        };
+        for (let fila = 0; fila < 3; fila++)
+          for (let i = 0; i < 6; i++) pent(((i + (fila % 2) * 0.5) * w) / 6, 40 + fila * 88, fila === 1 ? 26 : 34);
+      });
+      const balon = new THREE.Mesh(new THREE.SphereGeometry(RADIO_BALON, 32, 24), material(0xffffff, { map: texturaBalon, roughness: 0.45 }));
+      balon.castShadow = true;
+      escena.add(balon);
+      function balonEnPunto() {
+        balon.position.set(0, RADIO_BALON, PUNTO);
+        balon.rotation.set(0, 0, 0);
+      }
+      balonEnPunto();
+
+      // --- Personas (portero y tirador) ---
+      const PIEL = 0xc68863;
+      function crearPersona(color, portero) {
+        const cuerpo = new THREE.Group();
+        const pivote = new THREE.Group(); // gira desde los pies al aventarse
+        cuerpo.add(pivote);
+        const parte = (geo, col, x, y, z) => {
+          const m = new THREE.Mesh(geo, material(col, { roughness: 0.7 }));
+          m.position.set(x, y, z);
+          m.castShadow = true;
+          pivote.add(m);
+          return m;
+        };
+        const camisa = portero ? 0x26de81 : color;
+        parte(new THREE.BoxGeometry(0.16, 0.85, 0.16), 0x1c1c1c, -0.12, 0.43, 0);
+        parte(new THREE.BoxGeometry(0.16, 0.85, 0.16), 0x1c1c1c, 0.12, 0.43, 0);
+        parte(new THREE.BoxGeometry(0.46, 0.6, 0.26), camisa, 0, 1.15, 0);
+        parte(new THREE.SphereGeometry(0.13, 16, 12), PIEL, 0, 1.6, 0);
+        const brazos = [-1, 1].map((lado) => {
+          const hombro = new THREE.Group();
+          hombro.position.set(lado * 0.3, 1.38, 0);
+          pivote.add(hombro);
+          const brazo = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.6, 0.12), material(camisa, { roughness: 0.7 }));
+          brazo.position.y = -0.3;
+          brazo.castShadow = true;
+          hombro.add(brazo);
+          const mano = new THREE.Mesh(new THREE.SphereGeometry(portero ? 0.09 : 0.06, 12, 10), material(portero ? 0xffffff : PIEL));
+          mano.position.y = -0.62;
+          hombro.add(mano);
+          return hombro;
+        });
+        // franja del color del jugador en el portero
+        if (portero) parte(new THREE.BoxGeometry(0.47, 0.12, 0.27), color, 0, 1.2, 0);
+        return { cuerpo, pivote, brazos };
+      }
+      let portero = crearPersona(COLORES[1], true);
+      let tirador = crearPersona(COLORES[0], false);
+      escena.add(portero.cuerpo, tirador.cuerpo);
+
+      function colorearPersona(persona, color, esPortero) {
+        escena.remove(persona.cuerpo);
+        const nueva = crearPersona(color, esPortero);
+        escena.add(nueva.cuerpo);
+        return nueva;
+      }
+
+      function porteroInicial() {
+        portero.cuerpo.position.set(0, 0, 0.35);
+        portero.cuerpo.rotation.set(0, 0, 0);
+        portero.pivote.rotation.set(0, 0, 0);
+        portero.pivote.position.set(0, 0, 0);
+        portero.brazos.forEach((b, i) => b.rotation.set(0, 0, (i ? 1 : -1) * 0.5));
+      }
+      function tiradorInicial(visible) {
+        tirador.cuerpo.visible = visible;
+        tirador.cuerpo.position.set(-1.2, 0, PUNTO + 2.4);
+        tirador.cuerpo.rotation.set(0, Math.PI + 0.45, 0);
+        tirador.brazos.forEach((b) => b.rotation.set(0, 0, 0));
+      }
+      porteroInicial();
+      tiradorInicial(false);
+
+      // =========================================================
+      //  CÁMARAS
+      // =========================================================
+      let vista = "menu";
+      function ajustarCamara(t) {
+        const aspecto = window.innerWidth / window.innerHeight;
+        if (vista === "tirador") {
+          camara.fov = limitar((2 * Math.atan(4.4 / 13 / aspecto) * 180) / Math.PI, 32, 74);
+          camara.position.set(0, 1.05, PUNTO + 2.1);
+          camara.lookAt(0, 1.0, 0);
+        } else if (vista === "portero") {
+          // detrás de la red, lo bastante lejos para que quepa toda la portería
+          const vertical = aspecto < 1 ? 80 : 50;
+          const tanH = Math.tan(((vertical / 2) * Math.PI) / 180) * aspecto;
+          const distancia = Math.max(6, 4.4 / tanH);
+          camara.fov = vertical;
+          camara.position.set(0, 1.6 + distancia * 0.12, -distancia);
+          camara.lookAt(0, 1.1, 4);
+        } else {
+          camara.fov = 55;
+          camara.position.set(Math.sin(t * 0.15) * 9, 3 + Math.sin(t * 0.2), PUNTO + 6 + Math.cos(t * 0.15) * 3);
+          camara.lookAt(0, 1, 0);
+        }
+        camara.updateProjectionMatrix();
+      }
+      M.alCuadro((dt, ahora) => {
+        ajustarCamara(ahora / 1000);
+        deformarRed(ahora);
+        if (!$("zonas").classList.contains("oculto")) posicionarZonas();
+        // el portero se mueve nervioso mientras espera
+        if (!portero.lanzado) {
+          const t = ahora / 1000;
+          portero.cuerpo.position.x = Math.sin(t * 1.7) * 0.35;
+          portero.brazos.forEach((b, i) => (b.rotation.z = (i ? 1 : -1) * (0.5 + Math.sin(t * 3) * 0.08)));
+        }
+      });
+
+      // =========================================================
+      //  ZONAS PARA EL PORTERO
+      // =========================================================
+      let zonaElegida = null;
+      let alElegirZona = null;
+      ZONAS.forEach((z) => {
+        const d = document.createElement("div");
+        d.className = "zona";
+        d.dataset.zona = z;
+        d.onclick = () => elegirZona(z);
+        $("zonas").appendChild(d);
+      });
+      function posicionarZonas() {
+        document.querySelectorAll(".zona").forEach((d) => {
+          const z = d.dataset.zona;
+          const x1 = { L: -MEDIO, C: -1.22, R: 1.22 }[z[0]],
+            x2 = { L: -1.22, C: 1.22, R: MEDIO }[z[0]];
+          const y1 = z[1] === "A" ? 1.22 : 0,
+            y2 = z[1] === "A" ? ALTO_PORT : 1.22;
+          const a = M.aPantalla(new THREE.Vector3(x1, y2, 0)),
+            b = M.aPantalla(new THREE.Vector3(x2, y1, 0));
+          Object.assign(d.style, {
+            left: Math.min(a.x, b.x) + 3 + "px",
+            top: Math.min(a.y, b.y) + 3 + "px",
+            width: Math.abs(b.x - a.x) - 6 + "px",
+            height: Math.abs(b.y - a.y) - 6 + "px",
+          });
+        });
+      }
+      function mostrarZonas(siNo) {
+        $("zonas").classList.toggle("oculto", !siNo);
+        document.querySelectorAll(".zona").forEach((d) => d.classList.remove("elegida"));
+        if (siNo) posicionarZonas();
+      }
+      function elegirZona(z) {
+        if (zonaElegida) return;
+        zonaElegida = z;
+        sonar("click");
+        document.querySelectorAll(".zona").forEach((d) => d.classList.toggle("elegida", d.dataset.zona === z));
+        alElegirZona && alElegirZona(z);
+      }
+      function esperarZona(segundos) {
+        zonaElegida = null;
+        mostrarZonas(true);
+        return new Promise((listo) => {
+          let restante = segundos;
+          const actualizarCuenta = () => {
+            $("cuenta").textContent = restante != null ? `🧤 ¡Elige a dónde te avientas! ${restante}` : "🧤 ¡Elige a dónde te avientas!";
+          };
+          $("cuenta").classList.remove("oculto");
+          actualizarCuenta();
+          const reloj =
+            segundos != null
+              ? setInterval(() => {
+                  restante--;
+                  actualizarCuenta();
+                  if (restante <= 0) terminar("CB");
+                }, 1000)
+              : null;
+          const terminar = (z) => {
+            clearInterval(reloj);
+            alElegirZona = null;
+            $("cuenta").classList.add("oculto");
+            setTimeout(() => mostrarZonas(false), 250);
+            listo(zonaElegida || z);
+          };
+          alElegirZona = (z) => terminar(z);
+        });
+      }
+
+      // =========================================================
+      //  REGLAS DEL TIRO
+      // =========================================================
+      function zonaDeTiro(x, y) {
+        return (x < -1.22 ? "L" : x > 1.22 ? "R" : "C") + (y > 1.22 ? "A" : "B");
+      }
+      function resolver(tiro, zona) {
+        const { x, y } = tiro;
+        if (y > ALTO_PORT + RADIO_BALON + POSTE || Math.abs(x) > MEDIO + RADIO_BALON + POSTE) return "fuera";
+        if (Math.abs(Math.abs(x) - MEDIO) < RADIO_BALON + POSTE || Math.abs(y - ALTO_PORT) < RADIO_BALON + POSTE) return "poste";
+        const cx = CENTRO_ZONA[zona[0]],
+          cy = CENTRO_ZONA[zona[1]];
+        let alcanceX = zona[0] === "C" ? 1.05 : 1.5,
+          alcanceY = 0.9;
+        if (tiro.potencia < 0.35) {
+          alcanceX *= 1.35;
+          alcanceY *= 1.35;
+        }
+        let ataja = Math.abs(x - cx) <= alcanceX && Math.abs(y - cy) <= alcanceY;
+        if (Math.abs(x) > 3.1 && y > 1.95) ataja = false; // ¡a la escuadra!
+        return ataja ? "atajada" : "gol";
+      }
+
+      function tiroDesdeGesto(g) {
+        const H = window.innerHeight;
+        if (g.dy > -H * 0.05) return null;
+        const velocidad = Math.hypot(g.vx, g.vy) / H;
+        const potencia = limitar((velocidad - 0.7) / 4.2, 0.05, 1.25);
+        const curva = limitar(Arcade.curvaGesto(g.puntos) / (H * 0.06), -1, 1);
+        const x = limitar((g.dx / Math.max(60, -g.dy)) * 4.6 + curva * 0.7 + gauss() * 0.12, -9, 9);
+        const y = limitar(0.12 + potencia * 2.55 + gauss() * 0.08, 0.1, 5);
+        return { x: +x.toFixed(3), y: +y.toFixed(3), curva: +curva.toFixed(3), potencia: +potencia.toFixed(3) };
+      }
+
+      const PRECISION_BOT = { facil: 0.95, normal: 0.55, pro: 0.3 };
+      const LECTURA_BOT = { facil: 0.12, normal: 0.3, pro: 0.48 };
+      function tiroBot(r) {
+        const lado = r() < 0.5 ? -1 : 1;
+        const objetivoX = lado * azar(1.4, 3.3);
+        const objetivoY = azar(0.25, 2.15);
+        const error = PRECISION_BOT[P.dificultad];
+        const y = Math.max(0.12, objetivoY + gauss() * error * 0.6);
+        return { x: objetivoX + gauss() * error, y, curva: azar(-0.5, 0.5), potencia: limitar((y - 0.12) / 2.55, 0.2, 1.1) };
+      }
+      function zonaBot(tiro) {
+        if (Math.random() < LECTURA_BOT[P.dificultad]) return zonaDeTiro(tiro.x, tiro.y);
+        return ZONAS[(Math.random() * ZONAS.length) | 0];
+      }
+
+      // =========================================================
+      //  ANIMACIÓN DEL PENAL
+      // =========================================================
+      async function correrTirador() {
+        tirador.cuerpo.visible = true;
+        const desde = tirador.cuerpo.position.clone();
+        const hasta = new THREE.Vector3(-0.35, 0, PUNTO + 0.45);
+        await M.animar(750, (t) => {
+          tirador.cuerpo.position.lerpVectors(desde, hasta, t);
+          tirador.cuerpo.position.y = Math.abs(Math.sin(t * Math.PI * 4)) * 0.06;
+          tirador.brazos.forEach((b, i) => (b.rotation.x = Math.sin(t * Math.PI * 4 + i * Math.PI) * 0.7));
+        });
+      }
+
+      async function animarPenal(tiro, zona) {
+        const resultado = resolver(tiro, zona);
+        portero.lanzado = true;
+        sonar("patada", 0.6 + tiro.potencia * 0.5);
+        const duracion = 950 - limitar(tiro.potencia, 0, 1.1) * 420;
+        const inicio = balon.position.clone();
+        const fin = new THREE.Vector3(tiro.x, Math.max(RADIO_BALON, tiro.y), 0);
+        const control = new THREE.Vector3((inicio.x + fin.x) / 2 - tiro.curva * 2.4, (inicio.y + fin.y) / 2 + 0.35 + tiro.y * 0.25, PUNTO / 2);
+        const bezier = (t) =>
+          new THREE.Vector3()
+            .addScaledVector(inicio, (1 - t) * (1 - t))
+            .addScaledVector(control, 2 * t * (1 - t))
+            .addScaledVector(fin, t * t);
+
+        // el portero se avienta (un poquito después de la patada)
+        const cx = CENTRO_ZONA[zona[0]],
+          cy = CENTRO_ZONA[zona[1]];
+        const lado = Math.sign(cx);
+        const giro = zona[0] === "C" ? 0 : (zona[1] === "A" ? 1.05 : 1.4) * -lado;
+        const xInicial = portero.cuerpo.position.x;
+        M.animar(duracion * 0.85, (t) => {
+          const s = Math.min(1, t * 1.25);
+          const e = s * (2 - s);
+          portero.cuerpo.position.x = xInicial + (cx * 0.55 - xInicial) * e;
+          portero.pivote.rotation.z = giro * e;
+          portero.cuerpo.position.y = zona[1] === "A" ? Math.sin(e * Math.PI * 0.6) * 0.55 : 0;
+          if (zona[0] === "C" && zona[1] === "B") portero.pivote.scale.y = 1 - e * 0.2;
+          portero.brazos.forEach((b, i) => (b.rotation.z = (i ? 1 : -1) * (0.5 + e * 2.3)));
+        });
+
+        await M.animar(duracion, (t) => {
+          balon.position.copy(bezier(t));
+          balon.rotation.x -= 0.4;
+          balon.rotation.y += tiro.curva * 0.3;
+        });
+
+        const desde = balon.position.clone();
+        if (resultado === "gol") {
+          sonar("red");
+          bultoRed = { x: tiro.x, y: tiro.y, inicio: performance.now() };
+          await M.animar(260, (t) => balon.position.lerpVectors(desde, new THREE.Vector3(tiro.x * 0.95, Math.max(RADIO_BALON, tiro.y - 0.25), -FONDO_RED + 0.25), t));
+          await M.animar(400, (t) => (balon.position.y = Math.max(RADIO_BALON, balon.position.y - t * 0.12)));
+        } else if (resultado === "atajada") {
+          sonar("golpe");
+          const rebote = new THREE.Vector3(tiro.x + (lado || 1) * azar(2, 4), tiro.y + azar(0.5, 1.5), azar(3, 6));
+          await M.animar(600, (t) => {
+            balon.position.lerpVectors(desde, rebote, t);
+            balon.position.y = Math.max(RADIO_BALON, desde.y + (rebote.y - desde.y) * t - 4 * t * t);
+          });
+        } else if (resultado === "poste") {
+          sonar("aro", 1.5);
+          const rebote = new THREE.Vector3(tiro.x * 0.7, RADIO_BALON, 7);
+          await M.animar(650, (t) => {
+            balon.position.lerpVectors(desde, rebote, t);
+            balon.position.y = Math.max(RADIO_BALON, desde.y * (1 - t) + Math.sin(t * Math.PI) * 0.8);
+          });
+        } else {
+          sonar("swoosh");
+          const lejos = new THREE.Vector3(tiro.x * 1.6, tiro.y + 2, -18);
+          await M.animar(500, (t) => balon.position.lerpVectors(desde, lejos, t));
+        }
+        return resultado;
+      }
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      const P = { modo: null, nombres: [], resultados: [[], []], ronda: 0, tirador: 0, dificultad: "normal", r: Math.random, activa: false, recibido: {} };
+
+      const ui = Arcade.ui({
+        juego: "penales",
+        titulo: "Penales 3D",
+        emoji: "⚽",
+        subtitulo: "5 tiros cada quien · muerte súbita si empatan",
+        modos: ["bot", "online", "local"],
+        dificultad: true,
+        reglas: [
+          "<b>Para tirar:</b> desliza el dedo hacia la portería. Entre más rápido, más fuerte y más alto.",
+          "Desliza chueco para tirar a las esquinas; si haces una curva con el dedo, el balón hace efecto.",
+          "<b>De portero:</b> toca la parte de la portería a donde te quieres aventar.",
+          "A la escuadra (esquinas de arriba) es casi imposible de atajar… pero es fácil volarla 😅",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          P.activa = false;
+          vista = "menu";
+          mostrarZonas(false);
+          $("cuenta").classList.add("oculto");
+          $("pantalla-turno").classList.add("oculto");
+        },
+      });
+
+      function goles(i) {
+        return P.resultados[i].filter((r) => r === "gol").length;
+      }
+      function actualizarMarcador() {
+        const icono = (r) => (r === "gol" ? "⚽" : "❌");
+        ui.marcador(
+          [0, 1].map((i) => ({
+            nombre: P.nombres[i],
+            valor: goles(i),
+            detalle: P.resultados[i].map(icono).join("") + "·".repeat(Math.max(0, 5 - P.resultados[i].length)),
+            activo: P.tirador === i,
+            color: i ? "#4fb3ff" : "#ff4f8b",
+          })),
+        );
+      }
+
+      function ganador() {
+        const [a, b] = [P.resultados[0].length, P.resultados[1].length];
+        const [ga, gb] = [goles(0), goles(1)];
+        if (a <= 5 && b <= 5) {
+          if (ga + (5 - a) < gb) return 1;
+          if (gb + (5 - b) < ga) return 0;
+          if (a === 5 && b === 5 && ga !== gb) return ga > gb ? 0 : 1;
+          return null;
+        }
+        if (a === b && ga !== gb) return ga > gb ? 0 : 1;
+        return null;
+      }
+
+      function soyYo(i) {
+        if (P.modo === "online") return i === ui.yo;
+        if (P.modo === "bot") return i === 0;
+        return true;
+      }
+
+      function empezar(modo, info) {
+        P.modo = modo;
+        P.nombres = info.nombres;
+        P.dificultad = info.dificultad;
+        P.r = rng(info.semilla);
+        P.resultados = [[], []];
+        P.ronda = 0;
+        P.tirador = modo === "bot" ? 0 : P.r() < 0.5 ? 0 : 1;
+        P.activa = true;
+        P.partida = info.partida;
+        P.recibido = {};
+        ui.alEvento = alEvento;
+        jugarRonda();
+      }
+
+      function prepararRonda() {
+        balonEnPunto();
+        portero = colorearPersona(portero, COLORES[1 - P.tirador], true);
+        tirador = colorearPersona(tirador, COLORES[P.tirador], false);
+        portero.lanzado = false;
+        porteroInicial();
+        tiradorInicial(false);
+        bultoRed = null;
+        actualizarMarcador();
+      }
+
+      let esperandoGesto = null;
+      Arcade.deslizar(M.lienzo, {
+        puede: () => !!esperandoGesto,
+        soltar: (g) => {
+          if (!esperandoGesto) return;
+          const tiro = tiroDesdeGesto(g);
+          if (!tiro) return ui.avisar("Desliza hacia la portería ⬆️", "#ffb84f");
+          const listo = esperandoGesto;
+          esperandoGesto = null;
+          listo(tiro);
+        },
+      });
+      const esperarTiro = () => new Promise((r) => (esperandoGesto = r));
+
+      async function pantallaTurno(texto, nota) {
+        $("turno-texto").textContent = texto;
+        $("turno-nota").textContent = nota;
+        $("pantalla-turno").classList.remove("oculto");
+        await new Promise((r) => ($("btn-listo").onclick = r));
+        $("pantalla-turno").classList.add("oculto");
+      }
+
+      async function jugarRonda() {
+        if (!P.activa) return;
+        const partida = P.partida;
+        prepararRonda();
+        const t = P.tirador,
+          arquero = 1 - t;
+        let tiro, zona;
+
+        if (P.modo === "local") {
+          vista = "portero";
+          await pantallaTurno(`🧤 ${P.nombres[arquero]} de portero`, `${P.nombres[t]}, ¡no veas la pantalla! 🙈`);
+          zona = await esperarZona(null);
+          await esperar(400);
+          vista = "tirador";
+          await pantallaTurno(`⚽ Tira ${P.nombres[t]}`, "Desliza hacia la portería");
+          ui.ayuda("👆 Desliza hacia la portería para tirar");
+          tiro = await esperarTiro();
+        } else if (soyYo(t)) {
+          vista = "tirador";
+          ui.avisar("¡Te toca tirar!", "#ff4f8b");
+          ui.ayuda("👆 Desliza hacia la portería para tirar");
+          tiro = await esperarTiro();
+          ui.ayuda("");
+          if (P.modo === "bot") zona = zonaBot(tiro);
+          else {
+            ui.enviar("tiro", { partida: P.partida, ronda: P.ronda, tiro });
+            if (!(P.recibido[P.ronda] || {}).zona) ui.avisar("Esperando al portero…", "#4fb3ff");
+            zona = await esperarEventoOnline("zona");
+          }
+        } else {
+          vista = "portero";
+          tiradorInicial(true);
+          ui.ayuda("");
+          if (P.modo === "bot") {
+            ui.avisar("¡Te toca atajar!", "#4fb3ff");
+            const elegida = esperarZona(3);
+            tiro = tiroBot(P.r);
+            setTimeout(() => correrTirador(), 2250);
+            zona = await elegida;
+            await esperar(700);
+          } else {
+            ui.avisar("¡Te toca atajar!", "#4fb3ff");
+            zona = await esperarZona(8);
+            ui.enviar("zona", { partida: P.partida, ronda: P.ronda, zona });
+            if (!(P.recibido[P.ronda] || {}).tiro) ui.avisar("Esperando el tiro…", "#ff4f8b");
+            tiro = await esperarEventoOnline("tiro");
+            await correrTirador();
+          }
+        }
+        if (!P.activa || partida !== P.partida) return;
+        ui.ayuda("");
+
+        const resultado = await animarPenal(tiro, zona);
+        const textos = {
+          gol: ["⚽ ¡GOOOL!", "#26de81"],
+          atajada: ["🧤 ¡ATAJADA!", "#4fb3ff"],
+          poste: ["🥅 ¡Al poste!", "#ffb84f"],
+          fuera: ["😬 ¡Afuera!", "#ff6b81"],
+        };
+        if (resultado === "gol" && Math.abs(tiro.x) > 3.1 && tiro.y > 1.95) textos.gol = ["🎯 ¡A LA ESCUADRA!", "#26de81"];
+        ui.avisar(...textos[resultado]);
+        sonar(resultado === "gol" ? "publico" : "abucheo");
+        P.resultados[t].push(resultado === "gol" ? "gol" : "fallo");
+        actualizarMarcador();
+        await esperar(2200);
+        if (!P.activa || partida !== P.partida) return;
+
+        const g = ganador();
+        if (g != null) return terminar(g);
+        P.ronda++;
+        P.tirador = 1 - P.tirador;
+        jugarRonda();
+      }
+
+      function terminar(g) {
+        P.activa = false;
+        vista = "menu";
+        const marcador = `${P.nombres[0]} ${goles(0)} - ${goles(1)} ${P.nombres[1]}`;
+        const gane = soyYo(g) && P.modo !== "local";
+        sonar(gane || P.modo === "local" ? "ganar" : "perder");
+        ui.terminar({
+          emoji: P.modo === "local" || gane ? "🏆" : "😿",
+          texto: P.modo === "local" ? `¡Ganó ${P.nombres[g]}!` : gane ? "¡Ganaste la tanda!" : `Ganó ${P.nombres[g]}`,
+          nota: marcador,
+        });
+      }
+
+      // ---------- Online ----------
+      let esperandoOnline = null;
+      // Los mensajes del rival se guardan por ronda, por si llegan antes de tiempo
+      function esperarEventoOnline(tipo) {
+        const guardado = (P.recibido[P.ronda] || {})[tipo];
+        if (guardado != null) return Promise.resolve(guardado);
+        return new Promise((r) => (esperandoOnline = { tipo, ronda: P.ronda, r }));
+      }
+      function alEvento(tipo, datos) {
+        if (!datos || datos.partida !== P.partida || (tipo !== "tiro" && tipo !== "zona")) return;
+        const valor = tipo === "tiro" ? datos.tiro : datos.zona;
+        P.recibido[datos.ronda] = { ...(P.recibido[datos.ronda] || {}), [tipo]: valor };
+        if (esperandoOnline && esperandoOnline.tipo === tipo && esperandoOnline.ronda === datos.ronda) {
+          const r = esperandoOnline.r;
+          esperandoOnline = null;
+          r(valor);
+        }
+      }
+    </script>
+  </body>
+</html>

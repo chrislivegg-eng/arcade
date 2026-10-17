@@ -5,10 +5,12 @@ import string
 from flask import Flask, render_template, request, redirect, jsonify
 from fiesta import fiesta_bp
 from dardos import dardos_bp
+from duelo import duelo_bp
 
 app = Flask(__name__)
 app.register_blueprint(fiesta_bp)  # 🎉 Juegos de fiesta (Impostor, etc.)
 app.register_blueprint(dardos_bp)  # 🎯 Dardos 3D
+app.register_blueprint(duelo_bp)  # ⚔️ Juegos 3D, reflejos y récords
 
 # --- Archivos de Datos ---
 

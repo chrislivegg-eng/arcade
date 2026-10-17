@@ -1,0 +1,17 @@
+# Archivos que actualizar.sh descarga a PythonAnywhere (uno por línea)
+fiesta.py
+dardos.py
+duelo.py
+static/fiesta.css
+static/juegos3d.css
+static/js/fiesta.js
+static/js/three.min.js
+static/js/cannon.min.js
+static/js/arcade3d.js
+templates/fiesta_base.html
+templates/impostor.html
+templates/mas_probable.html
+templates/verdad_reto.html
+templates/juego_dardos.html
+templates/juego_penales.html
+templates/secreto.html

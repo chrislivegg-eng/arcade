@@ -12,19 +12,12 @@ BASE="https://raw.githubusercontent.com/chrislivegg-eng/arcade/$RAMA"
 CARPETA="${CARPETA:-$HOME}"
 RESPALDO="$CARPETA/respaldo_$(date +%Y%m%d_%H%M%S)"
 
-ARCHIVOS=(
-  fiesta.py
-  dardos.py
-  static/js/three.min.js
-  templates/juego_dardos.html
-  static/fiesta.css
-  static/js/fiesta.js
-  templates/fiesta_base.html
-  templates/impostor.html
-  templates/mas_probable.html
-  templates/verdad_reto.html
-  templates/secreto.html
-)
+# La lista de archivos vive en GitHub (archivos_nuevos.txt), así cada juego nuevo se instala solo
+mapfile -t ARCHIVOS < <(curl -fsSL "$BASE/archivos_nuevos.txt" | grep -v '^#' | grep -v '^[[:space:]]*$')
+if [ ${#ARCHIVOS[@]} -eq 0 ]; then
+  echo "❌ No pude descargar la lista de archivos. Revisa tu internet e inténtalo de nuevo."
+  exit 1
+fi
 
 cd "$CARPETA"
 echo "📦 Respaldando archivos actuales en $RESPALDO"
@@ -48,7 +41,7 @@ with open("app.py") as f:
     codigo = f.read()
 
 cambios = False
-for modulo, bp in [("fiesta", "fiesta_bp"), ("dardos", "dardos_bp")]:
+for modulo, bp in [("fiesta", "fiesta_bp"), ("dardos", "dardos_bp"), ("duelo", "duelo_bp")]:
     if f"register_blueprint({bp})" in codigo:
         continue
     codigo = re.sub(r"^(from flask import .*)$", rf"\1\nfrom {modulo} import {bp}", codigo, count=1, flags=re.M)
@@ -65,7 +58,7 @@ else:
     print("   ✅ app.py ya estaba listo")
 EOF
 
-python3 -m py_compile app.py fiesta.py dardos.py
+python3 -m py_compile app.py fiesta.py dardos.py duelo.py
 echo "   ✅ app.py no tiene errores"
 
 echo "🔄 Recargando la página..."
