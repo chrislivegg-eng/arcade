@@ -21,7 +21,7 @@
       const VASO = { arriba: 0.046, abajo: 0.032, alto: 0.12, liquido: 0.085 };
       const RADIO_PELOTA = 0.02;
       const COLORES = [0xff4f8b, 0x4fb3ff];
-      const ALTURA_ARCO = 0.38;
+      const ALTURA_ARCO = 0.6; // tiro bombeado: entra casi de arriba y no pega en los vasos de enfrente
 
       // Vasos de cada jugador: el 0 tiene los suyos del lado +z, el 1 del lado -z
       function posicionesVasos(jugador) {
@@ -201,7 +201,7 @@
       const pelota = new THREE.Mesh(new THREE.SphereGeometry(RADIO_PELOTA, 20, 16), material(0xfffaf0, { roughness: 0.3 }));
       pelota.castShadow = true;
       escena.add(pelota);
-      const cuerpoPelota = new CANNON.Body({ mass: 0.0027, material: mPelota, shape: new CANNON.Sphere(RADIO_PELOTA), linearDamping: 0.08 });
+      const cuerpoPelota = new CANNON.Body({ mass: 0.0027, material: mPelota, shape: new CANNON.Sphere(RADIO_PELOTA), linearDamping: 0 }) // sin freno: cae donde marca la guía;
       mundoFisico.addBody(cuerpoPelota);
       let ultimoRebote = 0;
       cuerpoPelota.addEventListener("collide", (e) => {
@@ -229,7 +229,7 @@
       function velocidadHacia(desde, tx, tz) {
         const g = 9.82;
         const vy = Math.sqrt(2 * g * ALTURA_ARCO);
-        const caida = desde.y + ALTURA_ARCO - (MESA.alto + VASO.liquido);
+        const caida = desde.y + ALTURA_ARCO - (MESA.alto + VASO.alto + 0.01); // pasa por el centro de la boca del vaso
         const T = vy / g + Math.sqrt((2 * caida) / g);
         return new CANNON.Vec3((tx - desde.x) / T, vy, (tz - desde.z) / T);
       }
@@ -255,22 +255,30 @@
         sonar("swoosh", 0.4);
         simulando = true;
         const inicio = performance.now();
+        // se revisa en cada paso de la física (no por tiempo), así no se "salta" el vaso en celulares lentos
+        let tiempoSim = 0;
         const resultado = await new Promise((r) => {
-          const revisar = setInterval(() => {
+          const revisar = () => {
+            tiempoSim += 1 / 120;
             const p = cuerpoPelota.position;
-            // ¿cayó dentro de algún vaso?
             for (const [k, v] of vasos[objetivoJugador].entries()) {
               if (!v.vivo) continue;
               if (Math.hypot(p.x - v.x, p.z - v.z) < VASO.arriba - RADIO_PELOTA * 0.4 && p.y < MESA.alto + VASO.alto && p.y > MESA.alto) {
-                clearInterval(revisar);
-                return r(k);
+                return terminar(k);
               }
             }
-            if (p.y < MESA.alto - 0.1 || performance.now() - inicio > 3500 || Math.abs(p.z) > MESA.largo / 2 + 0.8) {
-              clearInterval(revisar);
-              r(-1);
+            if (p.y < MESA.alto - 0.1 || tiempoSim > 3.5 || performance.now() - inicio > 9000 || Math.abs(p.z) > MESA.largo / 2 + 0.8) terminar(-1);
+          };
+          const terminar = (k) => {
+            mundoFisico.removeEventListener("postStep", revisar);
+            if (k >= 0) {
+              // se queda flotando en el refresco
+              cuerpoPelota.velocity.setZero();
+              cuerpoPelota.type = CANNON.Body.KINEMATIC;
             }
-          }, 16);
+            r(k);
+          };
+          mundoFisico.addEventListener("postStep", revisar);
         });
         simulando = false;
         return resultado;
@@ -290,8 +298,9 @@
           pos = new THREE.Vector3(Math.sin(t * 0.2) * 2.2, 1.7, Math.cos(t * 0.2) * 2.2);
           mira = new THREE.Vector3(0, MESA.alto, 0);
         } else {
-          pos = new THREE.Vector3(0, MESA.alto + 0.62, lado * (MESA.largo / 2 + (aspecto < 1 ? 0.75 : 0.55)));
-          mira = new THREE.Vector3(0, MESA.alto + 0.02, -lado * (MESA.largo / 2 - 0.35));
+          // desde arriba de mis vasos, mirando a los del rival (se ve todo el arco del tiro)
+          pos = new THREE.Vector3(0, MESA.alto + (aspecto < 1 ? 0.95 : 0.75), lado * (aspecto < 1 ? 0.45 : 0.7));
+          mira = new THREE.Vector3(0, MESA.alto + 0.05, -lado * (MESA.largo / 2 - 0.3));
         }
         camara.position.lerp(pos, 0.08);
         camara.lookAt(mira);
@@ -301,24 +310,72 @@
       // =========================================================
       //  CONTROLES
       // =========================================================
+      // Como resortera: jalas hacia abajo (más jalón = más lejos) y al lado contrario
+      // de a donde quieres tirar. Mientras jalas se ve la trayectoria y dónde cae.
       let esperandoTiro = null;
-      const VELOCIDAD_IDEAL = 2.4;
+      let jugadorApuntando = 0;
+      const ZONA_VERDE = VASO.arriba * 0.65; // el aro se pone verde solo si apuntas bien adentro del vaso
+
+      const guia = new THREE.Group();
+      const PUNTOS_GUIA = 26;
+      const bolitasGuia = [];
+      for (let i = 0; i < PUNTOS_GUIA; i++) {
+        const b = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }));
+        guia.add(b);
+        bolitasGuia.push(b);
+      }
+      const aroGuia = new THREE.Mesh(new THREE.RingGeometry(0.03, 0.055, 32), new THREE.MeshBasicMaterial({ color: 0xffd84f, side: THREE.DoubleSide }));
+      aroGuia.rotation.x = -Math.PI / 2;
+      guia.add(aroGuia);
+      guia.visible = false;
+      escena.add(guia);
+
+      // jalón en pantalla → punto de la mesa (x en "derecha de la pantalla", z real)
+      function objetivoDesdeJalon(dx, dy) {
+        const H = window.innerHeight,
+          W = window.innerWidth;
+        const jalon = limitar(dy / (H * 0.32), 0, 1.25);
+        const recorrido = 1.4 + jalon * 1.2; // metros desde mi orilla; los vasos rivales quedan a ~2.2 m
+        return { x: limitar(-dx / (W * 0.5), -1, 1) * 0.32, z: J.lado * (MESA.largo / 2 - recorrido), jalon };
+      }
+      function mostrarGuia(obj) {
+        const desde = puntoDeTiro(jugadorApuntando);
+        const x = obj.x * J.lado;
+        const v = velocidadHacia(desde, x, obj.z);
+        const T = (obj.z - desde.z) / v.z;
+        bolitasGuia.forEach((b, i) => {
+          const t = (T * (i + 1)) / (PUNTOS_GUIA + 1);
+          b.position.set(desde.x + v.x * t, desde.y + v.y * t - 4.91 * t * t, desde.z + v.z * t);
+        });
+        aroGuia.position.set(x, MESA.alto + 0.002, obj.z);
+        // ¿cae dentro de un vaso? el aro se pone verde
+        const dentro = vasos[1 - jugadorApuntando].some((c) => c.vivo && Math.hypot(c.x - x, c.z - obj.z) < ZONA_VERDE);
+        aroGuia.material.color.setHex(dentro ? 0x26de81 : 0xffd84f);
+        if (dentro) aroGuia.position.y = MESA.alto + VASO.alto + 0.003;
+        guia.visible = obj.jalon > 0.08;
+      }
+
       Arcade.deslizar(M.lienzo, {
         puede: () => !!esperandoTiro,
+        mover: (p, puntos) => mostrarGuia(objetivoDesdeJalon(p.x - puntos[0].x, p.y - puntos[0].y)),
+        cancelar: () => (guia.visible = false),
         soltar: (g) => {
+          guia.visible = false;
           if (!esperandoTiro) return;
-          const H = window.innerHeight;
-          if (g.dy > -H * 0.05) return;
-          const velocidad = Math.hypot(g.vx, g.vy) / H;
-          const error = limitar((velocidad - VELOCIDAD_IDEAL) / VELOCIDAD_IDEAL, -1, 1.5);
-          const centro = -J.lado * (MESA.largo / 2 - 0.26 + 0.08); // centro del triángulo rival
-          const objetivo = {
-            x: +(limitar(g.dx / Math.max(80, -g.dy), -1, 1) * 0.42 + gauss() * 0.006).toFixed(4), // en pantalla
-            z: +(centro - J.lado * error * 0.55 + gauss() * 0.006).toFixed(4),
-          };
+          const obj = objetivoDesdeJalon(g.dx, g.dy);
+          if (obj.jalon < 0.08) return ui.avisar("👇 Jala hacia abajo y suelta", "#ffb84f");
           const r = esperandoTiro;
           esperandoTiro = null;
-          r(objetivo);
+          // si el aro estaba verde, el tiro se jala hacia el centro de ese vaso (ayuda de puntería)
+          let x = obj.x * J.lado,
+            z = obj.z;
+          const vaso = vasos[1 - jugadorApuntando].find((c) => c.vivo && Math.hypot(c.x - x, c.z - z) < ZONA_VERDE);
+          if (vaso) {
+            x = vaso.x + (x - vaso.x) * 0.3;
+            z = vaso.z + (z - vaso.z) * 0.3;
+          }
+          // un poquito de pulso para que no sea perfecto siempre
+          r({ x: +((x + gauss() * 0.006) * J.lado).toFixed(4), z: +(z + gauss() * 0.007).toFixed(4) });
         },
       });
 
@@ -345,8 +402,8 @@
         records: true,
         unidadRecord: "vasos de sobra",
         reglas: [
-          "Desliza hacia arriba para lanzar la pelotita.",
-          "Más rápido = más lejos · más chueco = más de lado.",
+          "Pon el dedo en la pantalla y jala hacia abajo, como resortera. Entre más jales, más lejos va.",
+          "Jala hacia un lado para tirar hacia el otro. Verás la trayectoria: si el aro se pone 🟢 verde, va directo a un vaso.",
           "Tienes 2 tiros por turno. Si la metes, ese vaso se va.",
           "Gana quien elimine primero los 6 vasos del otro 🥤",
         ],
@@ -435,7 +492,8 @@
         const n = J.tiroN++;
         let objetivo, rival = null;
         if (soyYo(jugador)) {
-          ui.ayuda("👆 Desliza hacia arriba para lanzar");
+          ui.ayuda("👇 Jala hacia abajo, apunta y suelta");
+          jugadorApuntando = jugador;
           objetivo = await new Promise((r) => (esperandoTiro = r));
           ui.ayuda("");
           // viendo desde el otro lado de la mesa, la derecha de la pantalla es -x
