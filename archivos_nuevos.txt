@@ -16,3 +16,4 @@ templates/juego_dardos.html
 templates/juego_penales.html
 templates/secreto.html
 templates/juego_basquet.html
+templates/juego_boliche.html
