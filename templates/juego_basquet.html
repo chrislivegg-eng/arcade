@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a1220" />
+    <title>Básquet 3D · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      #reloj {
+        position: fixed;
+        top: calc(92px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 1.6rem;
+        font-weight: 900;
+        background: rgba(20, 12, 24, 0.72);
+        border-radius: 16px;
+        padding: 4px 16px;
+        z-index: 5;
+        font-variant-numeric: tabular-nums;
+      }
+      #reloj.poco {
+        color: #ff6b81;
+        animation: latido 0.5s infinite alternate;
+      }
+      #fuego {
+        position: fixed;
+        top: calc(140px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        font-weight: 900;
+        color: #ffb84f;
+        text-shadow: 0 0 12px #ff5e00;
+        z-index: 5;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+    <div id="reloj" class="oculto">60</div>
+    <div id="fuego" class="oculto">🔥 ¡EN LLAMAS! x2</div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/cannon.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, gauss, lin, material, sonar } = Arcade;
+
+      const DURACION = 60;
+      const ALTURA_ARO = 3.05,
+        RADIO_ARO = 0.23,
+        RADIO_BALON = 0.12,
+        TABLERO_Z = -0.38;
+      const INICIO = new THREE.Vector3(0, 1.25, 4.6);
+
+      // =========================================================
+      //  ESCENA
+      // =========================================================
+      const M = Arcade.mundo({ fondo: 0x1a1220, niebla: [18, 40], fov: 55, exposicion: 1.1 });
+      const { escena, camara } = M;
+
+      // Piso de duela con líneas de la cancha
+      const PXM = 64;
+      const texturaPiso = M.textura(16 * PXM, 14 * PXM, (g, w, h) => {
+        Arcade.dibujarMadera(g, w, h, { tono: 30, sat: 50, luz: 46, tablas: 28, vertical: false });
+        const X = (x) => (x + 8) * PXM,
+          Z = (z) => (z + 2) * PXM;
+        g.strokeStyle = "rgba(255,255,255,0.9)";
+        g.lineWidth = 0.05 * PXM;
+        g.fillStyle = "rgba(108,92,231,0.28)";
+        g.fillRect(X(-2.45), Z(TABLERO_Z - 1.2), 4.9 * PXM, 5.8 * PXM);
+        g.strokeRect(X(-2.45), Z(TABLERO_Z - 1.2), 4.9 * PXM, 5.8 * PXM);
+        g.beginPath();
+        g.arc(X(0), Z(TABLERO_Z - 1.2 + 5.8), 1.8 * PXM, 0, Math.PI);
+        g.stroke();
+        g.beginPath();
+        g.arc(X(0), Z(0), 6.75 * PXM, 0.02 * Math.PI, 0.98 * Math.PI);
+        g.stroke();
+      });
+      const piso = new THREE.Mesh(new THREE.PlaneGeometry(16, 14), material(0xffffff, { map: texturaPiso, roughness: 0.35, metalness: 0.05 }));
+      piso.rotation.x = -Math.PI / 2;
+      piso.position.z = 5;
+      piso.receiveShadow = true;
+      escena.add(piso);
+
+      // Pared del fondo con letrero
+      const texturaPared = M.textura(1024, 512, (g, w, h) => {
+        const gr = g.createLinearGradient(0, 0, 0, h);
+        gr.addColorStop(0, "#241830");
+        gr.addColorStop(1, "#3a2340");
+        g.fillStyle = gr;
+        g.fillRect(0, 0, w, h);
+        g.font = "900 64px Nunito, Arial Black, sans-serif";
+        g.textAlign = "center";
+        g.shadowColor = "#ff4f8b";
+        g.shadowBlur = 40;
+        g.fillStyle = "#ff8fb8";
+        g.fillText("ARCADE", w / 2, h * 0.3);
+        g.shadowBlur = 0;
+        g.fillStyle = "rgba(255,255,255,0.06)";
+        for (let i = 0; i < 12; i++) g.fillRect(0, h * 0.55 + i * 18, w, 6);
+      });
+      const pared = new THREE.Mesh(new THREE.PlaneGeometry(16, 8), material(0xffffff, { map: texturaPared, roughness: 0.9 }));
+      pared.position.set(0, 4, -2);
+      escena.add(pared);
+
+      // --- Canasta (se puede mover) ---
+      const canasta = new THREE.Group();
+      escena.add(canasta);
+      const tablero = new THREE.Mesh(
+        new THREE.BoxGeometry(1.8, 1.05, 0.04),
+        new THREE.MeshStandardMaterial({ color: lin(0xdff3ff), transparent: true, opacity: 0.28, roughness: 0.05, metalness: 0.1 }),
+      );
+      tablero.position.set(0, ALTURA_ARO + 0.4, TABLERO_Z);
+      canasta.add(tablero);
+      const lineasTablero = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.PlaneGeometry(1.8, 1.05)),
+        new THREE.LineBasicMaterial({ color: 0xffffff }),
+      );
+      lineasTablero.position.set(0, ALTURA_ARO + 0.4, TABLERO_Z + 0.025);
+      canasta.add(lineasTablero);
+      const cuadro = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(0.59, 0.45)), new THREE.LineBasicMaterial({ color: 0xffffff }));
+      cuadro.position.set(0, ALTURA_ARO + 0.2, TABLERO_Z + 0.025);
+      canasta.add(cuadro);
+      const soporte = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.9), material(0x222222, { metalness: 0.6, roughness: 0.4 }));
+      soporte.position.set(0, ALTURA_ARO + 0.3, TABLERO_Z - 0.48);
+      canasta.add(soporte);
+      const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, ALTURA_ARO + 0.4, 16), soporte.material);
+      poste.position.set(0, (ALTURA_ARO + 0.4) / 2, TABLERO_Z - 0.9);
+      poste.castShadow = true;
+      canasta.add(poste);
+      const aro = new THREE.Mesh(new THREE.TorusGeometry(RADIO_ARO, 0.011, 10, 48), material(0xff5a1f, { metalness: 0.5, roughness: 0.35 }));
+      aro.rotation.x = Math.PI / 2;
+      aro.position.y = ALTURA_ARO;
+      aro.castShadow = true;
+      canasta.add(aro);
+
+      // Red: hilos de una "canasta" de cuerda
+      const HILOS = 14,
+        NIVELES = 5;
+      const geoRed = new THREE.BufferGeometry();
+      const puntosRed = new Float32Array(HILOS * NIVELES * 3);
+      geoRed.setAttribute("position", new THREE.BufferAttribute(puntosRed, 3));
+      const indices = [];
+      for (let n = 0; n < NIVELES; n++)
+        for (let h = 0; h < HILOS; h++) {
+          const i = n * HILOS + h;
+          if (n < NIVELES - 1) indices.push(i, (n + 1) * HILOS + ((h + 1) % HILOS), i, (n + 1) * HILOS + ((h + HILOS - 1) % HILOS));
+          if (n === NIVELES - 1 || n === 0) indices.push(i, n * HILOS + ((h + 1) % HILOS));
+        }
+      geoRed.setIndex(indices);
+      const red = new THREE.LineSegments(geoRed, new THREE.LineBasicMaterial({ color: 0xf2f2f2 }));
+      red.position.y = ALTURA_ARO;
+      canasta.add(red);
+      let sacudidaRed = -10;
+      function moverRed(ahora) {
+        const t = (ahora - sacudidaRed) / 1000;
+        const sacude = t < 1.2 ? Math.exp(-t * 3) : 0;
+        for (let n = 0; n < NIVELES; n++) {
+          const f = n / (NIVELES - 1);
+          const radio = RADIO_ARO * (1 - f * 0.45) * (1 - sacude * 0.3 * f);
+          const y = -f * 0.42 - sacude * f * 0.15 * Math.abs(Math.sin(t * 12));
+          for (let h = 0; h < HILOS; h++) {
+            const a = (h / HILOS) * Math.PI * 2 + f * 0.15;
+            const i = (n * HILOS + h) * 3;
+            puntosRed[i] = Math.cos(a) * radio + Math.sin(ahora / 900 + h) * 0.004 * f;
+            puntosRed[i + 1] = y;
+            puntosRed[i + 2] = Math.sin(a) * radio;
+          }
+        }
+        geoRed.attributes.position.needsUpdate = true;
+      }
+
+      // Luces
+      escena.add(new THREE.HemisphereLight(0xfff2e6, 0x3a2a20, 0.4));
+      const foco = new THREE.SpotLight(0xfff3e0, 2.1, 0, 0.6, 0.5, 1);
+      foco.position.set(1.5, 9, 6);
+      foco.target.position.set(0, 1, 1);
+      foco.castShadow = true;
+      foco.shadow.mapSize.set(1024, 1024);
+      foco.shadow.bias = -0.0005;
+      escena.add(foco, foco.target);
+
+      // =========================================================
+      //  FÍSICA
+      // =========================================================
+      const mundoFisico = new CANNON.World();
+      mundoFisico.gravity.set(0, -9.82, 0);
+      mundoFisico.broadphase = new CANNON.NaiveBroadphase();
+      mundoFisico.solver.iterations = 12;
+      const matBalon = new CANNON.Material("balon"),
+        matDuro = new CANNON.Material("duro"),
+        matAro = new CANNON.Material("aro");
+      mundoFisico.addContactMaterial(new CANNON.ContactMaterial(matBalon, matDuro, { restitution: 0.72, friction: 0.4 }));
+      mundoFisico.addContactMaterial(new CANNON.ContactMaterial(matBalon, matAro, { restitution: 0.45, friction: 0.2 }));
+      mundoFisico.addContactMaterial(new CANNON.ContactMaterial(matBalon, matBalon, { restitution: 0.6, friction: 0.2 }));
+
+      const suelo = new CANNON.Body({ mass: 0, material: matDuro });
+      suelo.addShape(new CANNON.Plane());
+      suelo.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+      mundoFisico.addBody(suelo);
+      const paredFisica = new CANNON.Body({ mass: 0, material: matDuro });
+      paredFisica.addShape(new CANNON.Plane());
+      paredFisica.position.set(0, 0, -2);
+      mundoFisico.addBody(paredFisica);
+
+      // Tablero y aro (se mueven juntos con la canasta)
+      const cuerpoTablero = new CANNON.Body({ mass: 0, material: matDuro, type: CANNON.Body.KINEMATIC });
+      cuerpoTablero.addShape(new CANNON.Box(new CANNON.Vec3(0.9, 0.525, 0.02)));
+      mundoFisico.addBody(cuerpoTablero);
+      const cuerpoAro = new CANNON.Body({ mass: 0, material: matAro, type: CANNON.Body.KINEMATIC });
+      const PEDAZOS_ARO = 18;
+      for (let i = 0; i < PEDAZOS_ARO; i++) {
+        const a = (i / PEDAZOS_ARO) * Math.PI * 2;
+        cuerpoAro.addShape(new CANNON.Sphere(0.016), new CANNON.Vec3(Math.cos(a) * RADIO_ARO, 0, Math.sin(a) * RADIO_ARO));
+      }
+      cuerpoAro.addShape(new CANNON.Box(new CANNON.Vec3(0.05, 0.01, 0.07)), new CANNON.Vec3(0, 0, -RADIO_ARO - 0.07));
+      mundoFisico.addBody(cuerpoAro);
+      function colocarCanasta(x) {
+        canasta.position.x = x;
+        cuerpoTablero.position.set(x, ALTURA_ARO + 0.4, TABLERO_Z);
+        cuerpoAro.position.set(x, ALTURA_ARO, 0);
+      }
+      colocarCanasta(0);
+
+      // --- Balones ---
+      const texturaBalon = M.textura(512, 256, (g, w, h) => {
+        g.fillStyle = "#e0661f";
+        g.fillRect(0, 0, w, h);
+        const img = g.getImageData(0, 0, w, h);
+        for (let p = 0; p < img.data.length; p += 4) {
+          const r = (Math.random() - 0.5) * 30;
+          img.data[p] += r;
+          img.data[p + 1] += r * 0.6;
+        }
+        g.putImageData(img, 0, 0);
+        g.strokeStyle = "#1a0d06";
+        g.lineWidth = 5;
+        [0, 0.25, 0.5, 0.75].forEach((u) => {
+          g.beginPath();
+          g.moveTo(u * w, 0);
+          g.lineTo(u * w, h);
+          g.stroke();
+        });
+        g.beginPath();
+        g.moveTo(0, h / 2);
+        g.lineTo(w, h / 2);
+        g.stroke();
+        [0.125, 0.625].forEach((u) => {
+          g.beginPath();
+          g.ellipse(u * w, h / 2, w * 0.09, h * 0.42, 0, 0, Math.PI * 2);
+          g.stroke();
+        });
+      });
+      const geoBalon = new THREE.SphereGeometry(RADIO_BALON, 32, 24);
+      const matBalonVisual = material(0xffffff, { map: texturaBalon, roughness: 0.75 });
+
+      const balones = [];
+      function crearBalon() {
+        const malla = new THREE.Mesh(geoBalon, matBalonVisual);
+        malla.castShadow = true;
+        escena.add(malla);
+        const cuerpo = new CANNON.Body({ mass: 0.6, material: matBalon, shape: new CANNON.Sphere(RADIO_BALON), linearDamping: 0.05, angularDamping: 0.2 });
+        cuerpo.position.set(INICIO.x, INICIO.y, INICIO.z);
+        cuerpo.type = CANNON.Body.KINEMATIC;
+        mundoFisico.addBody(cuerpo);
+        const balon = { malla, cuerpo, lanzado: false, tocoAro: false, anoto: false, tiempo: 0, yAnterior: INICIO.y };
+        cuerpo.addEventListener("collide", (e) => {
+          const fuerza = Math.min(1, Math.abs(e.contact.getImpactVelocityAlongNormal()) / 6);
+          if (e.body === cuerpoAro) {
+            balon.tocoAro = true;
+            if (fuerza > 0.1) sonar("aro", fuerza);
+          } else if (fuerza > 0.15) sonar("rebote", fuerza);
+        });
+        balones.push(balon);
+        return balon;
+      }
+      function quitarBalon(b) {
+        // si un balón lanzado se va sin anotar, se rompe la racha
+        if (b.lanzado && !b.anoto && J.jugando) {
+          if (J.racha >= 3) ui.avisar("💨 Se apagó el fuego", "#888");
+          J.racha = 0;
+          marcador();
+        }
+        escena.remove(b.malla);
+        mundoFisico.removeBody(b.cuerpo);
+        balones.splice(balones.indexOf(b), 1);
+      }
+      let enMano = null;
+      function nuevoBalonEnMano() {
+        enMano = crearBalon();
+        enMano.malla.scale.setScalar(0.01);
+        M.animar(200, (t) => enMano && enMano.malla.scale.setScalar(Math.max(0.01, t)));
+      }
+
+      // =========================================================
+      //  LANZAR
+      // =========================================================
+      Arcade.deslizar(M.lienzo, {
+        puede: () => J.jugando && enMano,
+        soltar: (g) => {
+          if (!enMano || !J.jugando) return;
+          const H = window.innerHeight;
+          if (g.dy > -H * 0.05) return;
+          const velocidad = Math.hypot(g.vx, g.vy) / H;
+          lanzar(velocidad, g.dx / Math.max(80, -g.dy));
+        },
+      });
+
+      // Ayuda de puntería: un deslizamiento "normal" (≈2.6 pantallas/s y derecho) va al aro.
+      // Si te alejas de eso, el tiro se desvía poco a poco (pega en el aro o en el tablero).
+      const FUERZA_IDEAL = 8.36,
+        VELOCIDAD_IDEAL = 2.6,
+        TIEMPO_VUELO = 1.07;
+      function lanzar(velocidad, desvio) {
+          const error = limitar((velocidad - VELOCIDAD_IDEAL) / VELOCIDAD_IDEAL, -1, 1.5);
+          const fuerza = FUERZA_IDEAL * (1 + error * 0.045);
+          const vx = (canasta.position.x - INICIO.x) / TIEMPO_VUELO + limitar(desvio, -1.2, 1.2) * 0.5;
+          const angulo = (58 * Math.PI) / 180;
+          const b = enMano;
+          enMano = null;
+          b.lanzado = true;
+          b.cuerpo.type = CANNON.Body.DYNAMIC;
+          b.cuerpo.mass = 0.6;
+          b.cuerpo.updateMassProperties();
+          b.cuerpo.velocity.set(vx, fuerza * Math.sin(angulo), -fuerza * Math.cos(angulo));
+          b.cuerpo.angularVelocity.set(-12, 0, 0); // efecto hacia atrás
+          sonar("swoosh", 0.7);
+          J.tiros++;
+          setTimeout(() => J.jugando && !enMano && nuevoBalonEnMano(), 380);
+      }
+
+      // =========================================================
+      //  CICLO
+      // =========================================================
+      M.alCuadro((dt, ahora) => {
+        // la canasta se mueve en la segunda mitad
+        if (J.jugando && J.restante < DURACION / 2) colocarCanasta(Math.sin((ahora / 1000) * 1.1) * 1.1);
+        mundoFisico.step(1 / 60, dt, 4);
+        moverRed(ahora);
+
+        for (const b of balones.slice()) {
+          if (!b.lanzado) {
+            const t = ahora / 1000;
+            b.cuerpo.position.set(INICIO.x, INICIO.y + Math.sin(t * 3) * 0.02, INICIO.z);
+          } else {
+            b.tiempo += dt;
+            const p = b.cuerpo.position;
+            // ¿pasó por el aro hacia abajo?
+            if (!b.anoto && b.yAnterior > ALTURA_ARO && p.y <= ALTURA_ARO && b.cuerpo.velocity.y < 0) {
+              const d = Math.hypot(p.x - canasta.position.x, p.z);
+              if (d < RADIO_ARO - RADIO_BALON * 0.35) anotar(b);
+            }
+            b.yAnterior = p.y;
+            if (b.tiempo > 3.2 || p.z > 9) quitarBalon(b);
+          }
+          b.malla.position.copy(b.cuerpo.position);
+          b.malla.quaternion.copy(b.cuerpo.quaternion);
+        }
+
+        // cámara
+        const aspecto = window.innerWidth / window.innerHeight;
+        camara.fov = aspecto < 1 ? 62 : 48;
+        if (J.jugando || J.modo) {
+          camara.position.set(0, 1.95, aspecto < 1 ? 6.5 : 6.1);
+          camara.lookAt(0, 2.55, 0);
+        } else {
+          const t = ahora / 1000;
+          camara.position.set(Math.sin(t * 0.2) * 4, 2.6, 7 + Math.cos(t * 0.2));
+          camara.lookAt(0, 2.4, 0);
+        }
+        camara.updateProjectionMatrix();
+      });
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      const J = { modo: null, jugando: false, puntos: [0, 0], racha: 0, tiros: 0, restante: DURACION, turno: 0, nombres: [], dificultad: "normal", rivalTermino: false, reloj: null, finRival: null };
+
+      const ui = Arcade.ui({
+        juego: "basquet",
+        titulo: "Básquet 3D",
+        emoji: "🏀",
+        subtitulo: "60 segundos · encesta todo lo que puedas",
+        modos: ["solo", "bot", "online", "local"],
+        textosModo: { solo: "🏆 Jugar solo (récord)" },
+        dificultad: true,
+        records: true,
+        unidadRecord: "pts",
+        reglas: [
+          "Desliza el dedo hacia arriba para lanzar. Entre más rápido, más fuerte.",
+          "Canasta = 2 puntos · Canasta limpia (sin tocar el aro) = 3 puntos.",
+          "3 canastas seguidas y te pones 🔥 EN LLAMAS: puntos dobles hasta que falles.",
+          "En los últimos 30 segundos el aro se empieza a mover 😈",
+          "Online y contra el bot juegan al mismo tiempo: gana quien haga más puntos.",
+        ],
+        alEmpezar: empezar,
+        alSalir: detener,
+      });
+      ui.alEvento = (tipo, datos) => {
+        if (!datos || datos.partida !== J.partida) return;
+        if (tipo === "puntos") {
+          J.puntos[1] = datos.puntos;
+          marcador();
+        }
+        if (tipo === "fin") {
+          J.puntos[1] = datos.puntos;
+          J.rivalTermino = true;
+          marcador();
+          if (J.finRival) J.finRival();
+        }
+      };
+
+      function detener() {
+        J.jugando = false;
+        J.modo = null;
+        clearInterval(J.reloj);
+        clearInterval(J.relojBot);
+        $("reloj").classList.add("oculto");
+        $("fuego").classList.add("oculto");
+        balones.slice().forEach(quitarBalon);
+        enMano = null;
+        colocarCanasta(0);
+      }
+
+      function marcador() {
+        const enLlamas = J.racha >= 3;
+        $("fuego").classList.toggle("oculto", !enLlamas || !J.jugando);
+        const yo = J.modo === "local" ? J.turno : 0;
+        const paneles = [
+          { nombre: J.nombres[0], valor: J.puntos[0], detalle: J.modo === "local" && J.turno === 1 ? "Terminó" : `${J.anotadas[0] || 0} canastas`, activo: yo === 0 },
+        ];
+        if (J.modo !== "solo")
+          paneles.push({
+            nombre: J.nombres[1],
+            valor: J.puntos[1],
+            detalle: J.modo === "local" && J.turno === 0 ? "Espera su turno" : J.modo === "online" ? "🌐 en vivo" : "",
+            activo: yo === 1,
+          });
+        else paneles.push(null);
+        ui.marcador(paneles);
+      }
+
+      function anotar(b) {
+        b.anoto = true;
+        sacudidaRed = performance.now();
+        const limpia = !b.tocoAro;
+        J.racha++;
+        const multiplicador = J.racha > 3 ? 2 : 1;
+        const valor = (limpia ? 3 : 2) * multiplicador;
+        const i = J.modo === "local" ? J.turno : 0;
+        J.puntos[i] += valor;
+        J.anotadas[i] = (J.anotadas[i] || 0) + 1;
+        sonar("red");
+        if (J.racha === 3) {
+          ui.avisar("🔥 ¡EN LLAMAS!<small>puntos dobles</small>", "#ff5e00");
+          sonar("publico");
+        } else ui.avisar(`${limpia ? "💦 ¡Limpia!" : "🏀 ¡Canasta!"}<small>+${valor}</small>`, limpia ? "#4fb3ff" : "#26de81");
+        marcador();
+        if (J.modo === "online") ui.enviar("puntos", { partida: J.partida, puntos: J.puntos[0] });
+      }
+
+      const ACIERTO_BOT = { facil: 0.42, normal: 0.6, pro: 0.78 };
+
+      function empezar(modo, info) {
+        detener();
+        J.modo = modo;
+        J.nombres = info.nombres;
+        J.dificultad = info.dificultad;
+        J.partida = info.partida;
+        J.puntos = [0, 0];
+        J.anotadas = [0, 0];
+        J.tiros = 0;
+        J.turno = 0;
+        J.rivalTermino = false;
+        J.finRival = null;
+        if (modo === "local") {
+          ui.avisar(`Turno de ${J.nombres[0]}`, "#ff4f8b");
+          setTimeout(() => iniciarReloj(), 900);
+        } else iniciarReloj();
+      }
+
+      function iniciarReloj() {
+        J.jugando = true;
+        J.racha = 0;
+        J.restante = DURACION;
+        colocarCanasta(0);
+        nuevoBalonEnMano();
+        ui.ayuda("👆 Desliza hacia arriba para lanzar");
+        $("reloj").classList.remove("oculto", "poco");
+        $("reloj").textContent = DURACION;
+        marcador();
+        clearInterval(J.reloj);
+        J.reloj = setInterval(() => {
+          J.restante--;
+          $("reloj").textContent = J.restante;
+          $("reloj").classList.toggle("poco", J.restante <= 10);
+          if (J.restante === DURACION / 2) ui.avisar("😈 ¡El aro se mueve!", "#ffb84f");
+          if (J.restante === DURACION - 3) ui.ayuda("");
+          if (J.restante <= 0) finDelTiempo();
+        }, 1000);
+        if (J.modo === "bot") {
+          clearInterval(J.relojBot);
+          let rachaBot = 0;
+          J.relojBot = setInterval(() => {
+            if (!J.jugando) return;
+            const prob = ACIERTO_BOT[J.dificultad] * (J.restante < DURACION / 2 ? 0.85 : 1);
+            if (Math.random() < prob) {
+              rachaBot++;
+              J.puntos[1] += (Math.random() < 0.35 ? 3 : 2) * (rachaBot > 3 ? 2 : 1);
+            } else rachaBot = 0;
+            marcador();
+          }, 1500);
+        }
+      }
+
+      async function finDelTiempo() {
+        clearInterval(J.reloj);
+        clearInterval(J.relojBot);
+        J.jugando = false;
+        enMano && quitarBalon(enMano);
+        enMano = null;
+        $("reloj").classList.add("oculto");
+        $("fuego").classList.add("oculto");
+        sonar("silbato");
+        ui.avisar("⏱ ¡Tiempo!", "#ffb84f");
+        ui.ayuda("");
+        await esperar(1800);
+        if (!J.modo) return;
+
+        if (J.modo === "local" && J.turno === 0) {
+          J.turno = 1;
+          J.racha = 0;
+          marcador();
+          ui.avisar(`Turno de ${J.nombres[1]}`, "#4fb3ff");
+          await esperar(1500);
+          return iniciarReloj();
+        }
+        if (J.modo === "online") {
+          ui.enviar("fin", { partida: J.partida, puntos: J.puntos[0] });
+          if (!J.rivalTermino) {
+            ui.avisar("Esperando a tu rival…", "#4fb3ff");
+            await Promise.race([new Promise((r) => (J.finRival = r)), esperar(8000)]);
+          }
+        }
+        terminar();
+      }
+
+      function terminar() {
+        const [a, b] = J.puntos;
+        if (J.modo === "solo") {
+          sonar("ganar");
+          return ui.terminar({ emoji: "🏀", texto: `¡${a} puntos!`, nota: `${J.anotadas[0]} canastas de ${J.tiros} tiros`, record: a });
+        }
+        const empate = a === b;
+        const gane = a > b;
+        sonar(gane || J.modo === "local" ? "ganar" : "perder");
+        let texto = empate ? "¡Empate!" : gane ? "¡Ganaste!" : `Ganó ${J.nombres[1]}`;
+        if (J.modo === "local") texto = empate ? "¡Empate!" : `¡Ganó ${J.nombres[gane ? 0 : 1]}!`;
+        ui.terminar({
+          emoji: empate ? "🤝" : gane || J.modo === "local" ? "🏆" : "😿",
+          texto,
+          nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}`,
+          record: J.modo === "bot" ? a : null,
+        });
+      }
+    </script>
+  </body>
+</html>

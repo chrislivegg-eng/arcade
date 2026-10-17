@@ -15,3 +15,4 @@ templates/verdad_reto.html
 templates/juego_dardos.html
 templates/juego_penales.html
 templates/secreto.html
+templates/juego_basquet.html
