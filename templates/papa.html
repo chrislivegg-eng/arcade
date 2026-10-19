@@ -1,0 +1,226 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}Papa Caliente{% endblock %}
+{% block emoji %}💣{% endblock %}
+{% block subtitulo %}¡Pásala antes de que explote!{% endblock %}
+
+{% block estilos %}
+<style>
+  .bomba {
+    font-size: 6rem;
+    text-align: center;
+    line-height: 1;
+    filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35));
+  }
+  .bomba.t1 {
+    animation: temblor 0.35s infinite;
+  }
+  .bomba.t2 {
+    animation: temblor 0.12s infinite;
+  }
+  @keyframes temblor {
+    25% {
+      transform: rotate(-8deg) scale(1.05);
+    }
+    75% {
+      transform: rotate(8deg) scale(1.05);
+    }
+  }
+  .tengo {
+    background: linear-gradient(135deg, #ff7a00, #ff3b3b);
+    color: #fff;
+    border-radius: 26px;
+    padding: 18px;
+    text-align: center;
+    box-shadow: 0 12px 30px rgba(255, 59, 59, 0.35);
+  }
+  .reto {
+    font-size: 2.2rem;
+    font-weight: 900;
+    margin: 6px 0;
+  }
+  .opciones {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .opciones button,
+  .pasar-a button {
+    border: none;
+    border-radius: 16px;
+    padding: 14px 6px;
+    font-family: inherit;
+    font-weight: 900;
+    font-size: 1.3rem;
+    background: #fff;
+    color: #ff3b3b;
+    cursor: pointer;
+  }
+  .pasar-a {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .pasar-a button {
+    font-size: 1rem;
+  }
+  .vidas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+  .vidas span {
+    background: #fff;
+    border-radius: 14px;
+    padding: 4px 10px;
+    font-weight: 800;
+  }
+  .vidas span.fuera {
+    opacity: 0.4;
+    text-decoration: line-through;
+  }
+  .vidas span.con-papa {
+    background: #ffd84f;
+  }
+  .chips-min {
+    display: flex;
+    gap: 8px;
+  }
+  .chip {
+    flex: 1;
+    border: 2px solid #e2d6ff;
+    background: #fff;
+    border-radius: 14px;
+    padding: 8px;
+    font-family: inherit;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .chip.activo {
+    background: var(--morado);
+    border-color: var(--morado);
+    color: #fff;
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>La papa 💣 le cae a alguien al azar. ¡Nadie sabe cuándo va a explotar!</li>
+  <li>Si la tienes, resuelve rápido la operación y pásasela a alguien.</li>
+  <li>Si explota en tus manos, pierdes una vida ❤️. Sin vidas, quedas fuera.</li>
+  <li>Gana el último que quede. Se pueden agregar bots 🤖.</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  let vidas = 2;
+  let reto = null;
+  let resuelto = false;
+  let tieneAntes = null;
+  let pitido = null;
+
+  function nuevoReto() {
+    const a = 2 + Math.floor(Math.random() * 8),
+      b = 2 + Math.floor(Math.random() * 8);
+    const suma = Math.random() < 0.5;
+    const r = suma ? a + b : a * b;
+    const opciones = new Set([r]);
+    while (opciones.size < 3) opciones.add(r + (Math.floor(Math.random() * 7) - 3 || 4));
+    reto = { texto: `${a} ${suma ? "+" : "×"} ${b}`, r, opciones: [...opciones].sort(() => Math.random() - 0.5) };
+    resuelto = false;
+  }
+  function responder(x) {
+    if (x === reto.r) {
+      resuelto = true;
+      if (navigator.vibrate) navigator.vibrate(40);
+    } else {
+      // equivocarse cuesta un segundito
+      document.querySelectorAll(".opciones button").forEach((b) => (b.disabled = true));
+      setTimeout(() => {
+        nuevoReto();
+        pintar(Fiesta.estado, document.getElementById("zona-juego"));
+      }, 900);
+      return;
+    }
+    pintar(Fiesta.estado, document.getElementById("zona-juego"));
+  }
+  function elegirVidas(n) {
+    vidas = n;
+    pintar(Fiesta.estado, document.getElementById("zona-juego"));
+  }
+  // sonido de mecha: más rápido mientras más cerca está
+  let ctx = null;
+  function bip(f) {
+    try {
+      ctx = ctx || new AudioContext();
+      const o = ctx.createOscillator(),
+        g = ctx.createGain();
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.12, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+      o.connect(g).connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.12);
+    } catch (e) {}
+  }
+
+  function pintar(e, zona) {
+    if (!e) return;
+    clearInterval(pitido);
+    const n = e.jugadores.length;
+    if (e.fase === "lobby") {
+      zona.innerHTML = e.soy_host
+        ? `<div class="tarjeta pila">
+            <h2>❤️ Vidas por jugador</h2>
+            <div class="chips-min">${[1, 2, 3].map((v) => `<button class="chip ${v === vidas ? "activo" : ""}" onclick="elegirVidas(${v})">${v}</button>`).join("")}</div>
+            <button class="boton morado" onclick="Fiesta.accion('agregar_bot')">➕🤖 Agregar bot</button>
+            <button class="boton verde" ${n < 2 ? "disabled" : ""} onclick="Fiesta.accion('iniciar', {vidas})">${n < 2 ? "Faltan jugadores" : "💣 ¡Encender la mecha!"}</button>
+          </div>`
+        : `<div class="tarjeta centro pila"><div class="grande">⏳</div><p class="nota">Esperando a que <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b> encienda la mecha…</p></div>`;
+      return;
+    }
+    const lista = `<div class="vidas">${e.jugadores
+      .map((j) => {
+        const fuera = !e.vivos.includes(j.id);
+        return `<span class="${fuera ? "fuera" : ""} ${j.id === e.tiene && e.fase === "jugando" ? "con-papa" : ""}">${Fiesta.esc(j.nombre)} ${"❤️".repeat(Math.max(0, e.vidas[j.id] || 0))}</span>`;
+      })
+      .join("")}</div>`;
+    const log = `<p class="nota centro">${(e.log || []).slice(0, 3).map(Fiesta.esc).join("<br>")}</p>`;
+
+    if (e.fase === "resultado") {
+      zona.innerHTML = `<div class="tarjeta centro pila"><div class="grande">🏆</div><h2>¡${Fiesta.esc(Fiesta.nombreDe(e.ganador_ronda))} sobrevivió!</h2>${lista}${log}
+        ${e.soy_host ? `<button class="boton verde" onclick="Fiesta.accion('iniciar', {vidas})">🔁 Otra ronda</button><button class="boton morado" onclick="Fiesta.accion('agregar_bot')">➕🤖 Agregar bot</button>` : ""}</div>${Fiesta.ranking(e)}`;
+      return;
+    }
+    if (e.fase === "boom") {
+      zona.innerHTML = `<div class="tarjeta centro pila"><div class="bomba">💥</div><h2>¡BOOM! ${Fiesta.esc(Fiesta.nombreDe(e.ultima))}</h2>${lista}${log}</div>`;
+      if (navigator.vibrate && e.ultima === Fiesta.pid) navigator.vibrate([200, 80, 300]);
+      return;
+    }
+    const mia = e.tiene === Fiesta.pid;
+    if (mia && tieneAntes !== Fiesta.pid) nuevoReto();
+    tieneAntes = e.tiene;
+    let html = "";
+    if (mia) {
+      html = `<div class="tengo pila"><div class="bomba t${e.tension}">💣</div><h2 style="color:#fff">¡LA TIENES TÚ!</h2>`;
+      if (!resuelto) html += `<div>Resuelve para soltarla:</div><div class="reto">${reto.texto} = ?</div><div class="opciones">${reto.opciones.map((o) => `<button onclick="responder(${o})">${o}</button>`).join("")}</div>`;
+      else
+        html += `<div>¿A quién se la pasas?</div><div class="pasar-a">${e.vivos
+          .filter((p) => p !== Fiesta.pid)
+          .map((p) => `<button onclick="Fiesta.accion('pasar',{a:'${p}'})">${Fiesta.esc(Fiesta.nombreDe(p))}</button>`)
+          .join("")}</div>`;
+      html += `</div>`;
+      if (navigator.vibrate) navigator.vibrate(60);
+    } else {
+      html = `<div class="tarjeta centro pila"><div class="bomba t${e.tension}">💣</div><h2>La tiene ${Fiesta.esc(Fiesta.nombreDe(e.tiene))}</h2>${e.vivos.includes(Fiesta.pid) ? "<p class='nota'>¡Que no te llegue! 😬</p>" : "<p class='nota'>Ya quedaste fuera 👻</p>"}</div>`;
+    }
+    zona.innerHTML = html + lista + log;
+    const ritmo = [900, 450, 180][e.tension];
+    pitido = setInterval(() => bip(e.tension === 2 ? 1200 : 800), ritmo);
+  }
+
+  Fiesta.iniciar({ juego: "papa", titulo: "Papa Caliente 💣", pintar, intervalo: 700 });
+</script>
+{% endblock %}

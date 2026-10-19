@@ -1,0 +1,182 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}Dominó{% endblock %}
+{% block emoji %}🁫{% endblock %}
+{% block subtitulo %}De 2 a 4 jugadores · con amigos o bots{% endblock %}
+
+{% block estilos %}
+<style>
+  .mesa-dom {
+    background: radial-gradient(ellipse at center, #2e8b57, #145a32);
+    border-radius: 22px;
+    padding: 12px 8px;
+    color: #fff;
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35);
+  }
+  .linea {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    justify-content: center;
+    align-items: center;
+    min-height: 60px;
+  }
+  .ficha {
+    display: inline-flex;
+    background: #fffdf5;
+    border-radius: 7px;
+    border: 2px solid #333;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+    flex-shrink: 0;
+  }
+  .ficha .mitad {
+    width: 26px;
+    height: 26px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    padding: 3px;
+  }
+  .ficha .mitad i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #222;
+    place-self: center;
+    visibility: hidden;
+  }
+  .ficha .mitad i.on {
+    visibility: visible;
+  }
+  .ficha.horizontal .mitad + .mitad {
+    border-left: 2px solid #333;
+  }
+  .ficha.vertical {
+    flex-direction: column;
+  }
+  .ficha.vertical .mitad + .mitad {
+    border-top: 2px solid #333;
+  }
+  .ficha.mula {
+    flex-direction: column;
+  }
+  .ficha.mula .mitad + .mitad {
+    border-top: 2px solid #333;
+  }
+  .mano-dom {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    padding: 6px;
+  }
+  .mano-dom .ficha {
+    cursor: pointer;
+    transform: scale(1.15);
+    margin: 4px;
+  }
+  .mano-dom .ficha.no {
+    opacity: 0.45;
+  }
+  .mano-dom .ficha.si {
+    box-shadow:
+      0 0 0 3px #ffd84f,
+      0 3px 6px rgba(0, 0, 0, 0.35);
+  }
+  .mano-dom .ficha.elegida {
+    transform: scale(1.25) translateY(-6px);
+  }
+  .rivales-dom {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+  .rival-dom {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-weight: 900;
+    font-size: 0.85rem;
+    border: 2px solid transparent;
+  }
+  .rival-dom.turno {
+    border-color: #ffd84f;
+    box-shadow: 0 0 12px #ffd84f;
+  }
+  .lados {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>Cada quien recibe 7 fichas. Empieza quien tenga la mula más alta.</li>
+  <li>En tu turno pon una ficha que coincida con alguna de las dos puntas.</li>
+  <li>Si no puedes, robas del pozo (con 2 o 3 jugadores) o pasas.</li>
+  <li>Gana quien se quede sin fichas y se lleva los puntos de las fichas de los demás.</li>
+  <li>Si nadie puede tirar (tranque), gana quien tenga menos puntos en la mano.</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  const PUNTOS = { 0: [], 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+  let elegida = null;
+  let relojDom = null;
+  const mitad = (n) => `<span class="mitad">${[...Array(9)].map((_, i) => `<i class="${PUNTOS[n].includes(i) ? "on" : ""}"></i>`).join("")}</span>`;
+  const ficha = (n, clase = "", attrs = "") => `<span class="ficha ${clase || (n[0] === n[1] ? "mula" : "horizontal")}" ${attrs}>${mitad(n[0])}${mitad(n[1])}</span>`;
+
+  function tocarFicha(id) {
+    const e = Fiesta.estado;
+    const lados = (e.jugables || []).filter(([f]) => f === id).map(([, l]) => l);
+    if (!lados.length) return;
+    if (lados.length === 1) return Fiesta.accion("jugar", { id, lado: lados[0] });
+    elegida = id;
+    pintar(e, document.getElementById("zona-juego"));
+  }
+  function pintar(e, zona) {
+    if (!e) return;
+    clearInterval(relojDom);
+    const n = e.jugadores.length;
+    if (e.fase === "lobby") {
+      zona.innerHTML = e.soy_host
+        ? `<div class="tarjeta pila"><h2>🁫 Mesa (${n}/4)</h2><p class="nota">Con menos de 4, puedes agregar bots.</p>
+            <button class="boton morado" ${n >= 4 ? "disabled" : ""} onclick="Fiesta.accion('agregar_bot')">➕🤖 Agregar bot</button>
+            <button class="boton verde" ${n < 2 ? "disabled" : ""} onclick="Fiesta.accion('iniciar')">${n < 2 ? "Agrega un bot o invita a alguien" : "🁫 ¡A revolver!"}</button></div>`
+        : `<div class="tarjeta centro pila"><div class="grande">⏳</div><p class="nota">Esperando a <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b>…</p></div>`;
+      return;
+    }
+    const miTurno = e.turno === Fiesta.pid;
+    const jugables = new Set((e.jugables || []).map(([f]) => f));
+    let html = `<div class="mesa-dom pila">
+      <div class="rivales-dom">${e.cuentas.map((c) => `<span class="rival-dom ${c.id === e.turno ? "turno" : ""}">${Fiesta.esc(Fiesta.nombreDe(c.id))}${c.id === Fiesta.pid ? " (tú)" : ""} · 🁫 ${c.n}</span>`).join("")}</div>
+      <div class="linea">${e.mesa.length ? e.mesa.map((f) => ficha(f.n, f.n[0] === f.n[1] ? "vertical" : "horizontal")).join("") : "<span class='nota' style='color:#fff'>La mesa está vacía</span>"}</div>
+      <p class="nota centro" style="color:#fff">${e.pozo ? `Pozo: ${e.pozo} · ` : ""}${(e.log || []).slice(0, 2).map(Fiesta.esc).join(" · ")}</p>
+    </div>`;
+    if (e.mano) {
+      html += `<div class="tarjeta pila"><h2>${e.fase === "jugando" ? (miTurno ? `¡Te toca! ⏱️ <span id="seg-dom">${Fiesta.segundosHasta(e.limite)}</span>` : `Turno de ${Fiesta.esc(Fiesta.nombreDe(e.turno))}`) : "Tus fichas"}</h2>
+        <div class="mano-dom">${e.mano.map((f) => ficha(f.n, "", `class="ficha ${f.n[0] === f.n[1] ? "mula" : "horizontal"} ${miTurno ? (jugables.has(f.id) ? "si" : "no") : ""} ${elegida === f.id ? "elegida" : ""}" onclick="tocarFicha(${f.id})"`).replace('<span class="ficha mula" ', "<span ").replace('<span class="ficha horizontal" ', "<span ")).join("")}</div>`;
+      if (miTurno && elegida != null && jugables.has(elegida))
+        html += `<div class="lados"><button class="boton" onclick="Fiesta.accion('jugar',{id:${elegida},lado:'izq'})">⬅️ Izquierda (${e.puntas[0]})</button><button class="boton" onclick="Fiesta.accion('jugar',{id:${elegida},lado:'der'})">Derecha (${e.puntas[1]}) ➡️</button></div>`;
+      if (miTurno && !jugables.size) html += `<button class="boton morado" onclick="Fiesta.accion('robar')">${e.pozo ? "🁫 Robar del pozo" : "⏭️ Pasar"}</button>`;
+      html += `</div>`;
+    }
+    if (e.fase === "resultado") {
+      html = `<div class="tarjeta centro pila"><div class="grande">🏆</div><h2>¡${Fiesta.esc(Fiesta.nombreDe(e.ganador_ronda))} gana +${e.puntos_ronda}!</h2><p class="nota">${Fiesta.esc(e.como)}</p>
+        ${e.manos_finales.map((m) => `<div>${Fiesta.esc(Fiesta.nombreDe(m.id))}: ${m.fichas.map((f) => ficha(f.n)).join(" ") || "✅"}</div>`).join("")}
+        ${e.soy_host ? `<button class="boton verde" onclick="Fiesta.accion('iniciar')">🔁 Otra mano</button>` : ""}</div>${html}${Fiesta.ranking(e)}`;
+    }
+    if (!miTurno) elegida = null;
+    zona.innerHTML = html;
+    relojDom = setInterval(() => {
+      const s = document.getElementById("seg-dom");
+      if (s) s.textContent = Fiesta.segundosHasta(e.limite);
+    }, 500);
+  }
+  Fiesta.iniciar({ juego: "domino", titulo: "Dominó 🁫", pintar, intervalo: 900 });
+</script>
+{% endblock %}

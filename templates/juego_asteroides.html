@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#05030f" />
+    <title>Asteroides 3D · Arcade</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, sonar } = Arcade;
+      const LIM_X = 9,
+        LIM_Y = 5.5,
+        Z_APARECE = -140,
+        V_BALA = 90,
+        TAM = { 3: 2.4, 2: 1.45, 1: 0.85 },
+        PUNTOS = { 3: 20, 2: 50, 1: 100 };
+
+      // =========================================================
+      //  ESCENA: el espacio
+      // =========================================================
+      const M = Arcade.mundo({
+        fondo: 0x05030f,
+        fov: 62,
+        exposicion: 1.15,
+        colorAmbiente: 0x302050,
+        lejos: 400,
+      });
+      const { escena, camara } = M;
+      escena.fog = new THREE.Fog(0x05030f, 80, 150);
+      const mat = (c, x = {}) =>
+        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.6, ...x });
+      escena.add(new THREE.HemisphereLight(0x8899ff, 0x220022, 0.6));
+      const sol = new THREE.DirectionalLight(0xffe0c0, 1.3);
+      sol.position.set(-10, 10, 10);
+      escena.add(sol);
+      const estrellas = new THREE.Points(
+        new THREE.BufferGeometry().setAttribute(
+          "position",
+          new THREE.Float32BufferAttribute(
+            Array.from({ length: 3000 }, (_, i) =>
+              i % 3 === 2 ? azar(-300, 20) : azar(-120, 120),
+            ),
+            3,
+          ),
+        ),
+        new THREE.PointsMaterial({ color: 0xffffff, size: 0.35 }),
+      );
+      escena.add(estrellas);
+      const planeta = new THREE.Mesh(
+        new THREE.SphereGeometry(40, 32, 24),
+        mat(0x6c5ce7, { emissive: lin(0x2a1a6a), emissiveIntensity: 0.5 }),
+      );
+      planeta.position.set(70, 30, -260);
+      escena.add(planeta);
+
+      function crearNave(color) {
+        const g = new THREE.Group();
+        const cuerpo = new THREE.Mesh(
+          new THREE.ConeGeometry(0.45, 2, 8),
+          mat(0xdde6f0, { metalness: 0.7, roughness: 0.3 }),
+        );
+        cuerpo.rotation.x = -Math.PI / 2;
+        g.add(cuerpo);
+        const ala = new THREE.Mesh(
+          new THREE.BoxGeometry(2.4, 0.08, 0.7),
+          mat(color, { metalness: 0.4 }),
+        );
+        ala.position.z = 0.4;
+        g.add(ala);
+        const cabina = new THREE.Mesh(
+          new THREE.SphereGeometry(0.25, 12, 8),
+          mat(0x4fd8ff, {
+            emissive: lin(0x1a6aa0),
+            metalness: 0.2,
+            roughness: 0.1,
+          }),
+        );
+        cabina.position.set(0, 0.2, -0.2);
+        g.add(cabina);
+        const fuego = new THREE.Mesh(
+          new THREE.ConeGeometry(0.25, 0.9, 8),
+          new THREE.MeshBasicMaterial({ color: 0xff8c1a }),
+        );
+        fuego.rotation.x = Math.PI / 2;
+        fuego.position.z = 1.4;
+        g.add(fuego);
+        g.userData.fuego = fuego;
+        escena.add(g);
+        return g;
+      }
+      const naves = [crearNave(0xff4f8b), crearNave(0x4fb3ff)];
+      const geoRoca = new THREE.IcosahedronGeometry(1, 1);
+      // la roca se deforma un poquito para que no se vea perfecta
+      const pr = geoRoca.attributes.position;
+      for (let i = 0; i < pr.count; i++) {
+        const v = new THREE.Vector3(pr.getX(i), pr.getY(i), pr.getZ(i));
+        v.multiplyScalar(
+          1 + Math.sin(v.x * 5) * 0.12 + Math.cos(v.y * 4) * 0.1,
+        );
+        pr.setXYZ(i, v.x, v.y, v.z);
+      }
+      geoRoca.computeVertexNormals();
+      const matRoca = mat(0x8a7a6a, { flatShading: true, roughness: 0.95 });
+      const geoBala = new THREE.CylinderGeometry(0.07, 0.07, 1.2, 6);
+      const matBala = [
+        new THREE.MeshBasicMaterial({ color: 0xff4f8b }),
+        new THREE.MeshBasicMaterial({ color: 0x4fb3ff }),
+      ];
+      const geoPoder = new THREE.OctahedronGeometry(0.7);
+
+      // =========================================================
+      //  ESTADO
+      // =========================================================
+      const J = { modo: null, activa: false };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
+      let rocas = new Map(); // id → roca
+      let balas = [];
+      let poderes = [];
+      let chispas = [];
+      const N = [0, 1].map(() => ({
+        x: 0,
+        y: 0,
+        ox: 0,
+        oy: 0,
+        vidas: 3,
+        puntos: 0,
+        invencible: 0,
+        cadencia: 0,
+        triple: 0,
+        viva: true,
+      }));
+
+      // rocas deterministas: misma semilla = mismas rocas en los dos celulares
+      function hash(texto) {
+        let h = 2166136261;
+        for (const c of texto) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+        return Arcade.rng(h >>> 0);
+      }
+      function crearRoca(id, nivel, x, y, z, vx, vy, vz) {
+        const m = new THREE.Mesh(geoRoca, matRoca);
+        m.scale.setScalar(TAM[nivel]);
+        escena.add(m);
+        const r = hash(id + "giro");
+        rocas.set(id, {
+          id,
+          nivel,
+          x,
+          y,
+          z,
+          vx,
+          vy,
+          vz,
+          vida: nivel,
+          malla: m,
+          gx: r() * 2 - 1,
+          gy: r() * 2 - 1,
+        });
+        if (destruidas.delete(id)) romperRoca(id, null, false);
+      }
+      function aparecerRoca(k) {
+        const r = hash(J.semilla + ":" + k);
+        const dif = Math.min(1, J.tiempo / 120);
+        const x = (r() * 2 - 1) * LIM_X,
+          y = (r() * 2 - 1) * LIM_Y;
+        crearRoca(
+          "r" + k,
+          r() < 0.55 ? 3 : 2,
+          x,
+          y,
+          Z_APARECE,
+          (r() * 2 - 1) * 1.5,
+          (r() * 2 - 1) * 1,
+          22 + dif * 18 + r() * 8,
+        );
+        if (r() < 0.07)
+          poderes.push({
+            id: "p" + k,
+            tipo: r() < 0.5 ? "triple" : "escudo",
+            x: (r() * 2 - 1) * LIM_X,
+            y: (r() * 2 - 1) * LIM_Y,
+            z: Z_APARECE,
+            malla: (() => {
+              const p = new THREE.Mesh(
+                geoPoder,
+                new THREE.MeshStandardMaterial({
+                  color: lin(0x26de81),
+                  emissive: lin(0x26de81),
+                  emissiveIntensity: 0.8,
+                }),
+              );
+              escena.add(p);
+              return p;
+            })(),
+          });
+      }
+      function romperRoca(id, quien, avisar) {
+        // El anfitrión resuelve cada destrucción una sola vez, incluso con impactos simultáneos.
+        if (J.modo === "online" && avisar && ui.yo !== 0) {
+          if (rocas.has(id))
+            ui.enviar("impacto", { partida: J.partida, id, quien });
+          return;
+        }
+        const roca = rocas.get(id);
+        if (!roca) return;
+        rocas.delete(id);
+        escena.remove(roca.malla);
+        explosion(roca.x, roca.y, roca.z, roca.nivel);
+        if (quien != null) {
+          if (J.modo === "online") J.equipo += PUNTOS[roca.nivel];
+          N[quien].puntos += PUNTOS[roca.nivel];
+        }
+        if (roca.nivel > 1) {
+          const r = hash(id + "frag");
+          ["a", "b"].forEach((s, i) =>
+            crearRoca(
+              id + s,
+              roca.nivel - 1,
+              roca.x,
+              roca.y,
+              roca.z,
+              roca.vx + (i ? 1 : -1) * (3 + r() * 3),
+              roca.vy + (r() * 2 - 1) * 3,
+              roca.vz,
+            ),
+          );
+        }
+        if (avisar && J.modo === "online")
+          ui.enviar("roca", {
+            partida: J.partida,
+            id,
+            quien,
+            version: ++J.versionRocas,
+            equipo: J.equipo,
+            puntos: N.map((q) => q.puntos),
+          });
+        marcador();
+      }
+      function explosion(x, y, z, nivel) {
+        sonar("choque", 0.25 + nivel * 0.12);
+        for (let i = 0; i < 6 + nivel * 4; i++) {
+          const m = new THREE.Mesh(
+            new THREE.TetrahedronGeometry(0.2 * nivel),
+            new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffb84f : 0x8a7a6a }),
+          );
+          m.position.set(x, y, z);
+          escena.add(m);
+          chispas.push({
+            malla: m,
+            v: new THREE.Vector3(azar(-8, 8), azar(-8, 8), azar(-4, 8)),
+            vida: 0.7,
+          });
+        }
+      }
+      function disparar(i) {
+        const n = N[i];
+        const dirs = n.triple > 0 ? [-0.12, 0, 0.12] : [0];
+        dirs.forEach((dx) => {
+          const m = new THREE.Mesh(geoBala, matBala[i]);
+          m.rotation.x = Math.PI / 2;
+          escena.add(m);
+          balas.push({
+            quien: i,
+            x: n.x,
+            y: n.y,
+            z: -1.4,
+            vx: dx * V_BALA,
+            malla: m,
+            local: J.modo !== "online" || i === ui.yo,
+          });
+        });
+        if (i === yoIdx()) sonar("click", 0.25);
+      }
+      const yoIdx = () => (J.modo === "online" ? ui.yo : 0);
+
+      // =========================================================
+      //  CONTROLES (arrastra para mover; dispara solo)
+      // =========================================================
+      let toque = null;
+      M.lienzo.addEventListener("pointerdown", (e) => {
+        toque = {
+          x: e.clientX,
+          y: e.clientY,
+          nx: N[yoIdx()].ox,
+          ny: N[yoIdx()].oy,
+        };
+      });
+      M.lienzo.addEventListener("pointermove", (e) => {
+        if (!toque || !J.activa) return;
+        const n = N[yoIdx()];
+        n.ox = limitar(
+          toque.nx + ((e.clientX - toque.x) / window.innerWidth) * LIM_X * 2.4,
+          -LIM_X,
+          LIM_X,
+        );
+        n.oy = limitar(
+          toque.ny - ((e.clientY - toque.y) / window.innerHeight) * LIM_Y * 2.4,
+          -LIM_Y,
+          LIM_Y,
+        );
+      });
+      M.lienzo.addEventListener("pointerup", () => (toque = null));
+      const teclas = {};
+      document.addEventListener("keydown", (e) => (teclas[e.key] = true));
+      document.addEventListener("keyup", (e) => (teclas[e.key] = false));
+
+      // =========================================================
+      //  CICLO
+      // =========================================================
+      M.alCuadro((dt, ahora) => {
+        // estrellas pasan
+        const ep = estrellas.geometry.attributes.position;
+        for (let i = 0; i < ep.count; i++) {
+          let z = ep.getZ(i) + dt * (J.activa ? 60 : 15);
+          if (z > 20) z -= 320;
+          ep.setZ(i, z);
+        }
+        ep.needsUpdate = true;
+        planeta.rotation.y += dt * 0.05;
+        for (let i = chispas.length - 1; i >= 0; i--) {
+          const c = chispas[i];
+          c.vida -= dt;
+          c.malla.position.addScaledVector(c.v, dt);
+          c.malla.rotation.x += dt * 5;
+          if (c.vida <= 0) (escena.remove(c.malla), chispas.splice(i, 1));
+        }
+        if (!J.activa) {
+          naves.forEach((n, i) =>
+            n.position.set(i ? 3 : -3, Math.sin(ahora / 700 + i) * 0.5, 0),
+          );
+          camara.position.set(0, 2.5, 9);
+          camara.lookAt(0, 0, -20);
+          return;
+        }
+        J.tiempo += dt;
+        // aparecen rocas a ritmo fijo (igual en los dos celulares)
+        const ritmo = Math.max(0.45, 1.1 - J.tiempo / 150);
+        while (J.siguienteRoca <= J.tiempo) {
+          aparecerRoca(J.contador++);
+          J.siguienteRoca += ritmo;
+        }
+        // mi nave
+        const yo = yoIdx();
+        const n = N[yo];
+        if (teclas.ArrowLeft || teclas.a)
+          n.ox = Math.max(-LIM_X, n.ox - 14 * dt);
+        if (teclas.ArrowRight || teclas.d)
+          n.ox = Math.min(LIM_X, n.ox + 14 * dt);
+        if (teclas.ArrowUp || teclas.w) n.oy = Math.min(LIM_Y, n.oy + 10 * dt);
+        if (teclas.ArrowDown || teclas.s)
+          n.oy = Math.max(-LIM_Y, n.oy - 10 * dt);
+        // bot
+        if (J.modo === "bot") pensarBot(dt);
+        N.forEach((q, i) => {
+          if (!J.dos && i === 1) return;
+          if (!q.viva) return (naves[i].visible = false);
+          naves[i].visible =
+            q.invencible <= 0 || Math.floor(ahora / 100) % 2 === 0;
+          const controlada = J.modo !== "online" || i === yo;
+          if (controlada) {
+            q.x += (q.ox - q.x) * Math.min(1, dt * 8);
+            q.y += (q.oy - q.y) * Math.min(1, dt * 8);
+          } else {
+            q.x += (q.ox - q.x) * Math.min(1, dt * 10);
+            q.y += (q.oy - q.y) * Math.min(1, dt * 10);
+          }
+          naves[i].position.set(q.x, q.y, 0);
+          naves[i].rotation.z = (q.x - q.ox) * 0.15;
+          naves[i].userData.fuego.scale.y = 0.8 + Math.random() * 0.5;
+          q.invencible = Math.max(0, q.invencible - dt);
+          q.triple = Math.max(0, q.triple - dt);
+          q.cadencia -= dt;
+          if (q.cadencia <= 0 && (controlada || J.modo === "online")) {
+            q.cadencia = 0.2;
+            disparar(i);
+          }
+        });
+        // balas
+        for (let k = balas.length - 1; k >= 0; k--) {
+          const b = balas[k];
+          b.z -= V_BALA * dt;
+          b.x += b.vx * dt;
+          b.malla.position.set(b.x, b.y, b.z);
+          let fuera = b.z < Z_APARECE - 10;
+          if (!fuera && b.local)
+            for (const r of rocas.values()) {
+              if (
+                Math.abs(r.z - b.z) < TAM[r.nivel] + 1 &&
+                Math.hypot(r.x - b.x, r.y - b.y) < TAM[r.nivel] + 0.2
+              ) {
+                r.vida--;
+                fuera = true;
+                if (r.vida <= 0) romperRoca(r.id, b.quien, true);
+                else ((r.malla.material = matRoca), sonar("golpe", 0.2));
+                break;
+              }
+            }
+          if (fuera) (escena.remove(b.malla), balas.splice(k, 1));
+        }
+        // rocas
+        for (const r of [...rocas.values()]) {
+          r.x += r.vx * dt;
+          r.y += r.vy * dt;
+          r.z += r.vz * dt;
+          if (Math.abs(r.x) > LIM_X + 3) r.vx *= -1;
+          if (Math.abs(r.y) > LIM_Y + 2) r.vy *= -1;
+          r.malla.position.set(r.x, r.y, r.z);
+          r.malla.rotation.x += r.gx * dt;
+          r.malla.rotation.y += r.gy * dt;
+          if (r.z > 12) {
+            rocas.delete(r.id);
+            escena.remove(r.malla);
+            continue;
+          }
+          // choque con mi nave (cada quien revisa la suya; el bot también)
+          [yo, J.modo === "bot" ? 1 : -1].forEach((i) => {
+            if (i < 0) return;
+            const q = N[i];
+            if (!q.viva || q.invencible > 0) return;
+            if (
+              Math.abs(r.z) < TAM[r.nivel] + 0.6 &&
+              Math.hypot(r.x - q.x, r.y - q.y) < TAM[r.nivel] + 0.5
+            ) {
+              q.vidas--;
+              q.invencible = 2;
+              romperRoca(r.id, null, true);
+              if (i === yo) {
+                if (navigator.vibrate) navigator.vibrate(150);
+                ui.avisar(
+                  q.vidas > 0
+                    ? `💥 ¡Te quedan ${q.vidas}!`
+                    : "💥 ¡Nave destruida!",
+                  "#ff3b3b",
+                );
+              }
+              if (q.vidas <= 0) {
+                q.viva = false;
+                if (i === yo && J.modo === "online")
+                  ui.enviar("muerto", { partida: J.partida });
+              }
+              marcador();
+              revisarFin();
+            }
+          });
+        }
+        // poderes
+        for (let k = poderes.length - 1; k >= 0; k--) {
+          const p = poderes[k];
+          p.z += 26 * dt;
+          p.malla.position.set(p.x, p.y, p.z);
+          p.malla.rotation.y += dt * 3;
+          if (
+            Math.abs(p.z) < 1 &&
+            Math.hypot(p.x - n.x, p.y - n.y) < 1.5 &&
+            n.viva
+          ) {
+            if (p.tipo === "triple")
+              ((n.triple = 10), ui.avisar("🔫 ¡Disparo triple!", "#26de81"));
+            else ((n.invencible = 6), ui.avisar("🛡️ ¡Escudo!", "#26de81"));
+            sonar("perfecto", 1.3);
+            p.z = 99;
+          }
+          if (p.z > 12) (escena.remove(p.malla), poderes.splice(k, 1));
+        }
+        if (J.modo === "online" && ahora - J.ultimoEnvio > 120) {
+          J.ultimoEnvio = ahora;
+          ui.enviar("nave", {
+            partida: J.partida,
+            x: +n.ox.toFixed(2),
+            y: +n.oy.toFixed(2),
+            t: n.triple > 0,
+          });
+        }
+        // cámara detrás de mi nave
+        camara.position.lerp(
+          new THREE.Vector3(n.x * 0.6, n.y * 0.6 + 2.2, 8.5),
+          Math.min(1, dt * 4),
+        );
+        camara.lookAt(n.x * 0.3, n.y * 0.3, -25);
+        camara.fov = window.innerWidth < window.innerHeight ? 75 : 62;
+        camara.updateProjectionMatrix();
+      });
+
+      // =========================================================
+      //  BOT (otra nave que también caza rocas)
+      // =========================================================
+      let pensar = 0;
+      function pensarBot(dt) {
+        const b = N[1];
+        if (!b.viva) return;
+        pensar -= dt;
+        if (pensar > 0) return;
+        pensar = { facil: 0.5, normal: 0.25, pro: 0.1 }[J.dificultad];
+        // apunta a la roca más cercana que venga hacia él, esquivando las que ya están muy cerca
+        let meta = null,
+          peligro = null;
+        for (const r of rocas.values()) {
+          if (
+            r.z > -2 &&
+            r.z < 2 &&
+            Math.hypot(r.x - b.x, r.y - b.y) < TAM[r.nivel] + 1.5
+          )
+            peligro = r;
+          if (r.z < -15 && (!meta || r.z > meta.z)) meta = r;
+        }
+        if (peligro && J.dificultad !== "facil") {
+          b.ox = limitar(b.x + (b.x > peligro.x ? 4 : -4), -LIM_X, LIM_X);
+          b.oy = limitar(b.y + (b.y > peligro.y ? 3 : -3), -LIM_Y, LIM_Y);
+        } else if (meta) {
+          b.ox = meta.x + azar(-0.5, 0.5);
+          b.oy = meta.y + azar(-0.5, 0.5);
+        }
+      }
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      const ui = Arcade.ui({
+        juego: "asteroides",
+        titulo: "Asteroides 3D",
+        emoji: "🚀",
+        subtitulo: "Destruye las rocas antes de que te alcancen",
+        modos: ["solo", "bot", "online"],
+        textosModo: {
+          bot: "🤖 Contra el bot (más puntos gana)",
+          online: "🌐 Cooperativo online",
+        },
+        dificultad: true,
+        records: true,
+        unidadRecord: "pts",
+        intervaloOnline: 150,
+        reglas: [
+          "Arrastra el dedo para mover tu nave. Dispara solita.",
+          "Las rocas grandes se rompen en otras más chicas (¡y las chicas valen más!).",
+          "🟢 Agarra los poderes: disparo triple o escudo.",
+          "Tienes 3 vidas. Contra el bot gana quien haga más puntos; online juegan en equipo.",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          ciclo.cancelar();
+          J.activa = false;
+          J.modo = null;
+        },
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida || !J.activa) return;
+        const otro = 1 - ui.yo;
+        if (tipo === "nave") {
+          N[otro].ox = d.x;
+          N[otro].oy = d.y;
+          N[otro].triple = d.t ? 1 : 0;
+        } else if (tipo === "impacto" && ui.yo === 0) {
+          romperRoca(d.id, d.quien === null ? null : otro, true);
+        } else if (tipo === "roca" && ui.yo !== 0) {
+          // Si la roca todavía no aparece en este cliente, se retira cuando se genere.
+          if (rocas.has(d.id)) romperRoca(d.id, null, false);
+          else destruidas.add(d.id);
+          actualizarPuntos(d);
+        } else if (tipo === "fin_equipo" && ui.yo !== 0) {
+          actualizarPuntos(d);
+          N.forEach((q) => {
+            q.viva = false;
+            q.vidas = 0;
+          });
+          J.finConfirmado = true;
+          revisarFin();
+        } else if (tipo === "muerto") {
+          N[otro].viva = false;
+          N[otro].vidas = 0;
+          marcador();
+          revisarFin();
+        }
+      };
+      const destruidas = new Set();
+      function actualizarPuntos(d) {
+        if (d.version < J.versionRocas) return;
+        J.versionRocas = d.version;
+        J.equipo = d.equipo;
+        d.puntos.forEach((v, i) => {
+          N[i].puntos = v;
+        });
+        marcador();
+      }
+      function limpiar() {
+        destruidas.clear();
+        rocas.forEach((r) => escena.remove(r.malla));
+        rocas = new Map();
+        balas.forEach((b) => escena.remove(b.malla));
+        balas = [];
+        poderes.forEach((p) => escena.remove(p.malla));
+        poderes = [];
+      }
+      function empezar(modo, info) {
+        ciclo.cancelar();
+        limpiar();
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          nombres: info.nombres,
+          dificultad: info.dificultad,
+          semilla: info.semilla,
+          tiempo: 0,
+          contador: 0,
+          siguienteRoca: 1.5,
+          activa: true,
+          dos: modo !== "solo",
+          equipo: 0,
+          ultimoEnvio: 0,
+          versionRocas: 0,
+          finConfirmado: false,
+        });
+        N.forEach((q, i) =>
+          Object.assign(q, {
+            x: i ? 2.5 : -2.5,
+            y: 0,
+            ox: i ? 2.5 : -2.5,
+            oy: 0,
+            vidas: 3,
+            puntos: 0,
+            invencible: 1.5,
+            cadencia: 0,
+            triple: 0,
+            viva: i === 0 || modo !== "solo",
+          }),
+        );
+        naves[1].visible = modo !== "solo";
+        marcador();
+        ui.ayuda("👆 Arrastra para mover tu nave");
+        ciclo.despues(() => J.partida === info.partida && ui.ayuda(""), 3500);
+      }
+      function marcador() {
+        const vidas = (q) => "❤️".repeat(Math.max(0, q.vidas));
+        if (J.modo === "solo")
+          return ui.marcador([
+            {
+              nombre: J.nombres[0],
+              valor: N[0].puntos,
+              detalle: vidas(N[0]),
+              activo: true,
+            },
+            null,
+          ]);
+        if (J.modo === "online") {
+          const yo = ui.yo;
+          return ui.marcador(
+            [0, 1].map((i) => ({
+              nombre: J.nombres[i] + (i === yo ? " (tú)" : ""),
+              valor: i === 0 ? J.equipo : N[i].puntos,
+              detalle:
+                i === 0 ? `🤝 equipo · ${vidas(N[0])}` : `${vidas(N[1])}`,
+              activo: N[i].viva,
+              color: i ? "#4fb3ff" : "#ff4f8b",
+            })),
+          );
+        }
+        ui.marcador(
+          [0, 1].map((i) => ({
+            nombre: J.nombres[i] + (i === 0 ? " (tú)" : ""),
+            valor: N[i].puntos,
+            detalle: vidas(N[i]),
+            activo: N[i].viva,
+            color: i ? "#4fb3ff" : "#ff4f8b",
+          })),
+        );
+      }
+      async function revisarFin() {
+        const sesionTarea = J.sesion || 0;
+        const yo = yoIdx();
+        const terminado =
+          J.modo === "solo"
+            ? !N[0].viva
+            : J.modo === "bot"
+              ? !N[0].viva || !N[1].viva
+              : !N[0].viva && !N[1].viva;
+        if (!terminado || !J.activa) return;
+        if (J.modo === "online") {
+          if (ui.yo !== 0 && !J.finConfirmado) return;
+          if (ui.yo === 0)
+            ui.enviar("fin_equipo", {
+              partida: J.partida,
+              version: ++J.versionRocas,
+              equipo: J.equipo,
+              puntos: N.map((q) => q.puntos),
+            });
+        }
+        J.activa = false;
+        await esperar(1200);
+        if (sesionTarea !== (J.sesion || 0)) return;
+        if (J.modo === "solo") {
+          sonar("ganar");
+          return ui.terminar({
+            emoji: "🚀",
+            texto: `¡${N[0].puntos} puntos!`,
+            nota: `Sobreviviste ${Math.round(J.tiempo)} s`,
+            record: N[0].puntos,
+          });
+        }
+        if (J.modo === "online") {
+          sonar("ganar");
+          return ui.terminar({
+            emoji: "🤝",
+            texto: `¡Equipo: ${J.equipo} puntos!`,
+            nota: `Tú hiciste ${N[yo].puntos} · aguantaron ${Math.round(J.tiempo)} s`,
+            record: J.equipo,
+            gano: true,
+          });
+        }
+        // contra el bot: si uno muere, gana el que lleve más puntos
+        const gane = N[0].puntos > N[1].puntos;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({
+          emoji: gane ? "🏆" : "😿",
+          texto: gane ? "¡Le ganaste al bot!" : `Ganó ${J.nombres[1]}`,
+          nota: `Tú: ${N[0].puntos} · Bot: ${N[1].puntos}`,
+          record: N[0].puntos,
+          gano: gane,
+        });
+      }
+    </script>
+  </body>
+</html>

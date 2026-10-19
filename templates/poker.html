@@ -1,0 +1,193 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}Póker{% endblock %}
+{% block emoji %}♠️{% endblock %}
+{% block subtitulo %}Texas Hold'em de 2 a 8 · fichas de mentira{% endblock %}
+
+{% block estilos %}
+<style>
+  .mesa-pk {
+    background: radial-gradient(ellipse at center, #1f8a4c, #0f4d2a);
+    border-radius: 40px;
+    padding: 14px 10px;
+    color: #fff;
+    box-shadow:
+      inset 0 0 40px rgba(0, 0, 0, 0.35),
+      0 0 0 8px #6b3e26;
+    text-align: center;
+  }
+  .naipe {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 44px;
+    height: 64px;
+    border-radius: 8px;
+    background: #fff;
+    color: #222;
+    font-weight: 900;
+    padding: 3px 5px;
+    margin: 2px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+    animation: repartir 0.3s ease-out;
+    vertical-align: middle;
+  }
+  .naipe .palo {
+    align-self: flex-end;
+    font-size: 1.2rem;
+  }
+  .naipe.rojo {
+    color: #d61f2c;
+  }
+  .naipe.tapada {
+    background: repeating-linear-gradient(45deg, #1f5fd0, #1f5fd0 6px, #164aa5 6px, #164aa5 12px);
+    border: 3px solid #fff;
+  }
+  .naipe.chica {
+    width: 30px;
+    height: 44px;
+    font-size: 0.75rem;
+  }
+  .naipe.chica .palo {
+    font-size: 0.85rem;
+  }
+  .naipe.grande {
+    width: 62px;
+    height: 90px;
+    font-size: 1.3rem;
+  }
+  @keyframes repartir {
+    from {
+      transform: translateY(-20px);
+      opacity: 0;
+    }
+  }
+  .bote {
+    font-size: 1.3rem;
+    font-weight: 900;
+    margin: 6px 0;
+  }
+  .asientos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .asiento {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 14px;
+    padding: 6px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    border: 2px solid transparent;
+  }
+  .asiento.turno {
+    border-color: #ffd84f;
+    box-shadow: 0 0 12px #ffd84f;
+  }
+  .asiento.fuera {
+    opacity: 0.45;
+  }
+  .asiento .gana {
+    color: #ffd84f;
+  }
+  .mi-mano {
+    margin-top: 10px;
+  }
+  .acciones-pk {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .subir {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .subir input {
+    flex: 1;
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>Cada quien recibe 2 cartas. En la mesa salen 5 cartas para todos (3, luego 1 y luego 1).</li>
+  <li>En cada ronda puedes <b>pasar</b>, <b>igualar</b>, <b>subir</b> o <b>retirarte</b>.</li>
+  <li>Gana el bote la mejor mano de 5 cartas: Escalera de color › Póker › Full › Color › Escalera › Tercia › Doble par › Par › Carta alta.</li>
+  <li>Las fichas son de mentira: si te quedas sin nada, la casa te recarga.</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  const ROJOS = ["♥", "♦"];
+  let relojPk = null;
+  let subida = null;
+  const naipe = (c, clase = "") => (!c ? `<span class="naipe tapada ${clase}"></span>` : `<span class="naipe ${clase} ${ROJOS.includes(c.p) ? "rojo" : ""}"><span>${c.v}</span><span class="palo">${c.p}</span></span>`);
+  function cambiarSubida(v) {
+    subida = +v;
+    const t = document.getElementById("txt-subida");
+    if (t) t.textContent = subida;
+  }
+  function pintar(e, zona) {
+    if (!e) return;
+    clearInterval(relojPk);
+    const n = e.jugadores.length;
+    if (e.fase === "lobby") {
+      zona.innerHTML = e.soy_host
+        ? `<div class="tarjeta pila"><h2>♠️ Mesa (${n}/8)</h2><p class="nota">Ciegas ${e.ciegas[0]}/${e.ciegas[1]} · cada quien empieza con 1000.</p>
+            <button class="boton morado" onclick="Fiesta.accion('agregar_bot')">➕🤖 Agregar bot</button>
+            <button class="boton verde" ${n < 2 ? "disabled" : ""} onclick="Fiesta.accion('iniciar')">${n < 2 ? "Agrega un bot o invita a alguien" : "🃏 ¡Repartir!"}</button></div>`
+        : `<div class="tarjeta centro pila"><div class="grande">⏳</div><p class="nota">Esperando a <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b>…</p></div>`;
+      return;
+    }
+    const fichasDe = (id) => (e.jugadores.find((j) => j.id === id) || {}).puntos || 0;
+    const etapa = { preflop: "Antes del flop", flop: "Flop", turn: "Turn", river: "River" }[e.etapa] || "";
+    let html = `<div class="mesa-pk">
+      <div>${etapa}</div>
+      <div>${[0, 1, 2, 3, 4].map((i) => (e.mesa[i] ? naipe(e.mesa[i]) : `<span class="naipe" style="opacity:.15"></span>`)).join("")}</div>
+      <div class="bote">🪙 Bote: ${e.bote}</div>
+      <div class="asientos">${e.jugadores_mano
+        .map(
+          (j) => `<div class="asiento ${j.id === e.turno ? "turno" : ""} ${j.fuera ? "fuera" : ""}">
+            <div>${Fiesta.esc(Fiesta.nombreDe(j.id))}${j.id === Fiesta.pid ? " (tú)" : ""}</div>
+            <div>🪙 ${fichasDe(j.id)}${j.allin ? " · ¡TODO!" : ""}</div>
+            ${j.ronda ? `<div>apuesta ${j.ronda}</div>` : ""}
+            ${j.id !== Fiesta.pid ? `<div>${j.cartas ? j.cartas.map((c) => naipe(c, "chica")).join("") : j.fuera ? "retirado" : naipe(null, "chica") + naipe(null, "chica")}</div>` : ""}
+            ${j.mano ? `<div>${j.mano}</div>` : ""}${j.gano ? `<div class="gana">+${j.gano} 🏆</div>` : ""}
+          </div>`,
+        )
+        .join("")}</div>
+      ${e.mis_cartas ? `<div class="mi-mano">Tus cartas<br>${e.mis_cartas.map((c) => naipe(c, "grande")).join("")}</div>` : ""}
+      <p class="nota" style="color:#fff">${(e.log || []).slice(0, 3).map(Fiesta.esc).join("<br>")}</p>
+    </div>`;
+    if (e.fase === "jugando" && e.turno === Fiesta.pid) {
+      const fichas = e.mis_fichas;
+      const debo = e.debo;
+      const min = Math.min(e.apuesta + e.min_subida, fichas + (e.apuesta - debo));
+      const max = fichas + (e.apuesta - debo);
+      if (subida == null || subida < min || subida > max) subida = min;
+      html += `<div class="tarjeta pila"><h2>¡Te toca! ⏱️ <span id="seg-pk">${Fiesta.segundosHasta(e.limite)}</span></h2>
+        <div class="acciones-pk">
+          ${debo > 0 ? `<button class="boton verde" onclick="Fiesta.accion('igualar')">Igualar ${Math.min(debo, fichas)}</button>` : `<button class="boton verde" onclick="Fiesta.accion('pasar')">✔️ Pasar</button>`}
+          <button class="boton claro" onclick="Fiesta.accion('retirarse')">🏳️ Retirarme</button>
+        </div>
+        ${max > e.apuesta ? `<div class="subir"><input type="range" min="${min}" max="${max}" step="10" value="${subida}" oninput="cambiarSubida(this.value)" />
+          <button class="boton morado" style="width:auto;padding:0 14px" onclick="Fiesta.accion('subir',{cantidad:subida})">Subir a <span id="txt-subida">${subida}</span></button></div>
+          <button class="boton" onclick="Fiesta.accion('todo')">💥 ¡Voy con todo! (${max})</button>` : ""}
+      </div>`;
+    } else if (e.fase === "jugando") {
+      html += `<p class="nota centro">Turno de ${Fiesta.esc(Fiesta.nombreDe(e.turno))}…</p>`;
+    } else if (e.fase === "resultado") {
+      html += `<p class="nota centro">La siguiente mano empieza en un momento… <span id="seg-pk"></span></p>
+        ${e.soy_host ? `<button class="boton morado" onclick="Fiesta.accion('agregar_bot')">➕🤖 Agregar bot</button>` : ""}`;
+    }
+    zona.innerHTML = html + (e.fase === "resultado" ? Fiesta.ranking(e) : "");
+    relojPk = setInterval(() => {
+      const s = document.getElementById("seg-pk");
+      if (s) s.textContent = Fiesta.segundosHasta(e.fase === "resultado" ? e.siguiente : e.limite);
+    }, 500);
+  }
+  Fiesta.iniciar({ juego: "poker", titulo: "Póker ♠️", pintar, intervalo: 900 });
+</script>
+{% endblock %}

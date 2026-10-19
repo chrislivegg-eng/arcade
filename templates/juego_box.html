@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#1a0d0d" />
+    <title>Box · Arcade</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
+    <style>
+      .barras {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        top: calc(92px + env(safe-area-inset-top));
+        display: flex;
+        gap: 14px;
+        z-index: 5;
+        pointer-events: none;
+      }
+      .barras > div {
+        flex: 1;
+      }
+      .barra {
+        height: 14px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+      }
+      .barra i {
+        display: block;
+        height: 100%;
+        width: 100%;
+        background: linear-gradient(90deg, #ff3b3b, #ffd84f, #26de81);
+        background-size: 300% 100%;
+        transition: width 0.25s;
+      }
+      .barra.aguante {
+        height: 7px;
+        margin-top: 4px;
+      }
+      .barra.aguante i {
+        background: #4fb3ff;
+        transition: width 0.1s;
+      }
+      #reloj {
+        position: fixed;
+        top: calc(124px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        font-weight: 900;
+        font-size: 1.4rem;
+        z-index: 5;
+        text-shadow: 0 2px 8px #000;
+      }
+      #destello {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(
+          circle,
+          transparent 40%,
+          rgba(255, 0, 0, 0.55)
+        );
+        opacity: 0;
+        pointer-events: none;
+        z-index: 4;
+        transition: opacity 0.3s;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+    <div id="destello"></div>
+    <div class="barras oculto" id="barras">
+      <div>
+        <div class="barra"><i id="vida-0"></i></div>
+        <div class="barra aguante"><i id="aguante-0"></i></div>
+      </div>
+      <div>
+        <div class="barra"><i id="vida-1" style="margin-left: auto"></i></div>
+      </div>
+    </div>
+    <div id="reloj" class="oculto"></div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, sonar } = Arcade;
+      const DURACION = 90;
+      const GOLPES = {
+        izq: { danio: 7, carga: 0.24, nombre: "Gancho izquierdo" },
+        der: { danio: 7, carga: 0.24, nombre: "Gancho derecho" },
+        arriba: { danio: 11, carga: 0.34, nombre: "Uppercut" },
+      };
+      const COSTO = 22;
+
+      // =========================================================
+      //  ESCENA: el ring
+      // =========================================================
+      const M = Arcade.mundo({
+        fondo: 0x120808,
+        fov: 62,
+        exposicion: 1.05,
+        colorAmbiente: 0x402020,
+        lamparas: [
+          [0, 8, 0, 0xffffff, 4],
+          [-6, 3, 4, 0xff3b3b, 1.2],
+          [6, 3, 4, 0x3b8bff, 1.2],
+        ],
+      });
+      const { escena, camara } = M;
+      const mat = (c, x = {}) =>
+        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.6, ...x });
+      escena.add(new THREE.HemisphereLight(0xffe0d0, 0x301010, 0.55));
+      const foco = new THREE.SpotLight(0xfff2e0, 2.2, 30, 0.6, 0.5);
+      foco.position.set(0, 9, 1);
+      foco.target.position.set(0, 0, -1.5);
+      foco.castShadow = true;
+      foco.shadow.mapSize.set(1024, 1024);
+      escena.add(foco, foco.target);
+      const caja = (w, h, d, m, x = 0, y = 0, z = 0) => {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+        b.position.set(x, y, z);
+        b.castShadow = b.receiveShadow = true;
+        return b;
+      };
+      const lona = M.textura(512, 512, (g, w, h) => {
+        g.fillStyle = "#2a4d9c";
+        g.fillRect(0, 0, w, h);
+        g.fillStyle = "rgba(255,255,255,.08)";
+        for (let i = 0; i < 3000; i++)
+          g.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+        g.fillStyle = "#ffffff";
+        g.font = "bold 70px Nunito, sans-serif";
+        g.textAlign = "center";
+        g.globalAlpha = 0.25;
+        g.fillText("ARCADE", w / 2, h / 2 + 24);
+      });
+      const piso = new THREE.Mesh(new THREE.BoxGeometry(8, 0.3, 8), [
+        mat(0xdddddd),
+        mat(0xdddddd),
+        new THREE.MeshStandardMaterial({ map: lona, roughness: 0.9 }),
+        mat(0x222222),
+        mat(0xdddddd),
+        mat(0xdddddd),
+      ]);
+      piso.position.set(0, -0.15, -1.5);
+      piso.receiveShadow = true;
+      escena.add(piso);
+      // postes y cuerdas
+      const matPoste = mat(0xc0c0c8, { metalness: 0.8, roughness: 0.3 });
+      const esquinas = [
+        [-3.8, -5.3],
+        [3.8, -5.3],
+        [3.8, 2.3],
+        [-3.8, 2.3],
+      ];
+      esquinas.forEach(([x, z], i) => {
+        escena.add(caja(0.18, 1.7, 0.18, matPoste, x, 0.85, z));
+        escena.add(
+          caja(0.24, 0.5, 0.24, mat(i % 2 ? 0x3b8bff : 0xff3b3b), x, 1.2, z),
+        );
+      });
+      const matCuerda = [mat(0xff3b3b), mat(0xffffff), mat(0x3b8bff)];
+      [0.55, 0.95, 1.35].forEach((y, k) => {
+        for (let i = 0; i < 4; i++) {
+          const [x1, z1] = esquinas[i],
+            [x2, z2] = esquinas[(i + 1) % 4];
+          const largo = Math.hypot(x2 - x1, z2 - z1);
+          const c = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.035, 0.035, largo, 8),
+            matCuerda[k],
+          );
+          c.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
+          c.rotation.set(Math.PI / 2, 0, 0);
+          c.lookAt(x2, y, z2);
+          c.rotateX(Math.PI / 2);
+          escena.add(c);
+        }
+      });
+      // público (puntitos con flashes)
+      const publico = new THREE.Group();
+      for (let i = 0; i < 160; i++) {
+        const a = azar(-Math.PI * 0.9, Math.PI * 0.9),
+          r = azar(7, 12);
+        const p = caja(
+          0.4,
+          azar(0.9, 1.3),
+          0.4,
+          mat(new THREE.Color().setHSL(Math.random(), 0.4, 0.25).getHex()),
+          Math.sin(a) * r,
+          azar(0.2, 1.8),
+          -1.5 - Math.cos(a) * r,
+        );
+        p.castShadow = false;
+        publico.add(p);
+      }
+      escena.add(publico);
+      const flashes = [];
+      for (let i = 0; i < 6; i++) {
+        const l = new THREE.PointLight(0xffffff, 0, 6);
+        escena.add(l);
+        flashes.push(l);
+      }
+
+      // --- boxeador rival ---
+      function crearBoxeador(colorShort, colorGuante, piel) {
+        const g = new THREE.Group();
+        const torso = new THREE.Group();
+        g.add(torso);
+        const mPiel = mat(piel);
+        torso.add(caja(0.75, 0.75, 0.42, mPiel, 0, 1.25, 0));
+        torso.add(caja(0.78, 0.5, 0.46, mat(colorShort), 0, 0.72, 0));
+        const cabeza = new THREE.Group();
+        cabeza.position.set(0, 1.85, 0);
+        cabeza.add(caja(0.42, 0.48, 0.42, mPiel, 0, 0, 0));
+        cabeza.add(caja(0.44, 0.14, 0.44, mat(0x2a1a10), 0, 0.22, 0.01));
+        [-1, 1].forEach((l) =>
+          cabeza.add(
+            caja(0.07, 0.07, 0.02, mat(0x111111), l * 0.1, 0.05, 0.22),
+          ),
+        );
+        cabeza.add(caja(0.16, 0.05, 0.02, mat(0x8a2a2a), 0, -0.12, 0.22));
+        torso.add(cabeza);
+        const brazos = [-1, 1].map((l) => {
+          const hombro = new THREE.Group();
+          hombro.position.set(l * 0.5, 1.5, 0);
+          const brazo = caja(0.2, 0.2, 0.55, mPiel, 0, 0, 0.25);
+          hombro.add(brazo);
+          const guante = caja(
+            0.3,
+            0.3,
+            0.34,
+            mat(colorGuante, { roughness: 0.3 }),
+            0,
+            0,
+            0.6,
+          );
+          hombro.add(guante);
+          torso.add(hombro);
+          return { hombro, guante, lado: l };
+        });
+        [-1, 1].forEach((l) =>
+          g.add(caja(0.26, 0.6, 0.28, mPiel, l * 0.2, 0.3, 0)),
+        );
+        g.userData = { torso, cabeza, brazos };
+        return g;
+      }
+      const rival = crearBoxeador(0x3b8bff, 0x3b8bff, 0xc68a5a);
+      rival.position.set(0, 0, -2.9);
+      escena.add(rival);
+
+      // --- tus guantes (pegados a la cámara) ---
+      escena.add(camara);
+      const misGuantes = [-1, 1].map((l) => {
+        const g = new THREE.Group();
+        g.add(caja(0.32, 0.3, 0.38, mat(0xff3b3b, { roughness: 0.3 })));
+        g.add(caja(0.33, 0.1, 0.2, mat(0xffffff), 0, -0.15, 0.12));
+        g.userData.base = new THREE.Vector3(l * 0.42, -0.42, -0.9);
+        g.position.copy(g.userData.base);
+        camara.add(g);
+        return g;
+      });
+      // los guantes se acomodan según lo ancho de la pantalla
+      function acomodarGuantes() {
+        const mitad =
+          Math.tan(THREE.MathUtils.degToRad(camara.fov / 2)) *
+          0.9 *
+          camara.aspect;
+        misGuantes.forEach((g, i) =>
+          g.userData.base.set(
+            (i ? 1 : -1) * Math.min(0.42, mitad * 0.62),
+            -0.4,
+            -0.9,
+          ),
+        );
+      }
+      M.alCambiarTamano(acomodarGuantes);
+      camara.position.set(0, 1.72, 0.9);
+      camara.lookAt(0, 1.6, -2.6);
+
+      // =========================================================
+      //  ESTADO DE LA PELEA
+      // =========================================================
+      const J = { modo: null, activa: false };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
+      const P = [
+        {
+          vida: 100,
+          aguante: 100,
+          guardia: false,
+          cargando: null,
+          aturdido: 0,
+        },
+        {
+          vida: 100,
+          aguante: 100,
+          guardia: false,
+          cargando: null,
+          aturdido: 0,
+        },
+      ];
+      // índice local: 0 = yo, 1 = rival
+
+      function pintarBarras() {
+        $("vida-0").style.width = P[0].vida + "%";
+        $("vida-1").style.width = P[1].vida + "%";
+        $("vida-0").style.backgroundPosition = `${P[0].vida}% 0`;
+        $("vida-1").style.backgroundPosition = `${P[1].vida}% 0`;
+        $("aguante-0").style.width = P[0].aguante + "%";
+      }
+
+      // ---------- mis golpes ----------
+      async function golpear(tipo) {
+        const sesionTarea = J.sesion || 0;
+        const yo = P[0];
+        if (!J.activa || yo.cargando || yo.aturdido > 0) return;
+        if (yo.aguante < COSTO) {
+          ui.avisar("😮‍💨 ¡Sin aire!", "#4fb3ff");
+          return;
+        }
+        yo.aguante -= COSTO;
+        yo.guardia = false;
+        yo.cargando = tipo;
+        const g = GOLPES[tipo];
+        if (J.modo === "online")
+          ui.enviar("golpe", { partida: J.partida, tipo, n: ++J.nGolpe });
+        else botVeGolpe(tipo);
+        // animación: el guante se echa para atrás y sale
+        const guante = misGuantes[tipo === "der" ? 1 : 0];
+        const base = guante.userData.base;
+        await ciclo.animar(g.carga * 1000, (t) => {
+          guante.position.set(
+            base.x * (1 + t * 0.2),
+            base.y - t * 0.08,
+            base.z + t * 0.15,
+          );
+        });
+        if (sesionTarea !== (J.sesion || 0)) return;
+        if (!J.activa) return (yo.cargando = null);
+        sonar("swoosh", 0.7);
+        const destino =
+          tipo === "arriba"
+            ? new THREE.Vector3(base.x * 0.3, -0.1, -1.75)
+            : new THREE.Vector3(-base.x * 0.25, -0.05, -1.7);
+        await ciclo.animar(110, (t) =>
+          guante.position.lerpVectors(base, destino, t),
+        );
+        if (sesionTarea !== (J.sesion || 0)) return;
+        // ¿le pegué? (en online lo decide el rival y me avisa)
+        if (J.modo !== "online") resolverImpacto(1, tipo);
+        await ciclo.animar(180, (t) =>
+          guante.position.lerpVectors(destino, base, t),
+        );
+        if (sesionTarea !== (J.sesion || 0)) return;
+        yo.cargando = null;
+      }
+
+      // recibe un golpe el jugador i (0 = yo, 1 = rival en pantalla)
+      function resolverImpacto(i, tipo) {
+        const q = P[i];
+        const g = GOLPES[tipo];
+        const bloqueado = q.guardia;
+        const danio = bloqueado ? 1 : g.danio + (q.aturdido > 0 ? 3 : 0);
+        q.vida = Math.max(0, q.vida - danio);
+        if (i === 1) {
+          // animación del rival recibiendo
+          const u = rival.userData;
+          if (!bloqueado) {
+            u.cabeza.rotation.y =
+              tipo === "izq" ? 0.6 : tipo === "der" ? -0.6 : 0;
+            u.cabeza.rotation.x = tipo === "arriba" ? -0.6 : 0;
+            rival.position.z = -3.15;
+            sonar("golpe", 1.1);
+            flashCamaras();
+            if (tipo === "arriba") ui.avisar("💥 ¡UPPERCUT!", "#ffd84f");
+          } else sonar("rebote", 0.6);
+        } else {
+          if (!bloqueado) {
+            sonar("golpe", 1.2);
+            $("destello").style.opacity = 1;
+            ciclo.despues(() => ($("destello").style.opacity = 0), 160);
+            if (navigator.vibrate) navigator.vibrate(90);
+            sacudir = 0.25;
+          } else sonar("rebote", 0.5);
+        }
+        if (!bloqueado && tipo === "arriba") q.aturdido = 0.7;
+        pintarBarras();
+        if (q.vida <= 0) ko(i);
+        return { bloqueado, danio };
+      }
+
+      // ---------- golpes del rival (bot u online) ----------
+      async function rivalGolpea(tipo) {
+        const sesionTarea = J.sesion || 0;
+        const q = P[1];
+        if (q.cargando || !J.activa) return;
+        q.cargando = tipo;
+        q.guardia = false;
+        const g = GOLPES[tipo];
+        const u = rival.userData;
+        const brazo = u.brazos[tipo === "der" ? 0 : 1]; // su derecha es mi izquierda
+        const carga =
+          J.modo === "online"
+            ? Math.max(0.12, g.carga - 0.12)
+            : g.carga * { facil: 1.6, normal: 1.25, pro: 1 }[J.dificultad];
+        await ciclo.animar(carga * 1000, (t) => {
+          brazo.hombro.rotation.y = brazo.lado * t * 0.5;
+          brazo.hombro.position.z = -t * 0.2;
+          u.torso.rotation.y = brazo.lado * t * 0.25;
+        });
+        if (sesionTarea !== (J.sesion || 0)) return;
+        if (!J.activa) return (q.cargando = null);
+        sonar("swoosh", 0.7);
+        await ciclo.animar(100, (t) => {
+          brazo.hombro.rotation.y =
+            brazo.lado * 0.5 * (1 - t) - brazo.lado * t * 0.25;
+          brazo.hombro.rotation.x = tipo === "arriba" ? -t * 0.5 : 0;
+          brazo.hombro.position.z = -0.2 + t * 0.9;
+          u.torso.rotation.y =
+            brazo.lado * 0.25 * (1 - t) - brazo.lado * t * 0.2;
+        });
+        if (sesionTarea !== (J.sesion || 0)) return;
+        const r = resolverImpacto(0, tipo);
+        if (J.modo === "online")
+          ui.enviar("vida", {
+            partida: J.partida,
+            vida: P[0].vida,
+            bloqueado: r.bloqueado,
+            tipo,
+          });
+        await ciclo.animar(200, (t) => {
+          brazo.hombro.rotation.set(
+            -0.5 * (tipo === "arriba") * (1 - t),
+            -brazo.lado * 0.25 * (1 - t),
+            0,
+          );
+          brazo.hombro.position.z = 0.7 * (1 - t);
+          u.torso.rotation.y = -brazo.lado * 0.2 * (1 - t);
+        });
+        if (sesionTarea !== (J.sesion || 0)) return;
+        q.cargando = null;
+      }
+
+      // ---------- bot ----------
+      const NIVEL = {
+        facil: { pausa: [1.9, 3.2], reaccion: 0.15, guardia: 0.2 },
+        normal: { pausa: [1.4, 2.4], reaccion: 0.4, guardia: 0.3 },
+        pro: { pausa: [1.0, 1.7], reaccion: 0.62, guardia: 0.35 },
+      };
+      function botVeGolpe() {
+        if (J.modo !== "bot") return;
+        const n = NIVEL[J.dificultad];
+        if (P[1].cargando) return;
+        if (Math.random() < n.reaccion) {
+          P[1].guardia = true;
+          J.botGuardiaHasta = performance.now() + 700;
+        }
+      }
+      function pensarBot(ahora) {
+        const n = NIVEL[J.dificultad];
+        if (P[1].guardia && ahora > J.botGuardiaHasta) P[1].guardia = false;
+        if (ahora < J.botSiguiente || P[1].cargando || P[1].aturdido > 0)
+          return;
+        J.botSiguiente = ahora + azar(...n.pausa) * 1000;
+        if (Math.random() < n.guardia) {
+          P[1].guardia = true;
+          J.botGuardiaHasta = ahora + azar(500, 1100);
+        } else {
+          // si me ve con guardia, a veces espera; si estoy cansado, ataca
+          const tipos = ["izq", "der", "arriba"];
+          rivalGolpea(
+            tipos[Math.floor(Math.random() * (P[0].aguante < 30 ? 3 : 2.4))],
+          );
+        }
+      }
+
+      // ---------- guardia ----------
+      function guardia(on) {
+        if (!J.activa) return;
+        if (on && (P[0].cargando || P[0].aturdido > 0)) return;
+        if (P[0].guardia === on) return;
+        P[0].guardia = on;
+        if (J.modo === "online")
+          ui.enviar("guardia", { partida: J.partida, on });
+      }
+
+      // =========================================================
+      //  CONTROLES: deslizar = golpe · tocar/mantener = cubrirse
+      // =========================================================
+      let toque = null;
+      M.lienzo.addEventListener("pointerdown", (e) => {
+        toque = { x: e.clientX, y: e.clientY, usado: false };
+        guardia(true);
+      });
+      M.lienzo.addEventListener("pointermove", (e) => {
+        if (!toque || toque.usado) return;
+        const dx = e.clientX - toque.x,
+          dy = e.clientY - toque.y;
+        if (Math.hypot(dx, dy) < 30) return;
+        toque.usado = true;
+        guardia(false);
+        golpear(
+          Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "der" : "izq") : "arriba",
+        );
+      });
+      const soltar = () => {
+        if (toque && !toque.usado)
+          ciclo.despues(() => guardia(false), 250); // un toque corto cubre un ratito
+        else guardia(false);
+        toque = null;
+      };
+      M.lienzo.addEventListener("pointerup", soltar);
+      M.lienzo.addEventListener("pointercancel", soltar);
+      document.addEventListener("keydown", (e) => {
+        if (e.repeat) return;
+        const t = {
+          ArrowLeft: "izq",
+          a: "izq",
+          ArrowRight: "der",
+          d: "der",
+          ArrowUp: "arriba",
+          w: "arriba",
+        }[e.key];
+        if (t) golpear(t);
+        if (e.key === "ArrowDown" || e.key === "s" || e.key === " ")
+          guardia(true);
+      });
+      document.addEventListener("keyup", (e) => {
+        if (e.key === "ArrowDown" || e.key === "s" || e.key === " ")
+          guardia(false);
+      });
+
+      // =========================================================
+      //  CUADRO A CUADRO
+      // =========================================================
+      let sacudir = 0;
+      function flashCamaras() {
+        flashes.forEach((l, i) => {
+          if (Math.random() < 0.6) {
+            const a = azar(-2.5, 2.5);
+            l.position.set(
+              Math.sin(a) * 9,
+              azar(1, 2.5),
+              -1.5 - Math.cos(a) * 9,
+            );
+            l.intensity = 3;
+          }
+        });
+      }
+      M.alCuadro((dt, ahora) => {
+        flashes.forEach((l) => (l.intensity *= 0.85));
+        if (Math.random() < 0.02) flashCamaras();
+        const u = rival.userData;
+        // regresa la cabeza del rival a su lugar
+        u.cabeza.rotation.y *= 0.88;
+        u.cabeza.rotation.x *= 0.88;
+        rival.position.z += (-2.9 - rival.position.z) * Math.min(1, dt * 6);
+        // guardia del rival: guantes a la cara
+        u.brazos.forEach((b) => {
+          if (P[1].cargando) return;
+          const meta = P[1].guardia ? 0.35 : 0;
+          b.hombro.position.y +=
+            (1.5 + meta - b.hombro.position.y) * Math.min(1, dt * 14);
+          b.hombro.rotation.y +=
+            (-b.lado * (P[1].guardia ? 0.35 : 0.12) - b.hombro.rotation.y) *
+            Math.min(1, dt * 14);
+        });
+        // vaivén del rival
+        rival.position.x = Math.sin(ahora / 600) * 0.15;
+        u.torso.position.y = Math.sin(ahora / 300) * 0.03;
+        // mis guantes: guardia arriba
+        misGuantes.forEach((g, i) => {
+          if (
+            P[0].cargando &&
+            misGuantes[
+              GOLPES[P[0].cargando] && P[0].cargando === "der" ? 1 : 0
+            ] === g
+          )
+            return;
+          const base = g.userData.base;
+          const meta = P[0].guardia
+            ? new THREE.Vector3(base.x * 0.55, -0.24, -0.95)
+            : base;
+          g.position.lerp(meta, Math.min(1, dt * 16));
+          g.rotation.z = P[0].guardia ? -Math.sign(base.x) * 0.3 : 0;
+        });
+        // cámara: se mece y sacude si te pegan
+        sacudir = Math.max(0, sacudir - dt);
+        camara.position.set(
+          Math.sin(ahora / 700) * 0.06 + azar(-1, 1) * sacudir * 0.3,
+          1.72 + Math.sin(ahora / 350) * 0.02 + azar(-1, 1) * sacudir * 0.2,
+          0.9,
+        );
+        if (!J.activa) return;
+        P.forEach((q) => {
+          q.aguante = Math.min(100, q.aguante + dt * (q.guardia ? 10 : 18));
+          q.aturdido = Math.max(0, q.aturdido - dt);
+        });
+        pintarBarras();
+        if (J.modo === "bot") pensarBot(ahora);
+        const quedan = Math.max(0, Math.ceil(J.fin - ahora / 1000));
+        $("reloj").textContent = `⏱️ ${quedan}`;
+        if (quedan <= 0) finPorTiempo();
+      });
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      const ui = Arcade.ui({
+        juego: "box",
+        titulo: "Box",
+        emoji: "🥊",
+        subtitulo: "¡Noquea a tu rival!",
+        modos: ["bot", "online"],
+        dificultad: true,
+        intervaloOnline: 250,
+        reglas: [
+          "⬅️➡️ Desliza a los lados para soltar ganchos.",
+          "⬆️ Desliza hacia arriba para un uppercut (pega más fuerte y aturde).",
+          "✋ Toca o mantén el dedo en la pantalla para cubrirte.",
+          "Cada golpe gasta aire (barrita azul): ¡no lo malgastes!",
+          `Gana quien noquee al otro o quien tenga más vida a los ${DURACION} segundos.`,
+          "En la compu: flechas para pegar y espacio para cubrirte.",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          ciclo.cancelar();
+          J.activa = false;
+          J.modo = null;
+          $("barras").classList.add("oculto");
+          $("reloj").classList.add("oculto");
+        },
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida || !J.activa) return;
+        if (tipo === "golpe") rivalGolpea(d.tipo);
+        else if (tipo === "guardia") P[1].guardia = d.on;
+        else if (tipo === "vida") {
+          // el rival me dice cuánta vida le quedó con mi golpe
+          const antes = P[1].vida;
+          P[1].vida = d.vida;
+          const u = rival.userData;
+          if (!d.bloqueado) {
+            u.cabeza.rotation.y =
+              d.tipo === "izq" ? 0.6 : d.tipo === "der" ? -0.6 : 0;
+            u.cabeza.rotation.x = d.tipo === "arriba" ? -0.6 : 0;
+            rival.position.z = -3.15;
+            sonar("golpe", 1.1);
+            flashCamaras();
+          } else sonar("rebote", 0.6);
+          pintarBarras();
+          if (d.vida <= 0 && antes > 0) ko(1);
+        } else if (tipo === "ko") ko(1);
+      };
+
+      function marcador() {
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const mio = {
+          nombre: J.nombres[yo] + " (tú)",
+          valor: "🥊",
+          detalle: "rojo",
+          color: "#ff3b3b",
+        };
+        const suyo = {
+          nombre: J.nombres[1 - yo],
+          valor: "🥊",
+          detalle: "azul",
+          color: "#3b8bff",
+        };
+        ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
+      }
+
+      async function empezar(modo, info) {
+        ciclo.cancelar();
+        const sesionTarea = J.sesion || 0;
+        Object.assign(J, {
+          modo,
+          nombres: info.nombres,
+          partida: info.partida,
+          dificultad: info.dificultad,
+          activa: false,
+          nGolpe: 0,
+          botSiguiente: 0,
+          botGuardiaHasta: 0,
+        });
+        P.forEach((q) =>
+          Object.assign(q, {
+            vida: 100,
+            aguante: 100,
+            guardia: false,
+            cargando: null,
+            aturdido: 0,
+          }),
+        );
+        rival.rotation.set(0, 0, 0);
+        rival.position.y = 0;
+        $("destello").style.opacity = 0;
+        camara.rotation.z = 0;
+        misGuantes.forEach((g) => g.position.copy(g.userData.base));
+        pintarBarras();
+        marcador();
+        $("barras").classList.remove("oculto");
+        $("reloj").classList.remove("oculto");
+        $("reloj").textContent = `⏱️ ${DURACION}`;
+        ui.ayuda("Desliza ⬅️➡️⬆️ para pegar · toca para cubrirte");
+        const partida = J.partida;
+        sonar("silbato");
+        for (const t of ["3", "2", "1"]) {
+          ui.avisar(t, "#ffd84f");
+          await esperar(700);
+          if (sesionTarea !== (J.sesion || 0)) return;
+          if (partida !== J.partida || !J.modo) return;
+        }
+        ui.avisar("🔔 ¡PELEEN!", "#ff3b3b");
+        sonar("publico");
+        J.fin = performance.now() / 1000 + DURACION;
+        J.activa = true;
+        ciclo.despues(() => ui.ayuda(""), 4000);
+      }
+
+      async function ko(i) {
+        const sesionTarea = J.sesion || 0;
+        if (!J.activa) return;
+        J.activa = false;
+        if (i === 0 && J.modo === "online")
+          ui.enviar("ko", { partida: J.partida });
+        sonar("publico");
+        flashCamaras();
+        if (i === 1) {
+          ui.avisar("💫 ¡K.O.!", "#ffd84f");
+          await ciclo.animar(900, (t) => {
+            rival.rotation.x = -t * 1.45;
+            rival.position.y = -t * 0.1;
+          });
+          if (sesionTarea !== (J.sesion || 0)) return;
+        } else {
+          ui.avisar("💫 Te noquearon…", "#ff3b3b");
+          $("destello").style.opacity = 1;
+          await ciclo.animar(900, (t) => (camara.rotation.z = t * 0.6));
+          if (sesionTarea !== (J.sesion || 0)) return;
+          camara.rotation.z = 0;
+          $("destello").style.opacity = 0;
+        }
+        await esperar(800);
+        if (sesionTarea !== (J.sesion || 0)) return;
+        terminar(i === 1, true);
+      }
+
+      function finPorTiempo() {
+        if (!J.activa) return;
+        J.activa = false;
+        sonar("silbato");
+        terminar(P[0].vida > P[1].vida, false, P[0].vida === P[1].vida);
+      }
+
+      function terminar(gane, porKo, empate) {
+        const yo = J.modo === "online" ? ui.yo : 0;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({
+          emoji: empate ? "🤝" : gane ? "🏆" : "😵",
+          texto: empate
+            ? "¡Empate!"
+            : gane
+              ? porKo
+                ? "¡Ganaste por K.O.!"
+                : "¡Ganaste por puntos!"
+              : `Ganó ${J.nombres[1 - yo]}`,
+          nota: `Tu vida: ${Math.round(P[0].vida)} · Rival: ${Math.round(P[1].vida)}`,
+          gano: !!gane && !empate,
+        });
+      }
+
+      pintarBarras();
+    </script>
+  </body>
+</html>

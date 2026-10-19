@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#9ad8ff" />
+    <title>Tiro con Arco · Arcade</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
+    <style>
+      #mira {
+        position: fixed;
+        width: 46px;
+        height: 46px;
+        margin: -23px 0 0 -23px;
+        border: 3px solid #fff;
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 2px rgba(0, 0, 0, 0.4),
+          inset 0 0 0 2px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+        z-index: 4;
+      }
+      #mira::before,
+      #mira::after {
+        content: "";
+        position: absolute;
+        background: #ff3b3b;
+        left: 50%;
+        top: 50%;
+      }
+      #mira::before {
+        width: 2px;
+        height: 60px;
+        margin: -30px 0 0 -1px;
+      }
+      #mira::after {
+        width: 60px;
+        height: 2px;
+        margin: -1px 0 0 -30px;
+      }
+      #viento {
+        position: fixed;
+        top: calc(92px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(20, 12, 24, 0.72);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-weight: 900;
+        z-index: 5;
+        white-space: nowrap;
+      }
+      #flechas {
+        position: fixed;
+        top: calc(130px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        font-weight: 900;
+        z-index: 5;
+        font-size: 0.9rem;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+    <div id="mira" class="oculto"></div>
+    <div id="viento" class="oculto"></div>
+    <div id="flechas" class="oculto"></div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, sonar, gauss } = Arcade;
+      const FLECHAS = 6; // por jugador
+      const RADIO_DIANA = 0.61; // 122 cm
+      const G = 9.8;
+      const V_FLECHA = 62; // m/s
+
+      // =========================================================
+      //  ESCENA: campo de tiro
+      // =========================================================
+      const M = Arcade.mundo({
+        fondo: 0x9ad8ff,
+        fov: 50,
+        niebla: [60, 160],
+        exposicion: 1.05,
+        colorAmbiente: 0xcfefff,
+        lejos: 300,
+      });
+      const { escena, camara } = M;
+      const mat = (c, x = {}) =>
+        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.8, ...x });
+      escena.add(new THREE.HemisphereLight(0xeaf6ff, 0x5a7a3a, 0.8));
+      const sol = new THREE.DirectionalLight(0xfff0d8, 1.3);
+      sol.position.set(-20, 40, 10);
+      sol.castShadow = true;
+      sol.shadow.mapSize.set(2048, 2048);
+      Object.assign(sol.shadow.camera, {
+        left: -20,
+        right: 20,
+        top: 20,
+        bottom: -90,
+        near: 1,
+        far: 150,
+      });
+      escena.add(sol);
+      const texPasto = M.textura(256, 256, (g, w, h) => {
+        g.fillStyle = "#6fbf4a";
+        g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 4000; i++) {
+          g.fillStyle = `hsl(${azar(85, 110)}, 50%, ${azar(30, 50)}%)`;
+          g.fillRect(Math.random() * w, Math.random() * h, 1.5, azar(2, 5));
+        }
+      });
+      texPasto.wrapS = texPasto.wrapT = THREE.RepeatWrapping;
+      texPasto.repeat.set(30, 60);
+      const pasto = new THREE.Mesh(
+        new THREE.PlaneGeometry(200, 400),
+        new THREE.MeshStandardMaterial({ map: texPasto }),
+      );
+      pasto.rotation.x = -Math.PI / 2;
+      pasto.position.z = -100;
+      pasto.receiveShadow = true;
+      escena.add(pasto);
+      // árboles de fondo
+      for (let i = 0; i < 60; i++) {
+        const x = azar(-70, 70),
+          z = azar(-150, -110);
+        const t = new THREE.Mesh(
+          new THREE.ConeGeometry(azar(2, 4), azar(7, 13), 7),
+          mat(
+            new THREE.Color()
+              .setHSL(azar(0.25, 0.35), 0.5, azar(0.2, 0.32))
+              .getHex(),
+          ),
+        );
+        t.position.set(x, 4, z);
+        escena.add(t);
+      }
+      // carriles marcados
+      for (let z = -10; z > -100; z -= 10) {
+        const l = new THREE.Mesh(
+          new THREE.PlaneGeometry(14, 0.12),
+          mat(0xffffff),
+        );
+        l.rotation.x = -Math.PI / 2;
+        l.position.set(0, 0.01, z);
+        escena.add(l);
+      }
+      // banderita de viento
+      const asta = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.04, 0.04, 4, 8),
+        mat(0xdddddd),
+      );
+      asta.position.set(5, 2, -25);
+      escena.add(asta);
+      const bandera = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.2, 0.6),
+        mat(0xff3b3b, { side: THREE.DoubleSide }),
+      );
+      bandera.position.set(5.6, 3.6, -25);
+      escena.add(bandera);
+
+      // diana
+      const texDiana = M.textura(512, 512, (g, w, h) => {
+        const colores = [
+          "#ffffff",
+          "#ffffff",
+          "#222222",
+          "#222222",
+          "#3a86ff",
+          "#3a86ff",
+          "#ff3b3b",
+          "#ff3b3b",
+          "#ffd700",
+          "#ffd700",
+        ];
+        for (let i = 0; i < 10; i++) {
+          g.beginPath();
+          g.arc(w / 2, h / 2, (w / 2) * (1 - i / 10), 0, Math.PI * 2);
+          g.fillStyle = colores[i];
+          g.fill();
+          g.strokeStyle = i === 2 || i === 3 ? "#fff" : "#222";
+          g.lineWidth = 2;
+          g.stroke();
+        }
+        g.fillStyle = "#222";
+        g.fillRect(w / 2 - 2, h / 2 - 2, 4, 4);
+      });
+      const diana = new THREE.Group();
+      const cara = new THREE.Mesh(
+        new THREE.CircleGeometry(RADIO_DIANA, 64),
+        new THREE.MeshStandardMaterial({ map: texDiana, roughness: 0.9 }),
+      );
+      cara.position.z = 0.16;
+      diana.add(cara);
+      const paja = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.78, 0.78, 0.3, 32),
+        mat(0xd9b45a),
+      );
+      paja.rotation.x = Math.PI / 2;
+      paja.castShadow = true;
+      diana.add(paja);
+      [-1, 1].forEach((l) => {
+        const pata = new THREE.Mesh(
+          new THREE.BoxGeometry(0.08, 2.2, 0.08),
+          mat(0x7a5230),
+        );
+        pata.position.set(l * 0.55, -0.6, -0.35);
+        pata.rotation.x = 0.25;
+        diana.add(pata);
+      });
+      escena.add(diana);
+
+      // arco (en primera persona)
+      escena.add(camara);
+      const arco = new THREE.Group();
+      const curva = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, -0.55, 0.05),
+        new THREE.Vector3(0, -0.25, -0.08),
+        new THREE.Vector3(0, 0, -0.1),
+        new THREE.Vector3(0, 0.25, -0.08),
+        new THREE.Vector3(0, 0.55, 0.05),
+      ]);
+      arco.add(
+        new THREE.Mesh(
+          new THREE.TubeGeometry(curva, 30, 0.018, 8),
+          mat(0x5a3a1e, { roughness: 0.4 }),
+        ),
+      );
+      const cuerdaGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, -0.55, 0.05),
+        new THREE.Vector3(0, 0, 0.05),
+        new THREE.Vector3(0, 0.55, 0.05),
+      ]);
+      const cuerda = new THREE.Line(
+        cuerdaGeo,
+        new THREE.LineBasicMaterial({ color: 0xffffff }),
+      );
+      arco.add(cuerda);
+      const flechaEnArco = crearFlecha();
+      flechaEnArco.position.set(0, 0, -0.2);
+      arco.add(flechaEnArco);
+      arco.position.set(0.22, -0.22, -0.75);
+      M.alCambiarTamano(() => {
+        const mitad =
+          Math.tan(THREE.MathUtils.degToRad(25)) * 0.75 * camara.aspect;
+        arco.position.x = Math.min(0.22, mitad * 0.55);
+      });
+      arco.rotation.z = -0.15;
+      camara.add(arco);
+      function tensar(t) {
+        const p = cuerdaGeo.attributes.position;
+        p.setZ(1, 0.05 + t * 0.35);
+        p.needsUpdate = true;
+        flechaEnArco.position.z = -0.2 + t * 0.35;
+      }
+
+      function crearFlecha() {
+        const g = new THREE.Group();
+        const vara = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.008, 0.008, 0.8, 6),
+          mat(0xe8d5a8),
+        );
+        vara.rotation.x = Math.PI / 2;
+        g.add(vara);
+        const punta = new THREE.Mesh(
+          new THREE.ConeGeometry(0.02, 0.07, 6),
+          mat(0x888888, { metalness: 0.8 }),
+        );
+        punta.rotation.x = -Math.PI / 2;
+        punta.position.z = -0.43;
+        g.add(punta);
+        [0, 1, 2].forEach((k) => {
+          const pluma = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.1, 0.035),
+            mat(k ? 0xff4f8b : 0xffd84f, { side: THREE.DoubleSide }),
+          );
+          pluma.position.z = 0.33;
+          pluma.rotation.set(0, Math.PI / 2, (k * Math.PI * 2) / 3);
+          g.add(pluma);
+        });
+        return g;
+      }
+
+      // =========================================================
+      //  ESTADO
+      // =========================================================
+      const J = { modo: null, activa: false };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
+      const T = {
+        apuntando: false,
+        mira: { x: 0, y: 0 },
+        tension: 0,
+        clavadas: [],
+      };
+      const DISTANCIAS = [18, 25, 30, 40, 50, 60]; // una por flecha, cada vez más lejos
+
+      function prepararTiro() {
+        const n = J.tiro;
+        J.distancia = DISTANCIAS[Math.min(n, DISTANCIAS.length - 1)];
+        const r = Arcade.rng(J.semilla + n * 101);
+        J.viento = { x: (r() * 2 - 1) * (1 + n * 0.5) }; // m/s de lado
+        diana.position.set(0, 1.3, -J.distancia);
+        const flecha =
+          J.viento.x > 0.15 ? "➡️" : J.viento.x < -0.15 ? "⬅️" : "·";
+        $("viento").textContent =
+          `🌬️ Viento ${flecha} ${Math.abs(J.viento.x).toFixed(1)} m/s · 🎯 ${J.distancia} m`;
+        bandera.scale.x = Math.max(0.3, Math.abs(J.viento.x) / 2);
+        bandera.position.x =
+          5 + Math.sign(J.viento.x || 1) * 0.6 * bandera.scale.x;
+        T.mira = { x: 0, y: 0 };
+        camara.position.set(0, 1.55, 0);
+        camara.lookAt(0, 1.3, -J.distancia);
+        J.baseCamara = camara.quaternion.clone();
+        pintarFlechas();
+      }
+
+      // =========================================================
+      //  CONTROLES: mantén para tensar, arrastra para apuntar, suelta para tirar
+      // =========================================================
+      let toque = null;
+      const puedoTirar = () =>
+        J.activa && !J.volando && (J.modo !== "bot" || J.turno === 0);
+      M.lienzo.addEventListener("pointerdown", (e) => {
+        if (!puedoTirar()) return;
+        toque = { x: e.clientX, y: e.clientY, mx: T.mira.x, my: T.mira.y };
+        T.apuntando = true;
+        T.inicio = performance.now();
+        $("mira").classList.remove("oculto");
+        sonar("click");
+      });
+      M.lienzo.addEventListener("pointermove", (e) => {
+        if (!toque) return;
+        // mover el dedo mueve la mira (con precisión fina)
+        T.mira.x = limitar(
+          toque.mx + (e.clientX - toque.x) * 0.0016,
+          -0.5,
+          0.5,
+        );
+        T.mira.y = limitar(
+          toque.my - (e.clientY - toque.y) * 0.0016,
+          -0.5,
+          0.5,
+        );
+      });
+      const soltar = () => {
+        if (!toque) return;
+        toque = null;
+        if (T.tension < 0.6) {
+          // soltó muy rápido: no alcanzó a tensar
+          T.apuntando = false;
+          $("mira").classList.add("oculto");
+          ui.avisar("Mantén para tensar el arco 🏹", "#4fb3ff");
+          return;
+        }
+        disparar();
+      };
+      M.lienzo.addEventListener("pointerup", soltar);
+      M.lienzo.addEventListener("pointercancel", soltar);
+
+      function direccionMira() {
+        // dirección a donde apunta la mira (incluye el temblor del pulso)
+        const q = J.baseCamara.clone();
+        const giro = new THREE.Euler(
+          T.mira.y + T.temblor.y,
+          -T.mira.x - T.temblor.x,
+          0,
+          "YXZ",
+        );
+        q.multiply(new THREE.Quaternion().setFromEuler(giro));
+        return new THREE.Vector3(0, 0, -1).applyQuaternion(q);
+      }
+      T.temblor = { x: 0, y: 0 };
+
+      // ---------- vuelo ----------
+      async function disparar() {
+        const sesionTarea = J.sesion || 0;
+        T.apuntando = false;
+        J.volando = true;
+        $("mira").classList.add("oculto");
+        sonar("swoosh", 1.2);
+        const dir = direccionMira();
+        // la mira ya viene calibrada para la distancia (compensa la caída), pero no el viento
+        const elevacion =
+          0.5 *
+          Math.asin(Math.min(1, (G * J.distancia) / (V_FLECHA * V_FLECHA)));
+        dir.y += Math.tan(elevacion);
+        dir.normalize();
+        const resultado = await volar(dir, J.viento.x, true);
+        if (sesionTarea !== (J.sesion || 0)) return;
+        registrar(J.modo === "local" ? J.turno : 0, resultado);
+      }
+
+      // simula la flecha; devuelve { puntos, x, y } en la diana
+      async function volar(dir, viento, animar) {
+        const sesionTarea = J.sesion || 0;
+        const pos = camara.position.clone();
+        const v = dir.clone().multiplyScalar(V_FLECHA);
+        const flecha = crearFlecha();
+        escena.add(flecha);
+        const zDiana = diana.position.z + 0.16;
+        let t = 0;
+        while (
+          sesionTarea === (J.sesion || 0) &&
+          pos.z > zDiana &&
+          pos.y > 0 &&
+          t < 4
+        ) {
+          const dt = 1 / 120;
+          v.y -= G * dt;
+          v.x += viento * 0.9 * dt;
+          pos.addScaledVector(v, dt);
+          t += dt;
+        }
+        // trayecto animado (cámara sigue a la flecha)
+        const inicio = camara.position.clone();
+        const fin = pos.clone();
+        const dur = Math.min(1400, t * 1000 * 1.8);
+        if (animar) {
+          arco.visible = false;
+          await ciclo.animar(dur, (k) => {
+            const p = inicio.clone().lerp(fin, k);
+            p.y += Math.sin(k * Math.PI) * (fin.distanceTo(inicio) * 0.02);
+            flecha.position.copy(p);
+            flecha.lookAt(fin);
+            flecha.rotateY(Math.PI);
+            camara.position.lerpVectors(
+              inicio,
+              fin.clone().add(new THREE.Vector3(0.4, 0.25, 2.2)),
+              Math.pow(k, 1.5),
+            );
+          });
+          if (sesionTarea !== (J.sesion || 0)) return;
+        }
+        flecha.position.copy(fin);
+        const dx = fin.x - diana.position.x,
+          dy = fin.y - diana.position.y;
+        const dist = Math.hypot(dx, dy);
+        const puntos =
+          dist > RADIO_DIANA
+            ? 0
+            : Math.min(10, 10 - Math.floor((dist / RADIO_DIANA) * 10));
+        if (puntos > 0) T.clavadas.push(flecha);
+        else escena.remove(flecha);
+        return { puntos, x: dx, y: dy };
+      }
+
+      async function registrar(i, r) {
+        const sesionTarea = J.sesion || 0;
+        J.puntos[i] += r.puntos;
+        J.lista[i].push(r.puntos);
+        const quien =
+          J.modo === "local"
+            ? J.nombres[i] + ": "
+            : i === 1
+              ? J.nombres[1] + ": "
+              : "";
+        sonar(
+          r.puntos >= 9 ? "perfecto" : r.puntos ? "golpe" : "perder",
+          r.puntos >= 9 ? 1.5 : 0.6,
+        );
+        ui.avisar(
+          r.puntos === 10
+            ? `🎯 ${quien}¡DIEZ!`
+            : r.puntos
+              ? `${quien}${r.puntos} puntos`
+              : `${quien}¡Fuera! 😅`,
+          r.puntos >= 9 ? "#ffd700" : r.puntos ? "#4fb3ff" : "#ff3b3b",
+        );
+        if (J.modo === "online" && i === 0)
+          ui.enviar("tiro", {
+            partida: J.partida,
+            n: J.tiro,
+            puntos: r.puntos,
+          });
+        marcador();
+        await esperar(1400);
+        if (sesionTarea !== (J.sesion || 0)) return;
+        if (!J.modo) return;
+        siguienteTurno();
+      }
+
+      function limpiarClavadas() {
+        T.clavadas.forEach((f) => escena.remove(f));
+        T.clavadas = [];
+      }
+
+      async function siguienteTurno() {
+        const sesionTarea = J.sesion || 0;
+        arco.visible = true;
+        tensar(0);
+        J.volando = false;
+        if (J.modo === "bot" && J.turno === 0) {
+          J.turno = 1;
+          return tiroBot();
+        }
+        if (J.modo === "local" && J.turno === 0) {
+          J.turno = 1;
+          limpiarClavadas();
+          prepararTiro();
+          marcador();
+          ui.avisar(`Turno de ${J.nombres[1]}`, "#4fb3ff");
+          return;
+        }
+        J.turno = 0;
+        J.tiro++;
+        limpiarClavadas();
+        if (J.tiro >= FLECHAS) return fin();
+        prepararTiro();
+        marcador();
+        if (J.modo === "local")
+          ui.avisar(`Turno de ${J.nombres[0]}`, "#ff4f8b");
+      }
+
+      async function tiroBot() {
+        const sesionTarea = J.sesion || 0;
+        marcador();
+        ui.avisar(`🤖 Tira ${J.nombres[1]}…`, "#4fb3ff");
+        await esperar(1100);
+        if (sesionTarea !== (J.sesion || 0)) return;
+        if (!J.modo) return;
+        // el bot apunta al centro corrigiendo el viento, con error según su nivel
+        const error =
+          { facil: 0.42, normal: 0.24, pro: 0.12 }[J.dificultad] *
+          (0.7 + J.distancia / 60);
+        const dx = gauss() * error * 0.5,
+          dy = gauss() * error * 0.5;
+        const dist = Math.hypot(dx, dy);
+        const puntos =
+          dist > RADIO_DIANA
+            ? 0
+            : Math.min(10, 10 - Math.floor((dist / RADIO_DIANA) * 10));
+        // flechita del bot clavada en la diana
+        const f = crearFlecha();
+        f.position.set(
+          diana.position.x + dx,
+          diana.position.y + dy,
+          diana.position.z + 0.5,
+        );
+        escena.add(f);
+        T.clavadas.push(f);
+        camara.position.set(0.4, 1.55, diana.position.z + 2.6);
+        camara.lookAt(diana.position);
+        sonar("golpe", 0.6);
+        registrar(1, { puntos });
+      }
+
+      // ---------- cuadro a cuadro ----------
+      M.alCuadro((dt, ahora) => {
+        bandera.rotation.y = Math.sin(ahora / 200) * 0.2;
+        if (!J.activa) {
+          if (!J.modo) {
+            diana.position.set(0, 1.3, -25);
+            camara.position.set(Math.sin(ahora / 4000) * 3, 1.8, 2);
+            camara.lookAt(0, 1.3, -25);
+          }
+          return;
+        }
+        if (T.apuntando) {
+          T.tension = Math.min(1, (ahora - T.inicio) / 600);
+          tensar(T.tension);
+          // pulso: tiembla más mientras más tiempo mantienes tenso
+          const cansancio = Math.max(0, (ahora - T.inicio - 2500) / 3000);
+          const amp = 0.0035 + cansancio * 0.01;
+          T.temblor.x =
+            Math.sin(ahora / 420) * amp + Math.sin(ahora / 157) * amp * 0.5;
+          T.temblor.y =
+            Math.cos(ahora / 530) * amp + Math.sin(ahora / 211) * amp * 0.5;
+          // la cámara gira con la mira (zoom suave)
+          const q = J.baseCamara
+            .clone()
+            .multiply(
+              new THREE.Quaternion().setFromEuler(
+                new THREE.Euler(
+                  T.mira.y + T.temblor.y,
+                  -T.mira.x - T.temblor.x,
+                  0,
+                  "YXZ",
+                ),
+              ),
+            );
+          camara.quaternion.slerp(q, Math.min(1, dt * 20));
+          camara.fov +=
+            (50 - T.tension * 22 - camara.fov) * Math.min(1, dt * 6);
+          camara.updateProjectionMatrix();
+          const m = $("mira");
+          m.style.left = window.innerWidth / 2 + "px";
+          m.style.top = window.innerHeight / 2 + "px";
+        } else if (!J.volando && camara.fov !== 50) {
+          camara.fov += (50 - camara.fov) * Math.min(1, dt * 6);
+          camara.updateProjectionMatrix();
+          if (J.baseCamara && (J.modo !== "bot" || J.turno === 0))
+            camara.quaternion.slerp(J.baseCamara, Math.min(1, dt * 6));
+        }
+      });
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      const ui = Arcade.ui({
+        juego: "arco",
+        titulo: "Tiro con Arco",
+        emoji: "🎯",
+        subtitulo: "Mantén, apunta… ¡y suelta!",
+        modos: ["solo", "bot", "online", "local"],
+        textosModo: { local: "👥 2 jugadores (por turnos)" },
+        dificultad: true,
+        records: true,
+        unidadRecord: "pts",
+        reglas: [
+          "Mantén el dedo en la pantalla para tensar el arco.",
+          "Sin soltar, arrastra para mover la mira (despacito es más preciso).",
+          "Suelta para disparar. ¡Si tardas mucho, te empieza a temblar el pulso!",
+          "🌬️ Fíjate en el viento: empuja la flecha hacia un lado. Apunta un poquito contra el viento.",
+          `Son ${FLECHAS} flechas y la diana se aleja cada vez. El centro dorado vale 10.`,
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          ciclo.cancelar();
+          J.activa = false;
+          J.modo = null;
+          ["viento", "flechas", "mira"].forEach((id) =>
+            $(id).classList.add("oculto"),
+          );
+          limpiarClavadas();
+          arco.visible = true;
+        },
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "tiro") {
+          J.rivalLista[d.n] = d.puntos;
+          J.puntos[1] = J.rivalLista.reduce((s, p) => s + (p || 0), 0);
+          marcador();
+          if (J.esperandoRival) J.esperandoRival();
+        }
+      };
+
+      function pintarFlechas() {
+        $("flechas").textContent =
+          `🏹 Flecha ${Math.min(J.tiro + 1, FLECHAS)} de ${FLECHAS}`;
+      }
+      function marcador() {
+        const lista = (l) => l.map((p) => (p === 10 ? "X" : p)).join(" ");
+        if (J.modo === "solo")
+          return ui.marcador([
+            {
+              nombre: J.nombres[0],
+              valor: J.puntos[0],
+              detalle: lista(J.lista[0]) || "puntos",
+              activo: true,
+            },
+            null,
+          ]);
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const detRival =
+          J.modo === "online"
+            ? J.rivalLista.map((p) => (p === 10 ? "X" : p)).join(" ")
+            : lista(J.lista[1]);
+        const mio = {
+          nombre: J.nombres[yo] + (J.modo === "local" ? "" : " (tú)"),
+          valor: J.puntos[0],
+          detalle: lista(J.lista[0]) || "puntos",
+          activo: J.turno === 0,
+        };
+        const suyo = {
+          nombre: J.nombres[1 - yo],
+          valor: J.puntos[1],
+          detalle: detRival || "puntos",
+          activo: J.turno === 1,
+        };
+        ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
+      }
+
+      function empezar(modo, info) {
+        ciclo.cancelar();
+        limpiarClavadas();
+        Object.assign(J, {
+          modo,
+          nombres: info.nombres,
+          partida: info.partida,
+          semilla: info.semilla,
+          dificultad: info.dificultad,
+          tiro: 0,
+          turno: 0,
+          puntos: [0, 0],
+          lista: [[], []],
+          rivalLista: [],
+          activa: true,
+          volando: false,
+          esperandoRival: null,
+        });
+        ["viento", "flechas"].forEach((id) => $(id).classList.remove("oculto"));
+        arco.visible = true;
+        tensar(0);
+        prepararTiro();
+        marcador();
+        ui.ayuda("✋ Mantén · arrastra para apuntar · suelta");
+        ciclo.despues(() => ui.ayuda(""), 5000);
+      }
+
+      async function fin() {
+        const sesionTarea = J.sesion || 0;
+        J.activa = false;
+        const [a, b] = J.puntos;
+        if (J.modo === "solo") {
+          sonar("ganar");
+          return ui.terminar({
+            emoji: "🎯",
+            texto: `¡${a} puntos!`,
+            nota: `De ${FLECHAS * 10} posibles · ${J.lista[0].join(" · ")}`,
+            record: a,
+          });
+        }
+        if (
+          J.modo === "online" &&
+          J.rivalLista.filter((p) => p != null).length < FLECHAS
+        ) {
+          ui.avisar("Esperando a tu rival…", "#4fb3ff");
+          await Promise.race([
+            new Promise(
+              (r) =>
+                (J.esperandoRival = () =>
+                  J.rivalLista.filter((p) => p != null).length >= FLECHAS &&
+                  r()),
+            ),
+            esperar(120000),
+          ]);
+          if (sesionTarea !== (J.sesion || 0)) return;
+        }
+        const rival = J.puntos[1];
+        const yo = J.modo === "online" ? ui.yo : 0;
+        if (J.modo === "local") {
+          sonar("ganar");
+          return ui.terminar({
+            emoji: a === b ? "🤝" : "🏆",
+            texto: a === b ? "¡Empate!" : `¡Ganó ${J.nombres[a > b ? 0 : 1]}!`,
+            nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}`,
+          });
+        }
+        const gane = a > rival,
+          empate = a === rival;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({
+          emoji: empate ? "🤝" : gane ? "🏆" : "😿",
+          texto: empate
+            ? "¡Empate!"
+            : gane
+              ? "¡Ganaste!"
+              : `Ganó ${J.nombres[1 - yo]}`,
+          nota: `Tú: ${a} · ${J.nombres[1 - yo]}: ${rival}`,
+          record: a,
+        });
+      }
+    </script>
+  </body>
+</html>

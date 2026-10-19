@@ -583,7 +583,7 @@ const Arcade = (() => {
           empezar("local", [miNombre(), (otro.trim() || "Jugador 2").slice(0, 14)]);
         } else if (modo === "bot") {
           const nivel = nombresDif[estado.dificultad];
-          empezar("bot", [miNombre(), config.dificultad ? `Bot ${nivel}` : "Bot"]);
+          empezar("bot", [miNombre(), config.dificultad && !dif.siempre ? `Bot ${nivel}` : "Bot"]); // si la dificultad es el tamaño del tablero, el bot no lleva número
         } else {
           empezar(modo, [miNombre(), ""]);
         }
@@ -832,6 +832,30 @@ const Arcade = (() => {
     return api_publica;
   }
 
+  // Los temporizadores y las animaciones solo pertenecen a la sesión que los creó.
+  // Las coroutines comprueban además el identificador después de cada espera.
+  function ciclo(estado, mundo) {
+    const actual = () => estado.sesion || 0;
+    const cancelar = () => { estado.sesion = actual() + 1; };
+    function despues(fn, ms) {
+      const sesion = actual();
+      return setTimeout(() => { if (actual() === sesion) fn(); }, ms);
+    }
+    function cada(fn, ms) {
+      const sesion = actual();
+      const id = setInterval(() => {
+        if (actual() !== sesion) return clearInterval(id);
+        fn();
+      }, ms);
+      return id;
+    }
+    function animar(ms, fn) {
+      const sesion = actual();
+      return mundo.animar(ms, (t) => { if (actual() === sesion) fn(t); });
+    }
+    return { cancelar, despues, cada, animar };
+  }
+
   return {
     $,
     esperar,
@@ -848,5 +872,6 @@ const Arcade = (() => {
     deslizar,
     curvaGesto,
     ui,
+    ciclo,
   };
 })();

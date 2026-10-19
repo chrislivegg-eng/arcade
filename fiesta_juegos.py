@@ -872,3 +872,4 @@ def espia():
 
 # 🃏 UNO vive en su propio archivo
 import fiesta_uno  # noqa: E402,F401
+import fiesta_mesa  # noqa: E402,F401  (Papa Caliente, Blackjack, Póker, Lotería, Dominó)

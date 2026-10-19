@@ -1,0 +1,192 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}Blackjack{% endblock %}
+{% block emoji %}🂡{% endblock %}
+{% block subtitulo %}Llega a 21 sin pasarte · fichas de mentira{% endblock %}
+
+{% block estilos %}
+<style>
+  .mesa-bj {
+    background: radial-gradient(ellipse at top, #1f8a4c, #0f4d2a);
+    border-radius: 26px;
+    padding: 14px 10px;
+    color: #fff;
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35);
+  }
+  .fila-cartas {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-height: 74px;
+  }
+  .naipe {
+    width: 48px;
+    height: 70px;
+    border-radius: 8px;
+    background: #fff;
+    color: #222;
+    font-weight: 900;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 4px 5px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+    animation: repartir 0.3s ease-out;
+    font-size: 1rem;
+  }
+  .naipe .palo {
+    align-self: flex-end;
+    font-size: 1.3rem;
+  }
+  .naipe.rojo {
+    color: #d61f2c;
+  }
+  .naipe.tapada {
+    background: repeating-linear-gradient(45deg, #b3122a, #b3122a 6px, #8a0d20 6px, #8a0d20 12px);
+    border: 3px solid #fff;
+  }
+  @keyframes repartir {
+    from {
+      transform: translateY(-30px) rotate(-10deg);
+      opacity: 0;
+    }
+  }
+  .casa {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .valor {
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-weight: 900;
+    margin-top: 4px;
+  }
+  .jugadores-bj {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .asiento {
+    background: rgba(0, 0, 0, 0.22);
+    border-radius: 16px;
+    padding: 8px;
+    text-align: center;
+    border: 2px solid transparent;
+  }
+  .asiento.turno {
+    border-color: #ffd84f;
+    box-shadow: 0 0 14px #ffd84f;
+  }
+  .asiento.yo {
+    background: rgba(255, 255, 255, 0.15);
+  }
+  .asiento .naipe {
+    width: 36px;
+    height: 52px;
+    font-size: 0.8rem;
+  }
+  .asiento .naipe .palo {
+    font-size: 1rem;
+  }
+  .asiento .nom {
+    font-weight: 900;
+    font-size: 0.85rem;
+  }
+  .acciones-bj {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .fichas-apuesta {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .ficha-ap {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 5px dashed #fff;
+    font-family: inherit;
+    font-weight: 900;
+    font-size: 1rem;
+    color: #fff;
+    cursor: pointer;
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>Todos juegan contra la casa 🏦. Empiezas con 1000 fichas (de mentira).</li>
+  <li>Apuesta, y luego pide cartas para acercarte a 21 sin pasarte.</li>
+  <li>Las figuras valen 10 y el As vale 1 u 11.</li>
+  <li><b>Doblar</b>: duplicas tu apuesta y recibes solo una carta más.</li>
+  <li>Blackjack (As + 10 de entrada) paga 3 a 2. La casa pide hasta 17.</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  const ROJOS = ["♥", "♦"];
+  let relojBj = null;
+  function naipe(c) {
+    if (c.v === "?") return `<div class="naipe tapada"></div>`;
+    return `<div class="naipe ${ROJOS.includes(c.p) ? "rojo" : ""}"><span>${c.v}</span><span class="palo">${c.p}</span></div>`;
+  }
+  function apostar(n) {
+    Fiesta.accion("apostar", { cantidad: n });
+  }
+  function pintar(e, zona) {
+    if (!e) return;
+    clearInterval(relojBj);
+    const n = e.jugadores.length;
+    if (e.fase === "lobby") {
+      zona.innerHTML = e.soy_host
+        ? `<div class="tarjeta pila"><h2>🂡 Mesa (${n}/7)</h2><p class="nota">Se puede jugar solo contra la casa o agregar bots.</p>
+            <button class="boton morado" onclick="Fiesta.accion('agregar_bot')">➕🤖 Agregar bot</button>
+            <button class="boton verde" onclick="Fiesta.accion('iniciar')">🃏 ¡Repartir!</button></div>`
+        : `<div class="tarjeta centro pila"><div class="grande">⏳</div><p class="nota">Esperando a <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b>…</p></div>`;
+      return;
+    }
+    const mio = e.manos.find((m) => m.id === Fiesta.pid);
+    const fichas = (e.jugadores.find((j) => j.id === Fiesta.pid) || {}).puntos || 0;
+    let html = `<div class="mesa-bj pila">
+      <div class="casa"><div>🏦 La casa</div><div class="fila-cartas">${(e.dealer || []).map(naipe).join("")}</div>${e.dealer && e.dealer.length ? `<span class="valor">${e.valor_dealer}</span>` : ""}</div>
+      <div class="jugadores-bj">${e.manos
+        .map(
+          (m) => `<div class="asiento ${m.id === e.turno ? "turno" : ""} ${m.id === Fiesta.pid ? "yo" : ""}">
+            <div class="nom">${Fiesta.esc(Fiesta.nombreDe(m.id))}${m.id === Fiesta.pid ? " (tú)" : ""}</div>
+            <div class="fila-cartas" style="min-height:56px">${m.cartas.map(naipe).join("")}</div>
+            ${m.cartas.length ? `<span class="valor">${m.valor}</span>` : ""} <div class="nota" style="color:#fff">🪙 ${m.apuesta || "—"}</div>
+            ${m.resultado ? `<div style="font-weight:900">${m.resultado}${m.pago ? ` +${m.pago}` : ""}</div>` : ""}
+          </div>`,
+        )
+        .join("")}</div>
+      <p class="nota centro" style="color:#fff">${(e.log || []).slice(0, 2).map(Fiesta.esc).join("<br>")}</p>
+    </div>`;
+    if (e.fase === "apuestas" && mio && !mio.apuesta) {
+      html += `<div class="tarjeta pila"><h2>¿Cuánto apuestas? (tienes ${fichas})</h2><div class="fichas-apuesta">${[10, 50, 100, 250]
+        .map((v, i) => `<button class="ficha-ap" style="background:${["#3a86ff", "#e0323c", "#26b86b", "#222"][i]}" onclick="apostar(${v})">${v}</button>`)
+        .join("")}</div><p class="nota centro">⏱️ <span id="seg-bj">${Fiesta.segundosHasta(e.limite)}</span> s</p></div>`;
+    } else if (e.fase === "apuestas") html += `<p class="nota centro">Esperando apuestas…</p>`;
+    if (e.fase === "jugando" && e.turno === Fiesta.pid) {
+      html += `<div class="tarjeta pila"><h2>¡Te toca! Tienes ${mio.valor}</h2><div class="acciones-bj">
+        <button class="boton verde" onclick="Fiesta.accion('pedir')">➕ Pedir</button>
+        <button class="boton" onclick="Fiesta.accion('plantarse')">✋ Plantarse</button>
+        <button class="boton morado" ${mio.cartas.length !== 2 || fichas < mio.apuesta ? "disabled" : ""} onclick="Fiesta.accion('doblar')">✖️2 Doblar</button></div>
+        <p class="nota centro">⏱️ <span id="seg-bj">${Fiesta.segundosHasta(e.limite)}</span> s</p></div>`;
+    } else if (e.fase === "jugando") html += `<p class="nota centro">Turno de ${Fiesta.esc(Fiesta.nombreDe(e.turno))}…</p>`;
+    if (e.fase === "resultado") {
+      html += `<div class="tarjeta pila">${e.soy_host ? `<button class="boton verde" onclick="Fiesta.accion('iniciar')">🔁 Otra mano</button><button class="boton morado" onclick="Fiesta.accion('agregar_bot')">➕🤖 Agregar bot</button>` : `<p class="nota centro">Esperando a que ${Fiesta.esc(Fiesta.nombreDe(e.host))} reparta otra mano…</p>`}</div>`;
+    }
+    zona.innerHTML = html;
+    relojBj = setInterval(() => {
+      const s = document.getElementById("seg-bj");
+      if (s) s.textContent = Fiesta.segundosHasta(e.limite);
+    }, 500);
+  }
+  Fiesta.iniciar({ juego: "blackjack", titulo: "Blackjack 🂡", pintar, intervalo: 900 });
+</script>
+{% endblock %}

@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0d1b2a" />
+    <title>Curling · Arcade</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
+    <style>
+      #barrer {
+        position: fixed;
+        left: 50%;
+        bottom: calc(70px + env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        z-index: 6;
+        border: none;
+        border-radius: 40px;
+        padding: 18px 34px;
+        font-family: inherit;
+        font-weight: 900;
+        font-size: 1.3rem;
+        background: linear-gradient(135deg, #4fb3ff, #1f5fd0);
+        color: #fff;
+        box-shadow: 0 10px 26px rgba(31, 95, 208, 0.5);
+        touch-action: manipulation;
+      }
+      #barrer:active {
+        transform: translateX(-50%) scale(0.94);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+    <button id="barrer" class="oculto">🧹 ¡BARRE! (toca rápido)</button>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, sonar, gauss } = Arcade;
+      // Pista: x de -2.2 a 2.2. La piedra sale de z = 20 y la casa está en z = 0.
+      const ANCHO = 2.2,
+        Z_SALIDA = 20,
+        R = 0.15, // radio de la piedra
+        PIEDRAS = 4, // por jugador en cada entrada
+        ENTRADAS = 3,
+        FRICCION = 0.62,
+        RADIO_CASA = 1.83;
+
+      // =========================================================
+      //  ESCENA
+      // =========================================================
+      const M = Arcade.mundo({
+        fondo: 0x0d1b2a,
+        fov: 50,
+        exposicion: 1.1,
+        colorAmbiente: 0xd0e8ff,
+      });
+      const { escena, camara } = M;
+      const mat = (c, x = {}) =>
+        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.5, ...x });
+      escena.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 0.8));
+      const luz = new THREE.DirectionalLight(0xffffff, 0.8);
+      luz.position.set(3, 12, 6);
+      luz.castShadow = true;
+      luz.shadow.mapSize.set(2048, 2048);
+      Object.assign(luz.shadow.camera, {
+        left: -4,
+        right: 4,
+        top: 6,
+        bottom: -24,
+        near: 1,
+        far: 40,
+      });
+      escena.add(luz);
+      const texHielo = M.textura(256, 1536, (g, w, h) => {
+        g.fillStyle = "#f2f8ff";
+        g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 2500; i++) {
+          g.fillStyle = `rgba(150,180,210,${azar(0.05, 0.2)})`;
+          g.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+        }
+        const zy = (z) => ((z + 4) / 28) * h; // z de -4 a 24
+        const cx = w / 2,
+          s = w / (ANCHO * 2);
+        [
+          [RADIO_CASA, "#1f5fd0"],
+          [1.22, "#ffffff"],
+          [0.61, "#e0323c"],
+          [0.15, "#ffffff"],
+        ].forEach(([r, c]) => {
+          g.beginPath();
+          g.arc(cx, zy(0), r * s, 0, Math.PI * 2);
+          g.fillStyle = c;
+          g.fill();
+        });
+        g.fillStyle = "#e0323c";
+        [0, 6.4].forEach((z) => g.fillRect(0, zy(z) - 2, w, 4));
+        g.fillStyle = "#1f5fd0";
+        g.fillRect(0, zy(Z_SALIDA - 3) - 2, w, 4);
+        g.fillRect(cx - 1, 0, 2, h);
+      });
+      const hielo = new THREE.Mesh(
+        new THREE.PlaneGeometry(ANCHO * 2, 28),
+        new THREE.MeshStandardMaterial({
+          map: texHielo,
+          roughness: 0.12,
+          metalness: 0.05,
+        }),
+      );
+      hielo.rotation.x = -Math.PI / 2;
+      hielo.position.z = 10;
+      hielo.receiveShadow = true;
+      escena.add(hielo);
+      [-1, 1].forEach((l) => {
+        const b = new THREE.Mesh(
+          new THREE.BoxGeometry(0.15, 0.25, 28),
+          mat(0x3a3a5a),
+        );
+        b.position.set(l * (ANCHO + 0.075), 0.12, 10);
+        escena.add(b);
+      });
+      const fondo = new THREE.Mesh(
+        new THREE.BoxGeometry(ANCHO * 2 + 0.3, 0.25, 0.15),
+        mat(0x3a3a5a),
+      );
+      fondo.position.set(0, 0.12, -4);
+      escena.add(fondo);
+      // gradas
+      for (let i = 0; i < 160; i++) {
+        const l = Math.random() < 0.5 ? -1 : 1;
+        const p = new THREE.Mesh(
+          new THREE.BoxGeometry(0.3, 0.6, 0.3),
+          mat(new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex()),
+        );
+        p.position.set(l * azar(3, 6), azar(0.3, 2), azar(-4, 24));
+        escena.add(p);
+      }
+
+      function crearPiedra(color) {
+        const g = new THREE.Group();
+        const cuerpo = new THREE.Mesh(
+          new THREE.CylinderGeometry(R, R * 0.92, 0.11, 32),
+          mat(0x6b6b78, { roughness: 0.35, metalness: 0.2 }),
+        );
+        cuerpo.position.y = 0.06;
+        cuerpo.castShadow = true;
+        g.add(cuerpo);
+        const tapa = new THREE.Mesh(
+          new THREE.CylinderGeometry(R * 0.7, R * 0.7, 0.03, 24),
+          mat(color, { roughness: 0.3 }),
+        );
+        tapa.position.y = 0.13;
+        g.add(tapa);
+        const asa = new THREE.Mesh(
+          new THREE.BoxGeometry(0.04, 0.05, 0.16),
+          mat(color),
+        );
+        asa.position.set(0, 0.17, 0.02);
+        g.add(asa);
+        escena.add(g);
+        return g;
+      }
+      const COLOR = [0xe0323c, 0xffd84f];
+
+      // =========================================================
+      //  FÍSICA (círculos en 2D)
+      // =========================================================
+      let piedras = []; // { x, z, vx, vz, giro, equipo, malla }
+      let barrido = 0; // 0..1 baja la fricción
+      function paso(dt) {
+        let moviendo = false;
+        for (const p of piedras) {
+          const v = Math.hypot(p.vx, p.vz);
+          if (v < 0.01) {
+            p.vx = p.vz = 0;
+            continue;
+          }
+          moviendo = true;
+          const f = FRICCION * (p.lanzada ? 1 - barrido * 0.45 : 1);
+          const nv = Math.max(0, v - f * dt);
+          p.vx *= nv / v;
+          p.vz *= nv / v;
+          // el efecto de la piedra la hace curvear un poquito
+          if (p.lanzada)
+            p.vx += p.giro * 0.06 * dt * Math.min(1, 1.5 / Math.max(v, 0.3));
+          p.x += p.vx * dt;
+          p.z += p.vz * dt;
+          p.malla.rotation.y += p.giro * dt * 2;
+        }
+        // choques
+        for (let i = 0; i < piedras.length; i++)
+          for (let j = i + 1; j < piedras.length; j++) {
+            const a = piedras[i],
+              b = piedras[j];
+            const dx = b.x - a.x,
+              dz = b.z - a.z;
+            const d = Math.hypot(dx, dz);
+            if (d >= R * 2 || d < 1e-6) continue;
+            const nx = dx / d,
+              nz = dz / d;
+            const sobra = R * 2 - d;
+            a.x -= (nx * sobra) / 2;
+            a.z -= (nz * sobra) / 2;
+            b.x += (nx * sobra) / 2;
+            b.z += (nz * sobra) / 2;
+            const rv = (b.vx - a.vx) * nx + (b.vz - a.vz) * nz;
+            if (rv < 0) {
+              const imp = -rv * 0.95;
+              a.vx -= imp * nx;
+              a.vz -= imp * nz;
+              b.vx += imp * nx;
+              b.vz += imp * nz;
+              sonar("golpe", Math.min(1, -rv));
+            }
+          }
+        // fuera de la pista (lados o detrás de la casa) = se quita
+        piedras = piedras.filter((p) => {
+          const fuera = Math.abs(p.x) > ANCHO - R * 0.5 || p.z < -3.8;
+          if (fuera) escena.remove(p.malla);
+          return !fuera;
+        });
+        piedras.forEach((p) => p.malla.position.set(p.x, 0, p.z));
+        return moviendo;
+      }
+
+      // ¿quién gana la entrada? las piedras de un equipo más cerca del centro que la mejor del otro
+      function contar() {
+        const enCasa = piedras
+          .filter((p) => Math.hypot(p.x, p.z) <= RADIO_CASA + R && p.z < 6.4)
+          .map((p) => ({ ...p, d: Math.hypot(p.x, p.z) }));
+        enCasa.sort((a, b) => a.d - b.d);
+        if (!enCasa.length) return { equipo: null, puntos: 0 };
+        const equipo = enCasa[0].equipo;
+        const rival = enCasa.find((p) => p.equipo !== equipo);
+        const puntos = enCasa.filter(
+          (p) => p.equipo === equipo && (!rival || p.d < rival.d),
+        ).length;
+        return { equipo, puntos };
+      }
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      const J = { activa: false };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
+      const ui = Arcade.ui({
+        juego: "curling",
+        titulo: "Curling",
+        emoji: "🥌",
+        subtitulo: "Desliza la piedra y ¡barre!",
+        modos: ["bot", "online", "local"],
+        dificultad: true,
+        intervaloOnline: 400,
+        reglas: [
+          "Desliza hacia arriba para lanzar: la dirección apunta y la fuerza del deslizamiento es la potencia.",
+          "Mientras la piedra avanza, toca 🧹 ¡BARRE! muy rápido para que llegue más lejos y más derecha.",
+          "Al final de cada entrada, el equipo con la piedra más cerca del centro gana 1 punto por cada piedra suya más cerca que la mejor del rival.",
+          `${PIEDRAS} piedras por jugador en cada entrada · ${ENTRADAS} entradas.`,
+          "¡Puedes sacar las piedras del rival a golpes!",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          ciclo.cancelar();
+          J.activa = false;
+          J.modo = null;
+          $("barrer").classList.add("oculto");
+        },
+      });
+      const pendientes = {};
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "tiro") {
+          pendientes[d.n] = d;
+          siguientePendiente();
+        } else if (tipo === "barre") barrido = Math.min(1, barrido + 0.25);
+        else if (tipo === "pos") {
+          posiciones[d.n] = d.piedras;
+          if (J.alLlegarPos) J.alLlegarPos();
+        }
+      };
+      // online: quien tiró manda dónde quedaron las piedras (así los dos celulares cuentan igual)
+      const posiciones = {};
+      function siguientePendiente() {
+        if (J.ocupado || !pendientes[J.n]) return;
+        const d = pendientes[J.n];
+        delete pendientes[J.n];
+        lanzar(d.vx, d.vz, d.giro);
+      }
+
+      function empezar(modo, info) {
+        ciclo.cancelar();
+        piedras.forEach((p) => escena.remove(p.malla));
+        piedras = [];
+        Object.keys(pendientes).forEach((k) => delete pendientes[k]);
+        Object.keys(posiciones).forEach((k) => delete posiciones[k]);
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          nombres: info.nombres,
+          dificultad: info.dificultad,
+          entrada: 1,
+          tiro: 0,
+          turno: 0,
+          puntos: [0, 0],
+          n: 0,
+          activa: true,
+          ocupado: false,
+        });
+        J.yo = modo === "online" ? ui.yo : 0;
+        prepararTiro();
+      }
+      const miTurno = () =>
+        J.activa && !J.ocupado && (J.modo === "local" || J.turno === J.yo);
+      function prepararTiro() {
+        J.ocupado = false;
+        marcador();
+        if (J.modo === "local")
+          ui.avisar(
+            `Tira ${J.nombres[J.turno]}`,
+            J.turno ? "#ffd84f" : "#ff3b3b",
+          );
+        ui.ayuda(
+          miTurno()
+            ? "👆 Desliza hacia arriba para lanzar"
+            : `Tira ${J.nombres[J.turno]}…`,
+        );
+        if (J.modo === "bot" && J.turno === 1)
+          ciclo.despues(
+            () => J.activa && J.turno === 1 && !J.ocupado && tiroBot(),
+            1200,
+          );
+        siguientePendiente();
+      }
+
+      // gesto de lanzamiento
+      let gesto = null;
+      M.lienzo.addEventListener("pointerdown", (e) => {
+        if (!miTurno()) return;
+        gesto = { x: e.clientX, y: e.clientY, t: performance.now() };
+      });
+      M.lienzo.addEventListener("pointerup", (e) => {
+        if (!gesto || !miTurno()) return (gesto = null);
+        const dx = e.clientX - gesto.x,
+          dy = e.clientY - gesto.y;
+        const dt = Math.max(60, performance.now() - gesto.t);
+        gesto = null;
+        if (dy > -40) return;
+        // la fuerza: qué tan largo y rápido deslizaste (calibrado para llegar a la casa ~ a media fuerza)
+        const fuerza = limitar(
+          (-dy / window.innerHeight) * 1.6 + (-dy / dt) * 0.35,
+          0.3,
+          1.25,
+        );
+        const v = 4.3 + fuerza * 1.25;
+        const ang = limitar((dx / -dy) * 0.25, -0.12, 0.12);
+        const giro = dx > 0 ? -0.6 : 0.6;
+        const vx = Math.sin(ang) * v,
+          vz = -Math.cos(ang) * v;
+        if (J.modo === "online")
+          ui.enviar("tiro", { partida: J.partida, n: J.n, vx, vz, giro });
+        lanzar(vx, vz, giro);
+      });
+      $("barrer").addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        if (!J.lanzada) return;
+        barrido = Math.min(1, barrido + 0.18);
+        sonar("swoosh", 0.25);
+        if (J.modo === "online" && J.turnoLanzado === J.yo)
+          ui.enviar("barre", { partida: J.partida });
+      });
+
+      async function lanzar(vx, vz, giro) {
+        const sesionTarea = J.sesion || 0;
+        J.ocupado = true;
+        J.n++;
+        ui.ayuda("");
+        const p = {
+          x: 0,
+          z: Z_SALIDA,
+          vx,
+          vz,
+          giro,
+          equipo: J.turno,
+          lanzada: true,
+          malla: crearPiedra(COLOR[J.turno]),
+        };
+        piedras.forEach((x) => (x.lanzada = false));
+        piedras.push(p);
+        J.lanzada = p;
+        J.turnoLanzado = J.turno;
+        barrido = 0;
+        sonar("rodar", 0.6);
+        const puedeBarrer = J.modo === "local" || J.turno === J.yo;
+        $("barrer").classList.toggle("oculto", !puedeBarrer);
+        const partida = J.partida;
+        // la física corre en el ciclo; aquí solo se espera a que todo se detenga
+        await esperar(500);
+        if (sesionTarea !== (J.sesion || 0)) return;
+        while (
+          sesionTarea === (J.sesion || 0) &&
+          partida === J.partida &&
+          J.moviendo
+        )
+          await esperar(100);
+        if (sesionTarea !== (J.sesion || 0)) return;
+        if (partida !== J.partida) return;
+        $("barrer").classList.add("oculto");
+        J.lanzada = null;
+        if (J.modo === "online") {
+          const n = J.n;
+          if (J.turnoLanzado === J.yo)
+            ui.enviar("pos", {
+              partida: J.partida,
+              n,
+              piedras: piedras.map((q) => [
+                +q.x.toFixed(4),
+                +q.z.toFixed(4),
+                q.equipo,
+              ]),
+            });
+          else {
+            if (!posiciones[n])
+              await Promise.race([
+                new Promise((ok) => (J.alLlegarPos = ok)),
+                esperar(15000),
+              ]);
+            if (sesionTarea !== (J.sesion || 0)) return;
+            J.alLlegarPos = null;
+            if (partida !== J.partida) return;
+            if (posiciones[n]) {
+              piedras.forEach((q) => escena.remove(q.malla));
+              piedras = posiciones[n].map(([x, z, equipo]) => ({
+                x,
+                z,
+                vx: 0,
+                vz: 0,
+                giro: 0,
+                equipo,
+                lanzada: false,
+                malla: crearPiedra(COLOR[equipo]),
+              }));
+              piedras.forEach((q) => q.malla.position.set(q.x, 0, q.z));
+            }
+          }
+        }
+        await esperar(500);
+        if (sesionTarea !== (J.sesion || 0)) return;
+        siguienteTiro();
+      }
+
+      async function siguienteTiro() {
+        const sesionTarea = J.sesion || 0;
+        J.tiro++;
+        if (J.tiro >= PIEDRAS * 2) {
+          const r = contar();
+          if (r.equipo != null) J.puntos[r.equipo] += r.puntos;
+          ui.avisar(
+            r.equipo == null
+              ? "Nadie en la casa 🤷"
+              : `🥌 ${J.nombres[r.equipo]} +${r.puntos}`,
+            r.equipo ? "#ffd84f" : "#ff3b3b",
+          );
+          sonar(r.puntos ? "publico" : "rebote");
+          marcador();
+          await esperar(2200);
+          if (sesionTarea !== (J.sesion || 0)) return;
+          if (!J.activa) return;
+          if (J.entrada >= ENTRADAS && J.puntos[0] !== J.puntos[1])
+            return fin();
+          J.entrada++;
+          J.tiro = 0;
+          piedras.forEach((p) => escena.remove(p.malla));
+          piedras = [];
+          // empieza el que perdió la entrada (o se alterna)
+          J.turno = r.equipo == null ? 1 - J.turno : 1 - r.equipo;
+          return prepararTiro();
+        }
+        J.turno = 1 - J.turno;
+        prepararTiro();
+      }
+
+      function tiroBot() {
+        // apunta a la casa (o a sacar la mejor piedra rival) con error según el nivel
+        const err = { facil: 0.5, normal: 0.25, pro: 0.11 }[J.dificultad];
+        const rivalCerca = piedras
+          .filter((p) => p.equipo === 0 && Math.hypot(p.x, p.z) < RADIO_CASA)
+          .sort((a, b) => Math.hypot(a.x, a.z) - Math.hypot(b.x, b.z))[0];
+        const meta =
+          rivalCerca && Math.random() < 0.6
+            ? { x: rivalCerca.x, z: rivalCerca.z, golpe: true }
+            : { x: azar(-0.3, 0.3), z: azar(-0.4, 0.3) };
+        const dist = Z_SALIDA - meta.z;
+        const v =
+          Math.sqrt(2 * FRICCION * dist) *
+          (meta.golpe ? 1.25 : 1) *
+          (1 + gauss() * err * 0.06);
+        const ang = Math.atan2(meta.x, dist) + gauss() * err * 0.02;
+        lanzar(Math.sin(ang) * v, -Math.cos(ang) * v, 0);
+        // el bot también barre un poco
+        const barre = ciclo.cada(
+          () =>
+            J.lanzada
+              ? (barrido = Math.min(1, barrido + (meta.golpe ? 0 : 0.03)))
+              : clearInterval(barre),
+          120,
+        );
+      }
+
+      function marcador() {
+        ui.marcador(
+          [0, 1].map((i) => ({
+            nombre: `${i ? "🟡" : "🔴"} ${J.nombres[i]}${J.modo === "online" && i === J.yo ? " (tú)" : ""}`,
+            valor: J.puntos[i],
+            detalle: `Entrada ${J.entrada}/${ENTRADAS} · ${PIEDRAS - Math.floor((J.tiro + (i === 0 ? 1 : 0)) / 2)} 🥌`,
+            activo: J.activa && J.turno === i,
+            color: i ? "#ffd84f" : "#ff3b3b",
+          })),
+        );
+      }
+      function fin() {
+        J.activa = false;
+        const g = J.puntos[0] > J.puntos[1] ? 0 : 1;
+        const gane = J.modo === "local" || g === J.yo;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({
+          emoji: gane ? "🏆" : "😿",
+          texto:
+            J.modo === "local"
+              ? `¡Ganó ${J.nombres[g]}!`
+              : gane
+                ? "¡Ganaste!"
+                : `Ganó ${J.nombres[g]}`,
+          nota: `${J.nombres[0]} ${J.puntos[0]} - ${J.puntos[1]} ${J.nombres[1]}`,
+          gano: J.modo !== "local" && g === J.yo,
+        });
+      }
+
+      let acumulado = 0;
+      M.alCuadro((dt, ahora) => {
+        barrido = Math.max(0, barrido - dt * 0.9);
+        // pasos fijos de física (igual en cualquier celular)
+        acumulado = Math.min(acumulado + dt, 0.25);
+        let mov = J.moviendo;
+        while (acumulado >= 1 / 120) {
+          mov = paso(1 / 120);
+          acumulado -= 1 / 120;
+        }
+        J.moviendo = mov;
+        // cámara: sigue a la piedra lanzada; si no, mira la casa desde la salida
+        const aspecto = window.innerWidth / window.innerHeight;
+        const p = J.lanzada;
+        if (!J.modo) {
+          camara.position.set(Math.sin(ahora / 4000) * 2, 4, 6);
+          camara.lookAt(0, 0, 0);
+        } else if (p) {
+          camara.position.lerp(
+            new THREE.Vector3(p.x * 0.5, 2.2, p.z + 4.2),
+            Math.min(1, dt * 3),
+          );
+          camara.lookAt(p.x * 0.6, 0, p.z - 3);
+        } else {
+          camara.position.lerp(
+            new THREE.Vector3(0, aspecto < 1 ? 6.5 : 5, aspecto < 1 ? 5.5 : 6),
+            Math.min(1, dt * 2),
+          );
+          camara.lookAt(0, 0, 0);
+        }
+        camara.fov = aspecto < 1 ? 62 : 50;
+        camara.updateProjectionMatrix();
+      });
+    </script>
+  </body>
+</html>

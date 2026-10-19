@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0820" />
+    <title>Tetris Duelo · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: radial-gradient(ellipse at top, #241a52, #0b0820 70%);
+      }
+      #zona {
+        position: fixed;
+        top: calc(84px + env(safe-area-inset-top));
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        touch-action: none;
+      }
+      #tablero {
+        height: min(calc(100vh - 110px), 170vw);
+        aspect-ratio: 1 / 2;
+        border: 3px solid #6c5ce7;
+        border-radius: 8px;
+        background: #0e0a24;
+        box-shadow: 0 0 30px rgba(108, 92, 231, 0.4);
+      }
+      #lado {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+        font-weight: 900;
+        font-size: 0.8rem;
+      }
+      #siguiente,
+      #rival {
+        background: #0e0a24;
+        border: 2px solid #3a2f7a;
+        border-radius: 8px;
+      }
+      #siguiente {
+        width: 64px;
+        height: 64px;
+      }
+      #rival {
+        width: 64px;
+        height: 128px;
+      }
+      #basura {
+        width: 10px;
+        height: 100px;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        flex-direction: column-reverse;
+        overflow: hidden;
+      }
+      #basura i {
+        display: block;
+        background: #ff3b3b;
+        transition: height 0.2s;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona" class="oculto">
+      <canvas id="tablero" width="300" height="600"></canvas>
+      <div id="lado">
+        <div>SIGUE</div>
+        <canvas id="siguiente" width="64" height="64"></canvas>
+        <div id="txt-rival">RIVAL</div>
+        <canvas id="rival" width="64" height="128"></canvas>
+        <div id="basura"><i></i></div>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, sonar } = Arcade;
+      const ANCHO = 10,
+        ALTO = 20;
+      const PIEZAS = {
+        I: [[0, 1], [1, 1], [2, 1], [3, 1]],
+        O: [[1, 0], [2, 0], [1, 1], [2, 1]],
+        T: [[1, 0], [0, 1], [1, 1], [2, 1]],
+        S: [[1, 0], [2, 0], [0, 1], [1, 1]],
+        Z: [[0, 0], [1, 0], [1, 1], [2, 1]],
+        J: [[0, 0], [0, 1], [1, 1], [2, 1]],
+        L: [[2, 0], [0, 1], [1, 1], [2, 1]],
+      };
+      const COLOR = { I: "#00d5ff", O: "#ffd84f", T: "#c56cf0", S: "#26de81", Z: "#ff3b3b", J: "#2f7bff", L: "#ff8c1a", G: "#6b6b80" };
+      const BASURA = { 1: 0, 2: 1, 3: 2, 4: 4 };
+
+      // =================== MOTOR (sirve para ti y para el bot) ===================
+      function nuevoJuego(semilla) {
+        return { g: Array.from({ length: ALTO }, () => Array(ANCHO).fill(null)), rand: Arcade.rng(semilla), bolsa: [], pieza: null, sig: null, lineas: 0, puntos: 0, pendiente: 0, vivo: true };
+      }
+      function sacar(J) {
+        if (!J.bolsa.length) J.bolsa = Object.keys(PIEZAS).sort(() => J.rand() - 0.5);
+        return J.bolsa.pop();
+      }
+      function celdas(p) {
+        // rotar: (x, y) → (n-1-y, x) con n = 4 para I, 3 para las demás
+        const n = p.t === "I" ? 4 : p.t === "O" ? 4 : 3;
+        return PIEZAS[p.t].map(([x, y]) => {
+          if (p.t !== "O") for (let r = 0; r < p.r % 4; r++) [x, y] = [n - 1 - y, x];
+          return [p.x + x, p.y + y];
+        });
+      }
+      const libre = (J, p) => celdas(p).every(([x, y]) => x >= 0 && x < ANCHO && y < ALTO && (y < 0 || !J.g[y][x]));
+      function aparecer(J) {
+        J.pieza = { t: J.sig || sacar(J), x: 3, y: -1, r: 0 };
+        J.sig = sacar(J);
+        if (!libre(J, J.pieza)) J.vivo = false;
+      }
+      function fijar(J) {
+        celdas(J.pieza).forEach(([x, y]) => {
+          if (y < 0) J.vivo = false;
+          else J.g[y][x] = J.pieza.t;
+        });
+        let borradas = 0;
+        J.g = J.g.filter((fila) => {
+          const llena = fila.every(Boolean);
+          if (llena) borradas++;
+          return !llena;
+        });
+        while (J.g.length < ALTO) J.g.unshift(Array(ANCHO).fill(null));
+        J.lineas += borradas;
+        J.puntos += [0, 100, 300, 500, 800][borradas];
+        // la basura que te mandaron: se cancela con tus líneas y lo demás sube
+        let ataque = BASURA[borradas] || 0;
+        const cancela = Math.min(ataque, J.pendiente);
+        J.pendiente -= cancela;
+        ataque -= cancela;
+        if (!borradas && J.pendiente) {
+          const hueco = Math.floor(J.rand() * ANCHO);
+          for (let i = 0; i < J.pendiente; i++) {
+            J.g.shift();
+            J.g.push(Array.from({ length: ANCHO }, (_, x) => (x === hueco ? null : "G")));
+          }
+          J.pendiente = 0;
+        }
+        if (J.vivo) aparecer(J);
+        return { borradas, ataque };
+      }
+      function soltar(J) {
+        while (libre(J, { ...J.pieza, y: J.pieza.y + 1 })) J.pieza.y++;
+      }
+
+      // =================== DIBUJO ===================
+      function pintarTablero(lienzo, J, conFantasma) {
+        const ctx = lienzo.getContext("2d");
+        const k = lienzo.width / ANCHO;
+        ctx.fillStyle = "#0e0a24";
+        ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+        const cuadro = (x, y, color, alfa = 1) => {
+          ctx.globalAlpha = alfa;
+          ctx.fillStyle = color;
+          ctx.fillRect(x * k + 1, y * k + 1, k - 2, k - 2);
+          if (k > 8) {
+            ctx.fillStyle = "rgba(255,255,255,.25)";
+            ctx.fillRect(x * k + 1, y * k + 1, k - 2, k * 0.18);
+          }
+          ctx.globalAlpha = 1;
+        };
+        if (k > 8) {
+          ctx.strokeStyle = "rgba(255,255,255,.04)";
+          for (let x = 1; x < ANCHO; x++) ctx.strokeRect(x * k, 0, 0, lienzo.height);
+        }
+        J.g.forEach((fila, y) => fila.forEach((c, x) => c && cuadro(x, y, COLOR[c])));
+        if (J.pieza && J.vivo) {
+          if (conFantasma) {
+            const f = { ...J.pieza };
+            while (libre(J, { ...f, y: f.y + 1 })) f.y++;
+            celdas(f).forEach(([x, y]) => y >= 0 && cuadro(x, y, COLOR[J.pieza.t], 0.22));
+          }
+          celdas(J.pieza).forEach(([x, y]) => y >= 0 && cuadro(x, y, COLOR[J.pieza.t]));
+        }
+      }
+      function pintarSiguiente(t) {
+        const c = $("siguiente").getContext("2d");
+        c.clearRect(0, 0, 64, 64);
+        if (!t) return;
+        c.fillStyle = COLOR[t];
+        PIEZAS[t].forEach(([x, y]) => c.fillRect(6 + x * 13, 18 + y * 13, 12, 12));
+      }
+      function pintarRival(filas) {
+        const c = $("rival").getContext("2d");
+        c.fillStyle = "#0e0a24";
+        c.fillRect(0, 0, 64, 128);
+        if (!filas) return;
+        filas.forEach((fila, y) => [...fila].forEach((ch, x) => {
+          if (ch !== ".") {
+            c.fillStyle = COLOR[ch] || "#888";
+            c.fillRect(x * 6.4, y * 6.4, 6, 6);
+          }
+        }));
+      }
+      const resumen = (J) => J.g.map((f, y) => f.map((c, x) => c || (J.pieza && celdas(J.pieza).some(([a, b]) => a === x && b === y) ? J.pieza.t : ".")).join(""));
+
+      // =================== PARTIDA ===================
+      let Y = null; // mi juego
+      let B = null; // el del bot
+      const P = { activa: false };
+      const ui = Arcade.ui({
+        juego: "tetris",
+        titulo: "Tetris Duelo",
+        emoji: "🧩",
+        subtitulo: "Las líneas que borras le caen al rival",
+        modos: ["solo", "bot", "online"],
+        textosModo: { bot: "🤖 Duelo contra el bot", online: "🌐 Duelo online" },
+        dificultad: true,
+        records: true,
+        unidadRecord: "pts",
+        reglas: [
+          "⬅️➡️ Arrastra a los lados para mover la pieza.",
+          "👆 Toca para girarla.",
+          "⬇️ Desliza rápido hacia abajo para dejarla caer de golpe (despacito baja poco a poco).",
+          "En duelo: borrar 2 líneas manda 1 de basura, 3 mandan 2 y un Tetris (4) manda 4. ¡La barrita roja es lo que te van a mandar!",
+          "Pierde quien llegue hasta arriba.",
+          "En la compu: flechas, ↑ gira, espacio la deja caer.",
+        ],
+        alEmpezar: empezar,
+        alSalir: parar,
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== P.partida || !P.activa) return;
+        if (tipo === "tablero") pintarRival(d.filas);
+        else if (tipo === "ataque") {
+          Y.pendiente += d.lineas;
+          pintarBasura();
+          ui.avisar(`⚠️ ¡Te mandaron ${d.lineas}!`, "#ff3b3b");
+        } else if (tipo === "perdio") fin(true);
+      };
+
+      function parar() {
+        P.activa = false;
+        clearTimeout(P.timerBot);
+        $("zona").classList.add("oculto");
+      }
+      function empezar(modo, info) {
+        parar();
+        Object.assign(P, { modo, partida: info.partida, nombres: info.nombres, dificultad: info.dificultad, activa: true, caida: 0, ultimoEnvio: 0 });
+        Y = nuevoJuego(info.semilla);
+        aparecer(Y);
+        B = modo === "bot" ? nuevoJuego(info.semilla) : null;
+        if (B) aparecer(B);
+        $("rival").classList.toggle("oculto", modo === "solo");
+        $("txt-rival").classList.toggle("oculto", modo === "solo");
+        $("basura").classList.toggle("oculto", modo === "solo");
+        $("zona").classList.remove("oculto");
+        pintarRival(null);
+        pintarBasura();
+        marcador();
+        if (B) turnoBot();
+        ui.ayuda("⬅️➡️ arrastra · 👆 gira · ⬇️ desliza rápido");
+        setTimeout(() => P.partida === info.partida && ui.ayuda(""), 4000);
+      }
+      function pintarBasura() {
+        $("basura").firstChild.style.height = Math.min(100, Y.pendiente * 10) + "%";
+      }
+      function marcador() {
+        const nivel = 1 + Math.floor(Y.lineas / 10);
+        if (P.modo === "solo") return ui.marcador([{ nombre: P.nombres[0], valor: Y.puntos, detalle: `${Y.lineas} líneas · nivel ${nivel}`, activo: true }, null]);
+        const yo = P.modo === "online" ? ui.yo : 0;
+        const mio = { nombre: P.nombres[yo] + " (tú)", valor: Y.lineas, detalle: "líneas", activo: true };
+        const suyo = { nombre: P.nombres[1 - yo], valor: B ? B.lineas : "—", detalle: B ? "líneas" : "🌐 en vivo" };
+        ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
+      }
+
+      function mover(dx, dy, dr = 0) {
+        if (!P.activa || !Y.vivo) return false;
+        const p = { ...Y.pieza, x: Y.pieza.x + dx, y: Y.pieza.y + dy, r: Y.pieza.r + dr };
+        if (libre(Y, p)) {
+          Y.pieza = p;
+          return true;
+        }
+        // al girar pegado a la pared, se recorre un poquito
+        if (dr) for (const k of [-1, 1, -2, 2]) if (libre(Y, { ...p, x: p.x + k })) return (Y.pieza = { ...p, x: p.x + k }), true;
+        return false;
+      }
+      function asentar() {
+        const { borradas, ataque } = fijar(Y);
+        if (borradas) {
+          sonar(borradas >= 4 ? "ganar" : "pinos", 0.6);
+          if (borradas >= 4) ui.avisar("💥 ¡TETRIS!", "#00d5ff");
+        } else sonar("click");
+        if (ataque > 0) {
+          if (B) B.pendiente += ataque;
+          if (P.modo === "online") ui.enviar("ataque", { partida: P.partida, lineas: ataque });
+        }
+        pintarBasura();
+        marcador();
+        if (!Y.vivo) {
+          if (P.modo === "online") ui.enviar("perdio", { partida: P.partida });
+          fin(false);
+        }
+      }
+
+      // controles
+      let toque = null;
+      const zona = $("zona");
+      zona.addEventListener("pointerdown", (e) => {
+        toque = { x: e.clientX, y: e.clientY, t: performance.now(), dx: 0, dy: 0, movio: false };
+        zona.setPointerCapture(e.pointerId);
+      });
+      zona.addEventListener("pointermove", (e) => {
+        if (!toque || !P.activa) return;
+        const celda = $("tablero").clientWidth / ANCHO;
+        const dx = e.clientX - toque.x,
+          dy = e.clientY - toque.y;
+        while (dx - toque.dx > celda * 0.9) (toque.dx += celda), mover(1, 0), (toque.movio = true);
+        while (toque.dx - dx > celda * 0.9) (toque.dx -= celda), mover(-1, 0), (toque.movio = true);
+        while (dy - toque.dy > celda * 0.9 && Math.abs(dx) < celda) (toque.dy += celda), mover(0, 1), (toque.movio = true);
+      });
+      zona.addEventListener("pointerup", (e) => {
+        if (!toque || !P.activa) return (toque = null);
+        const dt = performance.now() - toque.t,
+          dy = e.clientY - toque.y,
+          dx = e.clientX - toque.x;
+        if (dy > 60 && dy / dt > 0.6 && Math.abs(dx) < dy) {
+          soltar(Y);
+          asentar();
+        } else if (!toque.movio && Math.hypot(dx, dy) < 14) {
+          if (mover(0, 0, 1)) sonar("click");
+        }
+        toque = null;
+      });
+      document.addEventListener("keydown", (e) => {
+        if (!P.activa || document.activeElement.tagName === "INPUT") return;
+        if (e.key === "ArrowLeft") mover(-1, 0);
+        else if (e.key === "ArrowRight") mover(1, 0);
+        else if (e.key === "ArrowDown") mover(0, 1);
+        else if (e.key === "ArrowUp" || e.key === "x") mover(0, 0, 1);
+        else if (e.key === "z") mover(0, 0, 3);
+        else if (e.key === " ") {
+          e.preventDefault();
+          soltar(Y);
+          asentar();
+        }
+      });
+
+      // ciclo: la gravedad
+      let anterior = performance.now();
+      function ciclo(ahora) {
+        requestAnimationFrame(ciclo);
+        const dt = Math.min(0.1, (ahora - anterior) / 1000);
+        anterior = ahora;
+        if (!P.activa || !Y) return;
+        const nivel = Math.floor(Y.lineas / 10);
+        P.caida += dt;
+        const intervalo = Math.max(0.08, 0.8 - nivel * 0.07);
+        if (P.caida >= intervalo) {
+          P.caida = 0;
+          if (!mover(0, 1)) asentar();
+        }
+        pintarTablero($("tablero"), Y, true);
+        pintarSiguiente(Y.sig);
+        if (B) pintarRival(resumen(B));
+        if (P.modo === "online" && ahora - P.ultimoEnvio > 700) {
+          P.ultimoEnvio = ahora;
+          ui.enviar("tablero", { partida: P.partida, filas: resumen(Y) });
+        }
+      }
+      requestAnimationFrame(ciclo);
+
+      // =================== BOT ===================
+      function evaluar(g) {
+        const alturas = Array(ANCHO).fill(0);
+        let huecos = 0;
+        for (let x = 0; x < ANCHO; x++) {
+          let visto = false;
+          for (let y = 0; y < g.length; y++) {
+            if (g[y][x]) {
+              if (!visto) alturas[x] = g.length - y;
+              visto = true;
+            } else if (visto) huecos++;
+          }
+        }
+        const total = alturas.reduce((a, b) => a + b, 0);
+        let bache = 0;
+        for (let x = 1; x < ANCHO; x++) bache += Math.abs(alturas[x] - alturas[x - 1]);
+        return -0.51 * total - 0.36 * huecos * 2 - 0.18 * bache;
+      }
+      function mejorLugar(J) {
+        let mejor = null,
+          mejorV = -Infinity;
+        for (let r = 0; r < 4; r++)
+          for (let x = -2; x < ANCHO; x++) {
+            const p = { ...J.pieza, r, x, y: -1 };
+            if (!libre(J, p)) continue;
+            while (libre(J, { ...p, y: p.y + 1 })) p.y++;
+            const g = J.g.map((f) => f.slice());
+            let fuera = false;
+            celdas(p).forEach(([cx, cy]) => (cy < 0 ? (fuera = true) : (g[cy][cx] = p.t)));
+            if (fuera) continue;
+            const llenas = g.filter((f) => f.every(Boolean)).length;
+            const v = evaluar(g.filter((f) => !f.every(Boolean))) + llenas * 0.76 * 3 + Math.random() * 0.01;
+            if (v > mejorV) (mejorV = v), (mejor = p);
+          }
+        return mejor;
+      }
+      function turnoBot() {
+        const partida = P.partida;
+        const ritmo = { facil: 1.5, normal: 0.95, pro: 0.55 }[P.dificultad];
+        P.timerBot = setTimeout(() => {
+          if (partida !== P.partida || !P.activa || !B.vivo) return;
+          // el bot fácil a veces se equivoca
+          const lugar = Math.random() < { facil: 0.35, normal: 0.12, pro: 0.02 }[P.dificultad] ? null : mejorLugar(B);
+          if (lugar) B.pieza = lugar;
+          else soltar(B);
+          const { ataque } = fijar(B);
+          if (ataque > 0) {
+            Y.pendiente += ataque;
+            pintarBasura();
+            ui.avisar(`⚠️ ¡El bot te mandó ${ataque}!`, "#ff3b3b");
+          }
+          marcador();
+          if (!B.vivo) return fin(true);
+          turnoBot();
+        }, ritmo * Arcade.azar(0.7, 1.3) * 1000);
+      }
+
+      function fin(gane) {
+        if (!P.activa) return;
+        parar();
+        sonar(gane ? "ganar" : "perder");
+        if (P.modo === "solo") return ui.terminar({ emoji: "🧩", texto: `¡${Y.puntos} puntos!`, nota: `${Y.lineas} líneas`, record: Y.puntos, gano: false });
+        const yo = P.modo === "online" ? ui.yo : 0;
+        ui.terminar({ emoji: gane ? "🏆" : "😿", texto: gane ? "¡Ganaste el duelo!" : `Ganó ${P.nombres[1 - yo]}`, nota: `Hiciste ${Y.lineas} líneas`, record: Y.puntos, gano: gane });
+      }
+    </script>
+  </body>
+</html>

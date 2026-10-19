@@ -36,6 +36,8 @@ node tests/pong-check.cjs
 node tests/new-games-check.cjs
 node tests/puzzle-check.cjs
 node tests/uno-check.cjs
+node tests/batch2-smoke.cjs
+node tests/batch2-regression.cjs
 ```
 
 Se puede indicar `PLAYWRIGHT_PATH` para usar una instalación existente de Playwright y `PLAYWRIGHT_CHANNEL` para seleccionar otro canal de Chromium.
@@ -56,7 +58,7 @@ La revisión se realizó localmente; no confirma el estado de una instalación d
 
 Las salas nuevas viven en memoria: requieren un único proceso de aplicación y se pierden al reiniciar. Para varios procesos hace falta almacenamiento compartido.
 
-Durante la revisión general también se detectó un problema anterior en `/memorama_online`: falta su plantilla. No pertenece a los juegos agregados por esta rama y queda fuera de estas correcciones.
+El problema anterior de la plantilla faltante en `/memorama_online` se resuelve en esta tanda mediante una redirección al nuevo Memorama Duelo.
 
 ## Batalla Naval 3D
 
@@ -89,6 +91,16 @@ Los perfiles se guardan en UTF-8 mediante reemplazo de archivo. Las partidas de 
 
 Los juegos locales y los duelos de arcade continúan calculando su resultado en el navegador: las monedas son recompensas recreativas, no un sistema contra clientes modificados. Las rondas de fiesta usan el resultado del servidor. Los perfiles siguen ligados al identificador de este navegador; no hay cuentas con contraseña ni sincronización automática entre dispositivos.
 
-La suite tiene 21 pruebas Python. `puzzle-check.cjs` cubre arranque PC/móvil, Wordle y premios, vidas y solución de Sudoku, posiciones legales de Ajedrez, fusiones y cancelación de animaciones, finales de tablero y conexión/jugadas o resultados de los nueve duelos. `uno-check.cjs` completa una ronda PC/móvil, comprueba el logro del ganador y recarga la página para verificar que no duplique monedas.
+La suite tiene 29 pruebas Python. `puzzle-check.cjs` cubre arranque PC/móvil, Wordle y premios, vidas y solución de Sudoku, posiciones legales de Ajedrez, fusiones y cancelación de animaciones, finales de tablero y conexión/jugadas o resultados de los nueve duelos. `uno-check.cjs` completa una ronda PC/móvil, comprueba el logro del ganador y recarga la página para verificar que no duplique monedas.
 
-No se agregaron Box, corredor infinito, tiro con arco, hockey sobre hielo/voleibol ni rompe-ladrillos: estos juegos no estaban en los cambios de Claude revisados.
+## Segunda tanda: 28 juegos adicionales
+
+Se agregan Corredor, Rompe-ladrillos, Box, Arco, Voleibol, Hockey sobre Hielo, Sopa de Letras, Mate Rápido, Flow, Tetris, Memorama Duelo, Nonograma, Reversi, Conecta 4 3D, Yahtzee, Curling, Pesca, Paracaidista, Bolos de Nieve, Asteroides, Surf, Drift, Espadas, Papa Caliente, Blackjack, Póker, Lotería y Dominó. La antigua ruta de Memorama Online redirige al duelo y deja de depender de la plantilla faltante.
+
+Las animaciones, temporizadores y continuaciones de los juegos nuevos se vinculan a la sesión que los inició mediante `Arcade.ciclo`. Al salir o comenzar otra partida no pueden causar golpes, puntos, cambios de turno ni pantallas de resultado en la nueva. Flow bloquea la entrada durante el cambio de tablero y cuenta una sola resolución.
+
+En Asteroides cooperativo, el anfitrión resuelve las destrucciones y transmite el marcador con versiones crecientes. Los choques conservan autor nulo, una roca no puntúa dos veces por impactos simultáneos, los eventos tempranos se aplican al generarse la roca y los dos clientes terminan con el mismo resultado confirmado. Blackjack conserva la identidad del jugador activo cuando sale otro asiento; si sale el jugador actual, avanza al siguiente y renueva su tiempo, sin liquidar el resultado dos veces.
+
+`batch2-smoke.cjs` cubre los 96 arranques/controles disponibles en PC/móvil emulado, la conexión y transporte de eventos de 23 duelos y las páginas de mesa/fiesta. `batch2-regression.cjs` reproduce los reinicios de KO, flechas, aterrizajes, dados, cartas, piedras y cuentas; la transición de Flow; y los choques, impactos simultáneos, eventos tempranos, orden del marcador y final de Asteroides online. Las pruebas Python incluyen partidas de mesa con bots y las salidas de asientos de Blackjack.
+
+Quedan pendientes torneos con llaves, reto diario con clasificación del día, skins de equipamiento/fondos y chat rápido. La tienda de avatares y marcos anterior se conserva.
