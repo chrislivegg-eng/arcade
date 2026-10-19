@@ -20,7 +20,6 @@
     $('password').autocomplete = modo === 'entrar' ? 'current-password' : 'new-password';
     $('password-label').textContent = recuperar ? 'Nueva contraseña' : 'Contraseña';
     $('usuario').maxLength = registro || recuperar ? 14 : 254;
-    $('correo-opcional').hidden = modo !== 'entrar';
     $('recuperacion-campo').hidden = !recuperar;
     $('recuperacion').required = recuperar;
     $('admin').hidden = !invitacion || recuperar;
