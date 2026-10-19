@@ -551,6 +551,7 @@
 
       function terminar() {
         const [a, b] = J.puntos;
+        if (J.anotadas[0]) window.Perfil && Perfil.evento("basquet", "canasta", { n: J.anotadas[0] });
         if (J.modo === "solo") {
           sonar("ganar");
           return ui.terminar({ emoji: "🏀", texto: `¡${a} puntos!`, nota: `${J.anotadas[0]} canastas de ${J.tiros} tiros`, record: a });

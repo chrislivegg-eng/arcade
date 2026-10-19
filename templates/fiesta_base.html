@@ -21,6 +21,7 @@
 
       <!-- ===== Pantalla de inicio: nombre + crear / unirse ===== -->
       <div id="pantalla-inicio" class="pila">
+        <div id="insignia-perfil" class="centro"></div>
         <div class="tarjeta pila">
           <h2>¿Cómo te llamas?</h2>
           <input id="nombre" class="campo" maxlength="16" placeholder="Tu nombre" autocomplete="nickname" />
@@ -65,7 +66,11 @@
       <div class="pie"><a href="/secreto">← Volver al menú de juegos</a></div>
     </div>
 
+    <script src="{{ url_for('static', filename='js/perfil.js') }}"></script>
     <script src="{{ url_for('static', filename='js/fiesta.js') }}"></script>
+    <script>
+      Perfil.insignia(document.getElementById("insignia-perfil"));
+    </script>
     {% block script %}{% endblock %}
   </body>
 </html>

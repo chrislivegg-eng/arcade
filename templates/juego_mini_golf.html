@@ -573,6 +573,7 @@
             const nombre = golpes === 1 ? "⛳ ¡HOYO EN UNO!" : dif <= -2 ? "🦅 ¡Águila!" : dif === -1 ? "🐦 ¡Birdie!" : dif === 0 ? "👍 Par" : dif === 1 ? "Bogey" : `+${dif}`;
             ui.avisar(`${nombre}<small>${golpes} golpe${golpes === 1 ? "" : "s"}${J.modo === "solo" ? "" : " · " + J.nombres[p]}</small>`, dif < 0 ? "#26de81" : dif === 0 ? "#4fb3ff" : "#ffb84f");
             if (golpes === 1 || dif < 0) sonar("publico");
+            if (golpes === 1 && soyYo(p) && J.modo !== "local") window.Perfil && Perfil.evento("mini_golf", "hoyo_en_uno");
             await esperar(1800);
           }
         }

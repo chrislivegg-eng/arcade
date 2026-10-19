@@ -244,6 +244,7 @@
           const res = await ronda(partida);
           if (!res || !J.activa || partida !== J.partida) return;
           let mio = res[1];
+          if (Number.isFinite(mio) && mio < 200 && J.modo !== "local") window.Perfil && Perfil.evento("reflejos", "reaccion", { ms: mio });
 
           if (J.modo === "solo") {
             if (!Number.isFinite(mio)) {

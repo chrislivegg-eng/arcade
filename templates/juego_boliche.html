@@ -639,7 +639,10 @@
           else if (derribados === 0) mensaje = ["😬 Nada…", "#888"];
           else mensaje = [`${derribados} pino${derribados === 1 ? "" : "s"}`, "#ffd84f"];
           ui.avisar(...mensaje);
-          if (mensaje[0].includes("STRIKE")) sonar("publico");
+          if (mensaje[0].includes("STRIKE")) {
+            sonar("publico");
+            if (soyYo(p) && J.modo !== "local") window.Perfil && Perfil.evento("boliche", "strike");
+          }
           await esperar(1400);
 
           if (!ultimo) {

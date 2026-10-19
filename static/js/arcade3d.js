@@ -5,6 +5,14 @@
 //   Arcade.ui({...}) → menú, marcador, avisos, modo online y récords
 //   Arcade.deslizar() → leer gestos de deslizar el dedo / mouse
 
+// Carga el perfil (avatar, monedas y logros) en todos los juegos
+if (!window.Perfil && !document.getElementById("script-perfil")) {
+  const s = document.createElement("script");
+  s.id = "script-perfil";
+  s.src = "/static/js/perfil.js";
+  document.head.appendChild(s);
+}
+
 const Arcade = (() => {
   const $ = (id) => document.getElementById(id);
   const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -417,6 +425,7 @@ const Arcade = (() => {
 
       <div id="menu" class="capa">
         <div class="tarjeta">
+          <div id="insignia-perfil" style="text-align:center"></div>
           <div class="titulo">
             <div class="emoji">${config.emoji}</div>
             <h1>${config.titulo}</h1>
@@ -511,6 +520,15 @@ const Arcade = (() => {
     }
 
     $("nombre").value = $("nombre-online").value = nombreGuardado();
+    // la insignia del perfil (avatar, nombre y monedas) arriba del menú
+    const esperarPerfil = setInterval(() => {
+      if (!window.Perfil) return;
+      clearInterval(esperarPerfil);
+      Perfil.insignia($("insignia-perfil"));
+      Perfil.cargar().then((d) => {
+        if (d && d.nombre && d.nombre !== "Jugador" && !$("nombre").value) $("nombre").value = $("nombre-online").value = d.nombre;
+      });
+    }, 100);
     $("nombre").addEventListener("input", () => ($("nombre-online").value = $("nombre").value));
     $("nombre-online").addEventListener("input", () => ($("nombre").value = $("nombre-online").value));
     function miNombre() {
@@ -740,20 +758,25 @@ const Arcade = (() => {
       $("ayuda").style.opacity = texto ? 1 : 0;
     }
 
-    async function terminar({ emoji = "🏆", texto, nota = "", record = null }) {
+    async function terminar({ emoji = "🏆", texto, nota = "", record = null, gano = null }) {
       $("fin-emoji").textContent = emoji;
       $("fin-texto").textContent = texto;
       $("fin-nota").textContent = nota;
       $("fin-record").classList.add("oculto");
       $("btn-revancha").textContent = estado.modo === "online" ? "🔁 Revancha" : "🔁 Otra vez";
       mostrar("menu-fin");
+      let recordNuevo = false;
       if (record != null && config.records) {
         try {
           const yo = estado.online ? estado.online.yo : 0;
           const r = await api(`/api/records/${config.juego}`, { nombre: estado.nombres[yo], puntos: record });
+          recordNuevo = !!r.nuevo_record;
           if (r.nuevo_record) $("fin-record").classList.remove("oculto");
         } catch (e) {}
       }
+      // monedas y logros (si el juego no dice si ganaste, se adivina por el trofeo)
+      if (gano == null) gano = estado.modo !== "solo" && estado.modo !== "local" && ["🏆", "🥇"].includes(emoji);
+      window.Perfil && Perfil.evento(config.juego, "fin", { gano, modo: estado.modo, dificultad: estado.dificultad, record_nuevo: recordNuevo });
     }
 
     function enviar(tipo, datos) {

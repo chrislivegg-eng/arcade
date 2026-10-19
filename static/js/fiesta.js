@@ -156,9 +156,22 @@ const Fiesta = (() => {
       estado = nuevo;
       pintarJugadores();
       config.pintar(estado, $("zona-juego"));
+      avisarPerfil();
     } catch (e) {
       if (/no existe|Ya no estás/.test(e.message)) salirAlInicio(e.message);
     }
+  }
+
+  // al terminar una ronda o el juego: monedas y logros en el perfil
+  let ultimoAvisoPerfil = "";
+  function avisarPerfil() {
+    if (!window.Perfil || (estado.fase !== "final" && estado.fase !== "resultado")) return;
+    const clave = `${codigo}:${estado.ronda}:${estado.fase}`;
+    if (clave === ultimoAvisoPerfil) return;
+    ultimoAvisoPerfil = clave;
+    const mayor = Math.max(...estado.jugadores.map((j) => j.puntos));
+    const mio = (estado.jugadores.find((j) => j.id === PID) || {}).puntos || 0;
+    Perfil.evento(config.juego, "fin", { gano: mio > 0 && mio === mayor, modo: "online" });
   }
 
   function pintarJugadores() {

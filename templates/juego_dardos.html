@@ -514,6 +514,7 @@
       </div>
     </div>
 
+    <script src="{{ url_for('static', filename='js/perfil.js') }}"></script>
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
     <script>
       // =========================================================
@@ -1208,6 +1209,8 @@
 
       function mostrarFin(ganador) {
         J.terminado = true;
+        const gane = J.modo === "online" ? ganador === O.yo : J.modo === "bot" ? ganador === 0 : false;
+        window.Perfil && Perfil.evento("dardos", "fin", { gano: gane, modo: J.modo, dificultad: J.dificultad === "pro" ? "pro" : J.dificultad });
         actualizarHUD();
         let texto = `¡Ganó ${J.nombres[ganador]}!`,
           emoji = "🏆";

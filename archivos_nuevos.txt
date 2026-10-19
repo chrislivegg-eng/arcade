@@ -34,3 +34,7 @@ templates/juego_ping_pong.html
 templates/juego_billar.html
 templates/juego_karts.html
 templates/juego_zombis.html
+perfil.py
+static/js/perfil.js
+templates/perfil.html
+templates/records.html
