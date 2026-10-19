@@ -13,6 +13,7 @@
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/cannon.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, gauss, lin, material, sonar } = Arcade;
@@ -52,6 +53,7 @@
         ],
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "cielo");
       escena.add(new THREE.HemisphereLight(0xcfeaff, 0x4a7a3a, 0.7));
       const sol = new THREE.DirectionalLight(0xfff4e0, 1.5);
       sol.position.set(-4, 9, 5);

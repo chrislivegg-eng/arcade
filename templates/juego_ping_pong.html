@@ -12,6 +12,7 @@
     <canvas id="lienzo"></canvas>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, gauss, lin, material, sonar } = Arcade;
@@ -31,6 +32,7 @@
       // =========================================================
       const M = Arcade.mundo({ fondo: 0x101828, niebla: [8, 22], fov: 50, exposicion: 1.1 });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "interior");
       escena.add(new THREE.HemisphereLight(0xeaf2ff, 0x202830, 0.6));
       const foco = new THREE.SpotLight(0xffffff, 2.4, 0, 0.7, 0.5, 1);
       foco.position.set(0.5, 4.5, 0.5);
@@ -44,6 +46,7 @@
       piso.rotation.x = -Math.PI / 2;
       piso.receiveShadow = true;
       escena.add(piso);
+      acabado3D.superficie(piso, "madera", { repetir: 10 });
       const texturaMesa = M.textura(512, 920, (g, w, h) => {
         g.fillStyle = "#1565c0";
         g.fillRect(0, 0, w, h);
@@ -95,7 +98,7 @@
         g.fillStyle = "#fff";
         g.fillRect(0, 0, w, 4);
       });
-      const red = new THREE.Mesh(new THREE.PlaneGeometry(MEDIO_ANCHO * 2 + 0.3, RED), new THREE.MeshStandardMaterial({ map: texturaRed, transparent: true, side: THREE.DoubleSide, alphaTest: 0.2 }));
+      const red = new THREE.Mesh(new THREE.PlaneGeometry(MEDIO_ANCHO * 2 + 0.3, RED), Arcade.materialPBR({ map: texturaRed, transparent: true, side: THREE.DoubleSide, alphaTest: 0.2 }));
       red.position.set(0, ALTO + RED / 2, 0);
       escena.add(red);
 

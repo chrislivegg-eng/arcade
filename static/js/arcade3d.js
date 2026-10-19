@@ -90,7 +90,10 @@ const Arcade = (() => {
       l.lookAt(0, 0, 0);
       reflejos.add(l);
     });
-    escena.environment = new THREE.PMREMGenerator(renderer).fromScene(reflejos, 0.04).texture;
+    const generadorAmbiente = new THREE.PMREMGenerator(renderer);
+    escena.environment = generadorAmbiente.fromScene(reflejos, 0.04).texture;
+    generadorAmbiente.dispose();
+    reflejos.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
 
     const alCambiarTamano = [];
     function ajustar() {
@@ -167,8 +170,11 @@ const Arcade = (() => {
   // Los colores se escriben como en CSS; Three.js los necesita en espacio lineal
   const lin = (hex) => new THREE.Color(hex).convertSRGBToLinear();
 
+  function materialPBR(opciones) {
+    return window.Graficos3D ? Graficos3D.material(opciones) : new THREE.MeshStandardMaterial(opciones);
+  }
   function material(color, extra = {}) {
-    return new THREE.MeshStandardMaterial({ color: lin(color), roughness: 0.6, ...extra });
+    return materialPBR({ color: lin(color), roughness: 0.6, ...extra });
   }
 
   // Textura de madera (pisos, mesas, paredes)
@@ -524,6 +530,7 @@ const Arcade = (() => {
       if (id === "menu" && config.records) cargarRecords();
     }
 
+    window.Graficos3D?.selector($("menu").querySelector(".tarjeta"));
     $("nombre").value = $("nombre-online").value = nombreGuardado();
     // la insignia del perfil (avatar, nombre y monedas) arriba del menú
     const esperarPerfil = setInterval(() => {
@@ -867,6 +874,7 @@ const Arcade = (() => {
     esc,
     lin,
     material,
+    materialPBR,
     dibujarMadera,
     mundo,
     sonar,

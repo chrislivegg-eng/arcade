@@ -21,6 +21,7 @@
     <canvas id="lienzo"></canvas>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, lin, sonar, gauss } = Arcade;
@@ -42,8 +43,9 @@
         colorAmbiente: 0xe8f4ff,
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "cielo");
       const mat = (c, x = {}) =>
-        new THREE.MeshStandardMaterial({
+        Arcade.materialPBR({
           color: lin(c),
           roughness: 0.85,
           ...x,
@@ -69,6 +71,7 @@
       nieve.rotation.x = -Math.PI / 2;
       nieve.receiveShadow = true;
       escena.add(nieve);
+      acabado3D.superficie(nieve, "nieve", { repetir: 24 });
       const carril = new THREE.Mesh(
         new THREE.PlaneGeometry(ANCHO * 2, 22),
         mat(0xe3f0ff, { roughness: 0.4 }),
@@ -77,6 +80,7 @@
       carril.position.set(0, 0.01, 5);
       carril.receiveShadow = true;
       escena.add(carril);
+      acabado3D.superficie(carril, "hielo", { repetir: 5 });
       [-1, 1].forEach((l) => {
         const borde = new THREE.Mesh(
           new THREE.CylinderGeometry(0.25, 0.25, 22, 10),

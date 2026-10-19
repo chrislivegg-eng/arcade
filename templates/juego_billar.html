@@ -12,6 +12,7 @@
     <canvas id="lienzo"></canvas>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, gauss, lin, material, sonar } = Arcade;
@@ -38,6 +39,7 @@
       // =========================================================
       const M = Arcade.mundo({ fondo: 0x0d1a12, niebla: [6, 14], fov: 50, exposicion: 1.1, lamparas: [[0, 6, 0, 0xfff2d8, 4], [-5, 2, 3, 0xffd8a0, 1], [5, 2, -3, 0xffd8a0, 1]] });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "interior");
       escena.add(new THREE.HemisphereLight(0xfff2e0, 0x1a1a10, 0.45));
       const lampara = new THREE.SpotLight(0xfff0d0, 2.6, 0, 0.75, 0.55, 1);
       lampara.position.set(0, 2.6, 0);
@@ -56,6 +58,7 @@
       pisoMadera.rotation.x = -Math.PI / 2;
       pisoMadera.position.y = -0.8;
       escena.add(pisoMadera);
+      acabado3D.superficie(pisoMadera, "madera", { repetir: 10 });
 
       const texturaPano = M.textura(512, 1024, (g, w, h) => {
         g.fillStyle = "#1b7a3e";
@@ -92,6 +95,7 @@
       pano.position.y = -0.02;
       pano.receiveShadow = true;
       escena.add(pano);
+      acabado3D.superficie(pano, "tela", { repetir: 10 });
       // bandas y marco de madera
       const matMadera = material(0xffffff, { map: M.textura(256, 64, (g, w, h) => Arcade.dibujarMadera(g, w, h, { tono: 20, sat: 55, luz: 30, tablas: 2, vertical: false })), roughness: 0.4 });
       const matBanda = material(0x14612f, { roughness: 0.9 });

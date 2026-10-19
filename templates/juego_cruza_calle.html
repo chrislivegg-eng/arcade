@@ -12,6 +12,7 @@
     <canvas id="lienzo"></canvas>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, lin, sonar } = Arcade;
@@ -25,7 +26,8 @@
       // =========================================================
       const M = Arcade.mundo({ fondo: 0x7ed0ff, fov: 42, exposicion: 1.0, colorAmbiente: 0xbfe8ff });
       const { escena, camara } = M;
-      const plano = (color, extra = {}) => new THREE.MeshStandardMaterial({ color: lin(color), roughness: 0.85, flatShading: true, ...extra });
+      const acabado3D = Graficos3D.configurar(M, "cielo");
+      const plano = (color, extra = {}) => Arcade.materialPBR({ color: lin(color), roughness: 0.85, flatShading: true, ...extra });
       escena.add(new THREE.HemisphereLight(0xffffff, 0x6a8a5a, 0.75));
       const sol = new THREE.DirectionalLight(0xfff2dd, 1.25);
       sol.castShadow = true;

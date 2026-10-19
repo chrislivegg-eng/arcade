@@ -42,6 +42,7 @@
     <div id="velocidad" class="oculto"><i id="vel"></i></div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, lin, sonar } = Arcade;
@@ -66,8 +67,9 @@
         lejos: 250,
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "cielo");
       const mat = (c, x = {}) =>
-        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.6, ...x });
+        Arcade.materialPBR({ color: lin(c), roughness: 0.6, ...x });
       escena.add(new THREE.HemisphereLight(0xffffff, 0x1a6aa0, 0.45));
       const sol = new THREE.DirectionalLight(0xfff0d8, 1.2);
       sol.position.set(-20, 30, 20);
@@ -79,6 +81,7 @@
       mar.rotation.x = -Math.PI / 2;
       mar.position.y = -0.05;
       escena.add(mar);
+      acabado3D.superficie(mar, "agua", { repetir: 24 });
       // la ola: una tira larga con forma de rampa que se enrosca
       const LARGO = 160,
         SEG_X = 160,
@@ -93,12 +96,15 @@
             b = a + SEG_S + 1;
           indices.push(a, b, a + 1, b, b + 1, a + 1);
         }
+      const uvOla=[];
+      for(let i=0;i<=SEG_X;i++)for(let j=0;j<=SEG_S;j++)uvOla.push(i/SEG_X*20,j/SEG_S);
+      geoOla.setAttribute("uv",new THREE.Float32BufferAttribute(uvOla,2));
       geoOla.setIndex(indices);
       geoOla.setAttribute("position", new THREE.BufferAttribute(vert, 3));
       geoOla.setAttribute("color", new THREE.BufferAttribute(colores, 3));
       const ola = new THREE.Mesh(
         geoOla,
-        new THREE.MeshStandardMaterial({
+        Arcade.materialPBR({
           vertexColors: true,
           roughness: 0.55,
           metalness: 0,
@@ -108,6 +114,7 @@
       );
       ola.frustumCulled = false; // la forma cambia en cada cuadro
       escena.add(ola);
+      acabado3D.superficie(ola, "agua", { repetir: 3, relieve: .01 });
       function moldearOla(t, x0) {
         let k = 0;
         for (let i = 0; i <= SEG_X; i++) {
@@ -142,7 +149,7 @@
       // espuma que persigue (la sección que se cierra)
       const espuma = new THREE.Mesh(
         new THREE.SphereGeometry(2.5, 16, 12),
-        new THREE.MeshStandardMaterial({
+        Arcade.materialPBR({
           color: 0xffffff,
           roughness: 1,
           transparent: true,

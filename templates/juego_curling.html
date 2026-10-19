@@ -44,6 +44,7 @@
     <button id="barrer" class="oculto">🧹 ¡BARRE! (toca rápido)</button>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, lin, sonar, gauss } = Arcade;
@@ -66,8 +67,9 @@
         colorAmbiente: 0xd0e8ff,
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "interior");
       const mat = (c, x = {}) =>
-        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.5, ...x });
+        Arcade.materialPBR({ color: lin(c), roughness: 0.5, ...x });
       escena.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 0.8));
       const luz = new THREE.DirectionalLight(0xffffff, 0.8);
       luz.position.set(3, 12, 6);
@@ -111,7 +113,7 @@
       });
       const hielo = new THREE.Mesh(
         new THREE.PlaneGeometry(ANCHO * 2, 28),
-        new THREE.MeshStandardMaterial({
+        Arcade.materialPBR({
           map: texHielo,
           roughness: 0.12,
           metalness: 0.05,
@@ -121,6 +123,7 @@
       hielo.position.z = 10;
       hielo.receiveShadow = true;
       escena.add(hielo);
+      acabado3D.superficie(hielo, "hielo", { repetir: 6 });
       [-1, 1].forEach((l) => {
         const b = new THREE.Mesh(
           new THREE.BoxGeometry(0.15, 0.25, 28),

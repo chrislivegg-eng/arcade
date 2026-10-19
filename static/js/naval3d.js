@@ -100,7 +100,7 @@
 
   // ----- Escena: agua, iluminación y maquetas de barcos -----
   function material(color, options = {}) {
-    return new THREE.MeshStandardMaterial({
+    return Graficos3D.material({
       color,
       roughness: 0.48,
       metalness: 0.35,
@@ -185,6 +185,7 @@
         metalness: 0.18,
       }),
     );
+    Graficos3D.superficie(water, "agua", { repetir: 3 });
     water.receiveShadow = true;
     group.add(water);
     const lines = [];
@@ -564,6 +565,8 @@
       scene.add(rim);
       createBoard(0);
       createBoard(1);
+      Graficos3D.configurar({renderer,escena:scene}, "interior");
+      Graficos3D.selector($("pantalla-menu").querySelector(".menu-copy"));
       const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(70, 70),
         new THREE.ShadowMaterial({ opacity: 0.22 }),

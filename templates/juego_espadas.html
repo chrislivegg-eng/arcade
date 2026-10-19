@@ -93,6 +93,7 @@
     <div id="reloj" class="oculto"></div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, lin, sonar } = Arcade;
@@ -119,8 +120,9 @@
         ],
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "interior");
       const mat = (c, x = {}) =>
-        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.6, ...x });
+        Arcade.materialPBR({ color: lin(c), roughness: 0.6, ...x });
       escena.add(new THREE.HemisphereLight(0xffe0d0, 0x301010, 0.55));
       const foco = new THREE.SpotLight(0xfff2e0, 2.2, 30, 0.6, 0.5);
       foco.position.set(0, 9, 1);
@@ -129,7 +131,7 @@
       foco.shadow.mapSize.set(1024, 1024);
       escena.add(foco, foco.target);
       const caja = (w, h, d, m, x = 0, y = 0, z = 0) => {
-        const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+        const b = new THREE.Mesh(Graficos3D.cajaSuave(w, h, d, .065), m);
         b.position.set(x, y, z);
         b.castShadow = b.receiveShadow = true;
         return b;
@@ -149,7 +151,7 @@
       const piso = new THREE.Mesh(new THREE.BoxGeometry(8, 0.3, 8), [
         mat(0xdddddd),
         mat(0xdddddd),
-        new THREE.MeshStandardMaterial({ map: lona, roughness: 0.9 }),
+        Arcade.materialPBR({ map: lona, roughness: 0.9 }),
         mat(0x222222),
         mat(0xdddddd),
         mat(0xdddddd),
@@ -157,6 +159,7 @@
       piso.position.set(0, -0.15, -1.5);
       piso.receiveShadow = true;
       escena.add(piso);
+      acabado3D.superficie(piso, "tela", { repetir: 8 });
       // postes y cuerdas
       const matPoste = mat(0xc0c0c8, { metalness: 0.8, roughness: 0.3 });
       const esquinas = [

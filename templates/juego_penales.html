@@ -71,6 +71,7 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, gauss, rng, lin, material, sonar } = Arcade;
@@ -103,6 +104,7 @@
         ],
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "cielo");
 
       // --- Césped con líneas ---
       const PX_M = 40;
@@ -143,10 +145,12 @@
       cesped.position.set(0, 0, 15);
       cesped.receiveShadow = true;
       escena.add(cesped);
+      acabado3D.superficie(cesped, "cesped", { repetir: 15 });
       const afuera = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), material(0x2a7a34, { roughness: 1 }));
       afuera.rotation.x = -Math.PI / 2;
       afuera.position.y = -0.01;
       escena.add(afuera);
+      acabado3D.superficie(afuera, "cesped", { repetir: 50 });
 
       // --- Portería ---
       const matPoste = material(0xffffff, { roughness: 0.3, metalness: 0.2 });
@@ -179,7 +183,7 @@
         const t = texturaRed.clone();
         t.needsUpdate = true;
         t.repeat.set(rx, ry);
-        return new THREE.MeshStandardMaterial({ map: t, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide, roughness: 0.8 });
+        return Arcade.materialPBR({ map: t, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide, roughness: 0.8 });
       };
       const FONDO_RED = 2.0;
       const geoRedFondo = new THREE.PlaneGeometry(ANCHO_PORT, ALTO_PORT, 24, 10);

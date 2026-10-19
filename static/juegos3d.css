@@ -380,3 +380,7 @@ body {
 details summary {
   cursor: pointer;
 }
+
+/* Ajuste compartido de calidad gráfica */
+.calidad-3d{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 4px;font-size:.85rem;color:#ddd3e8;font-weight:800}
+.calidad-3d select{font:inherit;padding:7px 10px;border:1px solid #ffffff40;border-radius:10px;background:#2b2238;color:#f5efff;max-width:65%}

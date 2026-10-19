@@ -88,3 +88,5 @@ cuentas.py
 records_cuenta.py
 templates/cuenta.html
 static/js/cuenta.js
+
+static/js/graficos3d.js

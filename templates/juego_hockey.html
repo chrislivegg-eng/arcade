@@ -36,6 +36,7 @@
     <div id="reloj" class="oculto"></div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, lin, sonar, gauss } = Arcade;
@@ -67,8 +68,9 @@
         ],
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "interior");
       const mat = (c, x = {}) =>
-        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.6, ...x });
+        Arcade.materialPBR({ color: lin(c), roughness: 0.6, ...x });
       escena.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 0.7));
       const luz = new THREE.DirectionalLight(0xffffff, 0.9);
       luz.position.set(4, 18, 6);
@@ -84,7 +86,7 @@
       });
       escena.add(luz);
       const caja = (w, h, d, m, x = 0, y = 0, z = 0) => {
-        const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+        const b = new THREE.Mesh(Graficos3D.cajaSuave(w, h, d, .065), m);
         b.position.set(x, y, z);
         b.castShadow = b.receiveShadow = true;
         return b;
@@ -142,7 +144,7 @@
       });
       const hielo = new THREE.Mesh(
         new THREE.PlaneGeometry(W * 2, L * 2),
-        new THREE.MeshStandardMaterial({
+        Arcade.materialPBR({
           map: texHielo,
           roughness: 0.15,
           metalness: 0.05,
@@ -151,6 +153,7 @@
       hielo.rotation.x = -Math.PI / 2;
       hielo.receiveShadow = true;
       escena.add(hielo);
+      acabado3D.superficie(hielo, "hielo", { repetir: 6 });
       // bardas
       const matBarda = mat(0xffffff, { roughness: 0.4 }),
         matBorde = mat(0xffd84f);
@@ -177,7 +180,7 @@
         );
         const red = new THREE.Mesh(
           new THREE.BoxGeometry(BOCA * 2, 1.2, 0.9),
-          new THREE.MeshStandardMaterial({
+          Arcade.materialPBR({
             color: 0xffffff,
             transparent: true,
             opacity: 0.35,
@@ -191,22 +194,20 @@
       }
       porteria(-LINEA_GOL, -1);
       porteria(LINEA_GOL, 1);
-      // público
-      for (let i = 0; i < 220; i++) {
-        const lado = Math.random() < 0.5 ? -1 : 1;
-        const fila = Math.floor(Math.random() * 5);
-        const p = caja(
-          0.4,
-          0.9,
-          0.4,
-          mat(new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex()),
-          lado * (W + 1.2 + fila * 0.7),
-          0.6 + fila * 0.45,
-          azar(-L, L),
-        );
-        p.castShadow = false;
-        escena.add(p);
+      // Gradas ordenadas: cuerpos y cabezas agrupados en dos llamadas de dibujo.
+      const publico3D = new THREE.InstancedMesh(Graficos3D.cajaSuave(.38,.62,.34,.06),mat(0xffffff),220);
+      const cabezas3D = new THREE.InstancedMesh(new THREE.SphereGeometry(.14,8,6),mat(0xe9b08a),220);
+      const matrizPublico = new THREE.Matrix4();
+      for(let i=0;i<220;i++) {
+        const lado=i<110?-1:1, fila=Math.floor((i%110)/22), columna=i%22;
+        const x=lado*(W+1.2+fila*.7), y=.65+fila*.45, z=-L+(columna+.5)*(2*L/22);
+        publico3D.setMatrixAt(i,matrizPublico.makeTranslation(x,y,z));
+        publico3D.setColorAt(i,lin(new THREE.Color().setHSL((i*.618)%1,.5,.48).getHex()));
+        cabezas3D.setMatrixAt(i,matrizPublico.makeTranslation(x,y+.46,z));
       }
+      publico3D.instanceMatrix.needsUpdate = cabezas3D.instanceMatrix.needsUpdate = true;
+      publico3D.instanceColor.needsUpdate = true;
+      escena.add(publico3D,cabezas3D);
 
       // jugadores
       function crearPatinador(color, numero) {

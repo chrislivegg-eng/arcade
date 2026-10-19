@@ -65,6 +65,7 @@
     <button id="abrir" class="oculto">🪂 ¡ABRIR PARACAÍDAS!</button>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, lin, sonar } = Arcade;
@@ -86,8 +87,9 @@
         lejos: 2000,
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "cielo");
       const mat = (c, x = {}) =>
-        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.8, ...x });
+        Arcade.materialPBR({ color: lin(c), roughness: 0.8, ...x });
       escena.add(new THREE.HemisphereLight(0xeaf6ff, 0x5a7a3a, 0.9));
       const sol = new THREE.DirectionalLight(0xfff0d8, 1.1);
       sol.position.set(100, 400, 100);
@@ -115,10 +117,11 @@
       texCampo.repeat.set(12, 12);
       const suelo = new THREE.Mesh(
         new THREE.PlaneGeometry(3000, 3000),
-        new THREE.MeshStandardMaterial({ map: texCampo }),
+        Arcade.materialPBR({ map: texCampo }),
       );
       suelo.rotation.x = -Math.PI / 2;
       escena.add(suelo);
+      acabado3D.superficie(suelo, "cesped", { repetir: 30 });
       // diana de aterrizaje
       const texDiana = M.textura(256, 256, (g, w, h) => {
         ["#ffffff", "#e0323c", "#ffffff", "#e0323c", "#ffd84f"].forEach(
@@ -142,7 +145,7 @@
       for (let i = 0; i < 40; i++) {
         const n = new THREE.Mesh(
           new THREE.SphereGeometry(azar(15, 35), 10, 8),
-          new THREE.MeshStandardMaterial({
+          Arcade.materialPBR({
             color: 0xffffff,
             transparent: true,
             opacity: 0.75,
@@ -188,7 +191,7 @@
       escena.add(persona);
       const vela = new THREE.Mesh(
         new THREE.SphereGeometry(3, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2.6),
-        new THREE.MeshStandardMaterial({
+        Arcade.materialPBR({
           color: lin(0xffd84f),
           side: THREE.DoubleSide,
           roughness: 0.6,

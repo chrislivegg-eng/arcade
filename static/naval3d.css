@@ -879,3 +879,6 @@ footer b {
     grid-template-columns: repeat(5, 48px);
   }
 }
+
+.calidad-3d{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:.8rem;color:#b2cbd8}
+.calidad-3d select{font:inherit;padding:7px 10px;border:1px solid #58e4e240;border-radius:8px;background:#0d2636;color:#dcf6ff}

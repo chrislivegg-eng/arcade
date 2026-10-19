@@ -26,6 +26,7 @@
     <div id="altura" class="oculto">0</div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, limitar, lin, sonar } = Arcade;
@@ -36,6 +37,7 @@
 
       const M = Arcade.mundo({ fondo: 0x2b1d63, fov: 40, exposicion: 1.05, sombras: true, colorAmbiente: 0x6a5acd });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "dinamico");
       escena.add(new THREE.HemisphereLight(0xffffff, 0x443366, 0.7));
       const sol = new THREE.DirectionalLight(0xffffff, 1.0);
       sol.castShadow = true;
@@ -45,14 +47,14 @@
 
       const colorDe = (n) => new THREE.Color().setHSL(((n * 0.022 + J.tono) % 1 + 1) % 1, 0.62, 0.62).convertSRGBToLinear();
       function bloque(w, d, n) {
-        const m = new THREE.Mesh(new THREE.BoxGeometry(w, ALTO, d), new THREE.MeshStandardMaterial({ color: colorDe(n), roughness: 0.45 }));
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, ALTO, d), Arcade.materialPBR({ color: colorDe(n), roughness: 0.45 }));
         m.castShadow = m.receiveShadow = true;
         escena.add(m);
         return m;
       }
 
       // Base
-      const base = new THREE.Mesh(new THREE.BoxGeometry(TAMANO, 6, TAMANO), new THREE.MeshStandardMaterial({ color: lin(0x3a2a7a), roughness: 0.6 }));
+      const base = new THREE.Mesh(new THREE.BoxGeometry(TAMANO, 6, TAMANO), Arcade.materialPBR({ color: lin(0x3a2a7a), roughness: 0.6 }));
       base.position.y = -3 - ALTO / 2;
       base.receiveShadow = true;
       escena.add(base);
