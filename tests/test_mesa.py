@@ -137,6 +137,42 @@ class MesaTest(unittest.TestCase):
         final = self.avanzar(codigo, jugar)
         self.assertIn('ganador_ronda', final)
 
+    def test_blackjack_conserva_turno_si_sale_un_asiento_anterior(self):
+        for salida in ('p0', 'p1', 'p2'):
+            with self.subTest(salida=salida):
+                fiesta.salas_fiesta.clear()
+                codigo, sala = self.sala('blackjack', bots=0, humanos=3)
+                self.accion(codigo, 'iniciar')
+                for p in ('p0', 'p1', 'p2'):
+                    self.accion(codigo, 'apostar', pid=p, cantidad=10)
+                self.vista(codigo)
+                e = sala['bj']
+                sala['fase'] = 'jugando'
+                e['turno'] = 1
+                e['manos']['p0']['estado'] = 'plantado'
+                for p in ('p1', 'p2'):
+                    e['manos'][p]['estado'] = 'jugando'
+                fiesta._sacar_jugador(sala, salida)
+                consulta = 'p2' if salida == 'p1' else 'p1'
+                self.assertEqual(self.vista(codigo, consulta)['turno'], consulta)
+
+    def test_blackjack_salida_del_ultimo_turno_liquida_una_sola_vez(self):
+        codigo, sala = self.sala('blackjack', bots=0, humanos=2)
+        self.accion(codigo, 'iniciar')
+        for p in ('p0', 'p1'):
+            self.accion(codigo, 'apostar', pid=p, cantidad=10)
+        self.vista(codigo)
+        e = sala['bj']
+        sala['fase'] = 'jugando'
+        e['turno'] = 1
+        e['manos']['p0']['estado'] = 'plantado'
+        e['manos']['p1']['estado'] = 'jugando'
+        fiesta._sacar_jugador(sala, 'p1')
+        self.assertEqual(self.vista(codigo)['fase'], 'resultado')
+        saldo = sala['jugadores']['p0']['puntos']
+        self.vista(codigo)
+        self.assertEqual(sala['jugadores']['p0']['puntos'], saldo)
+
     def test_premio_de_mesa_lo_decide_el_servidor(self):
         carpeta = tempfile.TemporaryDirectory()
         with patch.object(perfil, 'ARCHIVO_PERFILES', str(Path(carpeta.name) / 'perfiles.json')):

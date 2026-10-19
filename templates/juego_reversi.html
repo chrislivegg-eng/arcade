@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#0b2a1a" />
     <title>Reversi · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
     <style>
       body {
         background: radial-gradient(ellipse at top, #1f5a3a, #08160f 70%);
@@ -78,10 +87,21 @@
     <script>
       const { $, sonar } = Arcade;
       // n = negras (empiezan), b = blancas
-      const DIRS = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+      const DIRS = [
+        [-1, -1],
+        [-1, 0],
+        [-1, 1],
+        [0, -1],
+        [0, 1],
+        [1, -1],
+        [1, 0],
+        [1, 1],
+      ];
       const PESOS = [
-        100, -20, 10, 5, 5, 10, -20, 100, -20, -50, -2, -2, -2, -2, -50, -20, 10, -2, 1, 1, 1, 1, -2, 10, 5, -2, 1, 0, 0, 1, -2, 5,
-        5, -2, 1, 0, 0, 1, -2, 5, 10, -2, 1, 1, 1, 1, -2, 10, -20, -50, -2, -2, -2, -2, -50, -20, 100, -20, 10, 5, 5, 10, -20, 100,
+        100, -20, 10, 5, 5, 10, -20, 100, -20, -50, -2, -2, -2, -2, -50, -20,
+        10, -2, 1, 1, 1, 1, -2, 10, 5, -2, 1, 0, 0, 1, -2, 5, 5, -2, 1, 0, 0, 1,
+        -2, 5, 10, -2, 1, 1, 1, 1, -2, 10, -20, -50, -2, -2, -2, -2, -50, -20,
+        100, -20, 10, 5, 5, 10, -20, 100,
       ];
       const otro = (c) => (c === "n" ? "b" : "n");
       function inicial() {
@@ -99,12 +119,22 @@
           const linea = [];
           let r = r0 + dr,
             k = c0 + dc;
-          while (r >= 0 && r < 8 && k >= 0 && k < 8 && b[r * 8 + k] === otro(c)) linea.push(r * 8 + k), (r += dr), (k += dc);
-          if (linea.length && r >= 0 && r < 8 && k >= 0 && k < 8 && b[r * 8 + k] === c) res.push(...linea);
+          while (r >= 0 && r < 8 && k >= 0 && k < 8 && b[r * 8 + k] === otro(c))
+            (linea.push(r * 8 + k), (r += dr), (k += dc));
+          if (
+            linea.length &&
+            r >= 0 &&
+            r < 8 &&
+            k >= 0 &&
+            k < 8 &&
+            b[r * 8 + k] === c
+          )
+            res.push(...linea);
         }
         return res;
       }
-      const jugadas = (pos, c = pos.turno) => pos.b.map((_, i) => i).filter((i) => volteos(pos.b, i, c).length);
+      const jugadas = (pos, c = pos.turno) =>
+        pos.b.map((_, i) => i).filter((i) => volteos(pos.b, i, c).length);
       function aplicar(pos, i) {
         const b = pos.b.slice();
         const v = volteos(b, i, pos.turno);
@@ -115,13 +145,17 @@
         return { b, turno, volteadas: v };
       }
       const cuenta = (b, c) => b.filter((x) => x === c).length;
-      const terminado = (pos) => !jugadas(pos, "n").length && !jugadas(pos, "b").length;
+      const terminado = (pos) =>
+        !jugadas(pos, "n").length && !jugadas(pos, "b").length;
 
       // bot: minimax con pesos de posición y movilidad
       function evaluar(pos, yo) {
-        if (terminado(pos)) return (cuenta(pos.b, yo) - cuenta(pos.b, otro(yo))) * 1000;
+        if (terminado(pos))
+          return (cuenta(pos.b, yo) - cuenta(pos.b, otro(yo))) * 1000;
         let s = 0;
-        pos.b.forEach((x, i) => x !== "." && (s += x === yo ? PESOS[i] : -PESOS[i]));
+        pos.b.forEach(
+          (x, i) => x !== "." && (s += x === yo ? PESOS[i] : -PESOS[i]),
+        );
         s += (jugadas(pos, yo).length - jugadas(pos, otro(yo)).length) * 5;
         return s;
       }
@@ -132,25 +166,30 @@
         let mejor = max ? -Infinity : Infinity;
         for (const i of lista) {
           const v = minimax(aplicar(pos, i), prof - 1, alfa, beta, yo);
-          if (max) (mejor = Math.max(mejor, v)), (alfa = Math.max(alfa, v));
-          else (mejor = Math.min(mejor, v)), (beta = Math.min(beta, v));
+          if (max) ((mejor = Math.max(mejor, v)), (alfa = Math.max(alfa, v)));
+          else ((mejor = Math.min(mejor, v)), (beta = Math.min(beta, v)));
           if (beta <= alfa) break;
         }
         return mejor;
       }
       function mejorJugada(pos, nivel) {
-        const [prof, ruido] = { facil: [1, 60], normal: [3, 8], pro: [5, 0] }[nivel];
+        const [prof, ruido] = { facil: [1, 60], normal: [3, 8], pro: [5, 0] }[
+          nivel
+        ];
         let mejor = null,
           mejorV = -Infinity;
         for (const i of jugadas(pos)) {
-          const v = minimax(aplicar(pos, i), prof - 1, -Infinity, Infinity, pos.turno) + Math.random() * ruido;
-          if (v > mejorV) (mejorV = v), (mejor = i);
+          const v =
+            minimax(aplicar(pos, i), prof - 1, -Infinity, Infinity, pos.turno) +
+            Math.random() * ruido;
+          if (v > mejorV) ((mejorV = v), (mejor = i));
         }
         return mejor;
       }
 
       // =================== PARTIDA ===================
       const J = { activa: false };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
       const ui = Arcade.ui({
         juego: "reversi",
         titulo: "Reversi",
@@ -167,34 +206,53 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          ciclo.cancelar();
           J.activa = false;
           $("zona").classList.add("oculto");
         },
       });
       const cola = Tablero.cola((d) => poner(d.i, true));
       ui.alEvento = (tipo, d) => {
-        if (tipo === "mov" && d && d.partida === J.partida) cola.recibir(d.n, d, () => J.n);
+        if (tipo === "mov" && d && d.partida === J.partida)
+          cola.recibir(d.n, d, () => J.n);
       };
-      $("tablero").innerHTML = Array.from({ length: 64 }, (_, i) => `<div class="casilla" data-i="${i}"><div class="ficha"></div></div>`).join("");
+      $("tablero").innerHTML = Array.from(
+        { length: 64 },
+        (_, i) =>
+          `<div class="casilla" data-i="${i}"><div class="ficha"></div></div>`,
+      ).join("");
       $("tablero").addEventListener("click", (e) => {
         const c = e.target.closest(".casilla");
         if (!c || !puedoMover()) return;
         const i = +c.dataset.i;
         if (!volteos(J.pos.b, i, J.pos.turno).length) return;
-        if (J.modo === "online") ui.enviar("mov", { partida: J.partida, n: J.n, i });
+        if (J.modo === "online")
+          ui.enviar("mov", { partida: J.partida, n: J.n, i });
         poner(i);
         if (J.modo === "bot") turnoBot();
       });
 
       function empezar(modo, info) {
-        Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, dificultad: info.dificultad, pos: inicial(), n: 0, ultima: -1, activa: true, pensando: false });
+        ciclo.cancelar();
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          nombres: info.nombres,
+          dificultad: info.dificultad,
+          pos: inicial(),
+          n: 0,
+          ultima: -1,
+          activa: true,
+          pensando: false,
+        });
         J.yo = modo === "online" ? (ui.yo === 0 ? "n" : "b") : "n";
         cola.reiniciar();
         $("zona").classList.remove("oculto");
         pintar([]);
         marcador();
       }
-      const puedoMover = () => J.activa && !J.pensando && (J.modo === "local" || J.pos.turno === J.yo);
+      const puedoMover = () =>
+        J.activa && !J.pensando && (J.modo === "local" || J.pos.turno === J.yo);
       function poner(i, remota) {
         if (remota && !volteos(J.pos.b, i, J.pos.turno).length) return;
         const antes = J.pos.turno;
@@ -205,15 +263,29 @@
         if (J.pos.volteadas.length >= 4) sonar("ping", 0.6);
         pintar(J.pos.volteadas);
         marcador();
-        if (terminado(J.pos)) return setTimeout(fin, 900);
-        if (J.pos.turno === antes) ui.avisar(`${J.pos.turno === "n" ? "⚪" : "⚫"} no puede tirar: pasa`, "#ffd84f");
+        if (terminado(J.pos)) return ciclo.despues(fin, 900);
+        if (J.pos.turno === antes)
+          ui.avisar(
+            `${J.pos.turno === "n" ? "⚪" : "⚫"} no puede tirar: pasa`,
+            "#ffd84f",
+          );
       }
       async function turnoBot() {
-        while (J.activa && J.pos.turno !== J.yo && !terminado(J.pos)) {
+        const sesionTarea = J.sesion || 0;
+        while (
+          sesionTarea === (J.sesion || 0) &&
+          J.activa &&
+          J.pos.turno !== J.yo &&
+          !terminado(J.pos)
+        ) {
           J.pensando = true;
           marcador();
           const partida = J.partida;
-          const i = await Tablero.pensar(() => mejorJugada(J.pos, J.dificultad), 550);
+          const i = await Tablero.pensar(
+            () => mejorJugada(J.pos, J.dificultad),
+            550,
+          );
+          if (sesionTarea !== (J.sesion || 0)) return;
           if (partida !== J.partida || !J.activa) return;
           J.pensando = false;
           poner(i);
@@ -225,19 +297,39 @@
         [...$("tablero").children].forEach((el, i) => {
           const f = el.firstChild;
           const v = J.pos.b[i];
-          f.className = "ficha " + (v === "." ? "" : v) + (volteadas.includes(i) ? " gira" : "");
+          f.className =
+            "ficha " +
+            (v === "." ? "" : v) +
+            (volteadas.includes(i) ? " gira" : "");
           f.style.visibility = v === "." ? "hidden" : "visible";
           el.classList.toggle("puede", jug.has(i));
           el.classList.toggle("ultima", i === J.ultima);
         });
         // al terminar la vuelta se quita la clase para que la siguiente también gire
-        setTimeout(() => document.querySelectorAll(".ficha.gira").forEach((f) => f.classList.remove("gira")), 400);
+        ciclo.despues(
+          () =>
+            document
+              .querySelectorAll(".ficha.gira")
+              .forEach((f) => f.classList.remove("gira")),
+          400,
+        );
       }
       function marcador() {
         const panel = (i) => {
           const c = i === 0 ? "n" : "b";
-          const yoSoy = J.modo === "online" ? J.yo === c : J.modo === "bot" && c === "n";
-          return { nombre: `${c === "n" ? "⚫" : "⚪"} ${J.nombres[i]}${yoSoy ? " (tú)" : ""}`, valor: cuenta(J.pos.b, c), detalle: J.pos.turno === c ? (J.pensando ? "🤔 Pensando…" : "Le toca") : "fichas", activo: J.activa && J.pos.turno === c };
+          const yoSoy =
+            J.modo === "online" ? J.yo === c : J.modo === "bot" && c === "n";
+          return {
+            nombre: `${c === "n" ? "⚫" : "⚪"} ${J.nombres[i]}${yoSoy ? " (tú)" : ""}`,
+            valor: cuenta(J.pos.b, c),
+            detalle:
+              J.pos.turno === c
+                ? J.pensando
+                  ? "🤔 Pensando…"
+                  : "Le toca"
+                : "fichas",
+            activo: J.activa && J.pos.turno === c,
+          };
         };
         ui.marcador([panel(0), panel(1)]);
       }
@@ -251,7 +343,13 @@
         sonar(gane ? "ganar" : g ? "perder" : "rebote");
         ui.terminar({
           emoji: !g ? "🤝" : gane ? "🏆" : "😿",
-          texto: !g ? "¡Empate!" : J.modo === "local" ? `¡Ganó ${J.nombres[g === "n" ? 0 : 1]}!` : gane ? "¡Ganaste!" : `Ganó ${J.nombres[g === "n" ? 0 : 1]}`,
+          texto: !g
+            ? "¡Empate!"
+            : J.modo === "local"
+              ? `¡Ganó ${J.nombres[g === "n" ? 0 : 1]}!`
+              : gane
+                ? "¡Ganaste!"
+                : `Ganó ${J.nombres[g === "n" ? 0 : 1]}`,
           nota: `⚫ ${n} - ${b} ⚪`,
           gano: J.modo !== "local" && !!gane,
         });

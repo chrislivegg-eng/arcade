@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#120c14" />
     <title>Sopa de Letras · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
     <style>
       body {
         background: radial-gradient(ellipse at top, #2a3d66, #0c1220 70%);
@@ -93,27 +102,160 @@
     <script>
       const { $, esperar, sonar } = Arcade;
       const TEMAS = {
-        "🐾 Animales": ["PERRO", "GATO", "TIGRE", "LEON", "PANDA", "ZORRO", "OSO", "BURRO", "CABRA", "PATO", "RANA", "LOBO", "MONO", "VACA", "CEBRA", "JIRAFA", "BALLENA", "TORTUGA", "CONEJO", "AGUILA"],
-        "🍓 Frutas": ["FRESA", "MANGO", "PERA", "UVA", "KIWI", "LIMON", "PIÑA", "MELON", "SANDIA", "CEREZA", "PAPAYA", "COCO", "MORA", "GUAYABA", "PLATANO", "MANZANA", "NARANJA", "DURAZNO"],
-        "🌎 Países": ["MEXICO", "PERU", "CHILE", "CUBA", "ESPAÑA", "ITALIA", "JAPON", "CHINA", "INDIA", "BRASIL", "CANADA", "FRANCIA", "EGIPTO", "RUSIA", "GRECIA", "SUIZA", "COREA"],
-        "⚽ Deportes": ["FUTBOL", "TENIS", "BOX", "GOLF", "SURF", "RUGBY", "KARATE", "BEISBOL", "VOLEIBOL", "NATACION", "CICLISMO", "BOLICHE", "HOCKEY", "JUDO", "ESGRIMA"],
-        "🎮 Juegos": ["AJEDREZ", "DAMAS", "DOMINO", "LOTERIA", "PARCHIS", "UNO", "POKER", "TETRIS", "SUDOKU", "DARDOS", "BILLAR", "WORDLE", "MEMORAMA", "TRIVIA"],
-        "🍔 Comida": ["TACO", "PIZZA", "SOPA", "TORTA", "POZOLE", "TAMAL", "ELOTE", "QUESO", "ARROZ", "FRIJOL", "SALSA", "PASTEL", "HELADO", "GALLETA", "CHURRO"],
+        "🐾 Animales": [
+          "PERRO",
+          "GATO",
+          "TIGRE",
+          "LEON",
+          "PANDA",
+          "ZORRO",
+          "OSO",
+          "BURRO",
+          "CABRA",
+          "PATO",
+          "RANA",
+          "LOBO",
+          "MONO",
+          "VACA",
+          "CEBRA",
+          "JIRAFA",
+          "BALLENA",
+          "TORTUGA",
+          "CONEJO",
+          "AGUILA",
+        ],
+        "🍓 Frutas": [
+          "FRESA",
+          "MANGO",
+          "PERA",
+          "UVA",
+          "KIWI",
+          "LIMON",
+          "PIÑA",
+          "MELON",
+          "SANDIA",
+          "CEREZA",
+          "PAPAYA",
+          "COCO",
+          "MORA",
+          "GUAYABA",
+          "PLATANO",
+          "MANZANA",
+          "NARANJA",
+          "DURAZNO",
+        ],
+        "🌎 Países": [
+          "MEXICO",
+          "PERU",
+          "CHILE",
+          "CUBA",
+          "ESPAÑA",
+          "ITALIA",
+          "JAPON",
+          "CHINA",
+          "INDIA",
+          "BRASIL",
+          "CANADA",
+          "FRANCIA",
+          "EGIPTO",
+          "RUSIA",
+          "GRECIA",
+          "SUIZA",
+          "COREA",
+        ],
+        "⚽ Deportes": [
+          "FUTBOL",
+          "TENIS",
+          "BOX",
+          "GOLF",
+          "SURF",
+          "RUGBY",
+          "KARATE",
+          "BEISBOL",
+          "VOLEIBOL",
+          "NATACION",
+          "CICLISMO",
+          "BOLICHE",
+          "HOCKEY",
+          "JUDO",
+          "ESGRIMA",
+        ],
+        "🎮 Juegos": [
+          "AJEDREZ",
+          "DAMAS",
+          "DOMINO",
+          "LOTERIA",
+          "PARCHIS",
+          "UNO",
+          "POKER",
+          "TETRIS",
+          "SUDOKU",
+          "DARDOS",
+          "BILLAR",
+          "WORDLE",
+          "MEMORAMA",
+          "TRIVIA",
+        ],
+        "🍔 Comida": [
+          "TACO",
+          "PIZZA",
+          "SOPA",
+          "TORTA",
+          "POZOLE",
+          "TAMAL",
+          "ELOTE",
+          "QUESO",
+          "ARROZ",
+          "FRIJOL",
+          "SALSA",
+          "PASTEL",
+          "HELADO",
+          "GALLETA",
+          "CHURRO",
+        ],
       };
       const ABC = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
-      const DIRS = [[0, 1], [1, 0], [1, 1], [-1, 1], [0, -1], [-1, 0], [-1, -1], [1, -1]];
-      const COLORES = ["#ff4f8b", "#4fb3ff", "#26de81", "#ffb84f", "#a29bfe", "#ff6b6b", "#0fb9b1", "#f7b731", "#45aaf2", "#fd79a8"];
+      const DIRS = [
+        [0, 1],
+        [1, 0],
+        [1, 1],
+        [-1, 1],
+        [0, -1],
+        [-1, 0],
+        [-1, -1],
+        [1, -1],
+      ];
+      const COLORES = [
+        "#ff4f8b",
+        "#4fb3ff",
+        "#26de81",
+        "#ffb84f",
+        "#a29bfe",
+        "#ff6b6b",
+        "#0fb9b1",
+        "#f7b731",
+        "#45aaf2",
+        "#fd79a8",
+      ];
       const SEGUNDOS = 240;
 
       const J = { activa: false };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
       const ui = Arcade.ui({
         juego: "sopa",
         titulo: "Sopa de Letras",
         emoji: "🔠",
         subtitulo: "Encuentra las palabras escondidas",
         modos: ["solo", "bot", "online"],
-        textosModo: { bot: "🤖 Duelo contra el bot", online: "🌐 Duelo online (mismo tablero)" },
-        dificultad: { etiqueta: "📏 Tamaño", nombres: { facil: "Chica", normal: "Mediana", pro: "Grande" }, siempre: true },
+        textosModo: {
+          bot: "🤖 Duelo contra el bot",
+          online: "🌐 Duelo online (mismo tablero)",
+        },
+        dificultad: {
+          etiqueta: "📏 Tamaño",
+          nombres: { facil: "Chica", normal: "Mediana", pro: "Grande" },
+          siempre: true,
+        },
         records: true,
         unidadRecord: "s",
         reglas: [
@@ -138,7 +280,9 @@
       function generar(rand, n, cuantas) {
         const temas = Object.keys(TEMAS);
         const tema = temas[Math.floor(rand() * temas.length)];
-        const candidatas = TEMAS[tema].filter((p) => [...p].length <= n).sort(() => rand() - 0.5);
+        const candidatas = TEMAS[tema]
+          .filter((p) => [...p].length <= n)
+          .sort(() => rand() - 0.5);
         const g = Array.from({ length: n }, () => Array(n).fill(""));
         const puestas = [];
         for (const p of candidatas) {
@@ -151,30 +295,59 @@
             const r1 = r0 + dr * (letras.length - 1),
               c1 = c0 + dc * (letras.length - 1);
             if (r1 < 0 || r1 >= n || c1 < 0 || c1 >= n) continue;
-            if (letras.every((l, i) => g[r0 + dr * i][c0 + dc * i] === "" || g[r0 + dr * i][c0 + dc * i] === l)) {
+            if (
+              letras.every(
+                (l, i) =>
+                  g[r0 + dr * i][c0 + dc * i] === "" ||
+                  g[r0 + dr * i][c0 + dc * i] === l,
+              )
+            ) {
               letras.forEach((l, i) => (g[r0 + dr * i][c0 + dc * i] = l));
               puestas.push({ palabra: p, r0, c0, r1, c1 });
               break;
             }
           }
         }
-        for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (!g[r][c]) g[r][c] = ABC[Math.floor(rand() * ABC.length)];
+        for (let r = 0; r < n; r++)
+          for (let c = 0; c < n; c++)
+            if (!g[r][c]) g[r][c] = ABC[Math.floor(rand() * ABC.length)];
         return { tema, g, puestas };
       }
 
       // =================== PARTIDA ===================
       function parar() {
+        ciclo.cancelar();
         J.activa = false;
         clearInterval(J.reloj);
         clearTimeout(J.timerBot);
         $("zona").classList.add("oculto");
       }
       function empezar(modo, info) {
+        ciclo.cancelar();
         parar();
         const nivel = modo === "online" ? "normal" : info.dificultad;
-        const [n, cuantas] = { facil: [8, 6], normal: [10, 8], pro: [12, 10] }[nivel];
-        const { tema, g, puestas } = generar(Arcade.rng(info.semilla), n, cuantas);
-        Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, dificultad: info.dificultad, n, g, palabras: puestas, halladas: [], rival: 0, inicio: Date.now(), activa: true, sel: null });
+        const [n, cuantas] = { facil: [8, 6], normal: [10, 8], pro: [12, 10] }[
+          nivel
+        ];
+        const { tema, g, puestas } = generar(
+          Arcade.rng(info.semilla),
+          n,
+          cuantas,
+        );
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          nombres: info.nombres,
+          dificultad: info.dificultad,
+          n,
+          g,
+          palabras: puestas,
+          halladas: [],
+          rival: 0,
+          inicio: Date.now(),
+          activa: true,
+          sel: null,
+        });
         $("tema").textContent = tema;
         const sopa = $("sopa");
         sopa.style.setProperty("--n", n);
@@ -190,28 +363,58 @@
         $("trazos").innerHTML = "";
         pintarPalabras();
         $("zona").classList.remove("oculto");
-        J.reloj = setInterval(tic, 500);
+        J.reloj = ciclo.cada(tic, 500);
         if (modo === "bot") turnoBot();
         marcador();
         ui.ayuda("👆 Desliza sobre una palabra");
-        setTimeout(() => J.partida === info.partida && ui.ayuda(""), 4000);
+        ciclo.despues(() => J.partida === info.partida && ui.ayuda(""), 4000);
       }
       function pintarPalabras() {
-        $("palabras").innerHTML = J.palabras.map((p) => `<span class="${J.halladas.includes(p.palabra) ? "hallada" : ""}">${p.palabra}</span>`).join("");
+        $("palabras").innerHTML = J.palabras
+          .map(
+            (p) =>
+              `<span class="${J.halladas.includes(p.palabra) ? "hallada" : ""}">${p.palabra}</span>`,
+          )
+          .join("");
       }
       const seg = () => Math.floor((Date.now() - J.inicio) / 1000);
       function tic() {
         if (!J.activa) return;
-        if (J.modo !== "solo" && seg() >= SEGUNDOS) return finDuelo(J.halladas.length > J.rival ? true : J.halladas.length < J.rival ? false : null);
+        if (J.modo !== "solo" && seg() >= SEGUNDOS)
+          return finDuelo(
+            J.halladas.length > J.rival
+              ? true
+              : J.halladas.length < J.rival
+                ? false
+                : null,
+          );
         marcador();
       }
       function marcador() {
         const t = J.modo === "solo" ? seg() : Math.max(0, SEGUNDOS - seg());
         const reloj = `⏱️ ${(t / 60) | 0}:${String(t % 60).padStart(2, "0")}`;
-        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: `${J.halladas.length}/${J.palabras.length}`, detalle: reloj, activo: true }, null]);
+        if (J.modo === "solo")
+          return ui.marcador([
+            {
+              nombre: J.nombres[0],
+              valor: `${J.halladas.length}/${J.palabras.length}`,
+              detalle: reloj,
+              activo: true,
+            },
+            null,
+          ]);
         const yo = J.modo === "online" ? ui.yo : 0;
-        const mio = { nombre: J.nombres[yo] + " (tú)", valor: `${J.halladas.length}/${J.palabras.length}`, detalle: reloj, activo: true };
-        const suyo = { nombre: J.nombres[1 - yo], valor: `${J.rival}/${J.palabras.length}`, detalle: "palabras" };
+        const mio = {
+          nombre: J.nombres[yo] + " (tú)",
+          valor: `${J.halladas.length}/${J.palabras.length}`,
+          detalle: reloj,
+          activo: true,
+        };
+        const suyo = {
+          nombre: J.nombres[1 - yo],
+          valor: `${J.rival}/${J.palabras.length}`,
+          detalle: "palabras",
+        };
         ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
       }
 
@@ -226,13 +429,23 @@
         // solo líneas rectas: horizontal, vertical o diagonal exacta
         const dr = b[0] - a[0],
           dc = b[1] - a[1];
-        if (!(dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc))) return null;
+        if (!(dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc)))
+          return null;
         const k = Math.max(Math.abs(dr), Math.abs(dc));
-        return Array.from({ length: k + 1 }, (_, i) => [a[0] + Math.sign(dr) * i, a[1] + Math.sign(dc) * i]);
+        return Array.from({ length: k + 1 }, (_, i) => [
+          a[0] + Math.sign(dr) * i,
+          a[1] + Math.sign(dc) * i,
+        ]);
       }
       function marcarSel(celdas) {
-        document.querySelectorAll(".letra.sel").forEach((x) => x.classList.remove("sel"));
-        (celdas || []).forEach(([r, c]) => $("sopa").querySelectorAll(".letra")[r * J.n + c].classList.add("sel"));
+        document
+          .querySelectorAll(".letra.sel")
+          .forEach((x) => x.classList.remove("sel"));
+        (celdas || []).forEach(([r, c]) =>
+          $("sopa")
+            .querySelectorAll(".letra")
+            [r * J.n + c].classList.add("sel"),
+        );
       }
       $("sopa").addEventListener("pointerdown", (e) => {
         if (!J.activa) return;
@@ -265,7 +478,18 @@
         const texto = l.map(([r, c]) => J.g[r][c]).join("");
         const a = l[0],
           b = l[l.length - 1];
-        const p = J.palabras.find((x) => !J.halladas.includes(x.palabra) && ((x.r0 === a[0] && x.c0 === a[1] && x.r1 === b[0] && x.c1 === b[1]) || (x.r0 === b[0] && x.c0 === b[1] && x.r1 === a[0] && x.c1 === a[1])));
+        const p = J.palabras.find(
+          (x) =>
+            !J.halladas.includes(x.palabra) &&
+            ((x.r0 === a[0] &&
+              x.c0 === a[1] &&
+              x.r1 === b[0] &&
+              x.c1 === b[1]) ||
+              (x.r0 === b[0] &&
+                x.c0 === b[1] &&
+                x.r1 === a[0] &&
+                x.c1 === a[1])),
+        );
         if (!p) {
           if (texto.length > 2) sonar("rebote", 0.3);
           return;
@@ -276,7 +500,11 @@
         ui.avisar(`✅ ${p.palabra}`, "#26de81");
         pintarPalabras();
         marcador();
-        if (J.modo === "online") ui.enviar("hallada", { partida: J.partida, cuantas: J.halladas.length });
+        if (J.modo === "online")
+          ui.enviar("hallada", {
+            partida: J.partida,
+            cuantas: J.halladas.length,
+          });
         if (J.halladas.length >= J.palabras.length) {
           if (J.modo === "solo") return finSolo();
           finDuelo(true);
@@ -284,7 +512,10 @@
       }
       function trazar(p, color) {
         const svg = $("trazos");
-        svg.insertAdjacentHTML("beforeend", `<line x1="${p.c0 + 0.5}" y1="${p.r0 + 0.5}" x2="${p.c1 + 0.5}" y2="${p.r1 + 0.5}" stroke="${color}" stroke-width="0.78" stroke-linecap="round" opacity="0.55"/>`);
+        svg.insertAdjacentHTML(
+          "beforeend",
+          `<line x1="${p.c0 + 0.5}" y1="${p.r0 + 0.5}" x2="${p.c1 + 0.5}" y2="${p.r1 + 0.5}" stroke="${color}" stroke-width="0.78" stroke-linecap="round" opacity="0.55"/>`,
+        );
       }
 
       // =================== FIN ===================
@@ -292,7 +523,13 @@
         const s = seg();
         parar();
         sonar("ganar");
-        ui.terminar({ emoji: "🏆", texto: `¡Todas en ${(s / 60) | 0}:${String(s % 60).padStart(2, "0")}!`, nota: `${J.palabras.length} palabras de ${$("tema").textContent}`, record: s, gano: true });
+        ui.terminar({
+          emoji: "🏆",
+          texto: `¡Todas en ${(s / 60) | 0}:${String(s % 60).padStart(2, "0")}!`,
+          nota: `${J.palabras.length} palabras de ${$("tema").textContent}`,
+          record: s,
+          gano: true,
+        });
       }
       function finDuelo(gane) {
         if (!J.activa) return;
@@ -301,22 +538,32 @@
         sonar(gane ? "ganar" : "perder");
         ui.terminar({
           emoji: gane == null ? "🤝" : gane ? "🏆" : "😿",
-          texto: gane == null ? "¡Empate!" : gane ? "¡Ganaste la sopa!" : `Ganó ${J.nombres[1 - yo]}`,
+          texto:
+            gane == null
+              ? "¡Empate!"
+              : gane
+                ? "¡Ganaste la sopa!"
+                : `Ganó ${J.nombres[1 - yo]}`,
           nota: `Tú: ${J.halladas.length} · ${J.nombres[1 - yo]}: ${J.rival}`,
           gano: !!gane,
         });
       }
       // el bot encuentra una palabra cada tantos segundos
       function turnoBot() {
-        const ritmo = { facil: [22, 34], normal: [14, 24], pro: [8, 15] }[J.dificultad];
+        const ritmo = { facil: [22, 34], normal: [14, 24], pro: [8, 15] }[
+          J.dificultad
+        ];
         const partida = J.partida;
-        J.timerBot = setTimeout(() => {
-          if (partida !== J.partida || !J.activa) return;
-          J.rival++;
-          marcador();
-          if (J.rival >= J.palabras.length) return finDuelo(false);
-          turnoBot();
-        }, Arcade.azar(...ritmo) * 1000);
+        J.timerBot = ciclo.despues(
+          () => {
+            if (partida !== J.partida || !J.activa) return;
+            J.rival++;
+            marcador();
+            if (J.rival >= J.palabras.length) return finDuelo(false);
+            turnoBot();
+          },
+          Arcade.azar(...ritmo) * 1000,
+        );
       }
     </script>
   </body>

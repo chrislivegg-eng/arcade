@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#1a140d" />
     <title>Duelo de Espadas · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
     <style>
       .barras {
         position: fixed;
@@ -57,7 +66,11 @@
       #destello {
         position: fixed;
         inset: 0;
-        background: radial-gradient(circle, transparent 40%, rgba(255, 0, 0, 0.55));
+        background: radial-gradient(
+          circle,
+          transparent 40%,
+          rgba(255, 0, 0, 0.55)
+        );
         opacity: 0;
         pointer-events: none;
         z-index: 4;
@@ -69,8 +82,13 @@
     <canvas id="lienzo"></canvas>
     <div id="destello"></div>
     <div class="barras oculto" id="barras">
-      <div><div class="barra"><i id="vida-0"></i></div><div class="barra aguante"><i id="aguante-0"></i></div></div>
-      <div><div class="barra"><i id="vida-1" style="margin-left: auto"></i></div></div>
+      <div>
+        <div class="barra"><i id="vida-0"></i></div>
+        <div class="barra aguante"><i id="aguante-0"></i></div>
+      </div>
+      <div>
+        <div class="barra"><i id="vida-1" style="margin-left: auto"></i></div>
+      </div>
     </div>
     <div id="reloj" class="oculto"></div>
 
@@ -89,9 +107,20 @@
       // =========================================================
       //  ESCENA: el ring
       // =========================================================
-      const M = Arcade.mundo({ fondo: 0x120808, fov: 62, exposicion: 1.05, colorAmbiente: 0x402020, lamparas: [[0, 8, 0, 0xffffff, 4], [-6, 3, 4, 0xff3b3b, 1.2], [6, 3, 4, 0x3b8bff, 1.2]] });
+      const M = Arcade.mundo({
+        fondo: 0x120808,
+        fov: 62,
+        exposicion: 1.05,
+        colorAmbiente: 0x402020,
+        lamparas: [
+          [0, 8, 0, 0xffffff, 4],
+          [-6, 3, 4, 0xff3b3b, 1.2],
+          [6, 3, 4, 0x3b8bff, 1.2],
+        ],
+      });
       const { escena, camara } = M;
-      const mat = (c, x = {}) => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.6, ...x });
+      const mat = (c, x = {}) =>
+        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.6, ...x });
       escena.add(new THREE.HemisphereLight(0xffe0d0, 0x301010, 0.55));
       const foco = new THREE.SpotLight(0xfff2e0, 2.2, 30, 0.6, 0.5);
       foco.position.set(0, 9, 1);
@@ -109,14 +138,22 @@
         g.fillStyle = "#8a7a66";
         g.fillRect(0, 0, w, h);
         g.fillStyle = "rgba(255,255,255,.08)";
-        for (let i = 0; i < 3000; i++) g.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+        for (let i = 0; i < 3000; i++)
+          g.fillRect(Math.random() * w, Math.random() * h, 2, 2);
         g.fillStyle = "#ffffff";
         g.font = "bold 70px Nunito, sans-serif";
         g.textAlign = "center";
         g.globalAlpha = 0.25;
         g.fillText("⚔️", w / 2, h / 2 + 24);
       });
-      const piso = new THREE.Mesh(new THREE.BoxGeometry(8, 0.3, 8), [mat(0xdddddd), mat(0xdddddd), new THREE.MeshStandardMaterial({ map: lona, roughness: 0.9 }), mat(0x222222), mat(0xdddddd), mat(0xdddddd)]);
+      const piso = new THREE.Mesh(new THREE.BoxGeometry(8, 0.3, 8), [
+        mat(0xdddddd),
+        mat(0xdddddd),
+        new THREE.MeshStandardMaterial({ map: lona, roughness: 0.9 }),
+        mat(0x222222),
+        mat(0xdddddd),
+        mat(0xdddddd),
+      ]);
       piso.position.set(0, -0.15, -1.5);
       piso.receiveShadow = true;
       escena.add(piso);
@@ -130,7 +167,9 @@
       ];
       esquinas.forEach(([x, z], i) => {
         escena.add(caja(0.18, 1.7, 0.18, matPoste, x, 0.85, z));
-        escena.add(caja(0.24, 0.5, 0.24, mat(i % 2 ? 0x3b8bff : 0xff3b3b), x, 1.2, z));
+        escena.add(
+          caja(0.24, 0.5, 0.24, mat(i % 2 ? 0x3b8bff : 0xff3b3b), x, 1.2, z),
+        );
       });
       const matCuerda = [mat(0x6b4a2a), mat(0x7a5a3a), mat(0x6b4a2a)];
       [0.55, 0.95, 1.35].forEach((y, k) => {
@@ -138,7 +177,10 @@
           const [x1, z1] = esquinas[i],
             [x2, z2] = esquinas[(i + 1) % 4];
           const largo = Math.hypot(x2 - x1, z2 - z1);
-          const c = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, largo, 8), matCuerda[k]);
+          const c = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.035, 0.035, largo, 8),
+            matCuerda[k],
+          );
           c.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
           c.rotation.set(Math.PI / 2, 0, 0);
           c.lookAt(x2, y, z2);
@@ -151,7 +193,15 @@
       for (let i = 0; i < 160; i++) {
         const a = azar(-Math.PI * 0.9, Math.PI * 0.9),
           r = azar(7, 12);
-        const p = caja(0.4, azar(0.9, 1.3), 0.4, mat(new THREE.Color().setHSL(Math.random(), 0.4, 0.25).getHex()), Math.sin(a) * r, azar(0.2, 1.8), -1.5 - Math.cos(a) * r);
+        const p = caja(
+          0.4,
+          azar(0.9, 1.3),
+          0.4,
+          mat(new THREE.Color().setHSL(Math.random(), 0.4, 0.25).getHex()),
+          Math.sin(a) * r,
+          azar(0.2, 1.8),
+          -1.5 - Math.cos(a) * r,
+        );
         p.castShadow = false;
         publico.add(p);
       }
@@ -175,7 +225,11 @@
         cabeza.position.set(0, 1.85, 0);
         cabeza.add(caja(0.42, 0.48, 0.42, mPiel, 0, 0, 0));
         cabeza.add(caja(0.44, 0.14, 0.44, mat(0x2a1a10), 0, 0.22, 0.01));
-        [-1, 1].forEach((l) => cabeza.add(caja(0.07, 0.07, 0.02, mat(0x111111), l * 0.1, 0.05, 0.22)));
+        [-1, 1].forEach((l) =>
+          cabeza.add(
+            caja(0.07, 0.07, 0.02, mat(0x111111), l * 0.1, 0.05, 0.22),
+          ),
+        );
         cabeza.add(caja(0.16, 0.05, 0.02, mat(0x8a2a2a), 0, -0.12, 0.22));
         torso.add(cabeza);
         const brazos = [-1, 1].map((l) => {
@@ -186,21 +240,64 @@
           // una mano lleva escudo y la otra la espada
           const guante = new THREE.Group();
           if (l < 0) {
-            guante.add(caja(0.1, 0.1, 1.3, mat(0xd8dde6, { metalness: 0.9, roughness: 0.2 }), 0, 0, 0.6));
-            guante.add(caja(0.34, 0.06, 0.06, mat(0xc9a227, { metalness: 0.8 }), 0, 0, 0));
-          } else guante.add(caja(0.55, 0.65, 0.08, mat(colorGuante, { metalness: 0.4, roughness: 0.4 }), 0, 0, 0.1));
+            guante.add(
+              caja(
+                0.1,
+                0.1,
+                1.3,
+                mat(0xd8dde6, { metalness: 0.9, roughness: 0.2 }),
+                0,
+                0,
+                0.6,
+              ),
+            );
+            guante.add(
+              caja(
+                0.34,
+                0.06,
+                0.06,
+                mat(0xc9a227, { metalness: 0.8 }),
+                0,
+                0,
+                0,
+              ),
+            );
+          } else
+            guante.add(
+              caja(
+                0.55,
+                0.65,
+                0.08,
+                mat(colorGuante, { metalness: 0.4, roughness: 0.4 }),
+                0,
+                0,
+                0.1,
+              ),
+            );
           guante.position.z = 0.6;
           hombro.add(guante);
           torso.add(hombro);
           return { hombro, guante, lado: l };
         });
-        [-1, 1].forEach((l) => g.add(caja(0.26, 0.6, 0.28, mPiel, l * 0.2, 0.3, 0)));
+        [-1, 1].forEach((l) =>
+          g.add(caja(0.26, 0.6, 0.28, mPiel, l * 0.2, 0.3, 0)),
+        );
         g.userData = { torso, cabeza, brazos };
         return g;
       }
       const rival = crearBoxeador(0x3b8bff, 0x3b8bff, 0xc68a5a);
       // casco de caballero
-      rival.userData.cabeza.add(caja(0.46, 0.2, 0.46, mat(0xaab2c0, { metalness: 0.8, roughness: 0.3 }), 0, 0.2, 0));
+      rival.userData.cabeza.add(
+        caja(
+          0.46,
+          0.2,
+          0.46,
+          mat(0xaab2c0, { metalness: 0.8, roughness: 0.3 }),
+          0,
+          0.2,
+          0,
+        ),
+      );
       rival.position.set(0, 0, -2.9);
       escena.add(rival);
 
@@ -210,12 +307,41 @@
         const g = new THREE.Group();
         if (l < 0) {
           // escudo
-          g.add(caja(0.42, 0.5, 0.06, mat(0xff3b3b, { metalness: 0.3, roughness: 0.4 })));
-          g.add(caja(0.12, 0.3, 0.07, mat(0xffd84f, { metalness: 0.7 }), 0, 0, 0.01));
+          g.add(
+            caja(
+              0.42,
+              0.5,
+              0.06,
+              mat(0xff3b3b, { metalness: 0.3, roughness: 0.4 }),
+            ),
+          );
+          g.add(
+            caja(
+              0.12,
+              0.3,
+              0.07,
+              mat(0xffd84f, { metalness: 0.7 }),
+              0,
+              0,
+              0.01,
+            ),
+          );
         } else {
           // espada
-          const hoja = caja(0.06, 0.06, 1.1, mat(0xe8edf5, { metalness: 0.95, roughness: 0.15 }), 0, 0, -0.55);
-          g.add(hoja, caja(0.3, 0.05, 0.05, mat(0xc9a227, { metalness: 0.8 })), caja(0.06, 0.06, 0.2, mat(0x5b3a1e), 0, 0, 0.12));
+          const hoja = caja(
+            0.06,
+            0.06,
+            1.1,
+            mat(0xe8edf5, { metalness: 0.95, roughness: 0.15 }),
+            0,
+            0,
+            -0.55,
+          );
+          g.add(
+            hoja,
+            caja(0.3, 0.05, 0.05, mat(0xc9a227, { metalness: 0.8 })),
+            caja(0.06, 0.06, 0.2, mat(0x5b3a1e), 0, 0, 0.12),
+          );
           g.rotation.x = 0.5;
         }
         g.userData.base = new THREE.Vector3(l * 0.42, -0.42, -0.9);
@@ -225,8 +351,17 @@
       });
       // los guantes se acomodan según lo ancho de la pantalla
       function acomodarGuantes() {
-        const mitad = Math.tan(THREE.MathUtils.degToRad(camara.fov / 2)) * 0.9 * camara.aspect;
-        misGuantes.forEach((g, i) => g.userData.base.set((i ? 1 : -1) * Math.min(0.42, mitad * 0.62), -0.4, -0.9));
+        const mitad =
+          Math.tan(THREE.MathUtils.degToRad(camara.fov / 2)) *
+          0.9 *
+          camara.aspect;
+        misGuantes.forEach((g, i) =>
+          g.userData.base.set(
+            (i ? 1 : -1) * Math.min(0.42, mitad * 0.62),
+            -0.4,
+            -0.9,
+          ),
+        );
       }
       M.alCambiarTamano(acomodarGuantes);
       camara.position.set(0, 1.72, 0.9);
@@ -236,9 +371,22 @@
       //  ESTADO DE LA PELEA
       // =========================================================
       const J = { modo: null, activa: false };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
       const P = [
-        { vida: 100, aguante: 100, guardia: false, cargando: null, aturdido: 0 },
-        { vida: 100, aguante: 100, guardia: false, cargando: null, aturdido: 0 },
+        {
+          vida: 100,
+          aguante: 100,
+          guardia: false,
+          cargando: null,
+          aturdido: 0,
+        },
+        {
+          vida: 100,
+          aguante: 100,
+          guardia: false,
+          cargando: null,
+          aturdido: 0,
+        },
       ];
       // índice local: 0 = yo, 1 = rival
 
@@ -252,6 +400,7 @@
 
       // ---------- mis golpes ----------
       async function golpear(tipo) {
+        const sesionTarea = J.sesion || 0;
         const yo = P[0];
         if (!J.activa || yo.cargando || yo.aturdido > 0) return;
         if (yo.aguante < COSTO) {
@@ -262,21 +411,36 @@
         yo.guardia = false;
         yo.cargando = tipo;
         const g = GOLPES[tipo];
-        if (J.modo === "online") ui.enviar("golpe", { partida: J.partida, tipo, n: ++J.nGolpe });
+        if (J.modo === "online")
+          ui.enviar("golpe", { partida: J.partida, tipo, n: ++J.nGolpe });
         else botVeGolpe(tipo);
         // animación: el guante se echa para atrás y sale
         const guante = misGuantes[tipo === "der" ? 1 : 0];
         const base = guante.userData.base;
-        await M.animar(g.carga * 1000, (t) => {
-          guante.position.set(base.x * (1 + t * 0.2), base.y - t * 0.08, base.z + t * 0.15);
+        await ciclo.animar(g.carga * 1000, (t) => {
+          guante.position.set(
+            base.x * (1 + t * 0.2),
+            base.y - t * 0.08,
+            base.z + t * 0.15,
+          );
         });
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (!J.activa) return (yo.cargando = null);
         sonar("swoosh", 0.7);
-        const destino = tipo === "arriba" ? new THREE.Vector3(base.x * 0.3, -0.1, -1.75) : new THREE.Vector3(-base.x * 0.25, -0.05, -1.7);
-        await M.animar(110, (t) => guante.position.lerpVectors(base, destino, t));
+        const destino =
+          tipo === "arriba"
+            ? new THREE.Vector3(base.x * 0.3, -0.1, -1.75)
+            : new THREE.Vector3(-base.x * 0.25, -0.05, -1.7);
+        await ciclo.animar(110, (t) =>
+          guante.position.lerpVectors(base, destino, t),
+        );
+        if (sesionTarea !== (J.sesion || 0)) return;
         // ¿le pegué? (en online lo decide el rival y me avisa)
         if (J.modo !== "online") resolverImpacto(1, tipo);
-        await M.animar(180, (t) => guante.position.lerpVectors(destino, base, t));
+        await ciclo.animar(180, (t) =>
+          guante.position.lerpVectors(destino, base, t),
+        );
+        if (sesionTarea !== (J.sesion || 0)) return;
         yo.cargando = null;
       }
 
@@ -285,7 +449,11 @@
         const q = P[i];
         const g = GOLPES[tipo];
         // ⚔️ parada perfecta: cubrirse justo a tiempo deja aturdido al que atacó
-        if (i === 0 && q.guardia && performance.now() - (q.guardiaDesde || 0) < 260) {
+        if (
+          i === 0 &&
+          q.guardia &&
+          performance.now() - (q.guardiaDesde || 0) < 260
+        ) {
           P[1].aturdido = 1.3;
           sonar("ping", 1.4);
           ui.avisar("⚔️ ¡PARADA PERFECTA!", "#ffd84f");
@@ -299,7 +467,8 @@
           // animación del rival recibiendo
           const u = rival.userData;
           if (!bloqueado) {
-            u.cabeza.rotation.y = tipo === "izq" ? 0.6 : tipo === "der" ? -0.6 : 0;
+            u.cabeza.rotation.y =
+              tipo === "izq" ? 0.6 : tipo === "der" ? -0.6 : 0;
             u.cabeza.rotation.x = tipo === "arriba" ? -0.6 : 0;
             rival.position.z = -3.15;
             sonar("golpe", 1.1);
@@ -310,7 +479,7 @@
           if (!bloqueado) {
             sonar("golpe", 1.2);
             $("destello").style.opacity = 1;
-            setTimeout(() => ($("destello").style.opacity = 0), 160);
+            ciclo.despues(() => ($("destello").style.opacity = 0), 160);
             if (navigator.vibrate) navigator.vibrate(90);
             sacudir = 0.25;
           } else sonar("rebote", 0.5);
@@ -323,6 +492,7 @@
 
       // ---------- golpes del rival (bot u online) ----------
       async function rivalGolpea(tipo) {
+        const sesionTarea = J.sesion || 0;
         const q = P[1];
         if (q.cargando || !J.activa) return;
         q.cargando = tipo;
@@ -330,27 +500,45 @@
         const g = GOLPES[tipo];
         const u = rival.userData;
         const brazo = u.brazos[tipo === "der" ? 0 : 1]; // su derecha es mi izquierda
-        const carga = J.modo === "online" ? Math.max(0.12, g.carga - 0.12) : g.carga * { facil: 1.6, normal: 1.25, pro: 1 }[J.dificultad];
-        await M.animar(carga * 1000, (t) => {
+        const carga =
+          J.modo === "online"
+            ? Math.max(0.12, g.carga - 0.12)
+            : g.carga * { facil: 1.6, normal: 1.25, pro: 1 }[J.dificultad];
+        await ciclo.animar(carga * 1000, (t) => {
           brazo.hombro.rotation.y = brazo.lado * t * 0.5;
           brazo.hombro.position.z = -t * 0.2;
           u.torso.rotation.y = brazo.lado * t * 0.25;
         });
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (!J.activa) return (q.cargando = null);
         sonar("swoosh", 0.7);
-        await M.animar(100, (t) => {
-          brazo.hombro.rotation.y = brazo.lado * 0.5 * (1 - t) - brazo.lado * t * 0.25;
+        await ciclo.animar(100, (t) => {
+          brazo.hombro.rotation.y =
+            brazo.lado * 0.5 * (1 - t) - brazo.lado * t * 0.25;
           brazo.hombro.rotation.x = tipo === "arriba" ? -t * 0.5 : 0;
           brazo.hombro.position.z = -0.2 + t * 0.9;
-          u.torso.rotation.y = brazo.lado * 0.25 * (1 - t) - brazo.lado * t * 0.2;
+          u.torso.rotation.y =
+            brazo.lado * 0.25 * (1 - t) - brazo.lado * t * 0.2;
         });
+        if (sesionTarea !== (J.sesion || 0)) return;
         const r = resolverImpacto(0, tipo);
-        if (J.modo === "online") ui.enviar("vida", { partida: J.partida, vida: P[0].vida, bloqueado: r.bloqueado, tipo });
-        await M.animar(200, (t) => {
-          brazo.hombro.rotation.set(-0.5 * (tipo === "arriba") * (1 - t), -brazo.lado * 0.25 * (1 - t), 0);
+        if (J.modo === "online")
+          ui.enviar("vida", {
+            partida: J.partida,
+            vida: P[0].vida,
+            bloqueado: r.bloqueado,
+            tipo,
+          });
+        await ciclo.animar(200, (t) => {
+          brazo.hombro.rotation.set(
+            -0.5 * (tipo === "arriba") * (1 - t),
+            -brazo.lado * 0.25 * (1 - t),
+            0,
+          );
           brazo.hombro.position.z = 0.7 * (1 - t);
           u.torso.rotation.y = -brazo.lado * 0.2 * (1 - t);
         });
+        if (sesionTarea !== (J.sesion || 0)) return;
         q.cargando = null;
       }
 
@@ -372,7 +560,8 @@
       function pensarBot(ahora) {
         const n = NIVEL[J.dificultad];
         if (P[1].guardia && ahora > J.botGuardiaHasta) P[1].guardia = false;
-        if (ahora < J.botSiguiente || P[1].cargando || P[1].aturdido > 0) return;
+        if (ahora < J.botSiguiente || P[1].cargando || P[1].aturdido > 0)
+          return;
         J.botSiguiente = ahora + azar(...n.pausa) * 1000;
         if (Math.random() < n.guardia) {
           P[1].guardia = true;
@@ -380,7 +569,9 @@
         } else {
           // si me ve con guardia, a veces espera; si estoy cansado, ataca
           const tipos = ["izq", "der", "arriba"];
-          rivalGolpea(tipos[Math.floor(Math.random() * (P[0].aguante < 30 ? 3 : 2.4))]);
+          rivalGolpea(
+            tipos[Math.floor(Math.random() * (P[0].aguante < 30 ? 3 : 2.4))],
+          );
         }
       }
 
@@ -391,7 +582,8 @@
         if (P[0].guardia === on) return;
         P[0].guardia = on;
         if (on) P[0].guardiaDesde = performance.now();
-        if (J.modo === "online") ui.enviar("guardia", { partida: J.partida, on });
+        if (J.modo === "online")
+          ui.enviar("guardia", { partida: J.partida, on });
       }
 
       // =========================================================
@@ -409,10 +601,13 @@
         if (Math.hypot(dx, dy) < 30) return;
         toque.usado = true;
         guardia(false);
-        golpear(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "der" : "izq") : "arriba");
+        golpear(
+          Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "der" : "izq") : "arriba",
+        );
       });
       const soltar = () => {
-        if (toque && !toque.usado) setTimeout(() => guardia(false), 250); // un toque corto cubre un ratito
+        if (toque && !toque.usado)
+          ciclo.despues(() => guardia(false), 250); // un toque corto cubre un ratito
         else guardia(false);
         toque = null;
       };
@@ -420,12 +615,21 @@
       M.lienzo.addEventListener("pointercancel", soltar);
       document.addEventListener("keydown", (e) => {
         if (e.repeat) return;
-        const t = { ArrowLeft: "izq", a: "izq", ArrowRight: "der", d: "der", ArrowUp: "arriba", w: "arriba" }[e.key];
+        const t = {
+          ArrowLeft: "izq",
+          a: "izq",
+          ArrowRight: "der",
+          d: "der",
+          ArrowUp: "arriba",
+          w: "arriba",
+        }[e.key];
         if (t) golpear(t);
-        if (e.key === "ArrowDown" || e.key === "s" || e.key === " ") guardia(true);
+        if (e.key === "ArrowDown" || e.key === "s" || e.key === " ")
+          guardia(true);
       });
       document.addEventListener("keyup", (e) => {
-        if (e.key === "ArrowDown" || e.key === "s" || e.key === " ") guardia(false);
+        if (e.key === "ArrowDown" || e.key === "s" || e.key === " ")
+          guardia(false);
       });
 
       // =========================================================
@@ -436,7 +640,11 @@
         flashes.forEach((l, i) => {
           if (Math.random() < 0.6) {
             const a = azar(-2.5, 2.5);
-            l.position.set(Math.sin(a) * 9, azar(1, 2.5), -1.5 - Math.cos(a) * 9);
+            l.position.set(
+              Math.sin(a) * 9,
+              azar(1, 2.5),
+              -1.5 - Math.cos(a) * 9,
+            );
             l.intensity = 3;
           }
         });
@@ -453,23 +661,38 @@
         u.brazos.forEach((b) => {
           if (P[1].cargando) return;
           const meta = P[1].guardia ? 0.35 : 0;
-          b.hombro.position.y += (1.5 + meta - b.hombro.position.y) * Math.min(1, dt * 14);
-          b.hombro.rotation.y += (-b.lado * (P[1].guardia ? 0.35 : 0.12) - b.hombro.rotation.y) * Math.min(1, dt * 14);
+          b.hombro.position.y +=
+            (1.5 + meta - b.hombro.position.y) * Math.min(1, dt * 14);
+          b.hombro.rotation.y +=
+            (-b.lado * (P[1].guardia ? 0.35 : 0.12) - b.hombro.rotation.y) *
+            Math.min(1, dt * 14);
         });
         // vaivén del rival
         rival.position.x = Math.sin(ahora / 600) * 0.15;
         u.torso.position.y = Math.sin(ahora / 300) * 0.03;
         // mis guantes: guardia arriba
         misGuantes.forEach((g, i) => {
-          if (P[0].cargando && misGuantes[GOLPES[P[0].cargando] && P[0].cargando === "der" ? 1 : 0] === g) return;
+          if (
+            P[0].cargando &&
+            misGuantes[
+              GOLPES[P[0].cargando] && P[0].cargando === "der" ? 1 : 0
+            ] === g
+          )
+            return;
           const base = g.userData.base;
-          const meta = P[0].guardia ? new THREE.Vector3(base.x * 0.55, -0.24, -0.95) : base;
+          const meta = P[0].guardia
+            ? new THREE.Vector3(base.x * 0.55, -0.24, -0.95)
+            : base;
           g.position.lerp(meta, Math.min(1, dt * 16));
           g.rotation.z = P[0].guardia ? -Math.sign(base.x) * 0.3 : 0;
         });
         // cámara: se mece y sacude si te pegan
         sacudir = Math.max(0, sacudir - dt);
-        camara.position.set(Math.sin(ahora / 700) * 0.06 + azar(-1, 1) * sacudir * 0.3, 1.72 + Math.sin(ahora / 350) * 0.02 + azar(-1, 1) * sacudir * 0.2, 0.9);
+        camara.position.set(
+          Math.sin(ahora / 700) * 0.06 + azar(-1, 1) * sacudir * 0.3,
+          1.72 + Math.sin(ahora / 350) * 0.02 + azar(-1, 1) * sacudir * 0.2,
+          0.9,
+        );
         if (!J.activa) return;
         P.forEach((q) => {
           q.aguante = Math.min(100, q.aguante + dt * (q.guardia ? 10 : 18));
@@ -502,6 +725,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          ciclo.cancelar();
           J.activa = false;
           J.modo = null;
           $("barras").classList.add("oculto");
@@ -516,14 +740,14 @@
           // el rival me paró perfecto: quedo aturdido un momento
           P[0].aturdido = 1.3;
           ui.avisar("😵 ¡Te pararon el golpe!", "#ff3b3b");
-        }
-        else if (tipo === "vida") {
+        } else if (tipo === "vida") {
           // el rival me dice cuánta vida le quedó con mi golpe
           const antes = P[1].vida;
           P[1].vida = d.vida;
           const u = rival.userData;
           if (!d.bloqueado) {
-            u.cabeza.rotation.y = d.tipo === "izq" ? 0.6 : d.tipo === "der" ? -0.6 : 0;
+            u.cabeza.rotation.y =
+              d.tipo === "izq" ? 0.6 : d.tipo === "der" ? -0.6 : 0;
             u.cabeza.rotation.x = d.tipo === "arriba" ? -0.6 : 0;
             rival.position.z = -3.15;
             sonar("golpe", 1.1);
@@ -536,16 +760,48 @@
 
       function marcador() {
         const yo = J.modo === "online" ? ui.yo : 0;
-        const mio = { nombre: J.nombres[yo] + " (tú)", valor: "🥊", detalle: "rojo", color: "#ff3b3b" };
-        const suyo = { nombre: J.nombres[1 - yo], valor: "🥊", detalle: "azul", color: "#3b8bff" };
+        const mio = {
+          nombre: J.nombres[yo] + " (tú)",
+          valor: "🥊",
+          detalle: "rojo",
+          color: "#ff3b3b",
+        };
+        const suyo = {
+          nombre: J.nombres[1 - yo],
+          valor: "🥊",
+          detalle: "azul",
+          color: "#3b8bff",
+        };
         ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
       }
 
       async function empezar(modo, info) {
-        Object.assign(J, { modo, nombres: info.nombres, partida: info.partida, dificultad: info.dificultad, activa: false, nGolpe: 0, botSiguiente: 0, botGuardiaHasta: 0 });
-        P.forEach((q) => Object.assign(q, { vida: 100, aguante: 100, guardia: false, cargando: null, aturdido: 0 }));
+        ciclo.cancelar();
+        const sesionTarea = J.sesion || 0;
+        Object.assign(J, {
+          modo,
+          nombres: info.nombres,
+          partida: info.partida,
+          dificultad: info.dificultad,
+          activa: false,
+          nGolpe: 0,
+          botSiguiente: 0,
+          botGuardiaHasta: 0,
+        });
+        P.forEach((q) =>
+          Object.assign(q, {
+            vida: 100,
+            aguante: 100,
+            guardia: false,
+            cargando: null,
+            aturdido: 0,
+          }),
+        );
         rival.rotation.set(0, 0, 0);
         rival.position.y = 0;
+        $("destello").style.opacity = 0;
+        camara.rotation.z = 0;
+        misGuantes.forEach((g) => g.position.copy(g.userData.base));
         pintarBarras();
         marcador();
         $("barras").classList.remove("oculto");
@@ -557,35 +813,41 @@
         for (const t of ["3", "2", "1"]) {
           ui.avisar(t, "#ffd84f");
           await esperar(700);
+          if (sesionTarea !== (J.sesion || 0)) return;
           if (partida !== J.partida || !J.modo) return;
         }
         ui.avisar("⚔️ ¡EN GUARDIA!", "#ff3b3b");
         sonar("publico");
         J.fin = performance.now() / 1000 + DURACION;
         J.activa = true;
-        setTimeout(() => ui.ayuda(""), 4000);
+        ciclo.despues(() => ui.ayuda(""), 4000);
       }
 
       async function ko(i) {
+        const sesionTarea = J.sesion || 0;
         if (!J.activa) return;
         J.activa = false;
-        if (i === 0 && J.modo === "online") ui.enviar("ko", { partida: J.partida });
+        if (i === 0 && J.modo === "online")
+          ui.enviar("ko", { partida: J.partida });
         sonar("publico");
         flashCamaras();
         if (i === 1) {
           ui.avisar("🏆 ¡Derrotado!", "#ffd84f");
-          await M.animar(900, (t) => {
+          await ciclo.animar(900, (t) => {
             rival.rotation.x = -t * 1.45;
             rival.position.y = -t * 0.1;
           });
+          if (sesionTarea !== (J.sesion || 0)) return;
         } else {
           ui.avisar("💫 Te derrotaron…", "#ff3b3b");
           $("destello").style.opacity = 1;
-          await M.animar(900, (t) => camara.rotation.z = t * 0.6);
+          await ciclo.animar(900, (t) => (camara.rotation.z = t * 0.6));
+          if (sesionTarea !== (J.sesion || 0)) return;
           camara.rotation.z = 0;
           $("destello").style.opacity = 0;
         }
         await esperar(800);
+        if (sesionTarea !== (J.sesion || 0)) return;
         terminar(i === 1, true);
       }
 
@@ -601,7 +863,13 @@
         sonar(gane ? "ganar" : "perder");
         ui.terminar({
           emoji: empate ? "🤝" : gane ? "🏆" : "😵",
-          texto: empate ? "¡Empate!" : gane ? (porKo ? "¡Victoria del caballero!" : "¡Ganaste por puntos!") : `Ganó ${J.nombres[1 - yo]}`,
+          texto: empate
+            ? "¡Empate!"
+            : gane
+              ? porKo
+                ? "¡Victoria del caballero!"
+                : "¡Ganaste por puntos!"
+              : `Ganó ${J.nombres[1 - yo]}`,
           nota: `Tu vida: ${Math.round(P[0].vida)} · Rival: ${Math.round(P[1].vida)}`,
           gano: !!gane && !empate,
         });

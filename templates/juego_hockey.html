@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#0d1b2a" />
     <title>Hockey sobre Hielo · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
     <style>
       #reloj {
         position: fixed;
@@ -46,15 +55,33 @@
       // =========================================================
       //  ESCENA: la pista
       // =========================================================
-      const M = Arcade.mundo({ fondo: 0x0d1b2a, fov: 50, exposicion: 1.1, colorAmbiente: 0xc8e0ff, lamparas: [[0, 10, 0, 0xffffff, 5], [-8, 4, 6, 0x4fb3ff, 1], [8, 4, -6, 0xff4f6b, 1]] });
+      const M = Arcade.mundo({
+        fondo: 0x0d1b2a,
+        fov: 50,
+        exposicion: 1.1,
+        colorAmbiente: 0xc8e0ff,
+        lamparas: [
+          [0, 10, 0, 0xffffff, 5],
+          [-8, 4, 6, 0x4fb3ff, 1],
+          [8, 4, -6, 0xff4f6b, 1],
+        ],
+      });
       const { escena, camara } = M;
-      const mat = (c, x = {}) => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.6, ...x });
+      const mat = (c, x = {}) =>
+        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.6, ...x });
       escena.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 0.7));
       const luz = new THREE.DirectionalLight(0xffffff, 0.9);
       luz.position.set(4, 18, 6);
       luz.castShadow = true;
       luz.shadow.mapSize.set(2048, 2048);
-      Object.assign(luz.shadow.camera, { left: -9, right: 9, top: 13, bottom: -13, near: 1, far: 40 });
+      Object.assign(luz.shadow.camera, {
+        left: -9,
+        right: 9,
+        top: 13,
+        bottom: -13,
+        near: 1,
+        far: 40,
+      });
       escena.add(luz);
       const caja = (w, h, d, m, x = 0, y = 0, z = 0) => {
         const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
@@ -83,7 +110,9 @@
         g.fillStyle = "#1f5fd0";
         [-3.4, 3.4].forEach((z) => g.fillRect(0, Z(z - 0.15), w, 0.3 * sz));
         g.fillStyle = "#e0323c";
-        [-LINEA_GOL, LINEA_GOL].forEach((z) => g.fillRect(0, Z(z - 0.04), w, 0.08 * sz));
+        [-LINEA_GOL, LINEA_GOL].forEach((z) =>
+          g.fillRect(0, Z(z - 0.04), w, 0.08 * sz),
+        );
         g.strokeStyle = "#1f5fd0";
         g.lineWidth = 4;
         g.beginPath();
@@ -101,26 +130,60 @@
         g.fillStyle = "rgba(80,150,255,.35)";
         [-1, 1].forEach((lz) => {
           g.beginPath();
-          g.arc(X(0), Z(lz * LINEA_GOL), 1.3 * sx, lz > 0 ? Math.PI : 0, lz > 0 ? Math.PI * 2 : Math.PI);
+          g.arc(
+            X(0),
+            Z(lz * LINEA_GOL),
+            1.3 * sx,
+            lz > 0 ? Math.PI : 0,
+            lz > 0 ? Math.PI * 2 : Math.PI,
+          );
           g.fill();
         });
       });
-      const hielo = new THREE.Mesh(new THREE.PlaneGeometry(W * 2, L * 2), new THREE.MeshStandardMaterial({ map: texHielo, roughness: 0.15, metalness: 0.05 }));
+      const hielo = new THREE.Mesh(
+        new THREE.PlaneGeometry(W * 2, L * 2),
+        new THREE.MeshStandardMaterial({
+          map: texHielo,
+          roughness: 0.15,
+          metalness: 0.05,
+        }),
+      );
       hielo.rotation.x = -Math.PI / 2;
       hielo.receiveShadow = true;
       escena.add(hielo);
       // bardas
       const matBarda = mat(0xffffff, { roughness: 0.4 }),
         matBorde = mat(0xffd84f);
-      escena.add(caja(0.25, 0.9, L * 2 + 0.5, matBarda, -W - 0.125, 0.45, 0), caja(0.25, 0.9, L * 2 + 0.5, matBarda, W + 0.125, 0.45, 0));
-      escena.add(caja(W * 2 + 0.5, 0.9, 0.25, matBarda, 0, 0.45, -L - 0.125), caja(W * 2 + 0.5, 0.9, 0.25, matBarda, 0, 0.45, L + 0.125));
-      escena.add(caja(0.28, 0.08, L * 2 + 0.5, matBorde, -W - 0.125, 0.92, 0), caja(0.28, 0.08, L * 2 + 0.5, matBorde, W + 0.125, 0.92, 0));
+      escena.add(
+        caja(0.25, 0.9, L * 2 + 0.5, matBarda, -W - 0.125, 0.45, 0),
+        caja(0.25, 0.9, L * 2 + 0.5, matBarda, W + 0.125, 0.45, 0),
+      );
+      escena.add(
+        caja(W * 2 + 0.5, 0.9, 0.25, matBarda, 0, 0.45, -L - 0.125),
+        caja(W * 2 + 0.5, 0.9, 0.25, matBarda, 0, 0.45, L + 0.125),
+      );
+      escena.add(
+        caja(0.28, 0.08, L * 2 + 0.5, matBorde, -W - 0.125, 0.92, 0),
+        caja(0.28, 0.08, L * 2 + 0.5, matBorde, W + 0.125, 0.92, 0),
+      );
       // porterías
       function porteria(z, lado) {
         const g = new THREE.Group();
         const rojo = mat(0xe0323c, { metalness: 0.4 });
-        g.add(caja(0.08, 1.2, 0.08, rojo, -BOCA, 0.6, 0), caja(0.08, 1.2, 0.08, rojo, BOCA, 0.6, 0), caja(BOCA * 2 + 0.08, 0.08, 0.08, rojo, 0, 1.2, 0));
-        const red = new THREE.Mesh(new THREE.BoxGeometry(BOCA * 2, 1.2, 0.9), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, wireframe: true }));
+        g.add(
+          caja(0.08, 1.2, 0.08, rojo, -BOCA, 0.6, 0),
+          caja(0.08, 1.2, 0.08, rojo, BOCA, 0.6, 0),
+          caja(BOCA * 2 + 0.08, 0.08, 0.08, rojo, 0, 1.2, 0),
+        );
+        const red = new THREE.Mesh(
+          new THREE.BoxGeometry(BOCA * 2, 1.2, 0.9),
+          new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.35,
+            wireframe: true,
+          }),
+        );
         red.position.set(0, 0.6, lado * 0.45);
         g.add(red);
         g.position.z = z;
@@ -132,7 +195,15 @@
       for (let i = 0; i < 220; i++) {
         const lado = Math.random() < 0.5 ? -1 : 1;
         const fila = Math.floor(Math.random() * 5);
-        const p = caja(0.4, 0.9, 0.4, mat(new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex()), lado * (W + 1.2 + fila * 0.7), 0.6 + fila * 0.45, azar(-L, L));
+        const p = caja(
+          0.4,
+          0.9,
+          0.4,
+          mat(new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex()),
+          lado * (W + 1.2 + fila * 0.7),
+          0.6 + fila * 0.45,
+          azar(-L, L),
+        );
         p.castShadow = false;
         escena.add(p);
       }
@@ -144,11 +215,31 @@
         g.add(cuerpo);
         cuerpo.add(caja(0.55, 0.62, 0.36, mat(color), 0, 1.05, 0));
         cuerpo.add(caja(0.5, 0.36, 0.34, mat(0x1d1d2a), 0, 0.6, 0));
-        cuerpo.add(caja(0.38, 0.38, 0.38, mat(color, { roughness: 0.3, metalness: 0.2 }), 0, 1.55, 0)); // casco
+        cuerpo.add(
+          caja(
+            0.38,
+            0.38,
+            0.38,
+            mat(color, { roughness: 0.3, metalness: 0.2 }),
+            0,
+            1.55,
+            0,
+          ),
+        ); // casco
         cuerpo.add(caja(0.3, 0.14, 0.05, mat(0x222222), 0, 1.5, 0.2));
         [-1, 1].forEach((l) => {
           cuerpo.add(caja(0.18, 0.45, 0.2, mat(0x1d1d2a), l * 0.14, 0.22, 0));
-          cuerpo.add(caja(0.14, 0.05, 0.4, mat(0xcccccc, { metalness: 0.8 }), l * 0.14, 0.02, 0.02));
+          cuerpo.add(
+            caja(
+              0.14,
+              0.05,
+              0.4,
+              mat(0xcccccc, { metalness: 0.8 }),
+              l * 0.14,
+              0.02,
+              0.02,
+            ),
+          );
         });
         const palo = new THREE.Group();
         palo.add(caja(0.05, 0.05, 1.2, mat(0x8b5a2b), 0, 0.55, 0.5));
@@ -163,25 +254,51 @@
       function crearPortero(color) {
         const g = new THREE.Group();
         g.add(caja(0.8, 0.7, 0.45, mat(color), 0, 0.85, 0));
-        g.add(caja(0.42, 0.4, 0.42, mat(0xffffff, { roughness: 0.3 }), 0, 1.4, 0));
-        [-1, 1].forEach((l) => g.add(caja(0.32, 0.55, 0.3, mat(0xffffff), l * 0.24, 0.28, 0.08)));
+        g.add(
+          caja(0.42, 0.4, 0.42, mat(0xffffff, { roughness: 0.3 }), 0, 1.4, 0),
+        );
+        [-1, 1].forEach((l) =>
+          g.add(caja(0.32, 0.55, 0.3, mat(0xffffff), l * 0.24, 0.28, 0.08)),
+        );
         g.add(caja(0.35, 0.35, 0.12, mat(0xffd84f), -0.5, 0.75, 0.15));
         escena.add(g);
         return g;
       }
       const mallas = [crearPatinador(0xe0323c), crearPatinador(0x1f5fd0)];
       const porteros = [crearPortero(0xe0323c), crearPortero(0x1f5fd0)];
-      const disco = new THREE.Mesh(new THREE.CylinderGeometry(R_DISCO, R_DISCO, 0.07, 20), mat(0x111111, { roughness: 0.3 }));
+      const disco = new THREE.Mesh(
+        new THREE.CylinderGeometry(R_DISCO, R_DISCO, 0.07, 20),
+        mat(0x111111, { roughness: 0.3 }),
+      );
       disco.castShadow = true;
       escena.add(disco);
 
       // =========================================================
       //  ESTADO Y FÍSICA
       // =========================================================
-      const P = [0, 1].map(() => ({ x: 0, z: 0, vx: 0, vz: 0, ox: 0, oz: 0, dir: 0, recuperar: 0 }));
+      const P = [0, 1].map(() => ({
+        x: 0,
+        z: 0,
+        vx: 0,
+        vz: 0,
+        ox: 0,
+        oz: 0,
+        dir: 0,
+        recuperar: 0,
+      }));
       const G = [{ x: 0 }, { x: 0 }];
       const D = { x: 0, z: 0, vx: 0, vz: 0, dueno: null }; // dueno = jugador que lo lleva pegado al palo
-      const J = { modo: null, jugando: false, pausa: true, goles: [0, 0], n: 0, autoridad: 0, ultimoEnvio: 0, sesion: 0 };
+      const J = {
+        modo: null,
+        jugando: false,
+        pausa: true,
+        goles: [0, 0],
+        n: 0,
+        autoridad: 0,
+        ultimoEnvio: 0,
+        sesion: 0,
+      };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
 
       // el equipo 0 ataca hacia z negativa
       const haciaPorteria = (i) => (i === 0 ? -1 : 1);
@@ -193,9 +310,31 @@
       }
 
       function saque(quien) {
-        Object.assign(P[0], { x: 0, z: 1.2, vx: 0, vz: 0, ox: 0, oz: 1.2, recuperar: 0 });
-        Object.assign(P[1], { x: 0, z: -1.2, vx: 0, vz: 0, ox: 0, oz: -1.2, recuperar: 0 });
-        Object.assign(D, { x: 0, z: quien === 0 ? 0.4 : -0.4, vx: 0, vz: 0, dueno: null });
+        Object.assign(P[0], {
+          x: 0,
+          z: 1.2,
+          vx: 0,
+          vz: 0,
+          ox: 0,
+          oz: 1.2,
+          recuperar: 0,
+        });
+        Object.assign(P[1], {
+          x: 0,
+          z: -1.2,
+          vx: 0,
+          vz: 0,
+          ox: 0,
+          oz: -1.2,
+          recuperar: 0,
+        });
+        Object.assign(D, {
+          x: 0,
+          z: quien === 0 ? 0.4 : -0.4,
+          vx: 0,
+          vz: 0,
+          dueno: null,
+        });
         G[0].x = G[1].x = 0;
         J.autoridad = quien;
       }
@@ -236,7 +375,15 @@
       const decidoYo = () => J.modo !== "online" || J.autoridad === J.yo;
 
       function pasoFisica(dt) {
-        P.forEach((p, i) => moverPatinador(p, dt, J.modo === "bot" && i === 1 ? { facil: 5, normal: 6.2, pro: 7.2 }[J.dificultad] : V_MAX));
+        P.forEach((p, i) =>
+          moverPatinador(
+            p,
+            dt,
+            J.modo === "bot" && i === 1
+              ? { facil: 5, normal: 6.2, pro: 7.2 }[J.dificultad]
+              : V_MAX,
+          ),
+        );
         // los porteros siguen al disco
         G.forEach((g, i) => {
           const objetivo = limitar(D.x * 0.8, -BOCA + 0.25, BOCA - 0.25);
@@ -271,13 +418,24 @@
           // cruza la línea de gol por la boca de la portería
           for (const lado of [-1, 1]) {
             const linea = lado * LINEA_GOL;
-            if ((zAntes - linea) * (D.z - linea) <= 0 && zAntes !== D.z && Math.sign(D.vz) === lado) {
+            if (
+              (zAntes - linea) * (D.z - linea) <= 0 &&
+              zAntes !== D.z &&
+              Math.sign(D.vz) === lado
+            ) {
               const defensor = lado > 0 ? 0 : 1;
               if (Math.abs(D.x) < BOCA - R_DISCO) {
                 // ¿lo para el portero?
-                const alcance = 0.42 + (J.modo === "bot" && defensor === 1 ? { facil: 0.05, normal: 0.12, pro: 0.2 }[J.dificultad] : 0.12);
+                const alcance =
+                  0.42 +
+                  (J.modo === "bot" && defensor === 1
+                    ? { facil: 0.05, normal: 0.12, pro: 0.2 }[J.dificultad]
+                    : 0.12);
                 const rapidez = Math.hypot(D.vx, D.vz);
-                if (Math.abs(D.x - G[defensor].x) < alcance && Math.random() < 0.9 - rapidez / 60) {
+                if (
+                  Math.abs(D.x - G[defensor].x) < alcance &&
+                  Math.random() < 0.9 - rapidez / 60
+                ) {
                   D.z = linea - lado * 0.3;
                   D.vz = -D.vz * 0.4;
                   D.vx = azar(-3, 3);
@@ -312,16 +470,24 @@
           const robador = 1 - D.dueno;
           const a = P[robador],
             b = P[D.dueno];
-          if ((J.modo !== "online" || robador === J.yo) && Math.hypot(a.x - b.x, a.z - b.z) < R_JUG * 2 + 0.2 && a.recuperar <= 0) {
+          if (
+            (J.modo !== "online" || robador === J.yo) &&
+            Math.hypot(a.x - b.x, a.z - b.z) < R_JUG * 2 + 0.2 &&
+            a.recuperar <= 0
+          ) {
             a.recuperar = 0.3;
-            const prob = J.modo === "bot" && robador === 1 ? { facil: 0.18, normal: 0.32, pro: 0.48 }[J.dificultad] : 0.4;
+            const prob =
+              J.modo === "bot" && robador === 1
+                ? { facil: 0.18, normal: 0.32, pro: 0.48 }[J.dificultad]
+                : 0.4;
             if (Math.random() < prob) {
               D.dueno = robador;
               J.autoridad = robador;
               J.n++;
               b.recuperar = 0.5;
               sonar("golpe", 0.5);
-              if (controlo(robador) || J.modo === "local") ui.avisar("🏒 ¡Robo!", robador ? "#4fb3ff" : "#ff4f8b");
+              if (controlo(robador) || J.modo === "local")
+                ui.avisar("🏒 ¡Robo!", robador ? "#4fb3ff" : "#ff4f8b");
               if (J.modo === "online") avisarDisco(true);
             }
           }
@@ -345,8 +511,20 @@
         if (!urgente && ahora - J.ultimoEnvio < 110) return;
         J.ultimoEnvio = ahora;
         const p = P[J.yo];
-        const datos = { partida: J.partida, yo: [+p.x.toFixed(2), +p.z.toFixed(2), +p.dir.toFixed(2)], g: J.goles[0] + J.goles[1] };
-        if (decidoYo()) datos.disco = { n: J.n, x: +D.x.toFixed(3), z: +D.z.toFixed(3), vx: +D.vx.toFixed(2), vz: +D.vz.toFixed(2), dueno: D.dueno };
+        const datos = {
+          partida: J.partida,
+          yo: [+p.x.toFixed(2), +p.z.toFixed(2), +p.dir.toFixed(2)],
+          g: J.goles[0] + J.goles[1],
+        };
+        if (decidoYo())
+          datos.disco = {
+            n: J.n,
+            x: +D.x.toFixed(3),
+            z: +D.z.toFixed(3),
+            vx: +D.vx.toFixed(2),
+            vz: +D.vz.toFixed(2),
+            dueno: D.dueno,
+          };
         ui.enviar("estado", datos);
       }
 
@@ -356,7 +534,12 @@
       const plano = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
       function puntoPista(e) {
         const p = new THREE.Vector3();
-        return M.pantallaARayo(e.clientX, e.clientY).ray.intersectPlane(plano, p) ? p : null;
+        return M.pantallaARayo(e.clientX, e.clientY).ray.intersectPlane(
+          plano,
+          p,
+        )
+          ? p
+          : null;
       }
       const dedos = new Map();
       M.lienzo.addEventListener("pointerdown", (e) => {
@@ -364,8 +547,21 @@
         M.lienzo.setPointerCapture(e.pointerId);
         const p = puntoPista(e);
         if (!p) return;
-        const i = J.modo === "local" ? (p.z > 0 ? 0 : 1) : J.modo === "online" ? J.yo : 0;
-        dedos.set(e.pointerId, { i, t: performance.now(), x: e.clientX, y: e.clientY, movio: false });
+        const i =
+          J.modo === "local"
+            ? p.z > 0
+              ? 0
+              : 1
+            : J.modo === "online"
+              ? J.yo
+              : 0;
+        dedos.set(e.pointerId, {
+          i,
+          t: performance.now(),
+          x: e.clientX,
+          y: e.clientY,
+          movio: false,
+        });
         P[i].ox = p.x;
         P[i].oz = p.z;
       });
@@ -425,10 +621,16 @@
         if (D.dueno === 1) {
           // avanza hacia la portería roja (z positiva) esquivando un poquito
           const meta = LINEA_GOL - 3.2;
-          b.ox = limitar(D.x * 0.6 + Math.sin(performance.now() / 600) * 1.5, -W + 1, W - 1);
+          b.ox = limitar(
+            D.x * 0.6 + Math.sin(performance.now() / 600) * 1.5,
+            -W + 1,
+            W - 1,
+          );
           b.oz = meta + 1;
           if (b.z > meta - 0.5 || (b.z > 2 && Math.random() < 0.02)) {
-            const esquina = (Math.random() < 0.5 ? -1 : 1) * (BOCA - 0.25) + gauss() * { facil: 0.5, normal: 0.3, pro: 0.15 }[J.dificultad];
+            const esquina =
+              (Math.random() < 0.5 ? -1 : 1) * (BOCA - 0.25) +
+              gauss() * { facil: 0.5, normal: 0.3, pro: 0.15 }[J.dificultad];
             tirar(1, esquina, LINEA_GOL);
           }
         } else if (D.dueno === 0) {
@@ -460,8 +662,12 @@
           }
           if (J.modo === "online") avisarDisco(false);
           const quedan = Math.max(0, J.fin - ahora / 1000);
-          $("reloj").textContent = quedan > 0 ? `⏱️ ${Math.floor(quedan / 60)}:${String(Math.floor(quedan % 60)).padStart(2, "0")}` : "⚡ Gol de oro";
-          if (quedan <= 0 && J.goles[0] !== J.goles[1] && !J.doradoAvisado) return terminar(J.goles[0] > J.goles[1] ? 0 : 1);
+          $("reloj").textContent =
+            quedan > 0
+              ? `⏱️ ${Math.floor(quedan / 60)}:${String(Math.floor(quedan % 60)).padStart(2, "0")}`
+              : "⚡ Gol de oro";
+          if (quedan <= 0 && J.goles[0] !== J.goles[1] && !J.doradoAvisado)
+            return terminar(J.goles[0] > J.goles[1] ? 0 : 1);
         }
         // dibujar
         P.forEach((p, i) => {
@@ -470,22 +676,33 @@
           m.rotation.y = p.dir;
           const v = Math.hypot(p.vx, p.vz);
           m.userData.cuerpo.rotation.x = Math.min(0.35, v / 20);
-          m.userData.cuerpo.rotation.z = Math.sin(ahora / 160) * Math.min(0.12, v / 50);
-          m.userData.palo.rotation.x += (0.45 - m.userData.palo.rotation.x) * Math.min(1, dt * 6);
+          m.userData.cuerpo.rotation.z =
+            Math.sin(ahora / 160) * Math.min(0.12, v / 50);
+          m.userData.palo.rotation.x +=
+            (0.45 - m.userData.palo.rotation.x) * Math.min(1, dt * 6);
         });
-        porteros.forEach((g, i) => g.position.set(G[i].x, 0, (i === 0 ? 1 : -1) * (LINEA_GOL - 0.35)));
+        porteros.forEach((g, i) =>
+          g.position.set(G[i].x, 0, (i === 0 ? 1 : -1) * (LINEA_GOL - 0.35)),
+        );
         porteros[0].rotation.y = Math.PI;
         disco.position.set(D.x, 0.035, D.z);
         // cámara
         const aspecto = window.innerWidth / window.innerHeight;
         if (!J.modo) {
-          camara.position.set(Math.sin(ahora / 5000) * 9, 9, Math.cos(ahora / 5000) * 9);
+          camara.position.set(
+            Math.sin(ahora / 5000) * 9,
+            9,
+            Math.cos(ahora / 5000) * 9,
+          );
           camara.lookAt(0, 0, 0);
         } else if (J.modo === "local") {
           // desde arriba, que se vea toda la pista
           camara.fov = 50;
           const tan = Math.tan(THREE.MathUtils.degToRad(25));
-          const alto = aspecto < 1 ? Math.max((L + 1) / tan, (W + 1) / (tan * aspecto)) : Math.max((W + 1) / tan, (L + 1) / (tan * aspecto));
+          const alto =
+            aspecto < 1
+              ? Math.max((L + 1) / tan, (W + 1) / (tan * aspecto))
+              : Math.max((W + 1) / tan, (L + 1) / (tan * aspecto));
           camara.position.set(0, alto, 0.001);
           camara.up.set(aspecto < 1 ? 0 : 1, 0, aspecto < 1 ? -1 : 0);
           camara.lookAt(0, 0, 0);
@@ -494,8 +711,16 @@
           const lado = J.modo === "online" && J.yo === 1 ? -1 : 1;
           camara.up.set(0, 1, 0);
           camara.fov = aspecto < 1 ? 62 : 48;
-          const foco = new THREE.Vector3(D.x * 0.5, 0, limitar(D.z, -L + 3, L - 3));
-          const quiero = new THREE.Vector3(foco.x * 0.6, aspecto < 1 ? 11 : 9, foco.z + lado * (aspecto < 1 ? 8.5 : 9.5));
+          const foco = new THREE.Vector3(
+            D.x * 0.5,
+            0,
+            limitar(D.z, -L + 3, L - 3),
+          );
+          const quiero = new THREE.Vector3(
+            foco.x * 0.6,
+            aspecto < 1 ? 11 : 9,
+            foco.z + lado * (aspecto < 1 ? 8.5 : 9.5),
+          );
           camara.position.lerp(quiero, Math.min(1, dt * 3));
           camara.lookAt(foco.x * 0.7, 0, foco.z - lado * 1.5);
         }
@@ -503,20 +728,36 @@
       });
 
       async function anotar(quien, avisarRival) {
+        const sesionTarea = J.sesion || 0;
         if (!J.jugando || J.pausa) return;
         const sesion = J.sesion;
         J.pausa = true;
         J.goles[quien]++;
-        if (J.modo === "online" && avisarRival) ui.enviar("gol", { partida: J.partida, quien, goles: J.goles });
+        if (J.modo === "online" && avisarRival)
+          ui.enviar("gol", { partida: J.partida, quien, goles: J.goles });
         sonar("publico");
         sonar("silbato");
-        const mio = J.modo === "online" ? quien === J.yo : J.modo === "bot" ? quien === 0 : true;
-        ui.avisar(J.modo === "local" ? `🚨 ¡GOL de ${J.nombres[quien]}!` : mio ? "🚨 ¡GOOOL!" : "😱 Gol del rival", quien ? "#4fb3ff" : "#ff4f8b");
+        const mio =
+          J.modo === "online"
+            ? quien === J.yo
+            : J.modo === "bot"
+              ? quien === 0
+              : true;
+        ui.avisar(
+          J.modo === "local"
+            ? `🚨 ¡GOL de ${J.nombres[quien]}!`
+            : mio
+              ? "🚨 ¡GOOOL!"
+              : "😱 Gol del rival",
+          quien ? "#4fb3ff" : "#ff4f8b",
+        );
         marcador();
         await esperar(1600);
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (!J.jugando || J.sesion !== sesion) return;
         const tiempoAcabado = performance.now() / 1000 >= J.fin;
-        if (J.goles[quien] >= GOLES_GANAR || tiempoAcabado) return terminar(quien);
+        if (J.goles[quien] >= GOLES_GANAR || tiempoAcabado)
+          return terminar(quien);
         saque(1 - quien);
         J.pausa = false;
       }
@@ -543,6 +784,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          ciclo.cancelar();
           J.sesion++;
           J.jugando = false;
           J.modo = null;
@@ -561,10 +803,21 @@
           p.dir = d.yo[2];
           // la posición del rival se acerca suave a lo que mandó
           if (Math.hypot(p.x - d.yo[0], p.z - d.yo[1]) > 2) [p.x, p.z] = d.yo;
-          if (d.disco && d.g === J.goles[0] + J.goles[1] && d.disco.n >= J.n && !(d.disco.n === J.n && J.autoridad === J.yo && D.dueno === J.yo)) {
+          if (
+            d.disco &&
+            d.g === J.goles[0] + J.goles[1] &&
+            d.disco.n >= J.n &&
+            !(d.disco.n === J.n && J.autoridad === J.yo && D.dueno === J.yo)
+          ) {
             J.n = d.disco.n;
             J.autoridad = otro;
-            Object.assign(D, { x: d.disco.x, z: d.disco.z, vx: d.disco.vx, vz: d.disco.vz, dueno: d.disco.dueno });
+            Object.assign(D, {
+              x: d.disco.x,
+              z: d.disco.z,
+              vx: d.disco.vx,
+              vz: d.disco.vz,
+              dueno: d.disco.dueno,
+            });
             if (D.dueno == null) {
               D.x += D.vx * 0.06;
               D.z += D.vz * 0.06;
@@ -579,12 +832,31 @@
 
       function marcador() {
         const yo = J.modo === "online" ? J.yo : 0;
-        ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (J.modo !== "local" && i === yo ? " (tú)" : ""), valor: J.goles[i], detalle: i ? "azul" : "rojo", color: i ? "#1f5fd0" : "#e0323c" })));
+        ui.marcador(
+          [0, 1].map((i) => ({
+            nombre:
+              J.nombres[i] + (J.modo !== "local" && i === yo ? " (tú)" : ""),
+            valor: J.goles[i],
+            detalle: i ? "azul" : "rojo",
+            color: i ? "#1f5fd0" : "#e0323c",
+          })),
+        );
       }
 
       function empezar(modo, info) {
+        ciclo.cancelar();
         const sesion = ++J.sesion;
-        Object.assign(J, { modo, nombres: info.nombres, dificultad: info.dificultad, partida: info.partida, goles: [0, 0], n: 0, jugando: true, pausa: true, doradoAvisado: false });
+        Object.assign(J, {
+          modo,
+          nombres: info.nombres,
+          dificultad: info.dificultad,
+          partida: info.partida,
+          goles: [0, 0],
+          n: 0,
+          jugando: true,
+          pausa: true,
+          doradoAvisado: false,
+        });
         J.yo = modo === "online" ? ui.yo : 0;
         dedos.clear();
         saque(0);
@@ -594,13 +866,13 @@
         ui.ayuda("👆 Arrastra para patinar · toca rápido para tirar");
         ui.avisar("¡A jugar! 🏒", "#ffd84f");
         sonar("silbato");
-        setTimeout(() => {
+        ciclo.despues(() => {
           if (J.jugando && J.sesion === sesion) {
             J.pausa = false;
             J.fin = performance.now() / 1000 + DURACION;
           }
         }, 1300);
-        setTimeout(() => J.sesion === sesion && ui.ayuda(""), 5000);
+        ciclo.despues(() => J.sesion === sesion && ui.ayuda(""), 5000);
       }
 
       function terminar(g) {
@@ -612,7 +884,12 @@
         sonar(gane || J.modo === "local" ? "ganar" : "perder");
         ui.terminar({
           emoji: J.modo === "local" || gane ? "🏆" : "😿",
-          texto: J.modo === "local" ? `¡Ganó ${J.nombres[g]}!` : gane ? "¡Ganaste!" : `Ganó ${J.nombres[g]}`,
+          texto:
+            J.modo === "local"
+              ? `¡Ganó ${J.nombres[g]}!`
+              : gane
+                ? "¡Ganaste!"
+                : `Ganó ${J.nombres[g]}`,
           nota: `${J.nombres[0]} ${J.goles[0]} - ${J.goles[1]} ${J.nombres[1]}`,
           gano: J.modo !== "local" && gane,
         });

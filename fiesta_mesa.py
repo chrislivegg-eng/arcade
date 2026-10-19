@@ -294,7 +294,16 @@ class Blackjack(MesaBase):
         e = sala.get('bj')
         if not e:
             return
-        e['orden'] = [p for p in e['orden'] if p in sala['jugadores']]
+        orden_anterior = e['orden']
+        turno_anterior = e['turno']
+        # Conservar la identidad del turno: quitar un asiento anterior no debe saltar a nadie.
+        siguientes = orden_anterior[turno_anterior:]
+        e['orden'] = [p for p in orden_anterior if p in sala['jugadores']]
+        actual = next((p for p in siguientes if p in e['orden']), None)
+        e['turno'] = e['orden'].index(actual) if actual is not None else len(e['orden'])
+        anterior = orden_anterior[turno_anterior] if turno_anterior < len(orden_anterior) else None
+        if sala['fase'] == 'jugando' and anterior != actual:
+            self._avanzar(sala)
         if sala['fase'] == 'apuestas':
             for p in e['orden']:
                 m = e['manos'][p]

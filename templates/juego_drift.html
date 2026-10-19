@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#1a1a2e" />
     <title>Drift · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
     <style>
       #combo {
         position: fixed;
@@ -82,9 +91,10 @@
           dMejor = Infinity;
         const rango = desde == null ? PUNTOS_PISTA : 30;
         for (let k = -rango; k <= rango; k++) {
-          const i = (((desde || 0) + k) % PUNTOS_PISTA + PUNTOS_PISTA) % PUNTOS_PISTA;
+          const i =
+            ((((desde || 0) + k) % PUNTOS_PISTA) + PUNTOS_PISTA) % PUNTOS_PISTA;
           const d = (centro[i].x - x) ** 2 + (centro[i].y - z) ** 2;
-          if (d < dMejor) (dMejor = d), (mejor = i);
+          if (d < dMejor) ((dMejor = d), (mejor = i));
         }
         return { i: mejor, d: Math.sqrt(dMejor) };
       }
@@ -92,14 +102,25 @@
       // =========================================================
       //  ESCENA
       // =========================================================
-      const M = Arcade.mundo({ fondo: 0x1a1a2e, fov: 60, niebla: [80, 260], exposicion: 1.1, colorAmbiente: 0x404070, lejos: 500 });
+      const M = Arcade.mundo({
+        fondo: 0x1a1a2e,
+        fov: 60,
+        niebla: [80, 260],
+        exposicion: 1.1,
+        colorAmbiente: 0x404070,
+        lejos: 500,
+      });
       const { escena, camara } = M;
-      const mat = (c, x = {}) => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.8, ...x });
+      const mat = (c, x = {}) =>
+        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.8, ...x });
       escena.add(new THREE.HemisphereLight(0xb0b8ff, 0x202030, 0.7));
       const luna = new THREE.DirectionalLight(0xc8d0ff, 0.8);
       luna.position.set(-60, 120, 40);
       escena.add(luna);
-      const suelo = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), mat(0x203a28));
+      const suelo = new THREE.Mesh(
+        new THREE.PlaneGeometry(800, 800),
+        mat(0x203a28),
+      );
       suelo.rotation.x = -Math.PI / 2;
       suelo.position.y = -0.05;
       escena.add(suelo);
@@ -116,17 +137,41 @@
             l = Math.hypot(dx, dz);
           const nx = -dz / l,
             nz = dx / l;
-          pos.push(p.x + (nx * ancho) / 2, y, p.y + (nz * ancho) / 2, p.x - (nx * ancho) / 2, y, p.y - (nz * ancho) / 2);
-          const c = new THREE.Color(rayas ? (Math.floor(i / 3) % 2 ? 0xffffff : 0xe0323c) : color).convertSRGBToLinear();
+          pos.push(
+            p.x + (nx * ancho) / 2,
+            y,
+            p.y + (nz * ancho) / 2,
+            p.x - (nx * ancho) / 2,
+            y,
+            p.y - (nz * ancho) / 2,
+          );
+          const c = new THREE.Color(
+            rayas ? (Math.floor(i / 3) % 2 ? 0xffffff : 0xe0323c) : color,
+          ).convertSRGBToLinear();
           col.push(c.r, c.g, c.b, c.r, c.g, c.b);
-          if (i < PUNTOS_PISTA) idx.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
+          if (i < PUNTOS_PISTA)
+            idx.push(
+              i * 2,
+              i * 2 + 1,
+              i * 2 + 2,
+              i * 2 + 1,
+              i * 2 + 3,
+              i * 2 + 2,
+            );
         }
         const g = new THREE.BufferGeometry();
         g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
         g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
         g.setIndex(idx);
         g.computeVertexNormals();
-        const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: THREE.DoubleSide }));
+        const m = new THREE.Mesh(
+          g,
+          new THREE.MeshStandardMaterial({
+            vertexColors: true,
+            roughness: 0.85,
+            side: THREE.DoubleSide,
+          }),
+        );
         escena.add(m);
         return m;
       }
@@ -138,10 +183,20 @@
         const p = centro[i];
         const lado = i % 32 ? 1 : -1;
         const dir = new THREE.Vector2(p.x, p.y).normalize();
-        const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 7), mat(0x888899));
-        poste.position.set(p.x + dir.x * lado * 11, 3.5, p.y + dir.y * lado * 11);
+        const poste = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.15, 0.15, 7),
+          mat(0x888899),
+        );
+        poste.position.set(
+          p.x + dir.x * lado * 11,
+          3.5,
+          p.y + dir.y * lado * 11,
+        );
         escena.add(poste);
-        const foco = new THREE.Mesh(new THREE.SphereGeometry(0.4, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff0b0 }));
+        const foco = new THREE.Mesh(
+          new THREE.SphereGeometry(0.4, 10, 8),
+          new THREE.MeshBasicMaterial({ color: 0xfff0b0 }),
+        );
         foco.position.copy(poste.position).setY(7.2);
         escena.add(foco);
       }
@@ -150,33 +205,62 @@
         const a = Math.random() * Math.PI * 2,
           r = azar(150, 230);
         const h = azar(10, 50);
-        const e = new THREE.Mesh(new THREE.BoxGeometry(azar(8, 20), h, azar(8, 20)), mat(new THREE.Color().setHSL(0.65, 0.3, azar(0.12, 0.25)).getHex(), { emissive: lin(0x222244), emissiveIntensity: 0.4 }));
+        const e = new THREE.Mesh(
+          new THREE.BoxGeometry(azar(8, 20), h, azar(8, 20)),
+          mat(new THREE.Color().setHSL(0.65, 0.3, azar(0.12, 0.25)).getHex(), {
+            emissive: lin(0x222244),
+            emissiveIntensity: 0.4,
+          }),
+        );
         e.position.set(Math.cos(a) * r, h / 2, Math.sin(a) * r);
         escena.add(e);
       }
 
       function crearAuto(color) {
         const g = new THREE.Group();
-        const carro = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.6, 4), mat(color, { metalness: 0.6, roughness: 0.3 }));
+        const carro = new THREE.Mesh(
+          new THREE.BoxGeometry(1.9, 0.6, 4),
+          mat(color, { metalness: 0.6, roughness: 0.3 }),
+        );
         carro.position.y = 0.55;
         g.add(carro);
-        const cabina = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, 1.9), mat(0x111122, { metalness: 0.5, roughness: 0.2 }));
+        const cabina = new THREE.Mesh(
+          new THREE.BoxGeometry(1.6, 0.5, 1.9),
+          mat(0x111122, { metalness: 0.5, roughness: 0.2 }),
+        );
         cabina.position.set(0, 1.05, 0.2);
         g.add(cabina);
-        const aleron = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 0.5), mat(0x111111));
+        const aleron = new THREE.Mesh(
+          new THREE.BoxGeometry(2, 0.1, 0.5),
+          mat(0x111111),
+        );
         aleron.position.set(0, 1.15, 1.85);
         g.add(aleron);
-        [[-0.95, -1.3], [0.95, -1.3], [-0.95, 1.3], [0.95, 1.3]].forEach(([x, z]) => {
-          const r = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.3, 14), mat(0x111111));
+        [
+          [-0.95, -1.3],
+          [0.95, -1.3],
+          [-0.95, 1.3],
+          [0.95, 1.3],
+        ].forEach(([x, z]) => {
+          const r = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.38, 0.38, 0.3, 14),
+            mat(0x111111),
+          );
           r.rotation.z = Math.PI / 2;
           r.position.set(x, 0.38, z);
           g.add(r);
         });
         [-0.6, 0.6].forEach((x) => {
-          const f = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.05), new THREE.MeshBasicMaterial({ color: 0xffffcc }));
+          const f = new THREE.Mesh(
+            new THREE.BoxGeometry(0.4, 0.15, 0.05),
+            new THREE.MeshBasicMaterial({ color: 0xffffcc }),
+          );
           f.position.set(x, 0.6, -2.02);
           g.add(f);
-          const t = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.05), new THREE.MeshBasicMaterial({ color: 0xff2020 }));
+          const t = new THREE.Mesh(
+            new THREE.BoxGeometry(0.4, 0.15, 0.05),
+            new THREE.MeshBasicMaterial({ color: 0xff2020 }),
+          );
           t.position.set(x, 0.6, 2.02);
           g.add(t);
         });
@@ -188,7 +272,12 @@
       // humo de llantas
       const humos = [];
       const geoHumo = new THREE.SphereGeometry(0.6, 8, 6);
-      const matHumo = new THREE.MeshBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.4, depthWrite: false });
+      const matHumo = new THREE.MeshBasicMaterial({
+        color: 0xdddddd,
+        transparent: true,
+        opacity: 0.4,
+        depthWrite: false,
+      });
       // marcas de llanta
       const marcas = [];
 
@@ -262,6 +351,7 @@
       //  PARTIDA
       // =========================================================
       const J = { modo: null, activa: false };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
       const ui = Arcade.ui({
         juego: "drift",
         titulo: "Drift",
@@ -281,6 +371,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          ciclo.cancelar();
           J.activa = false;
           J.modo = null;
           $("izq").classList.add("oculto");
@@ -300,19 +391,38 @@
       };
 
       function empezar(modo, info) {
+        ciclo.cancelar();
         salida();
-        Object.assign(J, { modo, nombres: info.nombres, partida: info.partida, dificultad: info.dificultad, puntos: 0, combo: 0, multi: 1, sinDerrape: 0, tiempo: -3, activa: true, rival: 0, rivalTermino: false, miFin: false, botIdx: 6, ultimoEnvio: 0 });
+        Object.assign(J, {
+          modo,
+          nombres: info.nombres,
+          partida: info.partida,
+          dificultad: info.dificultad,
+          puntos: 0,
+          combo: 0,
+          multi: 1,
+          sinDerrape: 0,
+          tiempo: -3,
+          activa: true,
+          rival: 0,
+          rivalTermino: false,
+          miFin: false,
+          botIdx: 6,
+          ultimoEnvio: 0,
+        });
         autoBot.visible = modo === "bot";
         $("izq").classList.remove("oculto");
         $("der").classList.remove("oculto");
         marcador();
         ui.ayuda("Mantén ⬅️ o ➡️ para girar");
         (async () => {
+          const sesionTarea = J.sesion || 0;
           const partida = J.partida;
           for (const n of ["3", "2", "1"]) {
             ui.avisar(n, "#ffd84f");
             sonar("click");
             await esperar(1000);
+            if (sesionTarea !== (J.sesion || 0)) return;
             if (partida !== J.partida) return;
           }
           ui.avisar("¡ARRANCA! 🏁", "#26de81");
@@ -328,7 +438,7 @@
           h.vida -= dt;
           h.malla.scale.multiplyScalar(1 + dt * 1.5);
           h.malla.material.opacity = Math.max(0, h.vida * 0.35);
-          if (h.vida <= 0) escena.remove(h.malla), humos.splice(i, 1);
+          if (h.vida <= 0) (escena.remove(h.malla), humos.splice(i, 1));
         }
         if (!J.modo) {
           const t = ahora / 6000;
@@ -348,7 +458,8 @@
             A.vz *= 0.4;
             sonar("choque", 0.5);
           }
-          const derrapando = !enPasto && deslizamiento > 0.22 && deslizamiento <= 1.3 && v > 12;
+          const derrapando =
+            !enPasto && deslizamiento > 0.22 && deslizamiento <= 1.3 && v > 12;
           if (enPasto && J.combo > 0) {
             ui.avisar("🌱 ¡Al pasto! Combo perdido", "#ff3b3b");
             J.combo = 0;
@@ -361,7 +472,11 @@
             J.sinDerrape = 0;
             if (Math.random() < 0.6) {
               const h = new THREE.Mesh(geoHumo, matHumo.clone());
-              h.position.set(A.x - Math.sin(A.dir) * 2, 0.5, A.z - Math.cos(A.dir) * 2);
+              h.position.set(
+                A.x - Math.sin(A.dir) * 2,
+                0.5,
+                A.z - Math.cos(A.dir) * 2,
+              );
               escena.add(h);
               humos.push({ malla: h, vida: 1 });
             }
@@ -371,13 +486,20 @@
             if (J.sinDerrape > 0.6) {
               const ganado = Math.round(J.combo);
               J.puntos += ganado;
-              if (ganado > 50) ui.avisar(`💨 +${ganado}`, ganado > 800 ? "#ffd84f" : "#26de81");
+              if (ganado > 50)
+                ui.avisar(
+                  `💨 +${ganado}`,
+                  ganado > 800 ? "#ffd84f" : "#26de81",
+                );
               if (ganado > 800) sonar("perfecto", 1.3);
               J.combo = 0;
               J.multi = 1;
             }
           }
-          $("combo").innerHTML = J.combo > 0 ? `${Math.round(J.combo)}<small>x${J.multi.toFixed(1)} DERRAPE</small>` : "";
+          $("combo").innerHTML =
+            J.combo > 0
+              ? `${Math.round(J.combo)}<small>x${J.multi.toFixed(1)} DERRAPE</small>`
+              : "";
           if (J.tiempo >= SEGUNDOS && !J.miFin) terminarCorrida();
           if (J.modo === "bot") pasoBot(dt);
           if (J.modo === "online" && ahora - J.ultimoEnvio > 1000) {
@@ -395,7 +517,11 @@
         // cámara detrás del auto (mira hacia donde va el auto, no hacia donde apunta)
         const v = Math.hypot(A.vx, A.vz);
         const hacia = v > 2 ? Math.atan2(A.vx, A.vz) : A.dir;
-        const atras = new THREE.Vector3(A.x - Math.sin(hacia) * 11, 5.5, A.z - Math.cos(hacia) * 11);
+        const atras = new THREE.Vector3(
+          A.x - Math.sin(hacia) * 11,
+          5.5,
+          A.z - Math.cos(hacia) * 11,
+        );
         camara.position.lerp(atras, Math.min(1, dt * 4));
         camara.lookAt(A.x + Math.sin(hacia) * 6, 1, A.z + Math.cos(hacia) * 6);
         camara.fov = window.innerWidth < window.innerHeight ? 72 : 60;
@@ -411,15 +537,38 @@
           q = centro[(i + 3) % PUNTOS_PISTA];
         autoBot.position.set(p.x, 0, p.y);
         autoBot.rotation.y = Math.atan2(q.x - p.x, q.y - p.y) + Math.PI + 0.3;
-        J.rival += { facil: 22, normal: 38, pro: 58 }[J.dificultad] * dt * (0.5 + Math.abs(Math.sin(J.botIdx / 25)));
+        J.rival +=
+          { facil: 22, normal: 38, pro: 58 }[J.dificultad] *
+          dt *
+          (0.5 + Math.abs(Math.sin(J.botIdx / 25)));
       }
 
       function marcador() {
         const s = Math.max(0, Math.ceil(SEGUNDOS - Math.max(0, J.tiempo)));
-        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: J.puntos, detalle: `⏱️ ${s} s`, activo: true }, null]);
+        if (J.modo === "solo")
+          return ui.marcador([
+            {
+              nombre: J.nombres[0],
+              valor: J.puntos,
+              detalle: `⏱️ ${s} s`,
+              activo: true,
+            },
+            null,
+          ]);
         const yo = J.modo === "online" ? ui.yo : 0;
-        const mio = { nombre: J.nombres[yo] + " (tú)", valor: J.puntos, detalle: `⏱️ ${s} s`, activo: true, color: "#ff4f8b" };
-        const suyo = { nombre: J.nombres[1 - yo], valor: Math.round(J.rival), detalle: J.rivalTermino ? "terminó" : "derrapando…", color: "#4fb3ff" };
+        const mio = {
+          nombre: J.nombres[yo] + " (tú)",
+          valor: J.puntos,
+          detalle: `⏱️ ${s} s`,
+          activo: true,
+          color: "#ff4f8b",
+        };
+        const suyo = {
+          nombre: J.nombres[1 - yo],
+          valor: Math.round(J.rival),
+          detalle: J.rivalTermino ? "terminó" : "derrapando…",
+          color: "#4fb3ff",
+        };
         ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
       }
       function terminarCorrida() {
@@ -427,13 +576,15 @@
         J.puntos += Math.round(J.combo);
         J.combo = 0;
         $("combo").textContent = "";
-        if (J.modo === "online") ui.enviar("fin", { partida: J.partida, puntos: J.puntos });
+        if (J.modo === "online")
+          ui.enviar("fin", { partida: J.partida, puntos: J.puntos });
         if (J.modo === "bot") J.rivalTermino = true;
         revisarFin();
       }
       function revisarFin() {
         if (!J.miFin || (J.modo === "online" && !J.rivalTermino) || !J.activa) {
-          if (J.miFin && J.activa) ui.avisar("Esperando a tu rival…", "#4fb3ff");
+          if (J.miFin && J.activa)
+            ui.avisar("Esperando a tu rival…", "#4fb3ff");
           return;
         }
         J.activa = false;
@@ -441,13 +592,25 @@
         $("der").classList.add("oculto");
         if (J.modo === "solo") {
           sonar("ganar");
-          return ui.terminar({ emoji: "🏎️", texto: `¡${J.puntos} puntos de derrape!`, nota: J.puntos > 5000 ? "¡Rey del drift! 👑" : "¿Puedes llegar a 5000?", record: J.puntos });
+          return ui.terminar({
+            emoji: "🏎️",
+            texto: `¡${J.puntos} puntos de derrape!`,
+            nota:
+              J.puntos > 5000 ? "¡Rey del drift! 👑" : "¿Puedes llegar a 5000?",
+            record: J.puntos,
+          });
         }
         const yo = J.modo === "online" ? ui.yo : 0;
         const rival = Math.round(J.rival);
         const gane = J.puntos > rival;
         sonar(gane ? "ganar" : "perder");
-        ui.terminar({ emoji: gane ? "🏆" : "😿", texto: gane ? "¡Ganaste el reto!" : `Ganó ${J.nombres[1 - yo]}`, nota: `Tú: ${J.puntos} · ${J.nombres[1 - yo]}: ${rival}`, record: J.puntos, gano: gane });
+        ui.terminar({
+          emoji: gane ? "🏆" : "😿",
+          texto: gane ? "¡Ganaste el reto!" : `Ganó ${J.nombres[1 - yo]}`,
+          nota: `Tú: ${J.puntos} · ${J.nombres[1 - yo]}: ${rival}`,
+          record: J.puntos,
+          gano: gane,
+        });
       }
       salida();
       autoBot.visible = false;

@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#7ed0ff" />
     <title>Voleibol de Playa · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
     <style>
       #anillo {
         position: fixed;
@@ -48,7 +57,10 @@
   </head>
   <body>
     <canvas id="lienzo"></canvas>
-    <div id="anillo" class="oculto"><div class="fijo"></div><div class="encoge"></div></div>
+    <div id="anillo" class="oculto">
+      <div class="fijo"></div>
+      <div class="encoge"></div>
+    </div>
     <div id="accion"></div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
@@ -66,15 +78,30 @@
       // =========================================================
       //  ESCENA: playa
       // =========================================================
-      const M = Arcade.mundo({ fondo: 0x7ed0ff, fov: 52, niebla: [40, 110], exposicion: 1.05, colorAmbiente: 0xcfefff, lejos: 200 });
+      const M = Arcade.mundo({
+        fondo: 0x7ed0ff,
+        fov: 52,
+        niebla: [40, 110],
+        exposicion: 1.05,
+        colorAmbiente: 0xcfefff,
+        lejos: 200,
+      });
       const { escena, camara } = M;
-      const mat = (c, x = {}) => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.8, ...x });
+      const mat = (c, x = {}) =>
+        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.8, ...x });
       escena.add(new THREE.HemisphereLight(0xffffff, 0xe8c98a, 0.8));
       const sol = new THREE.DirectionalLight(0xfff0d8, 1.3);
       sol.position.set(-8, 20, 10);
       sol.castShadow = true;
       sol.shadow.mapSize.set(2048, 2048);
-      Object.assign(sol.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 60 });
+      Object.assign(sol.shadow.camera, {
+        left: -14,
+        right: 14,
+        top: 14,
+        bottom: -14,
+        near: 1,
+        far: 60,
+      });
       escena.add(sol);
       const caja = (w, h, d, m, x = 0, y = 0, z = 0) => {
         const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
@@ -92,28 +119,61 @@
       });
       texArena.wrapS = texArena.wrapT = THREE.RepeatWrapping;
       texArena.repeat.set(16, 16);
-      const arena = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ map: texArena, roughness: 1 }));
+      const arena = new THREE.Mesh(
+        new THREE.PlaneGeometry(80, 80),
+        new THREE.MeshStandardMaterial({ map: texArena, roughness: 1 }),
+      );
       arena.rotation.x = -Math.PI / 2;
       arena.receiveShadow = true;
       escena.add(arena);
-      const mar = new THREE.Mesh(new THREE.PlaneGeometry(300, 120), mat(0x1fa3d6, { roughness: 0.2, metalness: 0.3 }));
+      const mar = new THREE.Mesh(
+        new THREE.PlaneGeometry(300, 120),
+        mat(0x1fa3d6, { roughness: 0.2, metalness: 0.3 }),
+      );
       mar.rotation.x = -Math.PI / 2;
       mar.position.set(0, 0.02, -95);
       escena.add(mar);
       // líneas de la cancha
       const matLinea = mat(0x1f6fe0);
-      escena.add(caja(ANCHO * 2 + 0.1, 0.02, 0.08, matLinea, 0, 0.01, LARGO), caja(ANCHO * 2 + 0.1, 0.02, 0.08, matLinea, 0, 0.01, -LARGO));
-      escena.add(caja(0.08, 0.02, LARGO * 2, matLinea, ANCHO, 0.01, 0), caja(0.08, 0.02, LARGO * 2, matLinea, -ANCHO, 0.01, 0));
+      escena.add(
+        caja(ANCHO * 2 + 0.1, 0.02, 0.08, matLinea, 0, 0.01, LARGO),
+        caja(ANCHO * 2 + 0.1, 0.02, 0.08, matLinea, 0, 0.01, -LARGO),
+      );
+      escena.add(
+        caja(0.08, 0.02, LARGO * 2, matLinea, ANCHO, 0.01, 0),
+        caja(0.08, 0.02, LARGO * 2, matLinea, -ANCHO, 0.01, 0),
+      );
       // red
-      [-1, 1].forEach((l) => escena.add(caja(0.1, RED + 0.2, 0.1, mat(0xdddddd, { metalness: 0.6 }), l * (ANCHO + 0.6), (RED + 0.2) / 2, 0)));
+      [-1, 1].forEach((l) =>
+        escena.add(
+          caja(
+            0.1,
+            RED + 0.2,
+            0.1,
+            mat(0xdddddd, { metalness: 0.6 }),
+            l * (ANCHO + 0.6),
+            (RED + 0.2) / 2,
+            0,
+          ),
+        ),
+      );
       const texRed = M.textura(256, 64, (g, w, h) => {
         g.clearRect(0, 0, w, h);
         g.strokeStyle = "#222";
         g.lineWidth = 2;
-        for (let x = 0; x <= w; x += 8) g.beginPath(), g.moveTo(x, 0), g.lineTo(x, h), g.stroke();
-        for (let y = 0; y <= h; y += 8) g.beginPath(), g.moveTo(0, y), g.lineTo(w, y), g.stroke();
+        for (let x = 0; x <= w; x += 8)
+          (g.beginPath(), g.moveTo(x, 0), g.lineTo(x, h), g.stroke());
+        for (let y = 0; y <= h; y += 8)
+          (g.beginPath(), g.moveTo(0, y), g.lineTo(w, y), g.stroke());
       });
-      const red = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO * 2 + 1.2, 1), new THREE.MeshStandardMaterial({ map: texRed, transparent: true, side: THREE.DoubleSide }));
+      const red = new THREE.Mesh(
+        new THREE.PlaneGeometry(ANCHO * 2 + 1.2, 1),
+        new THREE.MeshStandardMaterial({
+          map: texRed,
+          transparent: true,
+          side: THREE.DoubleSide,
+        }),
+      );
       red.position.set(0, RED - 0.5, 0);
       escena.add(red);
       escena.add(caja(ANCHO * 2 + 1.2, 0.08, 0.04, mat(0xffffff), 0, RED, 0));
@@ -121,13 +181,23 @@
       for (let i = 0; i < 10; i++) {
         const lado = i % 2 ? 1 : -1;
         const p = new THREE.Group();
-        const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 6, 8), mat(0x8b5a2b));
+        const tronco = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.18, 0.28, 6, 8),
+          mat(0x8b5a2b),
+        );
         tronco.position.y = 3;
         tronco.rotation.z = lado * 0.12;
         p.add(tronco);
         for (let k = 0; k < 6; k++) {
-          const hoja = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.06, 0.5), mat(0x2e9e4a));
-          hoja.position.set(Math.cos((k / 6) * Math.PI * 2) * 1.1 - lado * 0.4, 6, Math.sin((k / 6) * Math.PI * 2) * 1.1);
+          const hoja = new THREE.Mesh(
+            new THREE.BoxGeometry(2.6, 0.06, 0.5),
+            mat(0x2e9e4a),
+          );
+          hoja.position.set(
+            Math.cos((k / 6) * Math.PI * 2) * 1.1 - lado * 0.4,
+            6,
+            Math.sin((k / 6) * Math.PI * 2) * 1.1,
+          );
           hoja.rotation.y = -(k / 6) * Math.PI * 2;
           hoja.rotation.z = -0.35;
           p.add(hoja);
@@ -163,7 +233,12 @@
         return g;
       }
       // 0: tú, 1: tu compañero, 2 y 3: rivales
-      const jugadores = [crearJugador(0xff4f8b), crearJugador(0xff9fc0), crearJugador(0x3a86ff), crearJugador(0x8fc3ff)];
+      const jugadores = [
+        crearJugador(0xff4f8b),
+        crearJugador(0xff9fc0),
+        crearJugador(0x3a86ff),
+        crearJugador(0x8fc3ff),
+      ];
       const BASE = [
         [-1.8, 4.5],
         [1.8, 4.5],
@@ -175,18 +250,40 @@
         new THREE.SphereGeometry(0.22, 24, 18),
         new THREE.MeshStandardMaterial({
           map: M.textura(256, 128, (g, w, h) => {
-            ["#ffd84f", "#ffffff", "#3a86ff", "#ffffff", "#ffd84f", "#ffffff"].forEach((c, i) => ((g.fillStyle = c), g.fillRect((i * w) / 6, 0, w / 6, h)));
+            [
+              "#ffd84f",
+              "#ffffff",
+              "#3a86ff",
+              "#ffffff",
+              "#ffd84f",
+              "#ffffff",
+            ].forEach(
+              (c, i) => (
+                (g.fillStyle = c),
+                g.fillRect((i * w) / 6, 0, w / 6, h)
+              ),
+            );
           }),
           roughness: 0.5,
         }),
       );
       pelota.castShadow = true;
       escena.add(pelota);
-      const sombra = new THREE.Mesh(new THREE.CircleGeometry(0.3, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25 }));
+      const sombra = new THREE.Mesh(
+        new THREE.CircleGeometry(0.3, 20),
+        new THREE.MeshBasicMaterial({
+          color: 0x000000,
+          transparent: true,
+          opacity: 0.25,
+        }),
+      );
       sombra.rotation.x = -Math.PI / 2;
       sombra.position.y = 0.02;
       escena.add(sombra);
-      const marca = new THREE.Mesh(new THREE.RingGeometry(0.35, 0.5, 24), new THREE.MeshBasicMaterial({ color: 0xffd84f }));
+      const marca = new THREE.Mesh(
+        new THREE.RingGeometry(0.35, 0.5, 24),
+        new THREE.MeshBasicMaterial({ color: 0xffd84f }),
+      );
       marca.rotation.x = -Math.PI / 2;
       marca.position.y = 0.03;
       marca.visible = false;
@@ -198,23 +295,42 @@
       const V = { activo: false };
       function lanzarPelota(desde, hasta, duracion) {
         const g = new THREE.Vector3(0, -G, 0);
-        const v0 = hasta.clone().sub(desde).sub(g.clone().multiplyScalar(0.5 * duracion * duracion)).divideScalar(duracion);
-        Object.assign(V, { activo: true, desde: desde.clone(), v0, t: 0, duracion, hasta: hasta.clone() });
+        const v0 = hasta
+          .clone()
+          .sub(desde)
+          .sub(g.clone().multiplyScalar(0.5 * duracion * duracion))
+          .divideScalar(duracion);
+        Object.assign(V, {
+          activo: true,
+          desde: desde.clone(),
+          v0,
+          t: 0,
+          duracion,
+          hasta: hasta.clone(),
+        });
         marca.position.set(hasta.x, 0.03, hasta.z);
       }
-      const posPelota = (t) => V.desde.clone().addScaledVector(V.v0, t).add(new THREE.Vector3(0, -0.5 * G * t * t, 0));
+      const posPelota = (t) =>
+        V.desde
+          .clone()
+          .addScaledVector(V.v0, t)
+          .add(new THREE.Vector3(0, -0.5 * G * t * t, 0));
 
       // =========================================================
       //  PARTIDA
       // =========================================================
       const J = { modo: null, activa: false, puntos: [0, 0] };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
       const ui = Arcade.ui({
         juego: "voleibol",
         titulo: "Voleibol de Playa",
         emoji: "🏐",
         subtitulo: "2 contra 2 en la arena",
         modos: ["bot", "online"],
-        textosModo: { bot: "🤖 2 vs 2 contra bots", online: "🌐 Online (cada quien con su compañero)" },
+        textosModo: {
+          bot: "🤖 2 vs 2 contra bots",
+          online: "🌐 Online (cada quien con su compañero)",
+        },
         dificultad: true,
         intervaloOnline: 300,
         reglas: [
@@ -226,6 +342,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          ciclo.cancelar();
           J.activa = false;
           J.modo = null;
           V.activo = false;
@@ -252,13 +369,35 @@
 
       function marcador() {
         const yo = J.modo === "online" ? ui.yo : 0;
-        const mio = { nombre: J.nombres[yo] + " (tú)", valor: J.puntos[0], detalle: J.saca === 0 ? "🏐 saca" : "equipo rosa", activo: J.saca === 0, color: "#ff4f8b" };
-        const suyo = { nombre: J.nombres[1 - yo], valor: J.puntos[1], detalle: J.saca === 1 ? "🏐 saca" : "equipo azul", activo: J.saca === 1, color: "#3a86ff" };
+        const mio = {
+          nombre: J.nombres[yo] + " (tú)",
+          valor: J.puntos[0],
+          detalle: J.saca === 0 ? "🏐 saca" : "equipo rosa",
+          activo: J.saca === 0,
+          color: "#ff4f8b",
+        };
+        const suyo = {
+          nombre: J.nombres[1 - yo],
+          valor: J.puntos[1],
+          detalle: J.saca === 1 ? "🏐 saca" : "equipo azul",
+          activo: J.saca === 1,
+          color: "#3a86ff",
+        };
         ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
       }
 
       function empezar(modo, info) {
-        Object.assign(J, { modo, nombres: info.nombres, partida: info.partida, dificultad: info.dificultad, puntos: [0, 0], n: 0, activa: true, fase: null });
+        ciclo.cancelar();
+        Object.assign(J, {
+          modo,
+          nombres: info.nombres,
+          partida: info.partida,
+          dificultad: info.dificultad,
+          puntos: [0, 0],
+          n: 0,
+          activa: true,
+          fase: null,
+        });
         // online: el que crea la sala saca primero
         J.saca = modo === "online" ? (ui.yo === 0 ? 0 : 1) : 0;
         marcador();
@@ -272,6 +411,7 @@
       }
 
       async function nuevoPunto() {
+        const sesionTarea = J.sesion || 0;
         if (!J.activa) return;
         V.activo = false;
         marca.visible = false;
@@ -279,6 +419,7 @@
         ocultarAnillo();
         const partida = J.partida;
         await esperar(900);
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (partida !== J.partida || !J.activa) return;
         if (J.saca === 0) {
           // saco yo desde el fondo
@@ -287,16 +428,24 @@
           pelota.position.set(-1, 1.2, LARGO + 0.5);
           $("accion").textContent = "🏐 Desliza hacia arriba para sacar";
           await esperar(500);
+          if (sesionTarea !== (J.sesion || 0)) return;
           esperarGesto("saque");
         } else if (J.modo === "bot") {
           jugadores[2].userData.meta.set(1, 0, -LARGO - 0.8);
           pelota.position.set(1, 1.2, -LARGO - 0.5);
           $("accion").textContent = "";
           await esperar(1200);
+          if (sesionTarea !== (J.sesion || 0)) return;
           if (partida !== J.partida || !J.activa) return;
           sonar("golpe", 0.6);
           const hasta = new THREE.Vector3(azar(-3.2, 3.2), 0, azar(2.5, 7));
-          recibirAtaque(new THREE.Vector3(1, 2.4, -LARGO - 0.5), hasta, 1.9, 0.3, true);
+          recibirAtaque(
+            new THREE.Vector3(1, 2.4, -LARGO - 0.5),
+            hasta,
+            1.9,
+            0.3,
+            true,
+          );
         } else {
           $("accion").textContent = `Saca ${J.nombres[1 - ui.yo]}…`;
         }
@@ -314,10 +463,19 @@
         const quien = d0 <= d1 ? 0 : 1;
         J.receptor = quien;
         jugadores[quien].userData.meta.set(hasta.x, 0, hasta.z + 0.3);
-        jugadores[1 - quien].userData.meta.set(limitar(-hasta.x * 0.6, -3, 3), 0, 2.2);
+        jugadores[1 - quien].userData.meta.set(
+          limitar(-hasta.x * 0.6, -3, 3),
+          0,
+          2.2,
+        );
         // momento del contacto: cuando la pelota baja a 1 m de altura
         const tContacto = tiempoAltura(1.0);
-        J.contacto = { t: tContacto, fuerza, quien, fuera: Math.abs(hasta.x) > ANCHO + 0.1 || hasta.z > LARGO + 0.1 };
+        J.contacto = {
+          t: tContacto,
+          fuerza,
+          quien,
+          fuera: Math.abs(hasta.x) > ANCHO + 0.1 || hasta.z > LARGO + 0.1,
+        };
         if (J.contacto.fuera) {
           // si va para afuera, nadie la toca
           J.contacto.dejar = true;
@@ -347,7 +505,10 @@
       function esperarTiempo(tipo, tObjetivo) {
         A.esperando = { tipo, tObjetivo, hecho: false };
         $("anillo").classList.remove("oculto");
-        $("accion").textContent = tipo === "recibir" ? "👆 ¡Toca cuando se cierre el aro!" : "👉 ¡Desliza para rematar!";
+        $("accion").textContent =
+          tipo === "recibir"
+            ? "👆 ¡Toca cuando se cierre el aro!"
+            : "👉 ¡Desliza para rematar!";
       }
       function esperarGesto(tipo) {
         A.esperando = { tipo, hecho: false, libre: true };
@@ -364,8 +525,17 @@
 
       let toque = null;
       M.lienzo.addEventListener("pointerdown", (e) => {
-        toque = { x: e.clientX, y: e.clientY, t: performance.now(), usado: false };
-        if (A.esperando && A.esperando.tipo === "recibir" && !A.esperando.hecho) {
+        toque = {
+          x: e.clientX,
+          y: e.clientY,
+          t: performance.now(),
+          usado: false,
+        };
+        if (
+          A.esperando &&
+          A.esperando.tipo === "recibir" &&
+          !A.esperando.hecho
+        ) {
           A.esperando.hecho = true;
           recibir(calidad());
         }
@@ -385,55 +555,104 @@
       M.lienzo.addEventListener("pointerup", () => (toque = null));
       document.addEventListener("keydown", (e) => {
         if (!A.esperando || A.esperando.hecho) return;
-        if (A.esperando.tipo === "recibir" && (e.key === " " || e.key === "ArrowDown")) {
+        if (
+          A.esperando.tipo === "recibir" &&
+          (e.key === " " || e.key === "ArrowDown")
+        ) {
           A.esperando.hecho = true;
           recibir(calidad());
         }
-        const dir = { ArrowLeft: [-1, -0.6], ArrowRight: [1, -0.6], ArrowUp: [0, -1], ArrowDown: [0, 0.3] }[e.key];
-        if (dir && (A.esperando.tipo === "remate" || A.esperando.tipo === "saque")) {
+        const dir = {
+          ArrowLeft: [-1, -0.6],
+          ArrowRight: [1, -0.6],
+          ArrowUp: [0, -1],
+          ArrowDown: [0, 0.3],
+        }[e.key];
+        if (
+          dir &&
+          (A.esperando.tipo === "remate" || A.esperando.tipo === "saque")
+        ) {
           A.esperando.hecho = true;
-          golpearHacia(A.esperando.tipo, dir[0] * 100, dir[1] * 100, A.esperando.tipo === "saque" ? 0.75 : calidad());
+          golpearHacia(
+            A.esperando.tipo,
+            dir[0] * 100,
+            dir[1] * 100,
+            A.esperando.tipo === "saque" ? 0.75 : calidad(),
+          );
         }
       });
 
       // ---------- mi equipo: recibir → levantar → rematar ----------
       async function recibir(q) {
+        const sesionTarea = J.sesion || 0;
         ocultarAnillo();
         const quien = J.contacto.quien;
         if (q < 0) {
-          $("accion").textContent = q < -0.5 ? "😬 ¡Muy tarde/temprano!" : "😬 ¡Casi!";
+          $("accion").textContent =
+            q < -0.5 ? "😬 ¡Muy tarde/temprano!" : "😬 ¡Casi!";
           J.contacto.falla = true;
           return;
         }
-        $("accion").textContent = q > 0.75 ? "✨ ¡Perfecta!" : q > 0.35 ? "👍 Bien" : "😅 Apenas";
+        $("accion").textContent =
+          q > 0.75 ? "✨ ¡Perfecta!" : q > 0.35 ? "👍 Bien" : "😅 Apenas";
         J.contacto.hecho = true;
         await jugadaDeMiEquipo(quien, q);
+        if (sesionTarea !== (J.sesion || 0)) return;
       }
 
       async function jugadaDeMiEquipo(receptor, q) {
+        const sesionTarea = J.sesion || 0;
         const partida = J.partida;
         // espera el contacto
-        while (V.t < J.contacto.t && partida === J.partida) await esperar(16);
+        while (
+          sesionTarea === (J.sesion || 0) &&
+          V.t < J.contacto.t &&
+          partida === J.partida
+        )
+          await esperar(16);
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (partida !== J.partida || !J.activa) return;
         J.fase = "armando";
         marca.visible = false;
-        if (J.modo === "online") ui.enviar("recibio", { partida: J.partida, x: pelota.position.x, z: pelota.position.z });
+        if (J.modo === "online")
+          ui.enviar("recibio", {
+            partida: J.partida,
+            x: pelota.position.x,
+            z: pelota.position.z,
+          });
         animarGolpe(receptor);
         sonar("golpe", 0.5);
         // recepción hacia el que va a levantar (el otro jugador), cerca de la red
         const levantador = 1 - receptor;
-        const zonaLev = new THREE.Vector3(limitar(jugadores[receptor].position.x * 0.3, -2, 2), 0, 1.6);
+        const zonaLev = new THREE.Vector3(
+          limitar(jugadores[receptor].position.x * 0.3, -2, 2),
+          0,
+          1.6,
+        );
         jugadores[levantador].userData.meta.copy(zonaLev);
         // una recepción mala sale chueca
         const desvio = (1 - q) * 1.6;
-        const destino = zonaLev.clone().add(new THREE.Vector3(azar(-desvio, desvio), 2.3, azar(-desvio * 0.4, desvio * 0.6)));
+        const destino = zonaLev
+          .clone()
+          .add(
+            new THREE.Vector3(
+              azar(-desvio, desvio),
+              2.3,
+              azar(-desvio * 0.4, desvio * 0.6),
+            ),
+          );
         lanzarPelota(pelota.position.clone(), destino, 1.15 + (1 - q) * 0.2);
         await esperar(1150);
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (partida !== J.partida || !J.activa) return;
         // levantada: siempre para mí (yo remato)
         animarGolpe(levantador);
         sonar("rebote", 0.5);
-        const xRemate = limitar(-zonaLev.x * 0.6 + (Math.random() - 0.5), -2.8, 2.8);
+        const xRemate = limitar(
+          -zonaLev.x * 0.6 + (Math.random() - 0.5),
+          -2.8,
+          2.8,
+        );
         jugadores[0].userData.meta.set(xRemate, 0, 1.4);
         const punto = new THREE.Vector3(xRemate, 2.8, 0.9);
         lanzarPelota(pelota.position.clone(), punto, 1.05);
@@ -459,8 +678,14 @@
           if (q < 0) {
             // fuera de tiempo: red o afuera
             const red = Math.random() < 0.55;
-            hasta = red ? new THREE.Vector3(desde.x, 0, 0.6) : new THREE.Vector3(lado * 5.5, 0, -LARGO - 2);
-            lanzarPelota(desde, red ? new THREE.Vector3(desde.x, 1.2, 0.15) : hasta, red ? 0.35 : 1.0);
+            hasta = red
+              ? new THREE.Vector3(desde.x, 0, 0.6)
+              : new THREE.Vector3(lado * 5.5, 0, -LARGO - 2);
+            lanzarPelota(
+              desde,
+              red ? new THREE.Vector3(desde.x, 1.2, 0.15) : hasta,
+              red ? 0.35 : 1.0,
+            );
             animarGolpe(0);
             sonar("golpe", 0.6);
             $("accion").textContent = red ? "😖 ¡A la red!" : "😖 ¡Afuera!";
@@ -472,33 +697,62 @@
           fuerza = 0.25 + q * 0.75;
           // con mal tiempo también puede salir desviado
           hasta.x += azar(-1, 1) * (1 - q) * 1.5;
-          $("accion").textContent = q > 0.75 ? "💥 ¡REMATAZO!" : q > 0.35 ? "🏐 ¡Remate!" : "🏐 Remate flojito";
+          $("accion").textContent =
+            q > 0.75
+              ? "💥 ¡REMATAZO!"
+              : q > 0.35
+                ? "🏐 ¡Remate!"
+                : "🏐 Remate flojito";
         }
         sonar("golpe", 0.6 + fuerza * 0.6);
         lanzarPelota(desde, hasta, duracion);
         J.fase = "ataque";
         const fuera = Math.abs(hasta.x) > ANCHO || hasta.z < -LARGO;
-        if (J.modo === "online") ui.enviar("ataque", { partida: J.partida, n: J.n++, desde: [desde.x, desde.y, desde.z], hasta: [hasta.x, hasta.z], duracion, fuerza, saque: tipo === "saque" });
+        if (J.modo === "online")
+          ui.enviar("ataque", {
+            partida: J.partida,
+            n: J.n++,
+            desde: [desde.x, desde.y, desde.z],
+            hasta: [hasta.x, hasta.z],
+            duracion,
+            fuerza,
+            saque: tipo === "saque",
+          });
         else defensaBot(hasta, duracion, fuerza, fuera);
       }
 
       async function errorMio(motivo) {
+        const sesionTarea = J.sesion || 0;
         const partida = J.partida;
         await esperar(900);
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (partida !== J.partida) return;
-        if (J.modo === "online") ui.enviar("punto", { partida: J.partida, n: J.n++, para: "tu", motivo });
+        if (J.modo === "online")
+          ui.enviar("punto", {
+            partida: J.partida,
+            n: J.n++,
+            para: "tu",
+            motivo,
+          });
         anotar(1, motivo);
       }
 
       // ---------- rivales bot ----------
       async function defensaBot(hasta, duracion, fuerza, fuera) {
+        const sesionTarea = J.sesion || 0;
         const partida = J.partida;
-        const quien = jugadores[2].position.distanceTo(hasta) < jugadores[3].position.distanceTo(hasta) ? 2 : 3;
-        if (!fuera) jugadores[quien].userData.meta.set(hasta.x, 0, hasta.z - 0.3);
+        const quien =
+          jugadores[2].position.distanceTo(hasta) <
+          jugadores[3].position.distanceTo(hasta)
+            ? 2
+            : 3;
+        if (!fuera)
+          jugadores[quien].userData.meta.set(hasta.x, 0, hasta.z - 0.3);
         const nivel = { facil: 0.6, normal: 0.78, pro: 0.9 }[J.dificultad];
         const recibe = !fuera && Math.random() < nivel - fuerza * 0.32;
         const tContacto = tiempoAltura(1.0);
         await esperar((recibe ? tContacto : duracion) * 1000);
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (partida !== J.partida || !J.activa) return;
         if (!recibe) return; // la pelota cae sola y el cuadro la anota
         V.activo = false;
@@ -509,11 +763,17 @@
         jugadores[otro].userData.meta.copy(zonaLev);
         lanzarPelota(pelota.position.clone(), zonaLev.clone().setY(2.3), 1.15);
         await esperar(1150);
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (partida !== J.partida || !J.activa) return;
         animarGolpe(otro);
         jugadores[quien].userData.meta.set(azar(-2.5, 2.5), 0, -1.4);
-        lanzarPelota(pelota.position.clone(), new THREE.Vector3(jugadores[quien].userData.meta.x, 2.8, -0.9), 1.0);
+        lanzarPelota(
+          pelota.position.clone(),
+          new THREE.Vector3(jugadores[quien].userData.meta.x, 2.8, -0.9),
+          1.0,
+        );
         await esperar(1000);
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (partida !== J.partida || !J.activa) return;
         // remate del bot
         const err = { facil: 0.2, normal: 0.12, pro: 0.06 }[J.dificultad];
@@ -523,33 +783,58 @@
           animarGolpe(quien);
           sonar("golpe", 0.6);
           await esperar(900);
+          if (sesionTarea !== (J.sesion || 0)) return;
           if (partida === J.partida) anotar(0, "red");
           return;
         }
-        const q = { facil: azar(0.1, 0.5), normal: azar(0.25, 0.75), pro: azar(0.5, 1) }[J.dificultad];
+        const q = {
+          facil: azar(0.1, 0.5),
+          normal: azar(0.25, 0.75),
+          pro: azar(0.5, 1),
+        }[J.dificultad];
         animarGolpe(quien);
         sonar("golpe", 0.8);
-        recibirAtaque(desde, new THREE.Vector3(azar(-3.6, 3.6), 0, azar(1.2, 7.5)), 1.25 - q * 0.6, 0.25 + q * 0.75, false);
+        recibirAtaque(
+          desde,
+          new THREE.Vector3(azar(-3.6, 3.6), 0, azar(1.2, 7.5)),
+          1.25 - q * 0.6,
+          0.25 + q * 0.75,
+          false,
+        );
       }
 
       // online: mientras el rival arma su jugada, se ve en mi pantalla
       async function rallyRival(donde) {
+        const sesionTarea = J.sesion || 0;
         const partida = J.partida;
         J.fase = "rival";
         V.activo = false;
         marca.visible = false;
-        const quien = jugadores[2].position.distanceTo(donde) < jugadores[3].position.distanceTo(donde) ? 2 : 3;
+        const quien =
+          jugadores[2].position.distanceTo(donde) <
+          jugadores[3].position.distanceTo(donde)
+            ? 2
+            : 3;
         const otro = quien === 2 ? 3 : 2;
         animarGolpe(quien);
         sonar("golpe", 0.5);
-        const zonaLev = new THREE.Vector3(limitar(-donde.x * 0.3, -2, 2), 0, -1.6);
+        const zonaLev = new THREE.Vector3(
+          limitar(-donde.x * 0.3, -2, 2),
+          0,
+          -1.6,
+        );
         jugadores[otro].userData.meta.copy(zonaLev);
         lanzarPelota(pelota.position.clone(), zonaLev.clone().setY(2.3), 1.15);
         await esperar(1150);
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (partida !== J.partida || J.fase !== "rival") return;
         animarGolpe(otro);
         jugadores[quien].userData.meta.set(-zonaLev.x, 0, -1.4);
-        lanzarPelota(pelota.position.clone(), new THREE.Vector3(-zonaLev.x, 2.8, -0.9), 1.05);
+        lanzarPelota(
+          pelota.position.clone(),
+          new THREE.Vector3(-zonaLev.x, 2.8, -0.9),
+          1.05,
+        );
       }
 
       // ---------- puntos ----------
@@ -562,10 +847,16 @@
         J.saca = lado;
         const yo = J.modo === "online" ? ui.yo : 0;
         sonar(lado === 0 ? "perfecto" : "abucheo", 1.2);
-        ui.avisar(lado === 0 ? "🎉 ¡Punto para tu equipo!" : `Punto para ${J.nombres[1 - yo]}`, lado === 0 ? "#ff4f8b" : "#3a86ff");
+        ui.avisar(
+          lado === 0
+            ? "🎉 ¡Punto para tu equipo!"
+            : `Punto para ${J.nombres[1 - yo]}`,
+          lado === 0 ? "#ff4f8b" : "#3a86ff",
+        );
         marcador();
         const [a, b] = J.puntos;
-        if ((a >= PUNTOS_GANAR || b >= PUNTOS_GANAR) && Math.abs(a - b) >= 2) return fin();
+        if ((a >= PUNTOS_GANAR || b >= PUNTOS_GANAR) && Math.abs(a - b) >= 2)
+          return fin();
         nuevoPunto();
       }
 
@@ -574,7 +865,12 @@
         const yo = J.modo === "online" ? ui.yo : 0;
         const gane = J.puntos[0] > J.puntos[1];
         sonar(gane ? "ganar" : "perder");
-        ui.terminar({ emoji: gane ? "🏆" : "😿", texto: gane ? "¡Ganó tu equipo!" : `Ganó ${J.nombres[1 - yo]}`, nota: `${J.puntos[0]} - ${J.puntos[1]}`, gano: gane });
+        ui.terminar({
+          emoji: gane ? "🏆" : "😿",
+          texto: gane ? "¡Ganó tu equipo!" : `Ganó ${J.nombres[1 - yo]}`,
+          nota: `${J.puntos[0]} - ${J.puntos[1]}`,
+          gano: gane,
+        });
       }
 
       function animarGolpe(i) {
@@ -605,7 +901,10 @@
           return;
         }
         // cámara detrás de mi lado
-        camara.position.lerp(new THREE.Vector3(pelota.position.x * 0.2, 7.2, LARGO + 9.5), Math.min(1, dt * 2));
+        camara.position.lerp(
+          new THREE.Vector3(pelota.position.x * 0.2, 7.2, LARGO + 9.5),
+          Math.min(1, dt * 2),
+        );
         camara.lookAt(0, 1.2, -1);
         if (V.activo) {
           V.t += dt;
@@ -613,7 +912,11 @@
           pelota.position.copy(posPelota(t));
           pelota.rotation.x += dt * 8;
           // el aro
-          if (A.esperando && A.esperando.tObjetivo != null && !A.esperando.hecho) {
+          if (
+            A.esperando &&
+            A.esperando.tObjetivo != null &&
+            !A.esperando.hecho
+          ) {
             const falta = A.esperando.tObjetivo - V.t;
             const s = 1 + limitar(falta / 0.9, -0.3, 1) * 1.6;
             const p = M.aPantalla(pelota.position);
@@ -622,7 +925,10 @@
             anillo.style.top = p.y + "px";
             const e = anillo.querySelector(".encoge");
             e.style.transform = `scale(${Math.max(0.35, s * 0.4)})`;
-            e.style.setProperty("--color", Math.abs(falta) < 0.08 ? "#26de81" : "#ffd84f");
+            e.style.setProperty(
+              "--color",
+              Math.abs(falta) < 0.08 ? "#26de81" : "#ffd84f",
+            );
             // se acabó el tiempo
             if (V.t > A.esperando.tObjetivo + 0.22) {
               const tipo = A.esperando.tipo;
@@ -635,13 +941,26 @@
                 // no remató: se le cae
                 $("accion").textContent = "😬 ¡Se te pasó el remate!";
                 V.duracion = V.t + 0.6;
-                lanzarPelota(pelota.position.clone(), new THREE.Vector3(pelota.position.x, 0, pelota.position.z + 0.8), 0.6);
+                lanzarPelota(
+                  pelota.position.clone(),
+                  new THREE.Vector3(
+                    pelota.position.x,
+                    0,
+                    pelota.position.z + 0.8,
+                  ),
+                  0.6,
+                );
                 errorMio("tarde");
               }
             }
           }
           // compañero recibe solo
-          if (J.fase === "recibir" && J.contacto && J.contacto.auto === "bien" && V.t >= J.contacto.t) {
+          if (
+            J.fase === "recibir" &&
+            J.contacto &&
+            J.contacto.auto === "bien" &&
+            V.t >= J.contacto.t
+          ) {
             J.contacto.auto = "hecho";
             jugadaDeMiEquipo(1, azar(0.5, 0.9));
           }
@@ -650,11 +969,17 @@
             V.activo = false;
             sonar("rebote", 0.6);
             const p = pelota.position;
-            const dentro = Math.abs(p.x) <= ANCHO + 0.1 && Math.abs(p.z) <= LARGO + 0.1;
+            const dentro =
+              Math.abs(p.x) <= ANCHO + 0.1 && Math.abs(p.z) <= LARGO + 0.1;
             if (J.fase === "recibir") {
               // cayó en mi lado (o afuera)
               const paraRival = dentro;
-              if (J.modo === "online") ui.enviar("punto", { partida: J.partida, n: J.n++, para: paraRival ? "tu" : "yo" });
+              if (J.modo === "online")
+                ui.enviar("punto", {
+                  partida: J.partida,
+                  n: J.n++,
+                  para: paraRival ? "tu" : "yo",
+                });
               anotar(paraRival ? 1 : 0, paraRival ? "cayó" : "fuera");
             } else if (J.fase === "ataque" && J.modo === "bot") {
               anotar(dentro ? 0 : 1, dentro ? "cayó" : "fuera");

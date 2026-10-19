@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#cfe8ff" />
     <title>Bolos de Nieve · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
   </head>
   <body>
     <canvas id="lienzo"></canvas>
@@ -25,27 +34,54 @@
       // =========================================================
       //  ESCENA: valle nevado
       // =========================================================
-      const M = Arcade.mundo({ fondo: 0xcfe8ff, fov: 55, niebla: [25, 80], exposicion: 1.05, colorAmbiente: 0xe8f4ff });
+      const M = Arcade.mundo({
+        fondo: 0xcfe8ff,
+        fov: 55,
+        niebla: [25, 80],
+        exposicion: 1.05,
+        colorAmbiente: 0xe8f4ff,
+      });
       const { escena, camara } = M;
-      const mat = (c, x = {}) => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.85, ...x });
+      const mat = (c, x = {}) =>
+        new THREE.MeshStandardMaterial({
+          color: lin(c),
+          roughness: 0.85,
+          ...x,
+        });
       escena.add(new THREE.HemisphereLight(0xffffff, 0xaabbcc, 0.85));
       const sol = new THREE.DirectionalLight(0xfff6e8, 1.0);
       sol.position.set(4, 12, 8);
       sol.castShadow = true;
       sol.shadow.mapSize.set(2048, 2048);
-      Object.assign(sol.shadow.camera, { left: -5, right: 5, top: 6, bottom: -18, near: 1, far: 40 });
+      Object.assign(sol.shadow.camera, {
+        left: -5,
+        right: 5,
+        top: 6,
+        bottom: -18,
+        near: 1,
+        far: 40,
+      });
       escena.add(sol);
-      const nieve = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), mat(0xf4f9ff, { roughness: 1 }));
+      const nieve = new THREE.Mesh(
+        new THREE.PlaneGeometry(120, 120),
+        mat(0xf4f9ff, { roughness: 1 }),
+      );
       nieve.rotation.x = -Math.PI / 2;
       nieve.receiveShadow = true;
       escena.add(nieve);
-      const carril = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO * 2, 22), mat(0xe3f0ff, { roughness: 0.4 }));
+      const carril = new THREE.Mesh(
+        new THREE.PlaneGeometry(ANCHO * 2, 22),
+        mat(0xe3f0ff, { roughness: 0.4 }),
+      );
       carril.rotation.x = -Math.PI / 2;
       carril.position.set(0, 0.01, 5);
       carril.receiveShadow = true;
       escena.add(carril);
       [-1, 1].forEach((l) => {
-        const borde = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 22, 10), mat(0xffffff));
+        const borde = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.25, 0.25, 22, 10),
+          mat(0xffffff),
+        );
         borde.rotation.x = Math.PI / 2;
         borde.position.set(l * (ANCHO + 0.25), 0.1, 5);
         borde.castShadow = true;
@@ -54,9 +90,15 @@
       for (let i = 0; i < 40; i++) {
         const pino = new THREE.Group();
         const h = azar(3, 6);
-        const copa = new THREE.Mesh(new THREE.ConeGeometry(h * 0.35, h, 7), mat(0x2e6b4a));
+        const copa = new THREE.Mesh(
+          new THREE.ConeGeometry(h * 0.35, h, 7),
+          mat(0x2e6b4a),
+        );
         copa.position.y = h / 2 + 0.5;
-        const nevado = new THREE.Mesh(new THREE.ConeGeometry(h * 0.2, h * 0.35, 7), mat(0xffffff));
+        const nevado = new THREE.Mesh(
+          new THREE.ConeGeometry(h * 0.2, h * 0.35, 7),
+          mat(0xffffff),
+        );
         nevado.position.y = h + 0.3;
         pino.add(copa, nevado);
         const l = Math.random() < 0.5 ? -1 : 1;
@@ -65,7 +107,15 @@
       }
       // copos que caen
       const copos = new THREE.Points(
-        new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(Array.from({ length: 1500 }, (_, i) => (i % 3 === 1 ? azar(0, 15) : azar(-15, 20))), 3)),
+        new THREE.BufferGeometry().setAttribute(
+          "position",
+          new THREE.Float32BufferAttribute(
+            Array.from({ length: 1500 }, (_, i) =>
+              i % 3 === 1 ? azar(0, 15) : azar(-15, 20),
+            ),
+            3,
+          ),
+        ),
         new THREE.PointsMaterial({ color: 0xffffff, size: 0.08 }),
       );
       escena.add(copos);
@@ -73,20 +123,41 @@
       function crearMono() {
         const g = new THREE.Group();
         const blanco = mat(0xffffff, { roughness: 0.9 });
-        const base = new THREE.Mesh(new THREE.SphereGeometry(R_MONO, 16, 12), blanco);
+        const base = new THREE.Mesh(
+          new THREE.SphereGeometry(R_MONO, 16, 12),
+          blanco,
+        );
         base.position.y = R_MONO;
-        const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(R_MONO * 0.75, 16, 12), blanco);
+        const cuerpo = new THREE.Mesh(
+          new THREE.SphereGeometry(R_MONO * 0.75, 16, 12),
+          blanco,
+        );
         cuerpo.position.y = R_MONO * 2.2;
-        const cabeza = new THREE.Mesh(new THREE.SphereGeometry(R_MONO * 0.55, 16, 12), blanco);
+        const cabeza = new THREE.Mesh(
+          new THREE.SphereGeometry(R_MONO * 0.55, 16, 12),
+          blanco,
+        );
         cabeza.position.y = R_MONO * 3.4;
-        const nariz = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.16, 8), mat(0xff8c1a));
+        const nariz = new THREE.Mesh(
+          new THREE.ConeGeometry(0.035, 0.16, 8),
+          mat(0xff8c1a),
+        );
         nariz.rotation.x = Math.PI / 2;
         nariz.position.set(0, R_MONO * 3.4, R_MONO * 0.6);
-        const sombrero = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.16, 12), mat(0x222222));
+        const sombrero = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.1, 0.1, 0.16, 12),
+          mat(0x222222),
+        );
         sombrero.position.y = R_MONO * 3.4 + 0.18;
-        const ala = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.02, 14), mat(0x222222));
+        const ala = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.16, 0.16, 0.02, 14),
+          mat(0x222222),
+        );
         ala.position.y = R_MONO * 3.4 + 0.1;
-        const bufanda = new THREE.Mesh(new THREE.TorusGeometry(R_MONO * 0.5, 0.04, 6, 14), mat(0xe0323c));
+        const bufanda = new THREE.Mesh(
+          new THREE.TorusGeometry(R_MONO * 0.5, 0.04, 6, 14),
+          mat(0xe0323c),
+        );
         bufanda.rotation.x = Math.PI / 2;
         bufanda.position.y = R_MONO * 2.9;
         [base, cuerpo, cabeza, sombrero].forEach((m) => (m.castShadow = true));
@@ -94,7 +165,10 @@
         escena.add(g);
         return g;
       }
-      const bola = new THREE.Mesh(new THREE.SphereGeometry(R_BOLA, 20, 16), mat(0xffffff, { roughness: 0.95 }));
+      const bola = new THREE.Mesh(
+        new THREE.SphereGeometry(R_BOLA, 20, 16),
+        mat(0xffffff, { roughness: 0.95 }),
+      );
       bola.castShadow = true;
       escena.add(bola);
 
@@ -102,12 +176,29 @@
       //  FÍSICA (determinista: mismos números en los dos celulares)
       // =========================================================
       const POS_MONOS = [];
-      [[0], [-0.33, 0.33], [-0.66, 0, 0.66], [-0.99, -0.33, 0.33, 0.99]].forEach((fila, r) => fila.forEach((x) => POS_MONOS.push([x, -r * 0.55])));
+      [
+        [0],
+        [-0.33, 0.33],
+        [-0.66, 0, 0.66],
+        [-0.99, -0.33, 0.33, 0.99],
+      ].forEach((fila, r) =>
+        fila.forEach((x) => POS_MONOS.push([x, -r * 0.55])),
+      );
       let monos = [];
       const B = { x: 0, z: Z_TIRO, vx: 0, vz: 0, efecto: 0, viva: false };
       function ponerMonos(todos) {
         monos.forEach((m) => escena.remove(m.malla));
-        monos = POS_MONOS.map(([x, z], i) => ({ i, x, z, vx: 0, vz: 0, caido: false, inclina: 0, malla: crearMono(), parado: todos || !J.tumbados.includes(i) }));
+        monos = POS_MONOS.map(([x, z], i) => ({
+          i,
+          x,
+          z,
+          vx: 0,
+          vz: 0,
+          caido: false,
+          inclina: 0,
+          malla: crearMono(),
+          parado: todos || !J.tumbados.includes(i),
+        }));
         monos.forEach((m) => {
           m.malla.visible = m.parado;
           m.malla.position.set(m.x, 0, m.z);
@@ -223,10 +314,16 @@
           camara.position.set(Math.sin(ahora / 4000) * 3, 3, 8);
           camara.lookAt(0, 0.5, 0);
         } else if (B.viva && B.z < Z_TIRO - 1) {
-          camara.position.lerp(new THREE.Vector3(B.x * 0.4, 2.2, Math.max(B.z + 4.5, 3.5)), Math.min(1, dt * 3));
+          camara.position.lerp(
+            new THREE.Vector3(B.x * 0.4, 2.2, Math.max(B.z + 4.5, 3.5)),
+            Math.min(1, dt * 3),
+          );
           camara.lookAt(0, 0.4, -0.5);
         } else {
-          camara.position.lerp(new THREE.Vector3(0, aspecto < 1 ? 3.2 : 2.6, Z_TIRO + 3.4), Math.min(1, dt * 3));
+          camara.position.lerp(
+            new THREE.Vector3(0, aspecto < 1 ? 3.2 : 2.6, Z_TIRO + 3.4),
+            Math.min(1, dt * 3),
+          );
           camara.lookAt(0, 0.4, 0);
         }
       });
@@ -235,6 +332,7 @@
       //  PARTIDA
       // =========================================================
       const J = { modo: null, activa: false, tumbados: [] };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
       const ui = Arcade.ui({
         juego: "nieve",
         titulo: "Bolos de Nieve",
@@ -253,6 +351,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          ciclo.cancelar();
           J.activa = false;
           J.modo = null;
           J.simulando = false;
@@ -273,34 +372,77 @@
       }
 
       function empezar(modo, info) {
+        ciclo.cancelar();
         Object.keys(pendientes).forEach((k) => delete pendientes[k]);
-        Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, dificultad: info.dificultad, ronda: 1, tiro: 0, turno: 0, puntos: [0, 0], tumbados: [], n: 0, activa: true, ocupado: false, simulando: false });
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          nombres: info.nombres,
+          dificultad: info.dificultad,
+          ronda: 1,
+          tiro: 0,
+          turno: 0,
+          puntos: [0, 0],
+          tumbados: [],
+          n: 0,
+          activa: true,
+          ocupado: false,
+          simulando: false,
+        });
         J.yo = modo === "online" ? ui.yo : 0;
         prepararTurno();
       }
-      const miTurno = () => J.activa && !J.ocupado && (J.modo === "solo" || J.modo === "local" || J.turno === J.yo);
+      const miTurno = () =>
+        J.activa &&
+        !J.ocupado &&
+        (J.modo === "solo" || J.modo === "local" || J.turno === J.yo);
       function prepararTurno() {
         J.ocupado = false;
         if (J.tiro === 0) J.tumbados = [];
         ponerMonos(J.tiro === 0);
-        Object.assign(B, { x: 0, z: Z_TIRO, vx: 0, vz: 0, efecto: 0, viva: false });
+        Object.assign(B, {
+          x: 0,
+          z: Z_TIRO,
+          vx: 0,
+          vz: 0,
+          efecto: 0,
+          viva: false,
+        });
         marcador();
-        if (J.modo === "local" && J.tiro === 0) ui.avisar(`Tira ${J.nombres[J.turno]}`, J.turno ? "#4fb3ff" : "#ff4f8b");
-        ui.ayuda(miTurno() ? "👆 Desliza hacia arriba para aventar" : `Tira ${J.nombres[J.turno]}…`);
-        if (J.modo === "bot" && J.turno === 1) setTimeout(() => J.activa && J.turno === 1 && !J.ocupado && tiroBot(), 1100);
+        if (J.modo === "local" && J.tiro === 0)
+          ui.avisar(
+            `Tira ${J.nombres[J.turno]}`,
+            J.turno ? "#4fb3ff" : "#ff4f8b",
+          );
+        ui.ayuda(
+          miTurno()
+            ? "👆 Desliza hacia arriba para aventar"
+            : `Tira ${J.nombres[J.turno]}…`,
+        );
+        if (J.modo === "bot" && J.turno === 1)
+          ciclo.despues(
+            () => J.activa && J.turno === 1 && !J.ocupado && tiroBot(),
+            1100,
+          );
         siguientePendiente();
       }
 
       let gesto = null;
       M.lienzo.addEventListener("pointerdown", (e) => {
         if (!miTurno()) return;
-        gesto = { puntos: [{ x: e.clientX, y: e.clientY, t: performance.now() }] };
+        gesto = {
+          puntos: [{ x: e.clientX, y: e.clientY, t: performance.now() }],
+        };
       });
       M.lienzo.addEventListener("pointermove", (e) => {
         if (!gesto) return;
         gesto.puntos.push({ x: e.clientX, y: e.clientY, t: performance.now() });
         // la bola sigue al dedo de lado antes de soltar
-        B.x = limitar(((e.clientX - window.innerWidth / 2) / window.innerWidth) * 3, -ANCHO + R_BOLA, ANCHO - R_BOLA);
+        B.x = limitar(
+          ((e.clientX - window.innerWidth / 2) / window.innerWidth) * 3,
+          -ANCHO + R_BOLA,
+          ANCHO - R_BOLA,
+        );
       });
       M.lienzo.addEventListener("pointerup", (e) => {
         if (!gesto || !miTurno()) return (gesto = null);
@@ -312,19 +454,33 @@
         if (dy < 50) return;
         const ult = pts.filter((p) => p.t > b.t - 120);
         const v0 = ult[0] || a;
-        const velPx = Math.hypot(b.x - v0.x, b.y - v0.y) / Math.max(30, b.t - v0.t);
+        const velPx =
+          Math.hypot(b.x - v0.x, b.y - v0.y) / Math.max(30, b.t - v0.t);
         const fuerza = limitar(velPx * 5.5, 5, 13);
         const dir = limitar((b.x - a.x) / Math.max(dy, 1), -0.35, 0.35);
         // curva: lo que se torció el dedo al final
         const medio = pts[Math.floor(pts.length / 2)];
-        const efecto = limitar(((b.x - medio.x) - (medio.x - a.x)) / 60, -1.5, 1.5);
+        const efecto = limitar(
+          (b.x - medio.x - (medio.x - a.x)) / 60,
+          -1.5,
+          1.5,
+        );
         const vx = dir * fuerza * 0.35,
           vz = -fuerza;
-        if (J.modo === "online") ui.enviar("tiro", { partida: J.partida, n: J.n, x: B.x, vx, vz, efecto });
+        if (J.modo === "online")
+          ui.enviar("tiro", {
+            partida: J.partida,
+            n: J.n,
+            x: B.x,
+            vx,
+            vz,
+            efecto,
+          });
         tirar(B.x, vx, vz, efecto);
       });
 
       async function tirar(x, vx, vz, efecto) {
+        const sesionTarea = J.sesion || 0;
         J.ocupado = true;
         J.n++;
         ui.ayuda("");
@@ -335,16 +491,20 @@
         sonar("rodar", 0.6);
         const partida = J.partida;
         // se espera a que todo se detenga
-        while (partida === J.partida) {
+        while (sesionTarea === (J.sesion || 0) && partida === J.partida) {
           await esperar(150);
+          if (sesionTarea !== (J.sesion || 0)) return;
           const quietos = monos.every((m) => Math.hypot(m.vx, m.vz) < 0.05);
           if ((!B.viva && quietos) || J.tiempo > 8) break;
         }
         if (partida !== J.partida) return;
         await esperar(700);
+        if (sesionTarea !== (J.sesion || 0)) return;
         J.simulando = false;
         B.viva = false;
-        const nuevos = monos.filter((m) => m.parado && m.caido && !J.tumbados.includes(m.i)).map((m) => m.i);
+        const nuevos = monos
+          .filter((m) => m.parado && m.caido && !J.tumbados.includes(m.i))
+          .map((m) => m.i);
         J.tumbados.push(...nuevos);
         anotar(nuevos.length);
       }
@@ -370,13 +530,13 @@
         }
         ui.avisar(n ? `¡${n}!` : "Nada 😅", n ? "#4fb3ff" : "#9a90aa");
         J.tiro = 1;
-        setTimeout(prepararTurno, 900);
+        ciclo.despues(prepararTurno, 900);
       }
       function siguienteTurno() {
         J.tiro = 0;
         marcador();
         const jugadores = J.modo === "solo" ? 1 : 2;
-        setTimeout(() => {
+        ciclo.despues(() => {
           if (!J.activa) return;
           if (J.turno === jugadores - 1) {
             if (J.ronda >= RONDAS) return fin();
@@ -390,31 +550,74 @@
       function tiroBot() {
         const err = { facil: 0.5, normal: 0.25, pro: 0.1 }[J.dificultad];
         // apunta al primer muñeco que siga parado
-        const quedan = monos.filter((m) => m.parado && !J.tumbados.includes(m.i));
-        const meta = quedan.length ? quedan.reduce((a, b) => (a.z > b.z ? a : b)) : { x: 0 };
+        const quedan = monos.filter(
+          (m) => m.parado && !J.tumbados.includes(m.i),
+        );
+        const meta = quedan.length
+          ? quedan.reduce((a, b) => (a.z > b.z ? a : b))
+          : { x: 0 };
         const x = limitar(meta.x * 0.4 + gauss() * err * 0.5, -1, 1);
         const vz = -azar(9, 12);
-        const vx = ((meta.x - x) / (Z_TIRO - (meta.z || 0))) * -vz + gauss() * err * 0.4;
+        const vx =
+          ((meta.x - x) / (Z_TIRO - (meta.z || 0))) * -vz + gauss() * err * 0.4;
         tirar(x, vx, vz, gauss() * err);
       }
 
       function marcador() {
-        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: J.puntos[0], detalle: `Ronda ${J.ronda}/${RONDAS} · tiro ${J.tiro + 1}`, activo: true }, null]);
-        ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (J.modo === "online" && i === J.yo ? " (tú)" : ""), valor: J.puntos[i], detalle: J.turno === i ? `Ronda ${J.ronda}/${RONDAS} · tiro ${J.tiro + 1}` : "puntos", activo: J.activa && J.turno === i })));
+        if (J.modo === "solo")
+          return ui.marcador([
+            {
+              nombre: J.nombres[0],
+              valor: J.puntos[0],
+              detalle: `Ronda ${J.ronda}/${RONDAS} · tiro ${J.tiro + 1}`,
+              activo: true,
+            },
+            null,
+          ]);
+        ui.marcador(
+          [0, 1].map((i) => ({
+            nombre:
+              J.nombres[i] + (J.modo === "online" && i === J.yo ? " (tú)" : ""),
+            valor: J.puntos[i],
+            detalle:
+              J.turno === i
+                ? `Ronda ${J.ronda}/${RONDAS} · tiro ${J.tiro + 1}`
+                : "puntos",
+            activo: J.activa && J.turno === i,
+          })),
+        );
       }
       function fin() {
         J.activa = false;
         if (J.modo === "solo") {
           sonar("ganar");
-          return ui.terminar({ emoji: "⛄", texto: `¡${J.puntos[0]} puntos!`, nota: `De ${RONDAS * 15} posibles`, record: J.puntos[0] });
+          return ui.terminar({
+            emoji: "⛄",
+            texto: `¡${J.puntos[0]} puntos!`,
+            nota: `De ${RONDAS * 15} posibles`,
+            record: J.puntos[0],
+          });
         }
         const [a, b] = J.puntos;
         const g = a === b ? null : a > b ? 0 : 1;
         const gane = g === J.yo;
-        sonar(g == null ? "rebote" : gane || J.modo === "local" ? "ganar" : "perder");
+        sonar(
+          g == null
+            ? "rebote"
+            : gane || J.modo === "local"
+              ? "ganar"
+              : "perder",
+        );
         ui.terminar({
           emoji: g == null ? "🤝" : J.modo === "local" || gane ? "🏆" : "😿",
-          texto: g == null ? "¡Empate!" : J.modo === "local" ? `¡Ganó ${J.nombres[g]}!` : gane ? "¡Ganaste!" : `Ganó ${J.nombres[g]}`,
+          texto:
+            g == null
+              ? "¡Empate!"
+              : J.modo === "local"
+                ? `¡Ganó ${J.nombres[g]}!`
+                : gane
+                  ? "¡Ganaste!"
+                  : `Ganó ${J.nombres[g]}`,
           nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}`,
           record: J.modo !== "local" ? J.puntos[J.yo] : null,
           gano: J.modo !== "local" && gane,

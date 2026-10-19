@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#120c14" />
     <title>Nonograma · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
     <style>
       body {
         background: radial-gradient(ellipse at top, #1f4d3a, #0b1712 70%);
@@ -26,10 +35,20 @@
       #nono {
         --n: 5;
         --pistas: 3;
-        --k: min(calc(94vw / (var(--n) + var(--pistas))), calc((100vh - 230px) / (var(--n) + var(--pistas))), 46px);
+        --k: min(
+          calc(94vw / (var(--n) + var(--pistas))),
+          calc((100vh - 230px) / (var(--n) + var(--pistas))),
+          46px
+        );
         display: grid;
-        grid-template-columns: calc(var(--k) * var(--pistas)) repeat(var(--n), var(--k));
-        grid-template-rows: calc(var(--k) * var(--pistas)) repeat(var(--n), var(--k));
+        grid-template-columns: calc(var(--k) * var(--pistas)) repeat(
+            var(--n),
+            var(--k)
+          );
+        grid-template-rows: calc(var(--k) * var(--pistas)) repeat(
+            var(--n),
+            var(--k)
+          );
         touch-action: none;
         background: #fffdf5;
         border-radius: 10px;
@@ -101,13 +120,17 @@
   <body>
     <div id="zona" class="oculto">
       <div id="nono"></div>
-      <div id="herramientas"><button id="h-llenar" class="activo">⬛ Pintar</button><button id="h-tache">✖ Tachar</button></div>
+      <div id="herramientas">
+        <button id="h-llenar" class="activo">⬛ Pintar</button
+        ><button id="h-tache">✖ Tachar</button>
+      </div>
     </div>
 
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, sonar } = Arcade;
       const J = { activa: false };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
 
       // =================== GENERADOR + SOLUCIONADOR POR LÍNEAS ===================
       const pistas = (linea) => {
@@ -122,10 +145,14 @@
         if (bloques[0] === 0) return [Array(n).fill(0)];
         const res = [];
         const rec = (i, pos, linea) => {
-          if (i === bloques.length) return res.push(linea.concat(Array(n - linea.length).fill(0)));
+          if (i === bloques.length)
+            return res.push(linea.concat(Array(n - linea.length).fill(0)));
           const resto = bloques.slice(i + 1).reduce((a, b) => a + b + 1, 0);
           for (let p = pos; p + bloques[i] + resto <= n; p++) {
-            const nueva = linea.concat(Array(p - linea.length).fill(0), Array(bloques[i]).fill(1));
+            const nueva = linea.concat(
+              Array(p - linea.length).fill(0),
+              Array(bloques[i]).fill(1),
+            );
             if (i < bloques.length - 1) nueva.push(0);
             rec(i + 1, nueva.length, nueva);
           }
@@ -144,7 +171,9 @@
             const ops = k ? opC : opF;
             for (let i = 0; i < n; i++) {
               const actual = (j) => (k ? g[j][i] : g[i][j]);
-              ops[i] = ops[i].filter((o) => o.every((v, j) => actual(j) < 0 || actual(j) === v));
+              ops[i] = ops[i].filter((o) =>
+                o.every((v, j) => actual(j) < 0 || actual(j) === v),
+              );
               if (!ops[i].length) return false;
               for (let j = 0; j < n; j++) {
                 if (actual(j) >= 0) continue;
@@ -162,13 +191,22 @@
       }
       function generar(rand, n) {
         for (let intento = 0; intento < 300; intento++) {
-          const img = Array.from({ length: n }, () => Array.from({ length: n }, () => (rand() < 0.58 ? 1 : 0)));
+          const img = Array.from({ length: n }, () =>
+            Array.from({ length: n }, () => (rand() < 0.58 ? 1 : 0)),
+          );
           const filas = img.map(pistas),
             cols = img[0].map((_, c) => pistas(img.map((f) => f[c])));
-          if (resolubleSoloConPistas(filas, cols, n)) return { img, filas, cols };
+          if (resolubleSoloConPistas(filas, cols, n))
+            return { img, filas, cols };
         }
-        const img = Array.from({ length: n }, (_, r) => Array.from({ length: n }, (_, c) => ((r + c) % 2 ? 1 : 0)));
-        return { img, filas: img.map(pistas), cols: img[0].map((_, c) => pistas(img.map((f) => f[c]))) };
+        const img = Array.from({ length: n }, (_, r) =>
+          Array.from({ length: n }, (_, c) => ((r + c) % 2 ? 1 : 0)),
+        );
+        return {
+          img,
+          filas: img.map(pistas),
+          cols: img[0].map((_, c) => pistas(img.map((f) => f[c]))),
+        };
       }
 
       // =================== PARTIDA ===================
@@ -178,8 +216,15 @@
         emoji: "🔢",
         subtitulo: "Pinta los cuadritos y descubre el dibujo",
         modos: ["solo", "bot", "online"],
-        textosModo: { bot: "🤖 Carrera contra el bot", online: "🌐 Carrera online (mismo dibujo)" },
-        dificultad: { etiqueta: "📏 Tamaño", nombres: { facil: "5×5", normal: "8×8", pro: "10×10" }, siempre: true },
+        textosModo: {
+          bot: "🤖 Carrera contra el bot",
+          online: "🌐 Carrera online (mismo dibujo)",
+        },
+        dificultad: {
+          etiqueta: "📏 Tamaño",
+          nombres: { facil: "5×5", normal: "8×8", pro: "10×10" },
+          siempre: true,
+        },
         records: true,
         unidadRecord: "s",
         reglas: [
@@ -199,33 +244,69 @@
         } else if (tipo === "termino") fin(false);
       };
       let herramienta = 1;
-      $("h-llenar").onclick = () => ((herramienta = 1), $("h-llenar").classList.add("activo"), $("h-tache").classList.remove("activo"));
-      $("h-tache").onclick = () => ((herramienta = 2), $("h-tache").classList.add("activo"), $("h-llenar").classList.remove("activo"));
+      $("h-llenar").onclick = () => (
+        (herramienta = 1),
+        $("h-llenar").classList.add("activo"),
+        $("h-tache").classList.remove("activo")
+      );
+      $("h-tache").onclick = () => (
+        (herramienta = 2),
+        $("h-tache").classList.add("activo"),
+        $("h-llenar").classList.remove("activo")
+      );
 
       function parar() {
+        ciclo.cancelar();
         J.activa = false;
         clearInterval(J.reloj);
         clearTimeout(J.timerBot);
         $("zona").classList.add("oculto");
       }
       function empezar(modo, info) {
+        ciclo.cancelar();
         parar();
         const nivel = modo === "online" ? "normal" : info.dificultad;
         const n = { facil: 5, normal: 8, pro: 10 }[nivel];
         const p = generar(Arcade.rng(info.semilla), n);
-        Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, nivel, n, ...p, marcas: Array.from({ length: n }, () => Array(n).fill(0)), rival: 0, inicio: Date.now(), activa: true, ultimoEnvio: 0 });
-        const maxPistas = Math.max(...p.filas.map((f) => f.length), ...p.cols.map((c) => c.length));
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          nombres: info.nombres,
+          nivel,
+          n,
+          ...p,
+          marcas: Array.from({ length: n }, () => Array(n).fill(0)),
+          rival: 0,
+          inicio: Date.now(),
+          activa: true,
+          ultimoEnvio: 0,
+        });
+        const maxPistas = Math.max(
+          ...p.filas.map((f) => f.length),
+          ...p.cols.map((c) => c.length),
+        );
         const nono = $("nono");
         nono.style.setProperty("--n", n);
-        nono.style.setProperty("--pistas", Math.max(2, Math.ceil(maxPistas * 0.75)));
-        let html = "<div></div>" + p.cols.map((c, i) => `<div class="pista-col" id="pc${i}">${c.map((x) => `<span>${x}</span>`).join("")}</div>`).join("");
+        nono.style.setProperty(
+          "--pistas",
+          Math.max(2, Math.ceil(maxPistas * 0.75)),
+        );
+        let html =
+          "<div></div>" +
+          p.cols
+            .map(
+              (c, i) =>
+                `<div class="pista-col" id="pc${i}">${c.map((x) => `<span>${x}</span>`).join("")}</div>`,
+            )
+            .join("");
         for (let r = 0; r < n; r++) {
           html += `<div class="pista-fila" id="pf${r}">${p.filas[r].map((x) => `<span>${x}</span>`).join("")}</div>`;
-          for (let c = 0; c < n; c++) html += `<div class="cel ${c % 5 === 4 && c < n - 1 ? "borde-d" : ""} ${r % 5 === 4 && r < n - 1 ? "borde-a" : ""}" data-r="${r}" data-c="${c}"></div>`;
+          for (let c = 0; c < n; c++)
+            html += `<div class="cel ${c % 5 === 4 && c < n - 1 ? "borde-d" : ""} ${r % 5 === 4 && r < n - 1 ? "borde-a" : ""}" data-r="${r}" data-c="${c}"></div>`;
         }
         nono.innerHTML = html;
         $("zona").classList.remove("oculto");
-        J.reloj = setInterval(marcador, 1000);
+        J.reloj = ciclo.cada(marcador, 1000);
         if (modo === "bot") turnoBot();
         marcador();
       }
@@ -269,8 +350,12 @@
         const lleno = (r, c) => (J.marcas[r][c] === 1 ? 1 : 0);
         let bien = 0;
         for (let i = 0; i < J.n; i++) {
-          const fOk = pistas(J.marcas[i].map((v) => (v === 1 ? 1 : 0))).join() === J.filas[i].join();
-          const cOk = pistas(J.marcas.map((f) => (f[i] === 1 ? 1 : 0))).join() === J.cols[i].join();
+          const fOk =
+            pistas(J.marcas[i].map((v) => (v === 1 ? 1 : 0))).join() ===
+            J.filas[i].join();
+          const cOk =
+            pistas(J.marcas.map((f) => (f[i] === 1 ? 1 : 0))).join() ===
+            J.cols[i].join();
           $("pf" + i).classList.toggle("ok", fOk);
           $("pc" + i).classList.toggle("ok", cOk);
           bien += fOk + cOk;
@@ -292,10 +377,28 @@
       function marcador() {
         const t = seg();
         const reloj = `⏱️ ${(t / 60) | 0}:${String(t % 60).padStart(2, "0")}`;
-        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: reloj, detalle: `${J.n}×${J.n}`, activo: true }, null]);
+        if (J.modo === "solo")
+          return ui.marcador([
+            {
+              nombre: J.nombres[0],
+              valor: reloj,
+              detalle: `${J.n}×${J.n}`,
+              activo: true,
+            },
+            null,
+          ]);
         const yo = J.modo === "online" ? ui.yo : 0;
-        const mio = { nombre: J.nombres[yo] + " (tú)", valor: `${J.pct || 0}%`, detalle: reloj, activo: true };
-        const suyo = { nombre: J.nombres[1 - yo], valor: `${J.rival}%`, detalle: "resolviendo…" };
+        const mio = {
+          nombre: J.nombres[yo] + " (tú)",
+          valor: `${J.pct || 0}%`,
+          detalle: reloj,
+          activo: true,
+        };
+        const suyo = {
+          nombre: J.nombres[1 - yo],
+          valor: `${J.rival}%`,
+          detalle: "resolviendo…",
+        };
         ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
       }
       function fin(gane) {
@@ -304,22 +407,42 @@
         parar();
         // se enseña el dibujo completo un momento
         sonar(gane ? "ganar" : "perder");
-        if (J.modo === "solo") return ui.terminar({ emoji: "🖼️", texto: `¡Dibujo completo en ${(s / 60) | 0}:${String(s % 60).padStart(2, "0")}!`, nota: `${J.n}×${J.n}`, record: s, gano: true });
+        if (J.modo === "solo")
+          return ui.terminar({
+            emoji: "🖼️",
+            texto: `¡Dibujo completo en ${(s / 60) | 0}:${String(s % 60).padStart(2, "0")}!`,
+            nota: `${J.n}×${J.n}`,
+            record: s,
+            gano: true,
+          });
         const yo = J.modo === "online" ? ui.yo : 0;
-        ui.terminar({ emoji: gane ? "🏆" : "😿", texto: gane ? "¡Lo terminaste primero!" : `Ganó ${J.nombres[1 - yo]}`, nota: `${J.n}×${J.n} · ${(s / 60) | 0}:${String(s % 60).padStart(2, "0")}`, gano: gane });
+        ui.terminar({
+          emoji: gane ? "🏆" : "😿",
+          texto: gane ? "¡Lo terminaste primero!" : `Ganó ${J.nombres[1 - yo]}`,
+          nota: `${J.n}×${J.n} · ${(s / 60) | 0}:${String(s % 60).padStart(2, "0")}`,
+          gano: gane,
+        });
       }
       function turnoBot() {
         const partida = J.partida;
-        const total = { 5: 45, 8: 150, 10: 260 }[J.n] * { facil: 1.6, normal: 1, pro: 0.65 }[J.nivel === "normal" ? "normal" : J.nivel] * Arcade.azar(0.8, 1.2);
+        const total =
+          { 5: 45, 8: 150, 10: 260 }[J.n] *
+          { facil: 1.6, normal: 1, pro: 0.65 }[
+            J.nivel === "normal" ? "normal" : J.nivel
+          ] *
+          Arcade.azar(0.8, 1.2);
         const inicio = Date.now();
         const paso = () => {
           if (partida !== J.partida || !J.activa) return;
-          J.rival = Math.min(100, Math.round(((Date.now() - inicio) / 1000 / total) * 100));
+          J.rival = Math.min(
+            100,
+            Math.round(((Date.now() - inicio) / 1000 / total) * 100),
+          );
           marcador();
           if (J.rival >= 100) return fin(false);
-          J.timerBot = setTimeout(paso, 1000);
+          J.timerBot = ciclo.despues(paso, 1000);
         };
-        J.timerBot = setTimeout(paso, 1000);
+        J.timerBot = ciclo.despues(paso, 1000);
       }
     </script>
   </body>

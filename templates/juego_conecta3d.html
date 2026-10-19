@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#0d1b3a" />
     <title>Conecta 4 3D · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
   </head>
   <body>
     <canvas id="lienzo"></canvas>
@@ -23,20 +32,38 @@
       // =========================================================
       //  ESCENA
       // =========================================================
-      const M = Arcade.mundo({ fondo: 0x0d1b3a, fov: 45, exposicion: 1.1, colorAmbiente: 0x3050a0 });
+      const M = Arcade.mundo({
+        fondo: 0x0d1b3a,
+        fov: 45,
+        exposicion: 1.1,
+        colorAmbiente: 0x3050a0,
+      });
       const { escena, camara } = M;
-      const mat = (c, x = {}) => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.4, ...x });
+      const mat = (c, x = {}) =>
+        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.4, ...x });
       escena.add(new THREE.HemisphereLight(0xd0e0ff, 0x203050, 0.7));
       const luz = new THREE.DirectionalLight(0xffffff, 1.0);
       luz.position.set(4, 10, 8);
       luz.castShadow = true;
       luz.shadow.mapSize.set(1024, 1024);
-      Object.assign(luz.shadow.camera, { left: -6, right: 6, top: 8, bottom: -3, near: 1, far: 30 });
+      Object.assign(luz.shadow.camera, {
+        left: -6,
+        right: 6,
+        top: 8,
+        bottom: -3,
+        near: 1,
+        far: 30,
+      });
       escena.add(luz);
       // mesa
       const mesa = new THREE.Mesh(
         new THREE.BoxGeometry(14, 0.3, 6),
-        new THREE.MeshStandardMaterial({ map: M.textura(512, 256, (g, w, h) => Arcade.dibujarMadera(g, w, h, { tablas: 5, vertical: false })), roughness: 0.6 }),
+        new THREE.MeshStandardMaterial({
+          map: M.textura(512, 256, (g, w, h) =>
+            Arcade.dibujarMadera(g, w, h, { tablas: 5, vertical: false }),
+          ),
+          roughness: 0.6,
+        }),
       );
       mesa.position.y = -0.15;
       mesa.receiveShadow = true;
@@ -44,38 +71,70 @@
       // tablero: dos caras con hoyos (textura con transparencia)
       const ANCHO_T = COLS * K + 0.4,
         ALTO_T = FILAS * K + 0.4;
-      const texHoyos = M.textura(512, Math.round((512 * ALTO_T) / ANCHO_T), (g, w, h) => {
-        g.fillStyle = "#fff";
-        g.fillRect(0, 0, w, h);
-        g.globalCompositeOperation = "destination-out";
-        const sx = w / ANCHO_T,
-          sy = h / ALTO_T;
-        for (let c = 0; c < COLS; c++)
-          for (let r = 0; r < FILAS; r++) {
-            g.beginPath();
-            g.ellipse((0.2 + c * K + K / 2) * sx, (0.2 + r * K + K / 2) * sy, 0.4 * sx, 0.4 * sy, 0, 0, Math.PI * 2);
-            g.fill();
-          }
+      const texHoyos = M.textura(
+        512,
+        Math.round((512 * ALTO_T) / ANCHO_T),
+        (g, w, h) => {
+          g.fillStyle = "#fff";
+          g.fillRect(0, 0, w, h);
+          g.globalCompositeOperation = "destination-out";
+          const sx = w / ANCHO_T,
+            sy = h / ALTO_T;
+          for (let c = 0; c < COLS; c++)
+            for (let r = 0; r < FILAS; r++) {
+              g.beginPath();
+              g.ellipse(
+                (0.2 + c * K + K / 2) * sx,
+                (0.2 + r * K + K / 2) * sy,
+                0.4 * sx,
+                0.4 * sy,
+                0,
+                0,
+                Math.PI * 2,
+              );
+              g.fill();
+            }
+        },
+      );
+      const matTablero = new THREE.MeshStandardMaterial({
+        color: lin(0x1f5fd0),
+        alphaMap: texHoyos,
+        transparent: true,
+        alphaTest: 0.5,
+        side: THREE.DoubleSide,
+        roughness: 0.35,
+        metalness: 0.1,
       });
-      const matTablero = new THREE.MeshStandardMaterial({ color: lin(0x1f5fd0), alphaMap: texHoyos, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.1 });
       const tablero = new THREE.Group();
       [-0.28, 0.28].forEach((z) => {
-        const cara = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO_T, ALTO_T), matTablero);
+        const cara = new THREE.Mesh(
+          new THREE.PlaneGeometry(ANCHO_T, ALTO_T),
+          matTablero,
+        );
         cara.position.set(0, ALTO_T / 2, z);
         cara.castShadow = true;
         tablero.add(cara);
       });
       const matMarco = mat(0x1a4fb0);
       [-1, 1].forEach((l) => {
-        const lado = new THREE.Mesh(new THREE.BoxGeometry(0.2, ALTO_T + 0.6, 0.76), matMarco);
+        const lado = new THREE.Mesh(
+          new THREE.BoxGeometry(0.2, ALTO_T + 0.6, 0.76),
+          matMarco,
+        );
         lado.position.set(l * (ANCHO_T / 2 + 0.1), (ALTO_T + 0.6) / 2, 0);
         lado.castShadow = true;
         tablero.add(lado);
-        const pata = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 2), matMarco);
+        const pata = new THREE.Mesh(
+          new THREE.BoxGeometry(0.5, 0.2, 2),
+          matMarco,
+        );
         pata.position.set(l * (ANCHO_T / 2 + 0.1), 0.1, 0);
         tablero.add(pata);
       });
-      const base = new THREE.Mesh(new THREE.BoxGeometry(ANCHO_T, 0.15, 0.76), matMarco);
+      const base = new THREE.Mesh(
+        new THREE.BoxGeometry(ANCHO_T, 0.15, 0.76),
+        matMarco,
+      );
       base.position.y = 0.075;
       tablero.add(base);
       escena.add(tablero);
@@ -83,7 +142,10 @@
       const yFila = (r) => 0.2 + (FILAS - 1 - r) * K + K / 2; // fila 0 = arriba
 
       const geoFicha = new THREE.CylinderGeometry(0.42, 0.42, 0.34, 32);
-      const MAT_FICHA = { 1: mat(0xff3b3b, { roughness: 0.3 }), 2: mat(0xffd84f, { roughness: 0.3 }) };
+      const MAT_FICHA = {
+        1: mat(0xff3b3b, { roughness: 0.3 }),
+        2: mat(0xffd84f, { roughness: 0.3 }),
+      };
       const fichas = [];
       // ficha que flota arriba mostrando dónde caería
       const fantasma = new THREE.Mesh(geoFicha, MAT_FICHA[1].clone());
@@ -96,7 +158,8 @@
       // =========================================================
       //  REGLAS + BOT
       // =========================================================
-      const nuevo = () => Array.from({ length: FILAS }, () => Array(COLS).fill(0));
+      const nuevo = () =>
+        Array.from({ length: FILAS }, () => Array(COLS).fill(0));
       const filaLibre = (g, c) => {
         for (let r = FILAS - 1; r >= 0; r--) if (!g[r][c]) return r;
         return -1;
@@ -106,12 +169,24 @@
           for (let c = 0; c < COLS; c++) {
             const v = g[r][c];
             if (!v) continue;
-            for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
+            for (const [dr, dc] of [
+              [0, 1],
+              [1, 0],
+              [1, 1],
+              [1, -1],
+            ]) {
               const linea = [[r, c]];
               for (let k = 1; k < 4; k++) {
                 const rr = r + dr * k,
                   cc = c + dc * k;
-                if (rr < 0 || rr >= FILAS || cc < 0 || cc >= COLS || g[rr][cc] !== v) break;
+                if (
+                  rr < 0 ||
+                  rr >= FILAS ||
+                  cc < 0 ||
+                  cc >= COLS ||
+                  g[rr][cc] !== v
+                )
+                  break;
                 linea.push([rr, cc]);
               }
               if (linea.length === 4) return { v, linea };
@@ -122,7 +197,9 @@
       function puntuar(g, yo) {
         let s = 0;
         const otro = 3 - yo;
-        for (let c = 0; c < COLS; c++) for (let r = 0; r < FILAS; r++) if (g[r][c] === yo) s += 3 - Math.abs(3 - c);
+        for (let c = 0; c < COLS; c++)
+          for (let r = 0; r < FILAS; r++)
+            if (g[r][c] === yo) s += 3 - Math.abs(3 - c);
         const ventana = (cells) => {
           const m = cells.filter((x) => x === yo).length,
             o = cells.filter((x) => x === otro).length,
@@ -134,7 +211,12 @@
         };
         for (let r = 0; r < FILAS; r++)
           for (let c = 0; c < COLS; c++)
-            for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
+            for (const [dr, dc] of [
+              [0, 1],
+              [1, 0],
+              [1, 1],
+              [1, -1],
+            ]) {
               const cells = [];
               for (let k = 0; k < 4; k++) {
                 const rr = r + dr * k,
@@ -159,23 +241,28 @@
           g[r][c] = turno;
           const v = minimax(g, prof - 1, alfa, beta, 3 - turno, yo);
           g[r][c] = 0;
-          if (turno === yo) (mejor = Math.max(mejor, v)), (alfa = Math.max(alfa, v));
-          else (mejor = Math.min(mejor, v)), (beta = Math.min(beta, v));
+          if (turno === yo)
+            ((mejor = Math.max(mejor, v)), (alfa = Math.max(alfa, v)));
+          else ((mejor = Math.min(mejor, v)), (beta = Math.min(beta, v)));
           if (alfa >= beta) break;
         }
         return mejor;
       }
       function mejorColumna(g, yo, nivel) {
-        const [prof, ruido] = { facil: [2, 40], normal: [4, 4], pro: [7, 0] }[nivel];
+        const [prof, ruido] = { facil: [2, 40], normal: [4, 4], pro: [7, 0] }[
+          nivel
+        ];
         let mejor = 3,
           mejorV = -Infinity;
         for (const c of ORDEN) {
           const r = filaLibre(g, c);
           if (r < 0) continue;
           g[r][c] = yo;
-          const v = minimax(g, prof - 1, -Infinity, Infinity, 3 - yo, yo) + Math.random() * ruido;
+          const v =
+            minimax(g, prof - 1, -Infinity, Infinity, 3 - yo, yo) +
+            Math.random() * ruido;
           g[r][c] = 0;
-          if (v > mejorV) (mejorV = v), (mejor = c);
+          if (v > mejorV) ((mejorV = v), (mejor = c));
         }
         return mejor;
       }
@@ -184,6 +271,7 @@
       //  PARTIDA
       // =========================================================
       const J = { activa: false, g: nuevo() };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
       const ui = Arcade.ui({
         juego: "conecta3d",
         titulo: "Conecta 4 3D",
@@ -198,6 +286,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          ciclo.cancelar();
           J.activa = false;
           J.modo = null;
           fantasma.visible = false;
@@ -205,25 +294,48 @@
       });
       const cola = Tablero.cola((d) => soltar(d.c, true));
       ui.alEvento = (tipo, d) => {
-        if (tipo === "mov" && d && d.partida === J.partida) cola.recibir(d.n, d, () => J.n);
+        if (tipo === "mov" && d && d.partida === J.partida)
+          cola.recibir(d.n, d, () => J.n);
       };
 
       function empezar(modo, info) {
+        ciclo.cancelar();
         fichas.forEach((f) => escena.remove(f));
         fichas.length = 0;
-        Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, dificultad: info.dificultad, g: nuevo(), turno: 1, n: 0, activa: true, cayendo: false, pensando: false });
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          nombres: info.nombres,
+          dificultad: info.dificultad,
+          g: nuevo(),
+          turno: 1,
+          n: 0,
+          activa: true,
+          cayendo: false,
+          pensando: false,
+        });
         J.yo = modo === "online" ? (ui.yo === 0 ? 1 : 2) : 1;
         cola.reiniciar();
         marcador();
         ui.ayuda("👆 Toca una columna");
-        setTimeout(() => J.partida === info.partida && ui.ayuda(""), 3000);
+        ciclo.despues(() => J.partida === info.partida && ui.ayuda(""), 3000);
       }
-      const puedoMover = () => J.activa && !J.cayendo && !J.pensando && (J.modo === "local" || J.turno === J.yo);
+      const puedoMover = () =>
+        J.activa &&
+        !J.cayendo &&
+        !J.pensando &&
+        (J.modo === "local" || J.turno === J.yo);
 
       function columnaEn(px, py) {
         const rayo = M.pantallaARayo(px, py);
         const p = new THREE.Vector3();
-        if (!rayo.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), p)) return -1;
+        if (
+          !rayo.ray.intersectPlane(
+            new THREE.Plane(new THREE.Vector3(0, 0, 1), 0),
+            p,
+          )
+        )
+          return -1;
         const c = Math.floor((p.x + ANCHO_T / 2 - 0.2) / K);
         return c >= 0 && c < COLS ? c : -1;
       }
@@ -239,11 +351,13 @@
         const c = columnaEn(e.clientX, e.clientY);
         if (c < 0 || filaLibre(J.g, c) < 0) return;
         fantasma.visible = false;
-        if (J.modo === "online") ui.enviar("mov", { partida: J.partida, n: J.n, c });
+        if (J.modo === "online")
+          ui.enviar("mov", { partida: J.partida, n: J.n, c });
         soltar(c);
       });
 
       async function soltar(c, remota) {
+        const sesionTarea = J.sesion || 0;
         const r = filaLibre(J.g, c);
         if (r < 0) return;
         const quien = J.turno;
@@ -261,9 +375,16 @@
         const partida = J.partida;
         sonar("swoosh", 0.4);
         // cae con rebotito
-        await M.animar(140 + (y0 - y1) * 55, (t) => f.position.set(xCol(c), y0 - (y0 - y1) * t * t, 0));
+        await ciclo.animar(140 + (y0 - y1) * 55, (t) =>
+          f.position.set(xCol(c), y0 - (y0 - y1) * t * t, 0),
+        );
+        if (sesionTarea !== (J.sesion || 0)) return;
         sonar("golpe", 0.5);
-        await M.animar(160, (t) => (f.position.y = y1 + Math.sin(t * Math.PI) * 0.18));
+        await ciclo.animar(
+          160,
+          (t) => (f.position.y = y1 + Math.sin(t * Math.PI) * 0.18),
+        );
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (partida !== J.partida) return;
         J.cayendo = false;
         marcador();
@@ -273,10 +394,20 @@
         if (J.modo === "bot" && J.turno === 2) turnoBot();
       }
       async function turnoBot() {
+        const sesionTarea = J.sesion || 0;
         J.pensando = true;
         marcador();
         const partida = J.partida;
-        const c = await Tablero.pensar(() => mejorColumna(J.g.map((f) => f.slice()), 2, J.dificultad), 450);
+        const c = await Tablero.pensar(
+          () =>
+            mejorColumna(
+              J.g.map((f) => f.slice()),
+              2,
+              J.dificultad,
+            ),
+          450,
+        );
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (partida !== J.partida || !J.activa) return;
         J.pensando = false;
         soltar(c);
@@ -284,17 +415,34 @@
       function marcador() {
         const panel = (i) => {
           const v = i + 1;
-          const yoSoy = J.modo === "online" ? J.yo === v : J.modo === "bot" && v === 1;
-          return { nombre: `${v === 1 ? "🔴" : "🟡"} ${J.nombres[i]}${yoSoy ? " (tú)" : ""}`, valor: J.g.flat().filter((x) => x === v).length, detalle: J.turno === v ? (J.pensando ? "🤔 Pensando…" : "Le toca") : "fichas", activo: J.activa && J.turno === v, color: v === 1 ? "#ff3b3b" : "#ffd84f" };
+          const yoSoy =
+            J.modo === "online" ? J.yo === v : J.modo === "bot" && v === 1;
+          return {
+            nombre: `${v === 1 ? "🔴" : "🟡"} ${J.nombres[i]}${yoSoy ? " (tú)" : ""}`,
+            valor: J.g.flat().filter((x) => x === v).length,
+            detalle:
+              J.turno === v
+                ? J.pensando
+                  ? "🤔 Pensando…"
+                  : "Le toca"
+                : "fichas",
+            activo: J.activa && J.turno === v,
+            color: v === 1 ? "#ff3b3b" : "#ffd84f",
+          };
         };
         ui.marcador([panel(0), panel(1)]);
       }
       async function fin(g) {
+        const sesionTarea = J.sesion || 0;
         J.activa = false;
         if (g) {
           // las 4 ganadoras brillan
           g.linea.forEach(([r, c]) => {
-            const f = fichas.find((x) => Math.abs(x.position.x - xCol(c)) < 0.1 && Math.abs(x.position.y - yFila(r)) < 0.1);
+            const f = fichas.find(
+              (x) =>
+                Math.abs(x.position.x - xCol(c)) < 0.1 &&
+                Math.abs(x.position.y - yFila(r)) < 0.1,
+            );
             if (f) {
               f.material = f.material.clone();
               f.material.emissive = new THREE.Color(0xffffff);
@@ -304,11 +452,18 @@
           sonar("perfecto", 1.4);
         }
         await esperar(1200);
+        if (sesionTarea !== (J.sesion || 0)) return;
         const gane = g && (J.modo === "local" || g.v === J.yo);
         sonar(gane ? "ganar" : g ? "perder" : "rebote");
         ui.terminar({
           emoji: !g ? "🤝" : gane ? "🏆" : "😿",
-          texto: !g ? "¡Empate!" : J.modo === "local" ? `¡Ganó ${J.nombres[g.v - 1]}!` : gane ? "¡Conectaste 4!" : `Ganó ${J.nombres[g.v - 1]}`,
+          texto: !g
+            ? "¡Empate!"
+            : J.modo === "local"
+              ? `¡Ganó ${J.nombres[g.v - 1]}!`
+              : gane
+                ? "¡Conectaste 4!"
+                : `Ganó ${J.nombres[g.v - 1]}`,
           nota: `${J.n} fichas en el tablero`,
           gano: J.modo !== "local" && !!gane,
         });
@@ -318,9 +473,19 @@
         const aspecto = window.innerWidth / window.innerHeight;
         camara.fov = aspecto < 1 ? 58 : 45;
         const tan = Math.tan(THREE.MathUtils.degToRad(camara.fov / 2));
-        const d = Math.max((ALTO_T + 2.4) / 2 / tan, (ANCHO_T + 1) / 2 / (tan * aspecto)) + 0.6;
-        const giro = J.modo ? Math.sin(ahora / 4000) * 0.08 : Math.sin(ahora / 2500) * 0.5;
-        camara.position.set(Math.sin(giro) * d, ALTO_T / 2 + 1.2, Math.cos(giro) * d);
+        const d =
+          Math.max(
+            (ALTO_T + 2.4) / 2 / tan,
+            (ANCHO_T + 1) / 2 / (tan * aspecto),
+          ) + 0.6;
+        const giro = J.modo
+          ? Math.sin(ahora / 4000) * 0.08
+          : Math.sin(ahora / 2500) * 0.5;
+        camara.position.set(
+          Math.sin(giro) * d,
+          ALTO_T / 2 + 1.2,
+          Math.cos(giro) * d,
+        );
         camara.lookAt(0, ALTO_T / 2 + 0.3, 0);
         camara.updateProjectionMatrix();
       });

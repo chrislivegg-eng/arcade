@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#7ec8ff" />
     <title>Paracaidista · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
     <style>
       #altura {
         position: fixed;
@@ -16,7 +25,11 @@
         width: 16px;
         height: 46vh;
         border-radius: 10px;
-        background: linear-gradient(#4fb3ff 0 70%, #26de81 70% 88%, #ff3b3b 88%);
+        background: linear-gradient(
+          #4fb3ff 0 70%,
+          #26de81 70% 88%,
+          #ff3b3b 88%
+        );
         border: 3px solid #fff;
         z-index: 5;
       }
@@ -64,42 +77,78 @@
       // =========================================================
       //  ESCENA
       // =========================================================
-      const M = Arcade.mundo({ fondo: 0x7ec8ff, fov: 65, niebla: [150, 900], exposicion: 1.05, colorAmbiente: 0xcfefff, lejos: 2000 });
+      const M = Arcade.mundo({
+        fondo: 0x7ec8ff,
+        fov: 65,
+        niebla: [150, 900],
+        exposicion: 1.05,
+        colorAmbiente: 0xcfefff,
+        lejos: 2000,
+      });
       const { escena, camara } = M;
-      const mat = (c, x = {}) => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.8, ...x });
+      const mat = (c, x = {}) =>
+        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.8, ...x });
       escena.add(new THREE.HemisphereLight(0xeaf6ff, 0x5a7a3a, 0.9));
       const sol = new THREE.DirectionalLight(0xfff0d8, 1.1);
       sol.position.set(100, 400, 100);
       escena.add(sol);
       // suelo con campos
       const texCampo = M.textura(512, 512, (g, w, h) => {
-        const colores = ["#7cb342", "#9ccc65", "#c0a060", "#689f38", "#aed581", "#d4b06a"];
-        for (let x = 0; x < w; x += 64) for (let y = 0; y < h; y += 64) (g.fillStyle = colores[Math.floor(Math.random() * colores.length)]), g.fillRect(x, y, 64, 64);
+        const colores = [
+          "#7cb342",
+          "#9ccc65",
+          "#c0a060",
+          "#689f38",
+          "#aed581",
+          "#d4b06a",
+        ];
+        for (let x = 0; x < w; x += 64)
+          for (let y = 0; y < h; y += 64)
+            ((g.fillStyle =
+              colores[Math.floor(Math.random() * colores.length)]),
+              g.fillRect(x, y, 64, 64));
         g.strokeStyle = "rgba(60,40,20,.3)";
-        for (let i = 0; i <= w; i += 64) g.strokeRect(i, 0, 0, h), g.strokeRect(0, i, w, 0);
+        for (let i = 0; i <= w; i += 64)
+          (g.strokeRect(i, 0, 0, h), g.strokeRect(0, i, w, 0));
       });
       texCampo.wrapS = texCampo.wrapT = THREE.RepeatWrapping;
       texCampo.repeat.set(12, 12);
-      const suelo = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshStandardMaterial({ map: texCampo }));
+      const suelo = new THREE.Mesh(
+        new THREE.PlaneGeometry(3000, 3000),
+        new THREE.MeshStandardMaterial({ map: texCampo }),
+      );
       suelo.rotation.x = -Math.PI / 2;
       escena.add(suelo);
       // diana de aterrizaje
       const texDiana = M.textura(256, 256, (g, w, h) => {
-        ["#ffffff", "#e0323c", "#ffffff", "#e0323c", "#ffd84f"].forEach((c, i) => {
-          g.beginPath();
-          g.arc(w / 2, h / 2, (w / 2) * (1 - i / 5), 0, Math.PI * 2);
-          g.fillStyle = c;
-          g.fill();
-        });
+        ["#ffffff", "#e0323c", "#ffffff", "#e0323c", "#ffd84f"].forEach(
+          (c, i) => {
+            g.beginPath();
+            g.arc(w / 2, h / 2, (w / 2) * (1 - i / 5), 0, Math.PI * 2);
+            g.fillStyle = c;
+            g.fill();
+          },
+        );
       });
-      const diana = new THREE.Mesh(new THREE.CircleGeometry(25, 48), new THREE.MeshBasicMaterial({ map: texDiana }));
+      const diana = new THREE.Mesh(
+        new THREE.CircleGeometry(25, 48),
+        new THREE.MeshBasicMaterial({ map: texDiana }),
+      );
       diana.rotation.x = -Math.PI / 2;
       diana.position.y = 0.3;
       escena.add(diana);
       // nubes
       const nubes = [];
       for (let i = 0; i < 40; i++) {
-        const n = new THREE.Mesh(new THREE.SphereGeometry(azar(15, 35), 10, 8), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.75, roughness: 1 }));
+        const n = new THREE.Mesh(
+          new THREE.SphereGeometry(azar(15, 35), 10, 8),
+          new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.75,
+            roughness: 1,
+          }),
+        );
         n.scale.y = 0.4;
         n.position.set(azar(-400, 400), azar(250, 1100), azar(-400, 400));
         escena.add(n);
@@ -108,22 +157,43 @@
       // paracaidista
       const persona = new THREE.Group();
       const traje = mat(0xff4f8b);
-      persona.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.25, 1.1), traje), {}));
-      const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), mat(0x222244));
+      persona.add(
+        Object.assign(
+          new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.25, 1.1), traje),
+          {},
+        ),
+      );
+      const cabeza = new THREE.Mesh(
+        new THREE.SphereGeometry(0.17, 12, 10),
+        mat(0x222244),
+      );
       cabeza.position.z = -0.7;
       persona.add(cabeza);
       [-1, 1].forEach((l) => {
-        const brazo = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.1, 0.12), traje);
+        const brazo = new THREE.Mesh(
+          new THREE.BoxGeometry(0.7, 0.1, 0.12),
+          traje,
+        );
         brazo.position.set(l * 0.55, 0, -0.3);
         brazo.rotation.y = l * 0.4;
         persona.add(brazo);
-        const pierna = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.12, 0.7), mat(0x333344));
+        const pierna = new THREE.Mesh(
+          new THREE.BoxGeometry(0.15, 0.12, 0.7),
+          mat(0x333344),
+        );
         pierna.position.set(l * 0.2, 0, 0.85);
         pierna.rotation.y = -l * 0.2;
         persona.add(pierna);
       });
       escena.add(persona);
-      const vela = new THREE.Mesh(new THREE.SphereGeometry(3, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2.6), new THREE.MeshStandardMaterial({ color: lin(0xffd84f), side: THREE.DoubleSide, roughness: 0.6 }));
+      const vela = new THREE.Mesh(
+        new THREE.SphereGeometry(3, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2.6),
+        new THREE.MeshStandardMaterial({
+          color: lin(0xffd84f),
+          side: THREE.DoubleSide,
+          roughness: 0.6,
+        }),
+      );
       vela.visible = false;
       escena.add(vela);
       // aros
@@ -134,7 +204,20 @@
       //  ESTADO
       // =========================================================
       const J = { modo: null, activa: false };
-      const P = { x: 0, y: ALTURA, z: 0, vx: 0, vz: 0, abierto: false, puntos: 0, aros: 0, vivo: false, ox: 0, oz: 0 };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
+      const P = {
+        x: 0,
+        y: ALTURA,
+        z: 0,
+        vx: 0,
+        vz: 0,
+        abierto: false,
+        puntos: 0,
+        aros: 0,
+        vivo: false,
+        ox: 0,
+        oz: 0,
+      };
 
       function generar(semilla) {
         aros.forEach((a) => escena.remove(a.malla));
@@ -146,7 +229,13 @@
           x = limitar(x + (r() - 0.5) * 50, -120, 120);
           z = limitar(z + (r() - 0.5) * 50, -120, 120);
           const dorado = r() < 0.15;
-          const m = new THREE.Mesh(geoAro, mat(dorado ? 0xffd700 : 0xff4f8b, { emissive: lin(dorado ? 0xffa500 : 0xff4f8b), emissiveIntensity: 0.6 }));
+          const m = new THREE.Mesh(
+            geoAro,
+            mat(dorado ? 0xffd700 : 0xff4f8b, {
+              emissive: lin(dorado ? 0xffa500 : 0xff4f8b),
+              emissiveIntensity: 0.6,
+            }),
+          );
           m.rotation.x = Math.PI / 2;
           m.position.set(x, y, z);
           escena.add(m);
@@ -159,7 +248,10 @@
 
       // controles: arrastrar mueve al paracaidista (como un joystick)
       let toque = null;
-      M.lienzo.addEventListener("pointerdown", (e) => (toque = { x: e.clientX, y: e.clientY }));
+      M.lienzo.addEventListener(
+        "pointerdown",
+        (e) => (toque = { x: e.clientX, y: e.clientY }),
+      );
       M.lienzo.addEventListener("pointermove", (e) => {
         if (!toque) return;
         P.ox = limitar((e.clientX - toque.x) / 90, -1, 1);
@@ -194,13 +286,23 @@
       M.alCuadro((dt, ahora) => {
         nubes.forEach((n, i) => (n.position.x += Math.sin(i) * dt * 2));
         if (!J.modo) {
-          camara.position.set(Math.sin(ahora / 5000) * 60, 700, Math.cos(ahora / 5000) * 60);
+          camara.position.set(
+            Math.sin(ahora / 5000) * 60,
+            700,
+            Math.cos(ahora / 5000) * 60,
+          );
           camara.lookAt(0, 400, 0);
           return;
         }
         if (P.vivo) {
-          const ox = P.ox + (teclas.ArrowRight || teclas.d ? 1 : 0) - (teclas.ArrowLeft || teclas.a ? 1 : 0);
-          const oz = P.oz + (teclas.ArrowDown || teclas.s ? 1 : 0) - (teclas.ArrowUp || teclas.w ? 1 : 0);
+          const ox =
+            P.ox +
+            (teclas.ArrowRight || teclas.d ? 1 : 0) -
+            (teclas.ArrowLeft || teclas.a ? 1 : 0);
+          const oz =
+            P.oz +
+            (teclas.ArrowDown || teclas.s ? 1 : 0) -
+            (teclas.ArrowUp || teclas.w ? 1 : 0);
           const vel = P.abierto ? 14 : 34;
           P.vx += (ox * vel - P.vx) * Math.min(1, dt * 3);
           P.vz += (oz * vel - P.vz) * Math.min(1, dt * 3);
@@ -218,42 +320,78 @@
               P.aros++;
               a.malla.material.color.set(lin(0x26de81));
               sonar("perfecto", 1 + P.aros * 0.03);
-              ui.avisar(a.dorado ? "✨ ¡Aro dorado! +50" : "+20", a.dorado ? "#ffd700" : "#26de81");
-            } else Object.assign(a.malla.material, { transparent: true, opacity: 0.3 });
+              ui.avisar(
+                a.dorado ? "✨ ¡Aro dorado! +50" : "+20",
+                a.dorado ? "#ffd700" : "#26de81",
+              );
+            } else
+              Object.assign(a.malla.material, {
+                transparent: true,
+                opacity: 0.3,
+              });
             marcador();
           });
-          if (!P.abierto && P.y < ABRIR_MAX + 80) $("abrir").classList.remove("oculto");
+          if (!P.abierto && P.y < ABRIR_MAX + 80)
+            $("abrir").classList.remove("oculto");
           if (P.y <= 0) aterrizar();
           $("marca-altura").style.top = (1 - P.y / ALTURA) * 100 + "%";
         }
         persona.position.set(P.x, Math.max(0.5, P.y), P.z);
-        persona.rotation.set(P.abierto ? 0 : -Math.PI / 2 + 0.3, 0, -P.vx * 0.01);
+        persona.rotation.set(
+          P.abierto ? 0 : -Math.PI / 2 + 0.3,
+          0,
+          -P.vx * 0.01,
+        );
         if (P.abierto) persona.rotation.x = 0;
         vela.position.set(P.x, Math.max(0.5, P.y) + 4, P.z);
         vela.scale.lerp(new THREE.Vector3(1, 1, 1), Math.min(1, dt * 4));
         // cámara: arriba y atrás, mirando hacia abajo
         const foco = new THREE.Vector3(P.x, Math.max(0, P.y), P.z);
-        const quiero = foco.clone().add(P.abierto ? new THREE.Vector3(0, 9, 16) : new THREE.Vector3(0, 14, 6));
+        const quiero = foco
+          .clone()
+          .add(
+            P.abierto
+              ? new THREE.Vector3(0, 9, 16)
+              : new THREE.Vector3(0, 14, 6),
+          );
         camara.position.lerp(quiero, Math.min(1, dt * 4));
-        camara.lookAt(foco.x, foco.y - (P.abierto ? 6 : 30), foco.z - (P.abierto ? 2 : 4));
+        camara.lookAt(
+          foco.x,
+          foco.y - (P.abierto ? 6 : 30),
+          foco.z - (P.abierto ? 2 : 4),
+        );
       });
 
       async function aterrizar() {
+        const sesionTarea = J.sesion || 0;
         P.vivo = false;
         $("abrir").classList.add("oculto");
         const d = Math.hypot(P.x - diana.position.x, P.z - diana.position.z);
         if (!P.abierto || P.alturaApertura < ABRIR_MIN) {
           sonar("choque");
-          ui.avisar(!P.abierto ? "💥 ¡No abriste el paracaídas!" : "💥 ¡Lo abriste muy tarde!", "#ff3b3b");
+          ui.avisar(
+            !P.abierto
+              ? "💥 ¡No abriste el paracaídas!"
+              : "💥 ¡Lo abriste muy tarde!",
+            "#ff3b3b",
+          );
           P.puntos = Math.max(0, Math.round(P.puntos / 2));
         } else {
           const bono = Math.max(0, Math.round(200 - d * 4));
           P.puntos += bono;
           sonar(bono > 150 ? "ganar" : "perfecto");
-          ui.avisar(bono > 150 ? `🎯 ¡Al centro! +${bono}` : bono ? `Aterrizaje +${bono}` : "Caíste lejos de la diana", bono ? "#26de81" : "#ffd84f");
+          ui.avisar(
+            bono > 150
+              ? `🎯 ¡Al centro! +${bono}`
+              : bono
+                ? `Aterrizaje +${bono}`
+                : "Caíste lejos de la diana",
+            bono ? "#26de81" : "#ffd84f",
+          );
         }
         marcador();
         await esperar(1800);
+        if (sesionTarea !== (J.sesion || 0)) return;
         terminarSalto();
       }
 
@@ -266,7 +404,10 @@
         emoji: "🪂",
         subtitulo: "Pasa por los aros y aterriza en la diana",
         modos: ["solo", "online", "local"],
-        textosModo: { online: "🌐 Reto online (mismos aros)", local: "👥 2 jugadores (por turnos)" },
+        textosModo: {
+          online: "🌐 Reto online (mismos aros)",
+          local: "👥 2 jugadores (por turnos)",
+        },
         records: true,
         unidadRecord: "pts",
         reglas: [
@@ -277,6 +418,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          ciclo.cancelar();
           P.vivo = false;
           J.modo = null;
           $("altura").classList.add("oculto");
@@ -293,37 +435,98 @@
         }
       };
       function marcador() {
-        const det = P.vivo ? `${Math.max(0, Math.round(P.y))} m · ${P.aros} aros` : `${P.aros} aros`;
-        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: P.puntos, detalle: det, activo: true }, null]);
+        const det = P.vivo
+          ? `${Math.max(0, Math.round(P.y))} m · ${P.aros} aros`
+          : `${P.aros} aros`;
+        if (J.modo === "solo")
+          return ui.marcador([
+            {
+              nombre: J.nombres[0],
+              valor: P.puntos,
+              detalle: det,
+              activo: true,
+            },
+            null,
+          ]);
         if (J.modo === "online") {
           const yo = ui.yo;
-          const v = yo === 0 ? [P.puntos, J.rival ?? "—"] : [J.rival ?? "—", P.puntos];
-          return ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (i === yo ? " (tú)" : ""), valor: v[i], detalle: i === yo ? det : J.rivalTermino ? "aterrizó" : "cayendo…", activo: i === yo })));
+          const v =
+            yo === 0 ? [P.puntos, J.rival ?? "—"] : [J.rival ?? "—", P.puntos];
+          return ui.marcador(
+            [0, 1].map((i) => ({
+              nombre: J.nombres[i] + (i === yo ? " (tú)" : ""),
+              valor: v[i],
+              detalle:
+                i === yo ? det : J.rivalTermino ? "aterrizó" : "cayendo…",
+              activo: i === yo,
+            })),
+          );
         }
-        ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i], valor: i === J.turno ? P.puntos : J.resultados[i] ?? "—", detalle: i === J.turno ? det : "", activo: i === J.turno })));
+        ui.marcador(
+          [0, 1].map((i) => ({
+            nombre: J.nombres[i],
+            valor: i === J.turno ? P.puntos : (J.resultados[i] ?? "—"),
+            detalle: i === J.turno ? det : "",
+            activo: i === J.turno,
+          })),
+        );
       }
       function empezar(modo, info) {
-        Object.assign(J, { modo, nombres: info.nombres, partida: info.partida, semilla: info.semilla, resultados: [null, null], turno: 0, rival: null, rivalTermino: false, alTerminarRival: null });
+        ciclo.cancelar();
+        Object.assign(J, {
+          modo,
+          nombres: info.nombres,
+          partida: info.partida,
+          semilla: info.semilla,
+          resultados: [null, null],
+          turno: 0,
+          rival: null,
+          rivalTermino: false,
+          alTerminarRival: null,
+        });
         nuevoSalto();
       }
       function nuevoSalto() {
         generar(J.semilla);
-        Object.assign(P, { x: 0, y: ALTURA, z: 0, vx: 0, vz: 0, abierto: false, puntos: 0, aros: 0, vivo: true, ox: 0, oz: 0, alturaApertura: null });
+        Object.assign(P, {
+          x: 0,
+          y: ALTURA,
+          z: 0,
+          vx: 0,
+          vz: 0,
+          abierto: false,
+          puntos: 0,
+          aros: 0,
+          vivo: true,
+          ox: 0,
+          oz: 0,
+          alturaApertura: null,
+        });
         vela.visible = false;
         camara.position.set(0, ALTURA + 20, 10);
         $("altura").classList.remove("oculto");
-        if (J.modo === "local") ui.avisar(`Salta ${J.nombres[J.turno]}`, J.turno ? "#4fb3ff" : "#ff4f8b");
+        if (J.modo === "local")
+          ui.avisar(
+            `Salta ${J.nombres[J.turno]}`,
+            J.turno ? "#4fb3ff" : "#ff4f8b",
+          );
         ui.ayuda("👆 Arrastra para moverte");
-        setTimeout(() => ui.ayuda(""), 3500);
+        ciclo.despues(() => ui.ayuda(""), 3500);
         sonar("swoosh", 1.4);
         marcador();
       }
       async function terminarSalto() {
+        const sesionTarea = J.sesion || 0;
         if (!J.modo) return;
         const pts = P.puntos;
         if (J.modo === "solo") {
           sonar("ganar");
-          return ui.terminar({ emoji: "🪂", texto: `¡${pts} puntos!`, nota: `${P.aros} aros · abriste a ${P.alturaApertura ?? "—"} m`, record: pts });
+          return ui.terminar({
+            emoji: "🪂",
+            texto: `¡${pts} puntos!`,
+            nota: `${P.aros} aros · abriste a ${P.alturaApertura ?? "—"} m`,
+            record: pts,
+          });
         }
         if (J.modo === "local") {
           J.resultados[J.turno] = pts;
@@ -332,19 +535,36 @@
             return nuevoSalto();
           }
           const [a, b] = J.resultados;
-          return ui.terminar({ emoji: a === b ? "🤝" : "🏆", texto: a === b ? "¡Empate!" : `¡Ganó ${J.nombres[a > b ? 0 : 1]}!`, nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}` });
+          return ui.terminar({
+            emoji: a === b ? "🤝" : "🏆",
+            texto: a === b ? "¡Empate!" : `¡Ganó ${J.nombres[a > b ? 0 : 1]}!`,
+            nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}`,
+          });
         }
         ui.enviar("fin", { partida: J.partida, puntos: pts });
         if (!J.rivalTermino) {
           ui.avisar("Esperando a tu rival…", "#4fb3ff");
-          await Promise.race([new Promise((r) => (J.alTerminarRival = r)), esperar(90000)]);
+          await Promise.race([
+            new Promise((r) => (J.alTerminarRival = r)),
+            esperar(90000),
+          ]);
+          if (sesionTarea !== (J.sesion || 0)) return;
         }
         const yo = ui.yo;
         const rival = J.rival ?? 0;
         const gane = pts > rival,
           empate = pts === rival;
         sonar(gane ? "ganar" : "perder");
-        ui.terminar({ emoji: empate ? "🤝" : gane ? "🏆" : "😿", texto: empate ? "¡Empate!" : gane ? "¡Mejor salto!" : `Ganó ${J.nombres[1 - yo]}`, nota: `Tú: ${pts} · ${J.nombres[1 - yo]}: ${rival}`, record: pts });
+        ui.terminar({
+          emoji: empate ? "🤝" : gane ? "🏆" : "😿",
+          texto: empate
+            ? "¡Empate!"
+            : gane
+              ? "¡Mejor salto!"
+              : `Ganó ${J.nombres[1 - yo]}`,
+          nota: `Tú: ${pts} · ${J.nombres[1 - yo]}: ${rival}`,
+          record: pts,
+        });
       }
       generar(1);
     </script>

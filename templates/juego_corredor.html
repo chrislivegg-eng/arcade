@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#ffb27a" />
     <title>Corredor Infinito · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
     <style>
       #monedas {
         position: fixed;
@@ -34,14 +43,33 @@
       // =========================================================
       //  ESCENA
       // =========================================================
-      const M = Arcade.mundo({ fondo: 0xffc49a, fov: 60, niebla: [30, 95], exposicion: 1.05, colorAmbiente: 0xffe0c8, lejos: 140 });
+      const M = Arcade.mundo({
+        fondo: 0xffc49a,
+        fov: 60,
+        niebla: [30, 95],
+        exposicion: 1.05,
+        colorAmbiente: 0xffe0c8,
+        lejos: 140,
+      });
       const { escena, camara } = M;
-      const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color: lin(color), roughness: 0.75, ...extra });
+      const mat = (color, extra = {}) =>
+        new THREE.MeshStandardMaterial({
+          color: lin(color),
+          roughness: 0.75,
+          ...extra,
+        });
       escena.add(new THREE.HemisphereLight(0xfff4e6, 0x7a6a8a, 0.8));
       const sol = new THREE.DirectionalLight(0xffe6c8, 1.3);
       sol.castShadow = true;
       sol.shadow.mapSize.set(1024, 1024);
-      Object.assign(sol.shadow.camera, { left: -10, right: 10, top: 12, bottom: -12, near: 1, far: 50 });
+      Object.assign(sol.shadow.camera, {
+        left: -10,
+        right: 10,
+        top: 12,
+        bottom: -12,
+        near: 1,
+        far: 50,
+      });
       escena.add(sol, sol.target);
 
       const caja = (w, h, d, material, x = 0, y = 0, z = 0) => {
@@ -57,16 +85,27 @@
         g.fillRect(0, 0, w, h);
         for (let i = 0; i < 2500; i++) {
           g.fillStyle = `hsl(25, ${azar(5, 15)}%, ${azar(35, 65)}%)`;
-          g.fillRect(Math.random() * w, Math.random() * h, azar(2, 5), azar(2, 5));
+          g.fillRect(
+            Math.random() * w,
+            Math.random() * h,
+            azar(2, 5),
+            azar(2, 5),
+          );
         }
       });
       texGrava.wrapS = texGrava.wrapT = THREE.RepeatWrapping;
       texGrava.repeat.set(4, 60);
-      const suelo = new THREE.Mesh(new THREE.PlaneGeometry(9, 240), new THREE.MeshStandardMaterial({ map: texGrava, roughness: 1 }));
+      const suelo = new THREE.Mesh(
+        new THREE.PlaneGeometry(9, 240),
+        new THREE.MeshStandardMaterial({ map: texGrava, roughness: 1 }),
+      );
       suelo.rotation.x = -Math.PI / 2;
       suelo.receiveShadow = true;
       escena.add(suelo);
-      const pasto = new THREE.Mesh(new THREE.PlaneGeometry(200, 240), mat(0x8fcf6a));
+      const pasto = new THREE.Mesh(
+        new THREE.PlaneGeometry(200, 240),
+        mat(0x8fcf6a),
+      );
       pasto.rotation.x = -Math.PI / 2;
       pasto.position.y = -0.02;
       escena.add(pasto);
@@ -74,24 +113,53 @@
       const matRiel = mat(0xb0b4bc, { metalness: 0.8, roughness: 0.3 });
       const matDurmiente = mat(0x6b4a33);
       [-1, 0, 1].forEach((l) => {
-        [-0.55, 0.55].forEach((o) => rieles.add(caja(0.1, 0.12, 240, matRiel, l * CARRIL + o, 0.08, 0)));
-        for (let z = -120; z < 120; z += 1.2) rieles.add(caja(1.6, 0.06, 0.25, matDurmiente, l * CARRIL, 0.03, z));
+        [-0.55, 0.55].forEach((o) =>
+          rieles.add(caja(0.1, 0.12, 240, matRiel, l * CARRIL + o, 0.08, 0)),
+        );
+        for (let z = -120; z < 120; z += 1.2)
+          rieles.add(caja(1.6, 0.06, 0.25, matDurmiente, l * CARRIL, 0.03, z));
       });
       escena.add(rieles);
 
       // edificios a los lados (se reciclan)
       const edificios = [];
-      const tonosEdificio = [0xff8fa3, 0x7ec8e3, 0xffd166, 0xa29bfe, 0x95e1d3, 0xf38181];
+      const tonosEdificio = [
+        0xff8fa3, 0x7ec8e3, 0xffd166, 0xa29bfe, 0x95e1d3, 0xf38181,
+      ];
       for (let i = 0; i < 24; i++) {
         const lado = i % 2 ? 1 : -1;
         const h = azar(5, 14);
-        const e = caja(azar(4, 6), h, azar(5, 8), mat(tonosEdificio[i % tonosEdificio.length]), lado * azar(8.5, 10), h / 2, -i * 7);
+        const e = caja(
+          azar(4, 6),
+          h,
+          azar(5, 8),
+          mat(tonosEdificio[i % tonosEdificio.length]),
+          lado * azar(8.5, 10),
+          h / 2,
+          -i * 7,
+        );
         // ventanas
         const v = M.textura(64, 128, (g) => {
           g.fillStyle = "rgba(0,0,0,0)";
-          for (let y = 8; y < 120; y += 18) for (let x = 6; x < 60; x += 16) (g.fillStyle = Math.random() < 0.3 ? "#fff6c8" : "#3d4a63"), g.fillRect(x, y, 9, 11);
+          for (let y = 8; y < 120; y += 18)
+            for (let x = 6; x < 60; x += 16)
+              ((g.fillStyle = Math.random() < 0.3 ? "#fff6c8" : "#3d4a63"),
+                g.fillRect(x, y, 9, 11));
         });
-        e.material = [e.material, e.material, e.material, e.material, new THREE.MeshStandardMaterial({ map: v, color: lin(tonosEdificio[i % 6]) }), new THREE.MeshStandardMaterial({ map: v, color: lin(tonosEdificio[i % 6]) })];
+        e.material = [
+          e.material,
+          e.material,
+          e.material,
+          e.material,
+          new THREE.MeshStandardMaterial({
+            map: v,
+            color: lin(tonosEdificio[i % 6]),
+          }),
+          new THREE.MeshStandardMaterial({
+            map: v,
+            color: lin(tonosEdificio[i % 6]),
+          }),
+        ];
         edificios.push(e);
         escena.add(e);
       }
@@ -136,15 +204,29 @@
 
       // --- obstáculos ---
       const matValla = [mat(0xff3b3b), mat(0xffffff)];
-      const matTren = [mat(0x3a86ff), mat(0xffcc00), mat(0x26b86b), mat(0xff6b4f)];
-      const matMoneda = mat(0xffd700, { metalness: 0.9, roughness: 0.25, emissive: lin(0x7a5a00) });
+      const matTren = [
+        mat(0x3a86ff),
+        mat(0xffcc00),
+        mat(0x26b86b),
+        mat(0xff6b4f),
+      ];
+      const matMoneda = mat(0xffd700, {
+        metalness: 0.9,
+        roughness: 0.25,
+        emissive: lin(0x7a5a00),
+      });
       const geoMoneda = new THREE.CylinderGeometry(0.32, 0.32, 0.08, 20);
       function valla(x, z) {
         // baja: se brinca
         const g = new THREE.Group();
         g.add(caja(1.8, 0.2, 0.14, matValla[0], 0, 0.62, 0));
-        for (let i = 0; i < 4; i++) g.add(caja(0.22, 0.21, 0.15, matValla[1], -0.68 + i * 0.45, 0.62, 0.01));
-        [-0.8, 0.8].forEach((o) => g.add(caja(0.1, 0.62, 0.1, matValla[1], o, 0.31, 0)));
+        for (let i = 0; i < 4; i++)
+          g.add(
+            caja(0.22, 0.21, 0.15, matValla[1], -0.68 + i * 0.45, 0.62, 0.01),
+          );
+        [-0.8, 0.8].forEach((o) =>
+          g.add(caja(0.1, 0.62, 0.1, matValla[1], o, 0.31, 0)),
+        );
         g.position.set(x, 0, z);
         return { malla: g, tipo: "valla", x, z, largo: 0.4 };
       }
@@ -153,7 +235,9 @@
         const g = new THREE.Group();
         g.add(caja(1.9, 0.5, 0.2, matValla[0], 0, 1.75, 0));
         g.add(caja(1.9, 0.12, 0.21, matValla[1], 0, 1.75, 0));
-        [-0.9, 0.9].forEach((o) => g.add(caja(0.12, 2.0, 0.12, mat(0x555555), o, 1.0, 0)));
+        [-0.9, 0.9].forEach((o) =>
+          g.add(caja(0.12, 2.0, 0.12, mat(0x555555), o, 1.0, 0)),
+        );
         g.position.set(x, 0, z);
         return { malla: g, tipo: "barra", x, z, largo: 0.4 };
       }
@@ -162,8 +246,30 @@
         const m = matTren[Math.floor(r() * matTren.length)];
         g.add(caja(1.9, 2.6, largo, m, 0, 1.45, -largo / 2));
         g.add(caja(1.92, 0.5, largo - 0.4, mat(0xdde6f0), 0, 2.05, -largo / 2));
-        g.add(caja(1.6, 0.9, 0.1, mat(0x223344, { metalness: 0.4, roughness: 0.2 }), 0, 2.0, 0.02));
-        [-0.6, 0.6].forEach((o) => g.add(caja(0.25, 0.25, 0.06, mat(0xfff6c8, { emissive: lin(0xfff6c8) }), o, 0.7, 0.03)));
+        g.add(
+          caja(
+            1.6,
+            0.9,
+            0.1,
+            mat(0x223344, { metalness: 0.4, roughness: 0.2 }),
+            0,
+            2.0,
+            0.02,
+          ),
+        );
+        [-0.6, 0.6].forEach((o) =>
+          g.add(
+            caja(
+              0.25,
+              0.25,
+              0.06,
+              mat(0xfff6c8, { emissive: lin(0xfff6c8) }),
+              o,
+              0.7,
+              0.03,
+            ),
+          ),
+        );
         g.position.set(x, 0, z);
         return { malla: g, tipo: "tren", x, z, largo };
       }
@@ -185,9 +291,15 @@
           const dificil = Math.min(1, -fila / 900);
           // carriles bloqueados por tren (nunca los 3)
           const libres = [-1, 0, 1];
-          const nTrenes = r() < 0.35 + dificil * 0.3 ? (r() < 0.35 + dificil * 0.3 ? 2 : 1) : 0;
+          const nTrenes =
+            r() < 0.35 + dificil * 0.3
+              ? r() < 0.35 + dificil * 0.3
+                ? 2
+                : 1
+              : 0;
           const trenes = [];
-          for (let i = 0; i < nTrenes; i++) trenes.push(libres.splice(Math.floor(r() * libres.length), 1)[0]);
+          for (let i = 0; i < nTrenes; i++)
+            trenes.push(libres.splice(Math.floor(r() * libres.length), 1)[0]);
           let largoMax = 0;
           trenes.forEach((l) => {
             const largo = 8 + Math.floor(r() * 3) * 4;
@@ -198,7 +310,8 @@
           libres.forEach((l) => {
             const t = r();
             if (t < 0.28 + dificil * 0.2) agregar(valla(l * CARRIL, fila));
-            else if (t < 0.48 + dificil * 0.25) agregar(barra(l * CARRIL, fila));
+            else if (t < 0.48 + dificil * 0.25)
+              agregar(barra(l * CARRIL, fila));
             else if (r() < 0.6) {
               // hilera de monedas
               for (let k = 0; k < 6; k++) {
@@ -222,12 +335,34 @@
       // =========================================================
       //  JUGADOR
       // =========================================================
-      const P = { carril: 0, x: 0, y: 0, vy: 0, z: 0, v: 14, agachado: 0, vivo: false, monedas: 0, t: 0 };
+      const P = {
+        carril: 0,
+        x: 0,
+        y: 0,
+        vy: 0,
+        z: 0,
+        v: 14,
+        agachado: 0,
+        vivo: false,
+        monedas: 0,
+        t: 0,
+      };
       function reiniciar(semilla) {
         limpiarMundo();
         R.r = Arcade.rng(semilla);
         R.hasta = -25;
-        Object.assign(P, { carril: 0, x: 0, y: 0, vy: 0, z: 0, v: 14, agachado: 0, vivo: false, monedas: 0, t: 0 });
+        Object.assign(P, {
+          carril: 0,
+          x: 0,
+          y: 0,
+          vy: 0,
+          z: 0,
+          v: 14,
+          agachado: 0,
+          vivo: false,
+          monedas: 0,
+          t: 0,
+        });
         corredor.position.set(0, 0, 0);
         corredor.rotation.set(0, Math.PI, 0);
         corredor.userData.cuerpo.scale.set(1, 1, 1);
@@ -236,7 +371,11 @@
         colocarCamara(1);
       }
       function colocarCamara(suave) {
-        const objetivo = new THREE.Vector3(P.x * 0.55, 4.3 + P.y * 0.4, P.z + 7.2);
+        const objetivo = new THREE.Vector3(
+          P.x * 0.55,
+          4.3 + P.y * 0.4,
+          P.z + 7.2,
+        );
         camara.position.lerp(objetivo, suave);
         camara.lookAt(P.x * 0.45, 1.3 + P.y * 0.3, P.z - 8);
         sol.position.set(P.x + 6, 14, P.z + 4);
@@ -266,14 +405,25 @@
 
       // controles: deslizar (se detecta mientras mueves el dedo) o flechas
       let toque = null;
-      M.lienzo.addEventListener("pointerdown", (e) => (toque = { x: e.clientX, y: e.clientY, usado: false }));
+      M.lienzo.addEventListener(
+        "pointerdown",
+        (e) => (toque = { x: e.clientX, y: e.clientY, usado: false }),
+      );
       M.lienzo.addEventListener("pointermove", (e) => {
         if (!toque || toque.usado) return;
         const dx = e.clientX - toque.x,
           dy = e.clientY - toque.y;
         if (Math.hypot(dx, dy) < 26) return;
         toque.usado = true;
-        mover(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "der" : "izq") : dy < 0 ? "arriba" : "abajo");
+        mover(
+          Math.abs(dx) > Math.abs(dy)
+            ? dx > 0
+              ? "der"
+              : "izq"
+            : dy < 0
+              ? "arriba"
+              : "abajo",
+        );
       });
       M.lienzo.addEventListener("pointerup", () => {
         // un toque sin deslizar = brincar
@@ -281,7 +431,17 @@
         toque = null;
       });
       document.addEventListener("keydown", (e) => {
-        const d = { ArrowLeft: "izq", ArrowRight: "der", ArrowUp: "arriba", ArrowDown: "abajo", a: "izq", d: "der", w: "arriba", s: "abajo", " ": "arriba" }[e.key];
+        const d = {
+          ArrowLeft: "izq",
+          ArrowRight: "der",
+          ArrowUp: "arriba",
+          ArrowDown: "abajo",
+          a: "izq",
+          d: "der",
+          w: "arriba",
+          s: "abajo",
+          " ": "arriba",
+        }[e.key];
         if (d && P.vivo) {
           e.preventDefault();
           mover(d);
@@ -322,7 +482,13 @@
         P.vy -= GRAVEDAD * dt;
         P.y += P.vy * dt;
         // ¿va arriba de un tren?
-        const encima = R.obst.find((o) => o.tipo === "tren" && Math.abs(o.x - P.x) < 1 && P.z <= o.z && P.z >= o.z - o.largo);
+        const encima = R.obst.find(
+          (o) =>
+            o.tipo === "tren" &&
+            Math.abs(o.x - P.x) < 1 &&
+            P.z <= o.z &&
+            P.z >= o.z - o.largo,
+        );
         const piso = encima && P.y >= 2.55 ? 2.9 : 0;
         if (P.y < piso) {
           P.y = piso;
@@ -336,7 +502,9 @@
         u.piernas[1].rotation.x = P.y > 0.05 ? 0.4 : -zancada * 0.9;
         u.brazos[0].rotation.x = -zancada * 0.8;
         u.brazos[1].rotation.x = zancada * 0.8;
-        u.cuerpo.scale.y += ((P.agachado > 0 ? 0.5 : 1) - u.cuerpo.scale.y) * Math.min(1, dt * 18);
+        u.cuerpo.scale.y +=
+          ((P.agachado > 0 ? 0.5 : 1) - u.cuerpo.scale.y) *
+          Math.min(1, dt * 18);
         u.cuerpo.rotation.x = P.agachado > 0 ? 0.5 : 0;
         corredor.position.set(P.x, P.y, P.z);
         corredor.rotation.z = (xMeta - P.x) * -0.12;
@@ -350,7 +518,11 @@
             R.monedas.splice(i, 1);
             continue;
           }
-          if (Math.abs(m.position.z - P.z) < 0.7 && Math.abs(m.position.x - P.x) < 0.9 && Math.abs(m.position.y - (P.y + 0.9)) < 1.2) {
+          if (
+            Math.abs(m.position.z - P.z) < 0.7 &&
+            Math.abs(m.position.x - P.x) < 0.9 &&
+            Math.abs(m.position.y - (P.y + 0.9)) < 1.2
+          ) {
             escena.remove(m);
             R.monedas.splice(i, 1);
             P.monedas++;
@@ -386,15 +558,25 @@
       });
 
       async function chocar(o) {
+        const sesionTarea = J.sesion || 0;
         P.vivo = false;
         sonar("choque");
         if (navigator.vibrate) navigator.vibrate(150);
-        ui.avisar(o.tipo === "tren" ? "💥 ¡Contra el tren!" : o.tipo === "barra" ? "💥 ¡Agáchate la próxima!" : "💥 ¡Tropezaste!", "#ff3b3b");
-        await M.animar(500, (t) => {
+        ui.avisar(
+          o.tipo === "tren"
+            ? "💥 ¡Contra el tren!"
+            : o.tipo === "barra"
+              ? "💥 ¡Agáchate la próxima!"
+              : "💥 ¡Tropezaste!",
+          "#ff3b3b",
+        );
+        await ciclo.animar(500, (t) => {
           corredor.userData.cuerpo.rotation.x = -t * 1.4;
           corredor.position.z = P.z + t * 0.8;
         });
+        if (sesionTarea !== (J.sesion || 0)) return;
         await esperar(700);
+        if (sesionTarea !== (J.sesion || 0)) return;
         terminarCorrida();
       }
 
@@ -402,14 +584,25 @@
       //  PARTIDA
       // =========================================================
       const puntaje = () => (J.distancia || 0) + P.monedas * 5;
-      const J = { modo: null, nombres: [], resultados: [null, null], turno: 0, rival: 0, ultimoEnvio: 0 };
+      const J = {
+        modo: null,
+        nombres: [],
+        resultados: [null, null],
+        turno: 0,
+        rival: 0,
+        ultimoEnvio: 0,
+      };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
       const ui = Arcade.ui({
         juego: "corredor",
         titulo: "Corredor Infinito",
         emoji: "🛹",
         subtitulo: "Corre, brinca, agáchate… ¡que no te alcance el tren!",
         modos: ["solo", "online", "local"],
-        textosModo: { online: "🌐 Carrera online con un amigo", local: "👥 2 jugadores (por turnos)" },
+        textosModo: {
+          online: "🌐 Carrera online con un amigo",
+          local: "👥 2 jugadores (por turnos)",
+        },
         records: true,
         unidadRecord: "pts",
         reglas: [
@@ -421,6 +614,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          ciclo.cancelar();
           P.vivo = false;
           J.modo = null;
           $("monedas").classList.add("oculto");
@@ -439,46 +633,107 @@
 
       function marcador() {
         const mio = puntaje();
-        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: mio, detalle: `${J.distancia || 0} m · ⚡ ${Math.round(P.v * 3.6)} km/h`, activo: true }, null]);
+        if (J.modo === "solo")
+          return ui.marcador([
+            {
+              nombre: J.nombres[0],
+              valor: mio,
+              detalle: `${J.distancia || 0} m · ⚡ ${Math.round(P.v * 3.6)} km/h`,
+              activo: true,
+            },
+            null,
+          ]);
         if (J.modo === "online") {
           const yo = ui.yo;
           const v = yo === 0 ? [mio, J.rival] : [J.rival, mio];
-          return ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (i === yo ? " (tú)" : ""), valor: v[i], detalle: i === yo ? `${J.distancia || 0} m` : J.rivalTermino ? "chocó" : "🌐 corriendo", activo: i === yo })));
+          return ui.marcador(
+            [0, 1].map((i) => ({
+              nombre: J.nombres[i] + (i === yo ? " (tú)" : ""),
+              valor: v[i],
+              detalle:
+                i === yo
+                  ? `${J.distancia || 0} m`
+                  : J.rivalTermino
+                    ? "chocó"
+                    : "🌐 corriendo",
+              activo: i === yo,
+            })),
+          );
         }
-        ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i], valor: i === J.turno ? mio : J.resultados[i] == null ? "—" : J.resultados[i], detalle: i === J.turno ? "corriendo" : J.resultados[i] == null ? "espera su turno" : "terminó", activo: i === J.turno })));
+        ui.marcador(
+          [0, 1].map((i) => ({
+            nombre: J.nombres[i],
+            valor:
+              i === J.turno
+                ? mio
+                : J.resultados[i] == null
+                  ? "—"
+                  : J.resultados[i],
+            detalle:
+              i === J.turno
+                ? "corriendo"
+                : J.resultados[i] == null
+                  ? "espera su turno"
+                  : "terminó",
+            activo: i === J.turno,
+          })),
+        );
       }
 
       function empezar(modo, info) {
-        Object.assign(J, { modo, nombres: info.nombres, partida: info.partida, semilla: info.semilla, resultados: [null, null], turno: 0, rival: 0, rivalTermino: false, alTerminarRival: null });
+        ciclo.cancelar();
+        Object.assign(J, {
+          modo,
+          nombres: info.nombres,
+          partida: info.partida,
+          semilla: info.semilla,
+          resultados: [null, null],
+          turno: 0,
+          rival: 0,
+          rivalTermino: false,
+          alTerminarRival: null,
+        });
         nuevaCorrida();
       }
 
       async function nuevaCorrida() {
+        const sesionTarea = J.sesion || 0;
         reiniciar(J.semilla);
         J.distancia = 0;
         $("monedas").textContent = "🪙 0";
         $("monedas").classList.remove("oculto");
         marcador();
-        if (J.modo === "local") ui.avisar(`Turno de ${J.nombres[J.turno]}`, J.turno ? "#4fb3ff" : "#ff4f8b");
+        if (J.modo === "local")
+          ui.avisar(
+            `Turno de ${J.nombres[J.turno]}`,
+            J.turno ? "#4fb3ff" : "#ff4f8b",
+          );
         ui.ayuda("Desliza ⬅️➡️ ⬆️ ⬇️");
         for (const n of ["3", "2", "1"]) {
           ui.avisar(n, "#ffd84f");
           sonar("click");
           await esperar(600);
+          if (sesionTarea !== (J.sesion || 0)) return;
           if (!J.modo) return;
         }
         ui.avisar("¡CORRE!", "#26de81");
         P.vivo = true;
-        setTimeout(() => ui.ayuda(""), 3000);
+        ciclo.despues(() => ui.ayuda(""), 3000);
       }
 
       async function terminarCorrida() {
+        const sesionTarea = J.sesion || 0;
         if (!J.modo) return;
         const pts = puntaje();
         const nota = `${J.distancia} m · 🪙 ${P.monedas}`;
         if (J.modo === "solo") {
           sonar("ganar");
-          return ui.terminar({ emoji: "🛹", texto: `¡${pts} puntos!`, nota, record: pts });
+          return ui.terminar({
+            emoji: "🛹",
+            texto: `¡${pts} puntos!`,
+            nota,
+            record: pts,
+          });
         }
         if (J.modo === "local") {
           J.resultados[J.turno] = pts;
@@ -488,18 +743,38 @@
           }
           const [a, b] = J.resultados;
           sonar("ganar");
-          return ui.terminar({ emoji: a === b ? "🤝" : "🏆", texto: a === b ? "¡Empate!" : `¡Ganó ${J.nombres[a > b ? 0 : 1]}!`, nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}` });
+          return ui.terminar({
+            emoji: a === b ? "🤝" : "🏆",
+            texto: a === b ? "¡Empate!" : `¡Ganó ${J.nombres[a > b ? 0 : 1]}!`,
+            nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}`,
+          });
         }
         ui.enviar("fin", { partida: J.partida, puntos: pts });
         if (!J.rivalTermino) {
-          ui.avisar("Esperando a tu rival…<small>sigue corriendo</small>", "#4fb3ff");
-          await Promise.race([new Promise((r) => (J.alTerminarRival = r)), esperar(120000)]);
+          ui.avisar(
+            "Esperando a tu rival…<small>sigue corriendo</small>",
+            "#4fb3ff",
+          );
+          await Promise.race([
+            new Promise((r) => (J.alTerminarRival = r)),
+            esperar(120000),
+          ]);
+          if (sesionTarea !== (J.sesion || 0)) return;
         }
         const yo = ui.yo;
         const gane = pts > J.rival,
           empate = pts === J.rival;
         sonar(gane ? "ganar" : "perder");
-        ui.terminar({ emoji: empate ? "🤝" : gane ? "🏆" : "😿", texto: empate ? "¡Empate!" : gane ? "¡Llegaste más lejos!" : `Ganó ${J.nombres[1 - yo]}`, nota: `Tú: ${pts} · ${J.nombres[1 - yo]}: ${J.rival}`, record: pts });
+        ui.terminar({
+          emoji: empate ? "🤝" : gane ? "🏆" : "😿",
+          texto: empate
+            ? "¡Empate!"
+            : gane
+              ? "¡Llegaste más lejos!"
+              : `Ganó ${J.nombres[1 - yo]}`,
+          nota: `Tú: ${pts} · ${J.nombres[1 - yo]}: ${J.rival}`,
+          record: pts,
+        });
       }
 
       reiniciar(777);

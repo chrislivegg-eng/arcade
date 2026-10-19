@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#0f4d2a" />
     <title>Yahtzee · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
     <style>
       html,
       body {
@@ -125,9 +134,23 @@
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, sonar } = Arcade;
-      const PUNTOS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+      const PUNTOS = {
+        1: [4],
+        2: [0, 8],
+        3: [0, 4, 8],
+        4: [0, 2, 6, 8],
+        5: [0, 2, 4, 6, 8],
+        6: [0, 2, 3, 5, 6, 8],
+      };
       // giro del cubo para enseñar cada número al frente
-      const GIRO = { 1: "rotateX(0deg) rotateY(0deg)", 2: "rotateY(-90deg)", 3: "rotateX(-90deg)", 4: "rotateX(90deg)", 5: "rotateY(90deg)", 6: "rotateY(180deg)" };
+      const GIRO = {
+        1: "rotateX(0deg) rotateY(0deg)",
+        2: "rotateY(-90deg)",
+        3: "rotateX(-90deg)",
+        4: "rotateX(90deg)",
+        5: "rotateY(90deg)",
+        6: "rotateY(180deg)",
+      };
       const CARAS = [
         [1, "translateZ(calc(var(--s) / 2))"],
         [2, "rotateY(90deg) translateZ(calc(var(--s) / 2))"],
@@ -137,8 +160,19 @@
         [6, "rotateY(180deg) translateZ(calc(var(--s) / 2))"],
       ];
       const CATEGORIAS = [
-        ["unos", "⚀ Unos"], ["doses", "⚁ Doses"], ["treses", "⚂ Treses"], ["cuatros", "⚃ Cuatros"], ["cincos", "⚄ Cincos"], ["seises", "⚅ Seises"],
-        ["tercia", "Tercia"], ["poker", "Póker (4 iguales)"], ["full", "Full (3 + 2)"], ["corta", "Escalera corta"], ["larga", "Escalera larga"], ["yahtzee", "¡Yahtzee! (5 iguales)"], ["chance", "Chance (lo que sea)"],
+        ["unos", "⚀ Unos"],
+        ["doses", "⚁ Doses"],
+        ["treses", "⚂ Treses"],
+        ["cuatros", "⚃ Cuatros"],
+        ["cincos", "⚄ Cincos"],
+        ["seises", "⚅ Seises"],
+        ["tercia", "Tercia"],
+        ["poker", "Póker (4 iguales)"],
+        ["full", "Full (3 + 2)"],
+        ["corta", "Escalera corta"],
+        ["larga", "Escalera larga"],
+        ["yahtzee", "¡Yahtzee! (5 iguales)"],
+        ["chance", "Chance (lo que sea)"],
       ];
       const ARRIBA = ["unos", "doses", "treses", "cuatros", "cincos", "seises"];
 
@@ -152,28 +186,43 @@
         if (i >= 0) return cuenta[i + 1] * (i + 1);
         if (cat === "tercia") return max >= 3 ? suma : 0;
         if (cat === "poker") return max >= 4 ? suma : 0;
-        if (cat === "full") return cuenta.includes(3) && cuenta.includes(2) ? 25 : 0;
-        if (cat === "corta") return tiene([1, 2, 3, 4]) || tiene([2, 3, 4, 5]) || tiene([3, 4, 5, 6]) ? 30 : 0;
-        if (cat === "larga") return tiene([1, 2, 3, 4, 5]) || tiene([2, 3, 4, 5, 6]) ? 40 : 0;
+        if (cat === "full")
+          return cuenta.includes(3) && cuenta.includes(2) ? 25 : 0;
+        if (cat === "corta")
+          return tiene([1, 2, 3, 4]) ||
+            tiene([2, 3, 4, 5]) ||
+            tiene([3, 4, 5, 6])
+            ? 30
+            : 0;
+        if (cat === "larga")
+          return tiene([1, 2, 3, 4, 5]) || tiene([2, 3, 4, 5, 6]) ? 40 : 0;
         if (cat === "yahtzee") return max === 5 ? 50 : 0;
         return suma;
       }
       const totalDe = (t) => {
         const arriba = ARRIBA.reduce((s, c) => s + (t[c] || 0), 0);
         const bono = arriba >= 63 ? 35 : 0;
-        return { arriba, bono, total: Object.values(t).reduce((a, b) => a + b, 0) + bono };
+        return {
+          arriba,
+          bono,
+          total: Object.values(t).reduce((a, b) => a + b, 0) + bono,
+        };
       };
 
       // =================== DADOS ===================
       $("dados").innerHTML = [0, 1, 2, 3, 4]
         .map(
-          (k) => `<div><div class="dado" data-k="${k}">${CARAS.map(([n, t]) => `<div class="c" style="transform:${t}">${[...Array(9)].map((_, i) => `<i class="${PUNTOS[n].includes(i) ? "on" : ""}"></i>`).join("")}</div>`).join("")}</div><div class="guardado-txt" id="g${k}"></div></div>`,
+          (k) =>
+            `<div><div class="dado" data-k="${k}">${CARAS.map(([n, t]) => `<div class="c" style="transform:${t}">${[...Array(9)].map((_, i) => `<i class="${PUNTOS[n].includes(i) ? "on" : ""}"></i>`).join("")}</div>`).join("")}</div><div class="guardado-txt" id="g${k}"></div></div>`,
         )
         .join("");
       function pintarDados(giro) {
         J.dados.forEach((v, k) => {
           const el = $("dados").children[k].firstChild;
-          const vueltas = giro && !J.guardados[k] ? ` rotateX(${360 * (1 + Math.floor(Math.random() * 2))}deg) rotateY(${360 * Math.floor(Math.random() * 2 + 1)}deg)` : "";
+          const vueltas =
+            giro && !J.guardados[k]
+              ? ` rotateX(${360 * (1 + Math.floor(Math.random() * 2))}deg) rotateY(${360 * Math.floor(Math.random() * 2 + 1)}deg)`
+              : "";
           el.style.transform = (vueltas || "") + " " + GIRO[v || 1];
           el.classList.toggle("guardado", !!J.guardados[k]);
           $("g" + k).textContent = J.guardados[k] ? "GUARDADO" : "";
@@ -182,6 +231,7 @@
 
       // =================== PARTIDA ===================
       const J = { activa: false, dados: [1, 2, 3, 4, 5], guardados: [] };
+      const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
       const ui = Arcade.ui({
         juego: "yahtzee",
         titulo: "Yahtzee",
@@ -200,6 +250,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          ciclo.cancelar();
           J.activa = false;
           clearTimeout(J.timerBot);
           $("zona").classList.add("oculto");
@@ -214,25 +265,48 @@
         }
       };
       async function aplicarPendientes() {
-        while (!J.ocupado && pendientes[J.n]) {
+        const sesionTarea = J.sesion || 0;
+        while (
+          sesionTarea === (J.sesion || 0) &&
+          !J.ocupado &&
+          pendientes[J.n]
+        ) {
           const d = pendientes[J.n];
           delete pendientes[J.n];
           if (d.tipo === "tiro") await tirar(d.dados, d.guardados);
+          if (sesionTarea !== (J.sesion || 0)) return;
           else anotar(d.cat);
         }
       }
 
       function empezar(modo, info) {
+        ciclo.cancelar();
         clearTimeout(J.timerBot);
         Object.keys(pendientes).forEach((k) => delete pendientes[k]);
         const jugadores = modo === "solo" ? 1 : 2;
-        Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, dificultad: info.dificultad, tarjetas: Array.from({ length: jugadores }, () => ({})), turno: 0, tiros: 0, dados: [1, 1, 1, 1, 1], guardados: [false, false, false, false, false], n: 0, activa: true, ocupado: false });
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          nombres: info.nombres,
+          dificultad: info.dificultad,
+          tarjetas: Array.from({ length: jugadores }, () => ({})),
+          turno: 0,
+          tiros: 0,
+          dados: [1, 1, 1, 1, 1],
+          guardados: [false, false, false, false, false],
+          n: 0,
+          activa: true,
+          ocupado: false,
+        });
         J.yo = modo === "online" ? ui.yo : 0;
         $("zona").classList.remove("oculto");
         pintarDados(false);
         pintar();
       }
-      const miTurno = () => J.activa && !J.ocupado && (J.modo === "solo" || J.modo === "local" || J.turno === J.yo);
+      const miTurno = () =>
+        J.activa &&
+        !J.ocupado &&
+        (J.modo === "solo" || J.modo === "local" || J.turno === J.yo);
 
       $("dados").addEventListener("click", (e) => {
         const d = e.target.closest(".dado");
@@ -244,12 +318,22 @@
       });
       $("btn-tirar").onclick = () => {
         if (!miTurno() || J.tiros >= 3) return;
-        const dados = J.dados.map((v, k) => (J.guardados[k] && J.tiros > 0 ? v : 1 + Math.floor(Math.random() * 6)));
-        if (J.modo === "online") ui.enviar("jugada", { partida: J.partida, n: J.n, tipo: "tiro", dados, guardados: J.guardados });
+        const dados = J.dados.map((v, k) =>
+          J.guardados[k] && J.tiros > 0 ? v : 1 + Math.floor(Math.random() * 6),
+        );
+        if (J.modo === "online")
+          ui.enviar("jugada", {
+            partida: J.partida,
+            n: J.n,
+            tipo: "tiro",
+            dados,
+            guardados: J.guardados,
+          });
         tirar(dados, J.guardados);
       };
 
       async function tirar(dados, guardados) {
+        const sesionTarea = J.sesion || 0;
         J.ocupado = true;
         J.n++;
         J.guardados = guardados.slice();
@@ -260,8 +344,10 @@
         pintarDados(true);
         pintar();
         await esperar(650);
+        if (sesionTarea !== (J.sesion || 0)) return;
         J.ocupado = false;
-        if (dados.every((x) => x === dados[0])) ui.avisar("🎲 ¡YAHTZEE!", "#ffd84f");
+        if (dados.every((x) => x === dados[0]))
+          ui.avisar("🎲 ¡YAHTZEE!", "#ffd84f");
         pintar();
         aplicarPendientes();
       }
@@ -277,7 +363,11 @@
         const lleno = (x) => Object.keys(x).length === CATEGORIAS.length;
         if (J.tarjetas.every(lleno)) return fin();
         if (J.modo !== "solo") J.turno = 1 - J.turno;
-        if (J.modo === "local") ui.avisar(`Turno de ${J.nombres[J.turno]}`, J.turno ? "#4fb3ff" : "#ff4f8b");
+        if (J.modo === "local")
+          ui.avisar(
+            `Turno de ${J.nombres[J.turno]}`,
+            J.turno ? "#4fb3ff" : "#ff4f8b",
+          );
         pintarDados(false);
         pintar();
         if (J.modo === "bot" && J.turno === 1) turnoBot();
@@ -287,7 +377,13 @@
         if (!td || !miTurno() || J.tiros === 0) return;
         const cat = td.parentNode.dataset.cat;
         if (J.tarjetas[J.turno][cat] != null) return;
-        if (J.modo === "online") ui.enviar("jugada", { partida: J.partida, n: J.n, tipo: "anota", cat });
+        if (J.modo === "online")
+          ui.enviar("jugada", {
+            partida: J.partida,
+            n: J.n,
+            tipo: "anota",
+            cat,
+          });
         anotar(cat);
       });
 
@@ -295,52 +391,108 @@
         const quien = J.turno;
         const btn = $("btn-tirar");
         btn.disabled = !miTurno() || J.tiros >= 3;
-        btn.textContent = !miTurno() ? `🎲 Turno de ${J.nombres[quien]}…` : J.tiros === 0 ? "🎲 Tirar dados" : J.tiros < 3 ? `🎲 Volver a tirar (${3 - J.tiros} más)` : "Elige dónde anotar 👇";
+        btn.textContent = !miTurno()
+          ? `🎲 Turno de ${J.nombres[quien]}…`
+          : J.tiros === 0
+            ? "🎲 Tirar dados"
+            : J.tiros < 3
+              ? `🎲 Volver a tirar (${3 - J.tiros} más)`
+              : "Elige dónde anotar 👇";
         const cols = J.tarjetas.length;
         const cab = `<tr><th></th>${J.tarjetas.map((_, i) => `<th>${Arcade.esc(J.nombres[i])}${J.modo !== "solo" && J.modo !== "local" && i === J.yo ? " (tú)" : ""}</th>`).join("")}</tr>`;
         const filas = CATEGORIAS.map(([id, nombre]) => {
           const celdas = J.tarjetas
             .map((t, i) => {
               if (t[id] != null) return `<td class="fijo">${t[id]}</td>`;
-              if (i === quien && J.tiros > 0) return `<td class="mia">${valor(id, J.dados)}</td>`;
+              if (i === quien && J.tiros > 0)
+                return `<td class="mia">${valor(id, J.dados)}</td>`;
               return `<td class="vacio">·</td>`;
             })
             .join("");
           const fila = `<tr data-cat="${id}" class="${J.tiros > 0 && miTurno() && J.tarjetas[quien][id] == null ? "elegible" : ""}"><td>${nombre}</td>${celdas}</tr>`;
-          return id === "seises" ? fila + `<tr class="total"><td>Bono (63+ arriba)</td>${J.tarjetas.map((t) => `<td>${totalDe(t).arriba}/63 ${totalDe(t).bono ? "+35" : ""}</td>`).join("")}</tr>` : fila;
+          return id === "seises"
+            ? fila +
+                `<tr class="total"><td>Bono (63+ arriba)</td>${J.tarjetas.map((t) => `<td>${totalDe(t).arriba}/63 ${totalDe(t).bono ? "+35" : ""}</td>`).join("")}</tr>`
+            : fila;
         }).join("");
-        $("tarjeta").innerHTML = cab + filas + `<tr class="total"><td>TOTAL</td>${J.tarjetas.map((t) => `<td>${totalDe(t).total}</td>`).join("")}</tr>`;
-        if (J.modo === "solo") ui.marcador([{ nombre: J.nombres[0], valor: totalDe(J.tarjetas[0]).total, detalle: `Tiro ${J.tiros}/3`, activo: true }, null]);
-        else ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (J.modo !== "local" && i === J.yo ? " (tú)" : ""), valor: totalDe(J.tarjetas[i]).total, detalle: J.turno === i ? `Tiro ${J.tiros}/3` : "puntos", activo: J.activa && J.turno === i, color: i ? "#4fb3ff" : "#ff4f8b" })));
+        $("tarjeta").innerHTML =
+          cab +
+          filas +
+          `<tr class="total"><td>TOTAL</td>${J.tarjetas.map((t) => `<td>${totalDe(t).total}</td>`).join("")}</tr>`;
+        if (J.modo === "solo")
+          ui.marcador([
+            {
+              nombre: J.nombres[0],
+              valor: totalDe(J.tarjetas[0]).total,
+              detalle: `Tiro ${J.tiros}/3`,
+              activo: true,
+            },
+            null,
+          ]);
+        else
+          ui.marcador(
+            [0, 1].map((i) => ({
+              nombre:
+                J.nombres[i] +
+                (J.modo !== "local" && i === J.yo ? " (tú)" : ""),
+              valor: totalDe(J.tarjetas[i]).total,
+              detalle: J.turno === i ? `Tiro ${J.tiros}/3` : "puntos",
+              activo: J.activa && J.turno === i,
+              color: i ? "#4fb3ff" : "#ff4f8b",
+            })),
+          );
         void cols;
       }
 
       // =================== BOT ===================
       async function turnoBot() {
+        const sesionTarea = J.sesion || 0;
         const partida = J.partida;
         const t = J.tarjetas[1];
         const libres = CATEGORIAS.map(([c]) => c).filter((c) => t[c] == null);
         for (let tiro = 0; tiro < 3; tiro++) {
           await esperar(900);
+          if (sesionTarea !== (J.sesion || 0)) return;
           if (partida !== J.partida || !J.activa) return;
           // guarda los dados del número que más se repite (o la escalera)
           if (tiro > 0) {
             const cuenta = [0, 0, 0, 0, 0, 0, 0];
             J.dados.forEach((x) => cuenta[x]++);
             const comun = cuenta.indexOf(Math.max(...cuenta.slice(1)));
-            const buscaEscalera = J.dificultad !== "facil" && (t.larga == null || t.corta == null) && Math.max(...cuenta) <= 1;
-            J.guardados = J.dados.map((x, k) => (buscaEscalera ? J.dados.indexOf(x) === k && x >= 2 && x <= 5 : x === comun));
+            const buscaEscalera =
+              J.dificultad !== "facil" &&
+              (t.larga == null || t.corta == null) &&
+              Math.max(...cuenta) <= 1;
+            J.guardados = J.dados.map((x, k) =>
+              buscaEscalera
+                ? J.dados.indexOf(x) === k && x >= 2 && x <= 5
+                : x === comun,
+            );
             // si ya tiene algo muy bueno, se planta
             const mejor = Math.max(...libres.map((c) => valor(c, J.dados)));
-            if (mejor >= 40 || (J.dificultad === "pro" && mejor >= 25 && tiro === 2)) break;
+            if (
+              mejor >= 40 ||
+              (J.dificultad === "pro" && mejor >= 25 && tiro === 2)
+            )
+              break;
           }
-          const dados = J.dados.map((v, k) => (J.guardados[k] && tiro > 0 ? v : 1 + Math.floor(Math.random() * 6)));
+          const dados = J.dados.map((v, k) =>
+            J.guardados[k] && tiro > 0 ? v : 1 + Math.floor(Math.random() * 6),
+          );
           await tirar(dados, J.guardados);
+          if (sesionTarea !== (J.sesion || 0)) return;
         }
         await esperar(700);
+        if (sesionTarea !== (J.sesion || 0)) return;
         if (partida !== J.partida || !J.activa) return;
         // elige la casilla que más puntos da (cuidando no tirar a la basura las grandes)
-        const peso = (c) => valor(c, J.dados) - (["yahtzee", "larga", "corta", "full"].includes(c) && !valor(c, J.dados) ? 10 : 0) - (c === "chance" ? 8 : 0);
+        const peso = (c) =>
+          valor(c, J.dados) -
+          (["yahtzee", "larga", "corta", "full"].includes(c) &&
+          !valor(c, J.dados)
+            ? 10
+            : 0) -
+          (c === "chance" ? 8 : 0);
         const cat = libres.reduce((a, b) => (peso(b) > peso(a) ? b : a));
         anotar(cat);
       }
@@ -351,16 +503,37 @@
         const totales = J.tarjetas.map((t) => totalDe(t).total);
         if (J.modo === "solo") {
           sonar("ganar");
-          return ui.terminar({ emoji: "🎲", texto: `¡${totales[0]} puntos!`, nota: totales[0] >= 250 ? "¡Tremendo juego!" : "¿Llegarás a 250?", record: totales[0], gano: false });
+          return ui.terminar({
+            emoji: "🎲",
+            texto: `¡${totales[0]} puntos!`,
+            nota: totales[0] >= 250 ? "¡Tremendo juego!" : "¿Llegarás a 250?",
+            record: totales[0],
+            gano: false,
+          });
         }
-        const g = totales[0] === totales[1] ? null : totales[0] > totales[1] ? 0 : 1;
+        const g =
+          totales[0] === totales[1] ? null : totales[0] > totales[1] ? 0 : 1;
         const gane = g === J.yo;
-        sonar(g == null ? "rebote" : gane || J.modo === "local" ? "ganar" : "perder");
+        sonar(
+          g == null
+            ? "rebote"
+            : gane || J.modo === "local"
+              ? "ganar"
+              : "perder",
+        );
         ui.terminar({
           emoji: g == null ? "🤝" : J.modo === "local" || gane ? "🏆" : "😿",
-          texto: g == null ? "¡Empate!" : J.modo === "local" ? `¡Ganó ${J.nombres[g]}!` : gane ? "¡Ganaste!" : `Ganó ${J.nombres[g]}`,
+          texto:
+            g == null
+              ? "¡Empate!"
+              : J.modo === "local"
+                ? `¡Ganó ${J.nombres[g]}!`
+                : gane
+                  ? "¡Ganaste!"
+                  : `Ganó ${J.nombres[g]}`,
           nota: `${J.nombres[0]} ${totales[0]} - ${totales[1]} ${J.nombres[1]}`,
-          record: J.modo === "online" || J.modo === "bot" ? totales[J.yo] : null,
+          record:
+            J.modo === "online" || J.modo === "bot" ? totales[J.yo] : null,
           gano: J.modo !== "local" && gane,
         });
       }
