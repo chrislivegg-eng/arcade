@@ -7,3 +7,5 @@ record_*.txt
 
 cuentas.sqlite3*
 respaldo_*/
+
+static/audio/loteria/*.mp3

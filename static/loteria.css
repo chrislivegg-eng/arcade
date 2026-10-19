@@ -1,0 +1,365 @@
+.lot-multiple .app {
+  max-width: 1120px;
+}
+.lot-multiple .encabezado,
+.lot-multiple .barra-sala,
+.lot-multiple #pantalla-sala > .tarjeta {
+  max-width: 580px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+.lot-ajustes {
+  max-width: 580px;
+  width: 100%;
+  margin: auto;
+}
+.lot-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lot-chip {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid #e2d6ff;
+  border-radius: 12px;
+  background: white;
+  color: #58496a;
+  font:
+    800 13px Nunito,
+    sans-serif;
+  cursor: pointer;
+}
+.lot-chip.activo {
+  background: var(--morado);
+  border-color: var(--morado);
+  color: white;
+}
+.lot-colores {
+  display: grid;
+  gap: 9px;
+}
+.lot-color-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.lot-color-fila select {
+  font: inherit;
+  border: 2px solid #e2d6ff;
+  border-radius: 10px;
+  padding: 8px;
+  max-width: 65%;
+  background: white;
+  color: #58496a;
+}
+.lot-cantada {
+  position: sticky;
+  top: 8px;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: 75px 1fr;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  border: 2px solid #e8c77a;
+  border-radius: 19px;
+  padding: 13px 17px;
+  background: #fffaf4f5;
+  box-shadow: 0 7px 22px #68402b16;
+  backdrop-filter: blur(8px);
+  max-width: 580px;
+  width: 100%;
+  margin: auto;
+}
+.lot-cantada .lot-dibujo {
+  font-size: 3.4rem;
+  line-height: 1;
+  text-align: center;
+}
+.lot-cantada h2 {
+  margin: 0;
+  color: #b3425a;
+  font-size: 1.35rem;
+}
+.lot-verso {
+  font-size: 13px;
+  color: #715851;
+  line-height: 1.4;
+  margin: 5px 0;
+  font-style: italic;
+}
+.lot-contador {
+  font-size: 10px;
+  color: #8d7b70;
+  font-weight: 800;
+}
+.lot-bandera {
+  display: block;
+  width: 80%;
+  height: auto;
+  max-height: 90px;
+  object-fit: contain;
+  margin: auto;
+  filter: drop-shadow(0 2px 2px #0002);
+}
+.lot-audio {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.lot-audio button {
+  border: 1px solid #dacfea;
+  border-radius: 20px;
+  background: white;
+  padding: 7px 14px;
+  color: #68547c;
+  font:
+    800 11px Nunito,
+    sans-serif;
+  cursor: pointer;
+}
+.lot-tablas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
+  gap: 15px;
+  align-items: start;
+}
+.lot-tablero {
+  padding: 10px;
+  border-radius: 18px;
+  background: var(--lot-color, #d95386);
+  box-shadow: 0 8px 20px #6241681a;
+}
+.lot-tablero header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  font-size: 13px;
+  font-weight: 900;
+  margin: 0 2px 9px;
+}
+.lot-tablero header small {
+  font-size: 10px;
+  font-weight: 700;
+}
+.lot-rejilla {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+.lot-celda {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 3/4.2;
+  border: 1px solid #fff7;
+  border-radius: 8px;
+  background: #fffaf3;
+  background: color-mix(in srgb, var(--lot-color) 5%, #fffaf3);
+  color: #453d3a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 5px 3px;
+  cursor: pointer;
+  font-family: Nunito, sans-serif;
+  text-align: center;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
+}
+.lot-celda .lot-numero {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  font-size: 8px;
+  color: #87796e;
+}
+.lot-celda .lot-e {
+  font-size: clamp(22px, 3vw, 37px);
+  line-height: 1.2;
+  min-height: 35px;
+  display: grid;
+  place-items: center;
+  width: 100%;
+}
+.lot-nombre {
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.15;
+  max-width: 100%;
+}
+.lot-chiste {
+  font-size: 8px;
+  line-height: 1.2;
+  color: #88766c;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 4px;
+  max-width: 100%;
+}
+.lot-celda.salio {
+  background: #f4f7ed;
+  background: color-mix(in srgb, var(--lot-color) 10%, #fffaf3);
+}
+.lot-celda.actual {
+  box-shadow:
+    inset 0 0 0 2px #dfba7480,
+    0 0 12px #fff6c445;
+  background: #fff6db;
+}
+.lot-celda.actual::before {
+  content: "✧";
+  position: absolute;
+  right: 4px;
+  top: 0;
+  color: #bd9b43;
+  font-size: 13px;
+}
+.lot-celda.marcada::after {
+  content: "";
+  position: absolute;
+  width: 33%;
+  aspect-ratio: 1.2;
+  right: 7%;
+  bottom: 25%;
+  transform: rotate(-25deg);
+  border-radius: 48% 45% 44% 52%;
+  background: radial-gradient(
+    ellipse at 40% 30%,
+    #d8a265,
+    #995b2d 60%,
+    #63371a
+  );
+  box-shadow:
+    inset -2px -2px 3px #562d1b88,
+    1px 3px 4px #0003;
+}
+.lot-celda:focus-visible {
+  outline: 3px solid #4c298a;
+  outline-offset: 1px;
+}
+.lot-pestanas {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  max-width: 580px;
+  width: 100%;
+  margin: auto;
+}
+.lot-pestanas button {
+  flex: 1;
+  border: 2px solid #e7dff0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px 4px;
+  color: #6b557d;
+  font:
+    800 12px Nunito,
+    sans-serif;
+  cursor: pointer;
+}
+.lot-pestanas .activo {
+  border-color: #8964bb;
+  background: #f3edfc;
+}
+.lot-pestanas .coincide {
+  box-shadow: inset 0 -3px 0 #dfc47888;
+}
+.lot-grito {
+  max-width: 580px;
+  width: 100%;
+  margin: auto;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, #ff8b39, #db4f6a);
+}
+.lot-historial {
+  display: flex;
+  overflow-x: auto;
+  gap: 9px;
+  max-width: 580px;
+  width: 100%;
+  margin: auto;
+  padding: 5px 0;
+}
+.lot-historial span {
+  min-width: 35px;
+  font-size: 25px;
+}
+.lot-historial .lot-bandera {
+  width: 35px;
+  height: 26px;
+}
+.lot-resultado {
+  max-width: 580px;
+  width: 100%;
+  margin: auto;
+}
+.lot-ayuda-movil {
+  display: none;
+}
+.lot-resumen {
+  font-size: 12px;
+  color: #8b7895;
+  line-height: 1.7;
+}
+@media (max-width: 600px) {
+  .lot-tablas .lot-tablero:not(.visible) {
+    display: none;
+  }
+  .lot-cantada {
+    grid-template-columns: 55px 1fr;
+    padding: 10px 12px;
+    top: 4px;
+  }
+  .lot-cantada .lot-dibujo {
+    font-size: 2.6rem;
+  }
+  .lot-cantada h2 {
+    font-size: 1.15rem;
+  }
+  .lot-verso {
+    font-size: 12px;
+  }
+  .lot-celda .lot-e {
+    font-size: 28px;
+  }
+  .lot-nombre {
+    font-size: 10px;
+  }
+  .lot-chiste {
+    font-size: 8px;
+  }
+  .lot-ayuda-movil {
+    display: block;
+    font-size: 10px;
+    color: #8b7895;
+    text-align: center;
+    margin: 0;
+  }
+  .lot-resultado .lot-tablero {
+    display: block !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lot-celda {
+    transition: none;
+  }
+}
+
+.lot-bandera-encabezado {
+  display: block;
+  width: 65px;
+  height: 38px;
+  object-fit: contain;
+  margin: auto;
+  filter: drop-shadow(0 3px 4px #68402b25);
+}
