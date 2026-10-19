@@ -1,0 +1,577 @@
+@import url("/static/juegos3d.css");
+:root {
+  --oro: #dec18a;
+  --tinta: #101714;
+  --crema: #efe9d9;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--tinta);
+  color: var(--crema);
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+  touch-action: none;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button,
+a,
+input,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+[hidden] {
+  display: none !important;
+}
+#lienzo {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.vineta {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse, transparent 40%, #050c0b85);
+  z-index: 1;
+}
+.pantalla {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  overflow: auto;
+  background: linear-gradient(
+    90deg,
+    #09100ff5 0%,
+    #09100fd4 34%,
+    #09100f18 80%
+  );
+  padding: clamp(24px, 5vw, 76px);
+  display: flex;
+  align-items: center;
+  touch-action: pan-y;
+}
+.presentacion {
+  max-width: 530px;
+  width: 100%;
+}
+.volver {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin-bottom: 40px;
+  color: #c6cec4;
+}
+.capitulo,
+.panel > small {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--oro);
+}
+h1 {
+  font-family: Georgia, serif;
+  font-size: clamp(64px, 10vw, 128px);
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: 9px;
+  margin: 25px 0;
+}
+h1 span {
+  display: block;
+  font-size: clamp(23px, 3vw, 36px);
+  letter-spacing: 0;
+  font-style: italic;
+  color: var(--oro);
+  margin-top: 16px;
+}
+.sinopsis {
+  line-height: 1.8;
+  color: #bec8bf;
+  font-size: 14px;
+}
+.separador {
+  color: var(--oro);
+  font-size: 23px;
+  letter-spacing: 12px;
+  margin: 24px 0;
+}
+.nombre-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #b3bfb5;
+  margin-bottom: 7px;
+}
+#nombre {
+  width: 100%;
+  max-width: 390px;
+  background: #15201b99;
+  border: 1px solid #dac18a35;
+  border-radius: 2px;
+  padding: 13px;
+  color: white;
+  outline-offset: 4px;
+}
+.principal,
+.secundario {
+  display: block;
+  width: 100%;
+  max-width: 390px;
+  border-radius: 2px;
+  padding: 16px 20px;
+  margin-top: 12px;
+  text-align: left;
+  border: 1px solid #dec18a55;
+  letter-spacing: 0.6px;
+  font-size: 13px;
+}
+.principal {
+  background: var(--oro);
+  color: #18231b;
+  font-weight: bold;
+  box-shadow: 0 8px 30px #0003;
+}
+.principal span {
+  float: right;
+}
+.secundario {
+  background: #15201b88;
+  color: var(--crema);
+}
+.nota {
+  font-size: 10px;
+  line-height: 1.8;
+  color: #a5b0a8;
+  max-width: 390px;
+}
+#error {
+  color: #ffb8a5;
+}
+.sello-portada {
+  position: absolute;
+  right: 9vw;
+  bottom: 12vh;
+  text-align: center;
+  color: var(--oro);
+}
+.sello-portada > span {
+  display: block;
+  font-size: 60px;
+  font-family: Georgia, serif;
+}
+.sello-portada small {
+  font-size: 9px;
+  line-height: 2;
+  letter-spacing: 4px;
+}
+.calidad-3d {
+  justify-content: flex-start;
+  margin-top: 18px;
+  color: #bbc4b9;
+  font-size: 11px;
+}
+.calidad-3d select {
+  background: #18231d;
+  color: var(--crema);
+  border-color: #dec18a40;
+}
+#hud {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(20px + env(safe-area-inset-top)) 26px 16px;
+  background: linear-gradient(#07100dc9, transparent);
+}
+header > a {
+  font-size: 9px;
+  letter-spacing: 2px;
+  pointer-events: auto;
+}
+.marca {
+  font-family: Georgia, serif;
+  letter-spacing: 5px;
+  color: var(--oro);
+  font-size: 16px;
+}
+header button {
+  pointer-events: auto;
+  border: 1px solid #dec18a55;
+  background: #0e1b15aa;
+  color: var(--oro);
+  padding: 8px 14px;
+  border-radius: 2px;
+}
+.objetivo {
+  position: absolute;
+  top: 90px;
+  left: 26px;
+  display: grid;
+  gap: 9px;
+}
+.objetivo small {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #d5c9ac;
+}
+.objetivo strong {
+  font-family: Georgia, serif;
+  font-size: 17px;
+  font-weight: 400;
+  text-shadow: 0 2px 8px #000;
+}
+.objetivo > span {
+  color: var(--oro);
+  font-size: 13px;
+}
+.brujula {
+  position: absolute;
+  top: 94px;
+  right: 28px;
+  color: var(--oro);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.mira {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  color: #eee9d699;
+  font-weight: 400;
+  text-shadow: 0 0 5px #000;
+}
+.inferior {
+  position: absolute;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  left: 26px;
+  right: 26px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #e4e1cf;
+  text-shadow: 0 2px 5px #000;
+}
+.inferior button {
+  margin-left: auto;
+  pointer-events: auto;
+  background: #101d16bb;
+  border: 1px solid #dec18a44;
+  color: var(--crema);
+  padding: 9px 14px;
+  font-size: 11px;
+}
+kbd {
+  font: inherit;
+  font-size: 10px;
+  border: 1px solid #dec18a50;
+  padding: 2px 5px;
+  margin-left: 5px;
+  color: var(--oro);
+}
+.controles {
+  position: absolute;
+  bottom: 58px;
+  left: 26px;
+  font-size: 9px;
+  color: #dfd9c6aa;
+}
+.inferior #zona {
+  max-width: 45%;
+}
+#interaccion {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 9px;
+  text-align: center;
+  width: 270px;
+  max-width: 85vw;
+}
+#objeto {
+  font-family: Georgia, serif;
+  font-size: 18px;
+  text-shadow: 0 3px 8px #000;
+}
+#interactuar {
+  pointer-events: auto;
+  justify-self: center;
+  background: #0c1b16d9;
+  border: 1px solid #dec18a90;
+  color: var(--crema);
+  padding: 12px 20px;
+  border-radius: 2px;
+}
+#joystick {
+  display: none;
+  position: absolute;
+  pointer-events: auto;
+  bottom: 100px;
+  left: 25px;
+  width: 108px;
+  height: 108px;
+  border: 1px solid #d1c39b60;
+  background: #11201945;
+  border-radius: 50%;
+  touch-action: none;
+}
+#joystick i {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  left: 32px;
+  top: 32px;
+  border-radius: 50%;
+  background: #e0c79955;
+  border: 1px solid #eadcb799;
+}
+.centrada {
+  justify-content: center;
+  background: #07110ed9;
+  backdrop-filter: blur(10px);
+}
+.panel {
+  width: min(100%, 430px);
+  padding: 28px;
+  border: 1px solid #dec18a35;
+  background: #111e18dd;
+}
+.panel h2,
+dialog h2 {
+  font-family: Georgia, serif;
+  font-size: 32px;
+  font-weight: 400;
+  color: var(--oro);
+}
+.panel p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #bdc7bd;
+}
+.panel .volver {
+  margin: 26px 0 0;
+}
+.reliquia-final {
+  font-size: 80px;
+  color: var(--oro);
+  text-align: center;
+  text-shadow: 0 0 40px #e4c27777;
+}
+#resultado {
+  font-family: Georgia, serif;
+  font-size: 30px;
+}
+dialog {
+  width: min(92vw, 490px);
+  max-height: 85dvh;
+  overflow: auto;
+  touch-action: pan-y;
+  border: 1px solid #c3a56977;
+  color: var(--crema);
+  background: #142019;
+  padding: 30px;
+  border-radius: 4px;
+  box-shadow: 0 20px 90px #000b;
+}
+dialog::backdrop {
+  background: #06100bd9;
+  backdrop-filter: blur(5px);
+}
+dialog small {
+  color: var(--oro);
+  font-size: 9px;
+  letter-spacing: 3px;
+}
+dialog p {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #c2c9b9;
+}
+.cerrar {
+  float: right;
+  background: none;
+  color: var(--oro);
+  border: 0;
+  font-size: 25px;
+  line-height: 1;
+}
+dialog .runa {
+  background: #213127;
+  border: 1px solid #dec18a66;
+  color: var(--oro);
+  border-radius: 4px;
+  min-width: 68px;
+  min-height: 74px;
+  padding: 9px;
+  margin: 5px;
+  font-size: 30px;
+}
+dialog .runa small {
+  display: block;
+  font: 10px Arial;
+  margin-top: 6px;
+  letter-spacing: 0;
+  color: #c9d2c2;
+}
+.mecanismo {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 22px 0;
+}
+.canal.abierto {
+  background: #245b55;
+  border-color: #94d5ca;
+}
+#aviso {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: 24%;
+  transform: translateX(-50%);
+  background: #111e16e8;
+  border: 1px solid #dec18a66;
+  color: var(--oro);
+  padding: 14px 22px;
+  max-width: 90vw;
+  text-align: center;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+#aviso.visible {
+  opacity: 1;
+}
+#cargando {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  background: #101714;
+  color: var(--oro);
+  font-family: Georgia, serif;
+  letter-spacing: 3px;
+}
+@media (pointer: coarse) {
+  #joystick {
+    display: block;
+  }
+  .controles {
+    display: none;
+  }
+  #interaccion {
+    top: auto;
+    bottom: 180px;
+    left: auto;
+    right: 18px;
+    transform: none;
+    width: auto;
+    max-width: 65vw;
+  }
+  #objeto {
+    font-size: 15px;
+  }
+  #interactuar {
+    padding: 16px 18px;
+  }
+  kbd {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .pantalla {
+    padding: 24px;
+    background: linear-gradient(90deg, #09100fee, #09100f9c);
+  }
+  .sello-portada {
+    display: none;
+  }
+  .volver {
+    margin-bottom: 28px;
+  }
+  h1 {
+    font-size: 68px;
+    letter-spacing: 6px;
+  }
+  .sinopsis {
+    font-size: 13px;
+  }
+  .separador {
+    margin: 16px 0;
+  }
+  .objetivo {
+    left: 18px;
+    top: 82px;
+  }
+  .objetivo small {
+    font-size: 7px;
+  }
+  .objetivo strong {
+    font-size: 15px;
+  }
+  header {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .brujula {
+    top: 150px;
+    right: 20px;
+  }
+  .inferior {
+    left: 18px;
+    right: 18px;
+    font-size: 9px;
+    gap: 12px;
+  }
+  .panel {
+    padding: 22px;
+  }
+  dialog {
+    padding: 24px;
+  }
+  .mecanismo .runa {
+    min-width: 55px;
+    padding: 6px;
+    margin: 3px;
+  }
+  .calidad-3d {
+    margin-top: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
