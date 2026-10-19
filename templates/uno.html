@@ -1,0 +1,352 @@
+{% extends "fiesta_base.html" %}
+{% block titulo %}UNO{% endblock %}
+{% block emoji %}🃏{% endblock %}
+{% block subtitulo %}De 2 a 10 jugadores · con amigos o contra bots{% endblock %}
+
+{% block estilos %}
+<style>
+  .mesa {
+    background: radial-gradient(ellipse at center, #2e8b57, #145a32);
+    border-radius: 26px;
+    padding: 14px 10px;
+    color: #fff;
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35), 0 10px 30px rgba(20, 90, 50, 0.35);
+  }
+  .rivales {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+  .rival {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 14px;
+    padding: 5px 10px;
+    font-weight: 900;
+    font-size: 0.85rem;
+    border: 2px solid transparent;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    max-width: 48%;
+  }
+  .rival .nom {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rival.turno {
+    border-color: #ffd84f;
+    box-shadow: 0 0 14px #ffd84f;
+  }
+  .rival .n {
+    background: #fff;
+    color: #145a32;
+    border-radius: 8px;
+    padding: 0 6px;
+  }
+  .rival .n.uno {
+    background: #ff3b3b;
+    color: #fff;
+    animation: latido 0.6s infinite alternate;
+  }
+  @keyframes latido {
+    to {
+      transform: scale(1.12);
+    }
+  }
+  .centro-mesa {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 22px;
+    margin: 16px 0 10px;
+  }
+  .carta {
+    --w: 64px;
+    width: var(--w);
+    height: calc(var(--w) * 1.45);
+    border-radius: calc(var(--w) * 0.14);
+    background: var(--cc);
+    border: 3px solid #fff;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-family: inherit;
+    padding: 0;
+    color: var(--cc);
+  }
+  .carta::before {
+    content: "";
+    position: absolute;
+    inset: 14% 8%;
+    background: #fff;
+    border-radius: 50%;
+    transform: rotate(-30deg);
+  }
+  .carta b {
+    position: relative;
+    font-size: calc(var(--w) * 0.42);
+    font-weight: 900;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.15);
+  }
+  .carta .esq {
+    position: absolute;
+    top: 3px;
+    left: 5px;
+    font-size: calc(var(--w) * 0.2);
+    color: #fff;
+    font-weight: 900;
+  }
+  .carta.rojo {
+    --cc: #e8323c;
+  }
+  .carta.amarillo {
+    --cc: #f5b800;
+  }
+  .carta.verde {
+    --cc: #1fa055;
+  }
+  .carta.azul {
+    --cc: #1f6fe0;
+  }
+  .carta.negro {
+    --cc: #222;
+  }
+  .carta.negro::before {
+    background: conic-gradient(#e8323c 0 25%, #f5b800 0 50%, #1fa055 0 75%, #1f6fe0 0);
+  }
+  .carta.negro b {
+    color: #fff;
+    text-shadow: 0 2px 4px #000;
+  }
+  .carta.grande {
+    --w: 92px;
+  }
+  .carta.dorso {
+    --cc: #222;
+    cursor: pointer;
+  }
+  .carta.dorso::before {
+    background: #e8323c;
+  }
+  .carta.dorso b {
+    color: #f5b800;
+    font-size: 22px;
+    transform: rotate(-30deg);
+  }
+  .carta.dorso.puede {
+    box-shadow: 0 0 0 4px #ffd84f, 0 0 20px #ffd84f;
+    animation: latido 0.7s infinite alternate;
+  }
+  .color-actual {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    margin: 0 auto 4px;
+  }
+  .info-turno {
+    text-align: center;
+    font-weight: 900;
+    font-size: 1.05rem;
+  }
+  .registro {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 800;
+    opacity: 0.85;
+    min-height: 2.4em;
+  }
+  .mano {
+    display: flex;
+    overflow-x: auto;
+    padding: 18px 10px 10px;
+    scrollbar-width: none;
+  }
+  .mano .carta {
+    --w: 70px;
+    margin-left: -20px;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .mano .carta:first-child {
+    margin-left: auto;
+  }
+  .mano .carta:last-child {
+    margin-right: auto;
+  }
+  .mano .carta.si {
+    transform: translateY(-14px);
+  }
+  .mano .carta.no {
+    filter: brightness(0.6);
+  }
+  .acciones-uno {
+    display: flex;
+    gap: 8px;
+  }
+  .acciones-uno .boton {
+    flex: 1;
+  }
+  .boton.uno {
+    background: linear-gradient(135deg, #ff3b3b, #ff7a00);
+  }
+  .boton.uno.dicho {
+    background: #20bf6b;
+  }
+  .selector-color {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: grid;
+    place-items: center;
+    z-index: 50;
+  }
+  .selector-color .caja {
+    background: #fff;
+    border-radius: 24px;
+    padding: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: min(80vw, 300px);
+  }
+  .selector-color h2 {
+    grid-column: span 2;
+    text-align: center;
+    color: var(--morado);
+  }
+  .selector-color button {
+    height: 80px;
+    border: none;
+    border-radius: 18px;
+    cursor: pointer;
+  }
+</style>
+{% endblock %}
+
+{% block como_jugar %}
+<ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
+  <li>Tira una carta del mismo <b>color</b> o el mismo <b>número/símbolo</b> que la de la mesa.</li>
+  <li>Si no puedes, toca el mazo para <b>robar</b>. Si la que robaste sirve, la puedes tirar.</li>
+  <li><b>⊘ Salta</b>: el siguiente pierde turno · <b>⇄ Reversa</b>: cambia el sentido · <b>+2</b>: el siguiente roba 2.</li>
+  <li><b>🌈 Comodín</b>: eliges color · <b>+4</b>: eliges color y el siguiente roba 4.</li>
+  <li>¡Cuando te quede una carta di <b>UNO</b> (antes de tirar la penúltima) o te comes 2!</li>
+  <li>El anfitrión puede agregar <b>bots 🤖</b> para jugar aunque estén pocos.</li>
+</ol>
+{% endblock %}
+
+{% block script %}
+<script>
+  const NOMBRE_COLOR = { rojo: "#e8323c", amarillo: "#f5b800", verde: "#1fa055", azul: "#1f6fe0" };
+  const SIMBOLO = { salta: "⊘", reversa: "⇄", comodin: "🌈", "+4": "+4", "+2": "+2" };
+  let ultimo = null;
+  let relojTurno = null;
+
+  function carta(c, extra = "", atributos = "") {
+    const s = SIMBOLO[c.v] || c.v;
+    return `<button class="carta ${c.c} ${extra}" ${atributos}><span class="esq">${s}</span><b>${s}</b></button>`;
+  }
+
+  function jugar(id) {
+    const e = Fiesta.estado;
+    if (!e || !(e.jugables || []).includes(id)) return;
+    const c = e.mano.find((x) => x.id === id);
+    if (c.c === "negro") return elegirColor(id);
+    Fiesta.accion("jugar", { id });
+  }
+  function elegirColor(id) {
+    const div = document.createElement("div");
+    div.className = "selector-color";
+    div.innerHTML = `<div class="caja"><h2>Elige color</h2>${Object.entries(NOMBRE_COLOR)
+      .map(([n, col]) => `<button style="background:${col}" data-c="${n}"></button>`)
+      .join("")}</div>`;
+    div.onclick = (ev) => {
+      const b = ev.target.closest("[data-c]");
+      div.remove();
+      if (b) Fiesta.accion("jugar", { id, color: b.dataset.c });
+    };
+    document.body.appendChild(div);
+  }
+
+  function pintar(e, zona) {
+    ultimo = e;
+    clearInterval(relojTurno);
+    const manoVieja = zona.querySelector(".mano");
+    const scroll = manoVieja ? manoVieja.scrollLeft : 0;
+    const n = e.jugadores.length;
+    if (e.fase === "lobby") {
+      zona.innerHTML = e.soy_host
+        ? `<div class="tarjeta pila">
+            <h2>🃏 Mesa lista (${n}/${e.max_jugadores})</h2>
+            <p class="nota">¿Pocos amigos? Agrega bots para completar la mesa.</p>
+            <button class="boton morado" ${n >= e.max_jugadores ? "disabled" : ""} onclick="Fiesta.accion('agregar_bot')">➕🤖 Agregar bot</button>
+            <button class="boton verde" ${n < 2 ? "disabled" : ""} onclick="Fiesta.accion('iniciar')">${n < 2 ? "Invita a alguien o agrega un bot" : "🚀 ¡Repartir cartas!"}</button>
+          </div>`
+        : `<div class="tarjeta centro pila"><div class="grande">⏳</div><p class="nota">Esperando a que <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b> reparta…</p></div>`;
+      return;
+    }
+
+    const miTurno = e.turno === Fiesta.pid && e.fase === "jugando";
+    const rivales = e.cuentas
+      .map(
+        (r) =>
+          `<div class="rival ${r.id === e.turno && e.fase === "jugando" ? "turno" : ""}"><span class="nom">${Fiesta.esc(Fiesta.nombreDe(r.id))}${r.id === Fiesta.pid ? " (tú)" : ""}</span><span class="n ${r.n === 1 ? "uno" : ""}">🂠 ${r.n}</span></div>`,
+      )
+      .join("");
+    const segundos = Fiesta.segundosHasta(e.limite);
+    const turnoTexto =
+      e.fase === "resultado"
+        ? `🏆 ¡${Fiesta.esc(Fiesta.nombreDe(e.ganador_ronda))} ganó! +${e.puntos_ronda} pts`
+        : miTurno
+          ? e.robo != null
+            ? "Tira la que robaste o pasa"
+            : "¡Te toca! 👇"
+          : `Turno de ${Fiesta.esc(Fiesta.nombreDe(e.turno))}`;
+
+    let html = `<div class="mesa pila">
+      <div class="rivales">${rivales}</div>
+      <div class="centro-mesa">
+        <div>${e.fase === "jugando" ? `<div class="carta dorso ${miTurno && e.robo == null ? "puede" : ""}" onclick="${miTurno && e.robo == null ? "Fiesta.accion('robar')" : ""}"><b>UNO</b></div>` : ""}</div>
+        <div>${carta(e.arriba, "grande")}</div>
+        <div><div class="color-actual" style="background:${NOMBRE_COLOR[e.color] || "#fff"}"></div><div style="font-size:1.6rem;text-align:center">${e.sentido > 0 ? "↻" : "↺"}</div></div>
+      </div>
+      <div class="info-turno">${turnoTexto} ${e.fase === "jugando" && !String(e.turno).startsWith("bot-") ? `<span id="seg-turno">⏱️ ${segundos}</span>` : ""}</div>
+      <div class="registro">${e.log.map((l) => Fiesta.esc(l)).join("<br>")}</div>
+    </div>`;
+
+    if (e.mano) {
+      const jugables = e.jugables || [];
+      html += `<div class="mano">${e.mano
+        .map((c) => carta(c, miTurno ? (jugables.includes(c.id) ? "si" : "no") : "", `onclick="jugar(${c.id})"`))
+        .join("")}</div>`;
+      if (e.fase === "jugando")
+        html += `<div class="acciones-uno">
+          <button class="boton uno ${e.dije_uno ? "dicho" : ""}" ${e.mano.length > 2 || e.dije_uno ? "disabled" : ""} onclick="Fiesta.accion('uno')">${e.dije_uno ? "✅ ¡Dijiste UNO!" : "📣 ¡UNO!"}</button>
+          ${miTurno && e.robo != null ? `<button class="boton claro" onclick="Fiesta.accion('pasar')">Pasar ⏭️</button>` : ""}
+        </div>`;
+    }
+
+    if (e.fase === "resultado") {
+      html += `<div class="tarjeta pila">
+        <h2>🏅 Puntos</h2>${Fiesta.ranking ? Fiesta.ranking(e) : ""}
+        ${e.soy_host ? `<button class="boton morado" onclick="Fiesta.accion('agregar_bot')">➕🤖 Agregar bot</button><button class="boton verde" onclick="Fiesta.accion('iniciar')">🔁 Otra ronda</button>` : `<p class="nota centro">Esperando a que ${Fiesta.esc(Fiesta.nombreDe(e.host))} reparta otra vez…</p>`}
+      </div>`;
+    }
+    zona.innerHTML = html;
+    const mano = zona.querySelector(".mano");
+    if (mano) mano.scrollLeft = scroll;
+    if (e.fase === "jugando") {
+      relojTurno = setInterval(() => {
+        const s = document.getElementById("seg-turno");
+        if (s) s.textContent = `⏱️ ${Fiesta.segundosHasta(e.limite)}`;
+      }, 500);
+    }
+  }
+
+  Fiesta.iniciar({ juego: "uno", titulo: "UNO 🃏", pintar, intervalo: 900 });
+</script>
+{% endblock %}

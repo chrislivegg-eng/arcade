@@ -64,7 +64,7 @@ else:
     print("   ✅ app.py ya estaba listo")
 EOF
 
-python3 -m py_compile app.py fiesta.py fiesta_juegos.py dardos.py duelo.py perfil.py
+python3 -m py_compile app.py fiesta.py fiesta_juegos.py dardos.py duelo.py perfil.py fiesta_uno.py
 echo "   ✅ app.py no tiene errores"
 
 echo "🔄 Recargando la página..."

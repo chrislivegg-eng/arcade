@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c14" />
+    <title>Damas · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: radial-gradient(ellipse at top, #46201f, #140a0a 70%);
+      }
+      #zona {
+        position: fixed;
+        top: calc(84px + env(safe-area-inset-top));
+        bottom: calc(56px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        display: grid;
+        place-items: center;
+      }
+      #tablero {
+        --lado: min(96vw, calc(100vh - 170px), 520px);
+        width: var(--lado);
+        height: var(--lado);
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        border-radius: 10px;
+        overflow: hidden;
+        border: 6px solid #3a1d10;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+      }
+      .casilla {
+        position: relative;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+      }
+      .clara {
+        background: #f3e3c3;
+      }
+      .oscura {
+        background: #6b3e26;
+      }
+      .casilla.ultima {
+        box-shadow: inset 0 0 0 100px rgba(255, 216, 79, 0.35);
+      }
+      .casilla.puede .pieza {
+        box-shadow:
+          0 0 0 3px #ffd84f,
+          0 4px 0 rgba(0, 0, 0, 0.35);
+      }
+      .casilla.elegida .pieza {
+        box-shadow:
+          0 0 0 4px #6cdc78,
+          0 0 16px #6cdc78;
+        transform: scale(1.08);
+      }
+      .casilla.destino::after {
+        content: "";
+        position: absolute;
+        width: 34%;
+        height: 34%;
+        border-radius: 50%;
+        background: rgba(108, 220, 120, 0.7);
+      }
+      .pieza {
+        width: 78%;
+        height: 78%;
+        border-radius: 50%;
+        pointer-events: none;
+        display: grid;
+        place-items: center;
+        font-size: calc(var(--lado) / 8 * 0.42);
+        transition: transform 0.15s;
+      }
+      .pieza.vacia {
+        display: none;
+      }
+      .pieza.b {
+        background: radial-gradient(circle at 35% 30%, #fff, #e8d8bd 60%, #b9a281);
+        box-shadow:
+          0 4px 0 #8c7656,
+          inset 0 0 0 4px rgba(0, 0, 0, 0.08);
+      }
+      .pieza.n {
+        background: radial-gradient(circle at 35% 30%, #ff6b6b, #c0262d 60%, #7a1015);
+        box-shadow:
+          0 4px 0 #4a0a0d,
+          inset 0 0 0 4px rgba(0, 0, 0, 0.12);
+      }
+      .pieza.comida {
+        opacity: 0.35;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona" class="oculto"><div id="tablero"></div></div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tablero.js') }}"></script>
+    <script>
+      const { $, sonar } = Arcade;
+      // =================== REGLAS ===================
+      // tablero: 64 casillas; 'b' / 'B' = blancas (abajo, suben), 'n' / 'N' = rojas (arriba, bajan). Mayúscula = dama.
+      // Comer es obligatorio y hay que comer la mayor cantidad posible. Las damas vuelan.
+      const fil = (i) => i >> 3,
+        col = (i) => i & 7;
+      const DIAG = [
+        [-1, -1],
+        [-1, 1],
+        [1, -1],
+        [1, 1],
+      ];
+      const colorDe = (p) => (p === "." ? null : p.toLowerCase());
+      const enTablero = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+
+      function inicial() {
+        const b = Array(64).fill(".");
+        for (let i = 0; i < 64; i++) {
+          if ((fil(i) + col(i)) % 2 === 0) continue;
+          if (fil(i) < 3) b[i] = "n";
+          else if (fil(i) > 4) b[i] = "b";
+        }
+        return { b, turno: "b", sinComer: 0 };
+      }
+      const adelante = (color) => (color === "b" ? -1 : 1);
+
+      // todas las cadenas de captura desde "de" (sin volver a saltar la misma pieza)
+      function capturas(b, de, pieza, comidas, camino, salida) {
+        const color = colorDe(pieza),
+          dama = pieza === pieza.toUpperCase();
+        let siguio = false;
+        const r0 = fil(de),
+          c0 = col(de);
+        for (const [dr, dc] of DIAG) {
+          if (!dama && dr !== adelante(color)) continue; // los peones comen solo hacia adelante
+          let r = r0 + dr,
+            c = c0 + dc;
+          if (dama) {
+            while (enTablero(r, c) && b[r * 8 + c] === ".") (r += dr), (c += dc);
+          }
+          if (!enTablero(r, c)) continue;
+          const medio = r * 8 + c;
+          const p = b[medio];
+          if (p === "." || colorDe(p) === color || comidas.includes(medio)) continue;
+          // casillas donde puede caer después de saltar
+          let rr = r + dr,
+            cc = c + dc;
+          while (enTablero(rr, cc) && b[rr * 8 + cc] === ".") {
+            const a = rr * 8 + cc;
+            siguio = true;
+            const b2 = b.slice();
+            b2[a] = pieza;
+            b2[de] = ".";
+            capturas(b2, a, pieza, [...comidas, medio], [...camino, a], salida);
+            if (!dama) break;
+            rr += dr;
+            cc += dc;
+          }
+        }
+        if (!siguio && comidas.length) salida.push({ camino, comidas });
+      }
+
+      function jugadas(pos) {
+        const { b, turno } = pos;
+        let saltos = [];
+        const simples = [];
+        for (let i = 0; i < 64; i++) {
+          if (colorDe(b[i]) !== turno) continue;
+          const lista = [];
+          capturas(b, i, b[i], [], [i], lista);
+          saltos.push(...lista);
+          if (saltos.length) continue;
+          const dama = b[i] === b[i].toUpperCase();
+          for (const [dr, dc] of DIAG) {
+            if (!dama && dr !== adelante(turno)) continue;
+            let r = fil(i) + dr,
+              c = col(i) + dc;
+            while (enTablero(r, c) && b[r * 8 + c] === ".") {
+              simples.push({ camino: [i, r * 8 + c], comidas: [] });
+              if (!dama) break;
+              r += dr;
+              c += dc;
+            }
+          }
+        }
+        if (saltos.length) {
+          const max = Math.max(...saltos.map((s) => s.comidas.length));
+          return saltos.filter((s) => s.comidas.length === max);
+        }
+        return simples;
+      }
+
+      function aplicar(pos, j) {
+        const b = pos.b.slice();
+        const de = j.camino[0],
+          a = j.camino[j.camino.length - 1];
+        let p = b[de];
+        b[de] = ".";
+        j.comidas.forEach((k) => (b[k] = "."));
+        if ((p === "b" && fil(a) === 0) || (p === "n" && fil(a) === 7)) p = p.toUpperCase();
+        b[a] = p;
+        const damaSola = pos.b[de] === pos.b[de].toUpperCase();
+        return { b, turno: pos.turno === "b" ? "n" : "b", sinComer: j.comidas.length || !damaSola ? 0 : pos.sinComer + 1 };
+      }
+
+      // =================== BOT ===================
+      function evaluar(pos) {
+        let s = 0;
+        pos.b.forEach((p, i) => {
+          if (p === ".") return;
+          const mia = colorDe(p) === pos.turno ? 1 : -1;
+          const dama = p === p.toUpperCase();
+          const avance = colorDe(p) === "b" ? 7 - fil(i) : fil(i);
+          const centro = col(i) >= 2 && col(i) <= 5 ? 4 : 0;
+          s += mia * (dama ? 320 : 100 + avance * 5 + centro);
+        });
+        return s;
+      }
+      function negamax(pos, prof, alfa, beta) {
+        const lista = jugadas(pos);
+        if (!lista.length) return -100000 - prof;
+        if (prof === 0) {
+          // si hay capturas pendientes, se sigue un poquito (para no regalar piezas)
+          if (lista[0].comidas.length === 0) return evaluar(pos);
+          prof = 1;
+        }
+        let mejor = -Infinity;
+        for (const j of lista) {
+          const v = -negamax(aplicar(pos, j), prof - 1, -beta, -alfa);
+          if (v > mejor) mejor = v;
+          if (v > alfa) alfa = v;
+          if (alfa >= beta) break;
+        }
+        return mejor;
+      }
+      function mejorJugada(pos, nivel) {
+        const [prof, ruido] = { facil: [1, 90], normal: [3, 20], pro: [6, 0] }[nivel];
+        let mejor = null,
+          mejorV = -Infinity;
+        for (const j of jugadas(pos)) {
+          const v = -negamax(aplicar(pos, j), prof - 1, -Infinity, Infinity) + Math.random() * ruido;
+          if (v > mejorV) {
+            mejorV = v;
+            mejor = j;
+          }
+        }
+        return mejor;
+      }
+
+      // =================== PARTIDA ===================
+      const J = { activa: false };
+      const ui = Arcade.ui({
+        juego: "damas",
+        titulo: "Damas",
+        emoji: "🔴",
+        subtitulo: "Come todas las fichas del rival",
+        modos: ["bot", "online", "local"],
+        dificultad: true,
+        reglas: [
+          "Las fichas avanzan en diagonal una casilla, siempre hacia adelante.",
+          "Para comer saltas una ficha rival. <b>Comer es obligatorio</b> y si puedes comer varias seguidas, ¡tienes que comer las más que puedas!",
+          "Si llegas al otro lado tu ficha se vuelve <b>dama 👑</b>: se mueve y come a lo largo de toda la diagonal.",
+          "Gana quien deja al otro sin fichas o sin jugadas.",
+          "Online: el que crea la sala juega con las blancas (empiezan).",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.activa = false;
+          $("zona").classList.add("oculto");
+        },
+      });
+      const cola = Tablero.cola((j) => mover(j, true));
+      ui.alEvento = (tipo, d) => {
+        if (tipo === "mov" && d && d.partida === J.partida) cola.recibir(d.n, d, () => J.n);
+      };
+      const casillas = Tablero.crear($("tablero"), tocar);
+      const vista = (i) => (J.volteado ? 63 - i : i);
+
+      function empezar(modo, info) {
+        Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, dificultad: info.dificultad, pos: inicial(), n: 0, elegida: -1, ultima: null, activa: true, pensando: false });
+        J.yo = modo === "online" ? (ui.yo === 0 ? "b" : "n") : "b";
+        J.volteado = J.yo === "n";
+        cola.reiniciar();
+        $("zona").classList.remove("oculto");
+        pintar();
+        marcador();
+        ui.ayuda(modo === "local" ? "Pásense el cel en cada turno" : "Toca una ficha para moverla");
+      }
+
+      const puedoMover = () => J.activa && !J.pensando && (J.modo === "local" || J.pos.turno === J.yo);
+
+      function tocar(iPantalla) {
+        if (!puedoMover()) return;
+        const i = vista(iPantalla);
+        const lista = jugadas(J.pos);
+        if (J.elegida >= 0) {
+          const j = lista.find((x) => x.camino[0] === J.elegida && x.camino[x.camino.length - 1] === i);
+          if (j) return jugarYo(j);
+        }
+        const puede = lista.some((x) => x.camino[0] === i);
+        J.elegida = puede ? i : -1;
+        if (puede) sonar("click");
+        else if (colorDe(J.pos.b[i]) === J.pos.turno && lista[0] && lista[0].comidas.length) ui.avisar("¡Tienes que comer! 😋", "#ff3b3b");
+        pintar();
+      }
+
+      function jugarYo(j) {
+        if (J.modo === "online") ui.enviar("mov", { partida: J.partida, n: J.n, camino: j.camino });
+        mover(j);
+        if (J.modo === "bot" && J.activa) turnoBot();
+      }
+
+      function mover(j, remota) {
+        if (remota) {
+          const k = j.camino.join(",");
+          j = jugadas(J.pos).find((x) => x.camino.join(",") === k);
+          if (!j) return;
+        }
+        const antes = J.pos.b;
+        J.pos = aplicar(J.pos, j);
+        J.n++;
+        J.ultima = j;
+        J.elegida = -1;
+        const corono = antes[j.camino[0]] !== J.pos.b[j.camino[j.camino.length - 1]];
+        if (j.comidas.length) sonar("golpe", 0.5 + j.comidas.length * 0.2);
+        else sonar("click");
+        if (j.comidas.length > 1) ui.avisar(`¡Comiste ${j.comidas.length}! 🔥`, "#ffd84f");
+        if (corono) ui.avisar("👑 ¡Dama!", "#ffd84f");
+        if (J.n === 2) ui.ayuda("");
+        pintar();
+        marcador();
+        revisarFin();
+      }
+
+      function revisarFin() {
+        const sinJugadas = !jugadas(J.pos).length;
+        const tablas = J.pos.sinComer >= 50;
+        if (!sinJugadas && !tablas) return;
+        J.activa = false;
+        const ganador = tablas ? null : J.pos.turno === "b" ? "n" : "b";
+        setTimeout(() => {
+          const gane = ganador && (J.modo === "local" || ganador === J.yo);
+          const nombreG = ganador ? J.nombres[ganador === "b" ? 0 : 1] : "";
+          sonar(gane ? "ganar" : ganador ? "perder" : "rebote");
+          ui.terminar({
+            emoji: !ganador ? "🤝" : gane ? "🏆" : "😿",
+            texto: !ganador ? "¡Tablas!" : J.modo === "local" ? `¡Ganó ${nombreG}!` : gane ? "¡Ganaste!" : `Ganó ${nombreG}`,
+            nota: tablas ? "25 jugadas solo con damas y sin comer" : `${J.n} movimientos`,
+            gano: J.modo !== "local" && !!gane,
+          });
+        }, 900);
+      }
+
+      async function turnoBot() {
+        J.pensando = true;
+        marcador();
+        const partida = J.partida;
+        const j = await Tablero.pensar(() => mejorJugada(J.pos, J.dificultad), 500);
+        if (partida !== J.partida || !J.activa) return;
+        J.pensando = false;
+        if (j) mover(j);
+      }
+
+      function pintar() {
+        const lista = puedoMover() ? jugadas(J.pos) : [];
+        const destinos = lista.filter((x) => x.camino[0] === J.elegida).map((x) => x.camino[x.camino.length - 1]);
+        const origenes = new Set(lista.map((x) => x.camino[0]));
+        const ultimas = new Set(J.ultima ? J.ultima.camino : []);
+        casillas.forEach((el, iPantalla) => {
+          const i = vista(iPantalla);
+          const p = J.pos.b[i];
+          const pieza = el.firstChild;
+          pieza.className = "pieza " + (p === "." ? "vacia" : colorDe(p));
+          pieza.textContent = p !== "." && p === p.toUpperCase() ? "👑" : "";
+          el.classList.toggle("elegida", i === J.elegida);
+          el.classList.toggle("puede", J.elegida < 0 && origenes.has(i));
+          el.classList.toggle("destino", destinos.includes(i));
+          el.classList.toggle("ultima", ultimas.has(i));
+        });
+      }
+
+      function marcador() {
+        const cuenta = (c) => J.pos.b.filter((p) => colorDe(p) === c).length;
+        const panel = (i) => {
+          const c = i === 0 ? "b" : "n";
+          const yoSoy = J.modo === "online" ? J.yo === c : J.modo === "bot" && c === "b";
+          return {
+            nombre: `${c === "b" ? "⚪" : "🔴"} ${J.nombres[i]}${yoSoy ? " (tú)" : ""}`,
+            valor: cuenta(c),
+            detalle: J.pos.turno === c ? (J.pensando ? "🤔 Pensando…" : "Le toca") : "fichas",
+            activo: J.activa && J.pos.turno === c,
+            color: c === "b" ? "#f3e3c3" : "#ff4f4f",
+          };
+        };
+        ui.marcador([panel(0), panel(1)]);
+      }
+    </script>
+  </body>
+</html>

@@ -868,3 +868,7 @@ def basta():
 @fiesta_bp.route('/espia')
 def espia():
     return render_template('espia.html')
+
+
+# 🃏 UNO vive en su propio archivo
+import fiesta_uno  # noqa: E402,F401

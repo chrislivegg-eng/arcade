@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c14" />
+    <title>Serpientes y Escaleras · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: radial-gradient(ellipse at top, #1e4d3a, #0b1a14 70%);
+      }
+      #zona {
+        position: fixed;
+        top: calc(84px + env(safe-area-inset-top));
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+      #tablero {
+        --lado: min(96vw, calc(100vh - 230px), 560px);
+        position: relative;
+        width: var(--lado);
+        height: var(--lado);
+        display: grid;
+        grid-template-columns: repeat(10, 1fr);
+        border-radius: 14px;
+        overflow: hidden;
+        border: 5px solid #fff;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+      }
+      .cel {
+        position: relative;
+        font-size: calc(var(--lado) / 36);
+        font-weight: 900;
+        color: rgba(0, 0, 0, 0.45);
+        padding: 2px 4px;
+      }
+      #dibujo {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+      .ficha {
+        position: absolute;
+        width: calc(var(--lado) / 10 * 0.5);
+        height: calc(var(--lado) / 10 * 0.5);
+        border-radius: 50%;
+        border: 3px solid #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.45);
+        transition:
+          left 0.2s ease-out,
+          top 0.2s ease-out;
+        z-index: 3;
+        display: grid;
+        place-items: center;
+        font-size: calc(var(--lado) / 36);
+      }
+      .ficha.f0 {
+        background: #ff4f8b;
+      }
+      .ficha.f1 {
+        background: #4fb3ff;
+      }
+      .ficha.brinco {
+        animation: brinco 0.2s;
+      }
+      @keyframes brinco {
+        50% {
+          transform: translateY(-30%) scale(1.15);
+        }
+      }
+      #fila-dado {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      #dado {
+        width: 74px;
+        height: 74px;
+        border-radius: 18px;
+        background: #fff;
+        border: none;
+        box-shadow:
+          0 6px 0 #c7c7c7,
+          0 10px 20px rgba(0, 0, 0, 0.35);
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        padding: 10px;
+        cursor: pointer;
+      }
+      #dado:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      #dado.puede {
+        animation: latido 0.6s infinite alternate;
+      }
+      #dado.girando {
+        animation: girar 0.15s linear infinite;
+      }
+      @keyframes girar {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #dado i {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #2d3436;
+        place-self: center;
+        visibility: hidden;
+      }
+      #dado i.on {
+        visibility: visible;
+      }
+      #texto-turno {
+        font-weight: 900;
+        font-size: 1.1rem;
+        max-width: 180px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona" class="oculto">
+      <div id="tablero"></div>
+      <div id="fila-dado">
+        <button id="dado"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></button>
+        <div id="texto-turno"></div>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, sonar } = Arcade;
+      const ESCALERAS = { 4: 14, 9: 31, 21: 42, 28: 84, 36: 44, 51: 67, 71: 91, 80: 100 };
+      const SERPIENTES = { 16: 6, 47: 26, 49: 11, 56: 53, 62: 19, 64: 60, 87: 24, 93: 73, 95: 75, 98: 78 };
+      const COLORES_CEL = ["#ffe0ec", "#e2f0ff", "#fff3c4", "#dff7e6", "#efe3ff"];
+      const PUNTOS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+
+      // casilla 1..100 → fila/columna en pantalla (la 1 abajo a la izquierda, en zigzag)
+      function lugar(n) {
+        const k = n - 1;
+        const fila = (k / 10) | 0;
+        const c = fila % 2 === 0 ? k % 10 : 9 - (k % 10);
+        return { r: 9 - fila, c };
+      }
+      // dibuja el tablero una vez
+      (() => {
+        const celdas = [];
+        for (let r = 0; r < 10; r++)
+          for (let c = 0; c < 10; c++) {
+            const fila = 9 - r;
+            const n = fila * 10 + (fila % 2 === 0 ? c : 9 - c) + 1;
+            celdas.push(`<div class="cel" style="background:${COLORES_CEL[(r + c) % 5]}">${n}</div>`);
+          }
+        const centro = (n) => {
+          const { r, c } = lugar(n);
+          return [c * 10 + 5, r * 10 + 5];
+        };
+        let svg = "";
+        for (const [a, b] of Object.entries(ESCALERAS)) {
+          const [x1, y1] = centro(+a),
+            [x2, y2] = centro(b);
+          const largo = Math.hypot(x2 - x1, y2 - y1);
+          const nx = ((y2 - y1) / largo) * 2.2,
+            ny = (-(x2 - x1) / largo) * 2.2;
+          svg += `<g stroke="#8b5a2b" stroke-width="1.1" stroke-linecap="round"><line x1="${x1 + nx}" y1="${y1 + ny}" x2="${x2 + nx}" y2="${y2 + ny}"/><line x1="${x1 - nx}" y1="${y1 - ny}" x2="${x2 - nx}" y2="${y2 - ny}"/>`;
+          for (let t = 0.08; t < 1; t += 4 / largo) {
+            const x = x1 + (x2 - x1) * t,
+              y = y1 + (y2 - y1) * t;
+            svg += `<line x1="${x + nx}" y1="${y + ny}" x2="${x - nx}" y2="${y - ny}" stroke-width="0.8"/>`;
+          }
+          svg += "</g>";
+        }
+        const tonos = ["#26de81", "#fa8231", "#a55eea", "#eb3b5a", "#20bf6b"];
+        let k = 0;
+        for (const [a, b] of Object.entries(SERPIENTES)) {
+          const [x1, y1] = centro(+a),
+            [x2, y2] = centro(b);
+          const mx = (x1 + x2) / 2,
+            my = (y1 + y2) / 2;
+          const dx = x2 - x1,
+            dy = y2 - y1;
+          const color = tonos[k++ % tonos.length];
+          const d = `M${x1} ${y1} C ${mx - dy * 0.35 + dx * 0.1} ${my + dx * 0.35 - 6}, ${mx + dy * 0.35} ${my - dx * 0.35 + 6}, ${x2} ${y2}`;
+          svg += `<path d="${d}" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="3.6" stroke-linecap="round" transform="translate(.6 .8)"/>`;
+          svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>`;
+          svg += `<path d="${d}" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1" stroke-dasharray="1.5 2.5" stroke-linecap="round"/>`;
+          svg += `<circle cx="${x1}" cy="${y1}" r="2.6" fill="${color}"/><circle cx="${x1 - 0.9}" cy="${y1 - 0.8}" r=".6" fill="#fff"/><circle cx="${x1 + 0.9}" cy="${y1 - 0.8}" r=".6" fill="#fff"/><circle cx="${x1 - 0.9}" cy="${y1 - 0.8}" r=".3"/><circle cx="${x1 + 0.9}" cy="${y1 - 0.8}" r=".3"/>`;
+        }
+        $("tablero").innerHTML = celdas.join("") + `<svg id="dibujo" viewBox="0 0 100 100">${svg}</svg><div class="ficha f0" id="ficha-0"></div><div class="ficha f1" id="ficha-1"></div>`;
+      })();
+
+      function dibujarDado(v) {
+        [...$("dado").children].forEach((p, i) => p.classList.toggle("on", PUNTOS[v].includes(i)));
+      }
+      dibujarDado(6);
+
+      function ponerFicha(i, n) {
+        const f = $("ficha-" + i);
+        f.classList.toggle("oculto", n === 0);
+        const { r, c } = lugar(Math.max(1, n));
+        const otro = J.pos[1 - i] === n;
+        // si están en la misma casilla se hacen a un lado
+        const corre = otro ? (i === 0 ? -0.17 : 0.17) : 0;
+        f.style.left = `calc(${(c + 0.25 + corre) * 10}%)`;
+        f.style.top = `calc(${(r + 0.25) * 10}%)`;
+      }
+
+      // =================== PARTIDA ===================
+      const J = { activa: false, pos: [0, 0] };
+      const ui = Arcade.ui({
+        juego: "serpientes",
+        titulo: "Serpientes y Escaleras",
+        emoji: "🐍",
+        subtitulo: "Sube por las escaleras… ¡cuidado con las serpientes!",
+        modos: ["bot", "online", "local"],
+        reglas: [
+          "Toca el dado en tu turno y avanza.",
+          "Si caes al pie de una 🪜 escalera, ¡subes!",
+          "Si caes en la cabeza de una 🐍 serpiente, bajas hasta su cola.",
+          "Si sacas 6 vuelves a tirar.",
+          "Hay que llegar exacto al 100: si te pasas, rebotas hacia atrás.",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.activa = false;
+          clearTimeout(J.timerBot);
+          $("zona").classList.add("oculto");
+        },
+      });
+      const pendientes = {};
+      ui.alEvento = (tipo, d) => {
+        if (tipo !== "tiro" || !d || d.partida !== J.partida) return;
+        pendientes[d.n] = d.valor;
+        siguientePendiente();
+      };
+      function siguientePendiente() {
+        if (J.moviendo || pendientes[J.n] == null) return;
+        const v = pendientes[J.n];
+        delete pendientes[J.n];
+        jugarTiro(v);
+      }
+
+      function empezar(modo, info) {
+        clearTimeout(J.timerBot);
+        Object.keys(pendientes).forEach((k) => delete pendientes[k]);
+        Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, pos: [0, 0], turno: 0, n: 0, activa: true, moviendo: false });
+        J.yo = modo === "online" ? ui.yo : 0;
+        $("zona").classList.remove("oculto");
+        ponerFicha(0, 0);
+        ponerFicha(1, 0);
+        actualizar();
+      }
+
+      const miTurno = () => J.activa && !J.moviendo && (J.modo === "local" || J.turno === J.yo);
+
+      function actualizar() {
+        const quien = J.nombres[J.turno];
+        $("texto-turno").innerHTML = !J.activa ? "" : miTurno() ? (J.modo === "local" ? `Turno de <b style="color:${J.turno ? "#4fb3ff" : "#ff4f8b"}">${Arcade.esc(quien)}</b>` : "¡Te toca! 🎲") : `Turno de ${Arcade.esc(quien)}…`;
+        $("dado").disabled = !miTurno();
+        $("dado").classList.toggle("puede", miTurno());
+        ui.marcador(
+          [0, 1].map((i) => ({
+            nombre: J.nombres[i] + (J.modo !== "local" && i === J.yo ? " (tú)" : ""),
+            valor: J.pos[i] || "🏁",
+            detalle: "casilla",
+            activo: J.activa && J.turno === i,
+            color: i ? "#4fb3ff" : "#ff4f8b",
+          })),
+        );
+        if (J.activa && J.modo === "bot" && J.turno === 1 && !J.moviendo) {
+          clearTimeout(J.timerBot);
+          J.timerBot = setTimeout(() => J.activa && J.turno === 1 && !J.moviendo && tirar(), 900);
+        }
+      }
+
+      function tirar() {
+        if (J.moviendo) return;
+        const v = 1 + Math.floor(Math.random() * 6);
+        if (J.modo === "online") ui.enviar("tiro", { partida: J.partida, n: J.n, valor: v });
+        jugarTiro(v);
+      }
+      $("dado").onclick = () => miTurno() && tirar();
+
+      async function jugarTiro(v) {
+        const partida = J.partida;
+        J.moviendo = true;
+        actualizar();
+        $("dado").classList.add("girando");
+        for (let k = 0; k < 6; k++) {
+          dibujarDado(1 + Math.floor(Math.random() * 6));
+          sonar("click");
+          await esperar(70);
+        }
+        $("dado").classList.remove("girando");
+        dibujarDado(v);
+        await esperar(250);
+        const i = J.turno;
+        let p = J.pos[i];
+        let rebote = false;
+        for (let k = 0; k < v; k++) {
+          if (partida !== J.partida) return;
+          if (p === 100) rebote = true;
+          p += rebote ? -1 : 1;
+          J.pos[i] = p;
+          ponerFicha(i, p);
+          const f = $("ficha-" + i);
+          f.classList.remove("brinco");
+          void f.offsetWidth;
+          f.classList.add("brinco");
+          sonar("ping", 0.4);
+          await esperar(210);
+        }
+        if (rebote) ui.avisar("¡Rebote! ↩️", "#ffd84f");
+        if (ESCALERAS[p]) {
+          await esperar(200);
+          ui.avisar("🪜 ¡Escalera!", "#26de81");
+          sonar("salto");
+          p = ESCALERAS[p];
+        } else if (SERPIENTES[p]) {
+          await esperar(200);
+          ui.avisar("🐍 ¡Serpiente!", "#ff3b3b");
+          sonar("perder");
+          p = SERPIENTES[p];
+        }
+        J.pos[i] = p;
+        ponerFicha(i, p);
+        ponerFicha(1 - i, J.pos[1 - i]);
+        await esperar(450);
+        if (partida !== J.partida) return;
+        J.n++;
+        J.moviendo = false;
+        if (p === 100) return fin(i);
+        if (v === 6) ui.avisar("🎲 ¡6! Tira otra vez", "#4fb3ff");
+        else J.turno = 1 - J.turno;
+        actualizar();
+        siguientePendiente();
+      }
+
+      function fin(i) {
+        J.activa = false;
+        actualizar();
+        const gane = J.modo === "local" || i === J.yo;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({
+          emoji: gane ? "🏆" : "😿",
+          texto: J.modo === "local" ? `¡Ganó ${J.nombres[i]}!` : gane ? "¡Llegaste primero!" : `Ganó ${J.nombres[i]}`,
+          nota: `${J.nombres[1 - i]} se quedó en la casilla ${J.pos[1 - i]}`,
+          gano: J.modo !== "local" && i === J.yo,
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c14" />
+    <title>Ajedrez · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: radial-gradient(ellipse at top, #3b2a1e, #120c0a 70%);
+      }
+      #zona {
+        position: fixed;
+        top: calc(84px + env(safe-area-inset-top));
+        bottom: calc(56px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .capturas {
+        min-height: 26px;
+        font-size: 1.25rem;
+        letter-spacing: -2px;
+        width: min(96vw, calc(100vh - 220px), 520px);
+      }
+      #tablero {
+        --lado: min(96vw, calc(100vh - 220px), 520px);
+        width: var(--lado);
+        height: var(--lado);
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        border-radius: 10px;
+        overflow: hidden;
+        border: 6px solid #5a3a22;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+      }
+      .casilla {
+        position: relative;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+      }
+      .clara {
+        background: #f0d9b5;
+      }
+      .oscura {
+        background: #b58863;
+      }
+      .casilla.ultima {
+        box-shadow: inset 0 0 0 100px rgba(255, 216, 79, 0.42);
+      }
+      .casilla.elegida {
+        box-shadow: inset 0 0 0 100px rgba(108, 220, 120, 0.55);
+      }
+      .casilla.jaque {
+        background: radial-gradient(circle, #ff3b3b 20%, rgba(255, 59, 59, 0.3) 70%);
+      }
+      .casilla.destino::after {
+        content: "";
+        position: absolute;
+        width: 30%;
+        height: 30%;
+        border-radius: 50%;
+        background: rgba(20, 60, 20, 0.45);
+      }
+      .casilla.destino.come::after {
+        width: 86%;
+        height: 86%;
+        background: transparent;
+        border: 5px solid rgba(20, 60, 20, 0.45);
+      }
+      .pieza {
+        font-size: calc(var(--lado) / 8 * 0.8);
+        line-height: 1;
+        font-family: "Segoe UI Symbol", "DejaVu Sans", "Noto Sans Symbols2", sans-serif;
+        pointer-events: none;
+        transition: transform 0.15s;
+      }
+      .pieza.b {
+        color: #fff;
+        -webkit-text-stroke: 1.5px #222;
+        text-shadow: 0 3px 3px rgba(0, 0, 0, 0.35);
+      }
+      .pieza.n {
+        color: #1d1d1d;
+        -webkit-text-stroke: 1px #000;
+        text-shadow: 0 2px 2px rgba(255, 255, 255, 0.25);
+      }
+      .coord {
+        position: absolute;
+        font-size: 0.6rem;
+        font-weight: 900;
+        opacity: 0.6;
+        color: #5a3a22;
+        pointer-events: none;
+      }
+      .coord.f {
+        left: 2px;
+        top: 1px;
+      }
+      .coord.c {
+        right: 3px;
+        bottom: 1px;
+      }
+      .promo {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 30;
+      }
+      .promo .caja {
+        background: #f0d9b5;
+        border-radius: 20px;
+        padding: 16px;
+        display: flex;
+        gap: 10px;
+      }
+      .promo button {
+        font-size: 3rem;
+        width: 70px;
+        height: 70px;
+        border: none;
+        border-radius: 14px;
+        background: #b58863;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona" class="oculto">
+      <div class="capturas" id="cap-arriba"></div>
+      <div id="tablero"></div>
+      <div class="capturas" id="cap-abajo"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tablero.js') }}"></script>
+    <script>
+      const { $, sonar } = Arcade;
+      // =================== MOTOR DE AJEDREZ ===================
+      // casillas 0..63: 0 = a8 (arriba a la izquierda), 63 = h1
+      // piezas: mayúscula = blancas, minúscula = negras
+      const INICIO = "rnbqkbnrpppppppp" + ".".repeat(32) + "PPPPPPPPRNBQKBNR";
+      const GLIFO = { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" };
+      const VALOR = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
+      // tablas de posición (vista de las blancas)
+      const PST = {
+        p: [0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25, 10, 5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, -5, -10, 0, 0, -10, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0],
+        n: [-50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0, 0, 0, 0, -20, -40, -30, 0, 10, 15, 15, 10, 0, -30, -30, 5, 15, 20, 20, 15, 5, -30, -30, 0, 15, 20, 20, 15, 0, -30, -30, 5, 10, 15, 15, 10, 5, -30, -40, -20, 0, 5, 5, 0, -20, -40, -50, -40, -30, -30, -30, -30, -40, -50],
+        b: [-20, -10, -10, -10, -10, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 10, 10, 5, 0, -10, -10, 5, 5, 10, 10, 5, 5, -10, -10, 0, 10, 10, 10, 10, 0, -10, -10, 10, 10, 10, 10, 10, 10, -10, -10, 5, 0, 0, 0, 0, 5, -10, -20, -10, -10, -10, -10, -10, -10, -20],
+        r: [0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, 10, 10, 10, 10, 5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, 0, 0, 0, 5, 5, 0, 0, 0],
+        q: [-20, -10, -10, -5, -5, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 5, 5, 5, 0, -10, -5, 0, 5, 5, 5, 5, 0, -5, 0, 0, 5, 5, 5, 5, 0, -5, -10, 5, 5, 5, 5, 5, 0, -10, -10, 0, 5, 0, 0, 0, 0, -10, -20, -10, -10, -5, -5, -10, -10, -20],
+        k: [-30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -20, -30, -30, -40, -40, -30, -30, -20, -10, -20, -20, -20, -20, -20, -20, -10, 20, 20, 0, 0, 0, 0, 20, 20, 20, 30, 10, 0, 0, 10, 30, 20],
+      };
+      const esBlanca = (p) => p !== "." && p === p.toUpperCase();
+      const colorDe = (p) => (p === "." ? null : esBlanca(p) ? "w" : "b");
+      const fil = (i) => i >> 3,
+        col = (i) => i & 7;
+
+      function nuevaPosicion() {
+        return { b: INICIO.split(""), turno: "w", enroque: "KQkq", ep: -1, medio: 0 };
+      }
+
+      // ¿la casilla sq está atacada por el color "por"?
+      function atacada(b, sq, por) {
+        const r = fil(sq),
+          c = col(sq);
+        const mia = (p, tipo) => p !== "." && colorDe(p) === por && p.toLowerCase() === tipo;
+        // peones
+        const dir = por === "w" ? 1 : -1;
+        for (const dc of [-1, 1]) {
+          const rr = r + dir,
+            cc = c + dc;
+          if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8 && mia(b[rr * 8 + cc], "p")) return true;
+        }
+        // caballos
+        for (const [dr, dc] of [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]]) {
+          const rr = r + dr,
+            cc = c + dc;
+          if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8 && mia(b[rr * 8 + cc], "n")) return true;
+        }
+        // rey
+        for (let dr = -1; dr <= 1; dr++)
+          for (let dc = -1; dc <= 1; dc++) {
+            const rr = r + dr,
+              cc = c + dc;
+            if ((dr || dc) && rr >= 0 && rr < 8 && cc >= 0 && cc < 8 && mia(b[rr * 8 + cc], "k")) return true;
+          }
+        // líneas
+        for (const [dr, dc, tipos] of [[1, 0, "rq"], [-1, 0, "rq"], [0, 1, "rq"], [0, -1, "rq"], [1, 1, "bq"], [1, -1, "bq"], [-1, 1, "bq"], [-1, -1, "bq"]]) {
+          let rr = r + dr,
+            cc = c + dc;
+          while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+            const p = b[rr * 8 + cc];
+            if (p !== ".") {
+              if (colorDe(p) === por && tipos.includes(p.toLowerCase())) return true;
+              break;
+            }
+            rr += dr;
+            cc += dc;
+          }
+        }
+        return false;
+      }
+      const rey = (b, color) => b.indexOf(color === "w" ? "K" : "k");
+      const enJaque = (pos, color = pos.turno) => atacada(pos.b, rey(pos.b, color), color === "w" ? "b" : "w");
+
+      function pseudo(pos) {
+        const { b, turno } = pos;
+        const lista = [];
+        const add = (de, a, extra = {}) => lista.push({ de, a, ...extra });
+        for (let i = 0; i < 64; i++) {
+          const p = b[i];
+          if (colorDe(p) !== turno) continue;
+          const t = p.toLowerCase(),
+            r = fil(i),
+            c = col(i);
+          if (t === "p") {
+            const dir = turno === "w" ? -1 : 1,
+              ini = turno === "w" ? 6 : 1,
+              fin = turno === "w" ? 0 : 7;
+            const uno = i + dir * 8;
+            const promo = (a, x) => (fil(a) === fin ? ["q", "r", "b", "n"].forEach((pr) => add(i, a, { ...x, promo: pr })) : add(i, a, x));
+            if (b[uno] === ".") {
+              promo(uno, {});
+              if (r === ini && b[uno + dir * 8] === ".") add(i, uno + dir * 8, { doble: true });
+            }
+            for (const dc of [-1, 1]) {
+              if (c + dc < 0 || c + dc > 7) continue;
+              const a = uno + dc;
+              if (b[a] !== "." && colorDe(b[a]) !== turno) promo(a, {});
+              else if (a === pos.ep) add(i, a, { alPaso: true });
+            }
+          } else if (t === "n" || t === "k") {
+            const saltos = t === "n" ? [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]] : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+            for (const [dr, dc] of saltos) {
+              const rr = r + dr,
+                cc = c + dc;
+              if (rr < 0 || rr > 7 || cc < 0 || cc > 7) continue;
+              const a = rr * 8 + cc;
+              if (colorDe(b[a]) !== turno) add(i, a);
+            }
+            if (t === "k") {
+              // enroques
+              const enemigo = turno === "w" ? "b" : "w";
+              const [corto, largo, fila] = turno === "w" ? ["K", "Q", 7] : ["k", "q", 0];
+              const base = fila * 8;
+              if (i === base + 4 && !atacada(b, i, enemigo)) {
+                if (pos.enroque.includes(corto) && b[base + 5] === "." && b[base + 6] === "." && !atacada(b, base + 5, enemigo) && !atacada(b, base + 6, enemigo)) add(i, base + 6, { enroque: "corto" });
+                if (pos.enroque.includes(largo) && b[base + 3] === "." && b[base + 2] === "." && b[base + 1] === "." && !atacada(b, base + 3, enemigo) && !atacada(b, base + 2, enemigo)) add(i, base + 2, { enroque: "largo" });
+              }
+            }
+          } else {
+            const dirs = t === "r" ? [[1, 0], [-1, 0], [0, 1], [0, -1]] : t === "b" ? [[1, 1], [1, -1], [-1, 1], [-1, -1]] : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+            for (const [dr, dc] of dirs) {
+              let rr = r + dr,
+                cc = c + dc;
+              while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+                const a = rr * 8 + cc;
+                if (b[a] === ".") add(i, a);
+                else {
+                  if (colorDe(b[a]) !== turno) add(i, a);
+                  break;
+                }
+                rr += dr;
+                cc += dc;
+              }
+            }
+          }
+        }
+        return lista;
+      }
+
+      function aplicar(pos, m) {
+        const b = pos.b.slice();
+        const p = b[m.de];
+        const comida = m.alPaso ? b[m.a + (pos.turno === "w" ? 8 : -8)] : b[m.a];
+        b[m.a] = m.promo ? (pos.turno === "w" ? m.promo.toUpperCase() : m.promo) : p;
+        b[m.de] = ".";
+        if (m.alPaso) b[m.a + (pos.turno === "w" ? 8 : -8)] = ".";
+        if (m.enroque) {
+          const base = fil(m.de) * 8;
+          if (m.enroque === "corto") [b[base + 5], b[base + 7]] = [b[base + 7], "."];
+          else [b[base + 3], b[base]] = [b[base], "."];
+        }
+        let enroque = pos.enroque;
+        const quitar = (x) => (enroque = enroque.replace(x, ""));
+        if (p === "K") quitar("K"), quitar("Q");
+        if (p === "k") quitar("k"), quitar("q");
+        [m.de, m.a].forEach((sq) => {
+          if (sq === 63) quitar("K");
+          if (sq === 56) quitar("Q");
+          if (sq === 7) quitar("k");
+          if (sq === 0) quitar("q");
+        });
+        return {
+          b,
+          turno: pos.turno === "w" ? "b" : "w",
+          enroque,
+          ep: m.doble ? (m.de + m.a) / 2 : -1,
+          medio: p.toLowerCase() === "p" || comida !== "." ? 0 : pos.medio + 1,
+          comida: comida !== "." ? comida : null,
+        };
+      }
+
+      function legales(pos) {
+        return pseudo(pos).filter((m) => !enJaque(aplicar(pos, m), pos.turno));
+      }
+
+      function materialInsuficiente(b) {
+        const piezas = b.filter((p) => p !== "." && p.toLowerCase() !== "k").map((p) => p.toLowerCase());
+        return piezas.length === 0 || (piezas.length === 1 && "nb".includes(piezas[0]));
+      }
+
+      // =================== BOT ===================
+      function evaluar(pos) {
+        let s = 0;
+        for (let i = 0; i < 64; i++) {
+          const p = pos.b[i];
+          if (p === ".") continue;
+          const t = p.toLowerCase();
+          if (esBlanca(p)) s += VALOR[t] + PST[t][i];
+          else s -= VALOR[t] + PST[t][(7 - fil(i)) * 8 + col(i)];
+        }
+        return pos.turno === "w" ? s : -s;
+      }
+      function ordenar(pos, lista) {
+        return lista.sort((x, y) => (pos.b[y.a] !== "." ? VALOR[pos.b[y.a].toLowerCase()] : 0) + (y.promo ? 800 : 0) - ((pos.b[x.a] !== "." ? VALOR[pos.b[x.a].toLowerCase()] : 0) + (x.promo ? 800 : 0)));
+      }
+      let nodos = 0;
+      function quieto(pos, alfa, beta, prof) {
+        const base = evaluar(pos);
+        if (base >= beta || prof <= 0) return base;
+        if (base > alfa) alfa = base;
+        const capturas = ordenar(pos, pseudo(pos).filter((m) => pos.b[m.a] !== "."));
+        for (const m of capturas) {
+          const nueva = aplicar(pos, m);
+          if (enJaque(nueva, pos.turno)) continue;
+          nodos++;
+          const v = -quieto(nueva, -beta, -alfa, prof - 1);
+          if (v >= beta) return v;
+          if (v > alfa) alfa = v;
+        }
+        return alfa;
+      }
+      function negamax(pos, prof, alfa, beta) {
+        if (prof === 0) return quieto(pos, alfa, beta, 4);
+        const lista = ordenar(pos, legales(pos));
+        if (!lista.length) return enJaque(pos) ? -100000 - prof : 0;
+        let mejor = -Infinity;
+        for (const m of lista) {
+          nodos++;
+          const v = -negamax(aplicar(pos, m), prof - 1, -beta, -alfa);
+          if (v > mejor) mejor = v;
+          if (v > alfa) alfa = v;
+          if (alfa >= beta) break;
+        }
+        return mejor;
+      }
+      function mejorJugada(pos, nivel) {
+        const cfg = { facil: [1, 140], normal: [2, 25], pro: [3, 0] }[nivel];
+        const lista = ordenar(pos, legales(pos));
+        let mejor = lista[0],
+          mejorV = -Infinity;
+        nodos = 0;
+        for (const m of lista) {
+          const v = -negamax(aplicar(pos, m), cfg[0] - 1, -Infinity, Infinity) + Math.random() * cfg[1];
+          if (v > mejorV) {
+            mejorV = v;
+            mejor = m;
+          }
+        }
+        return mejor;
+      }
+
+      // =================== PARTIDA ===================
+      const J = { activa: false };
+      const ui = Arcade.ui({
+        juego: "ajedrez",
+        titulo: "Ajedrez",
+        emoji: "♟️",
+        subtitulo: "El clásico: ¡jaque mate!",
+        modos: ["bot", "online", "local"],
+        dificultad: true,
+        reglas: [
+          "Toca una pieza y luego a dónde la quieres mover (se marcan las casillas posibles).",
+          "Gana quien le da jaque mate al rey contrario.",
+          "Incluye enroque, captura al paso y coronación.",
+          "Si el que toca mover no tiene jugadas y no está en jaque: tablas (ahogado).",
+          "Online: el que crea la sala juega con blancas.",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.activa = false;
+          $("zona").classList.add("oculto");
+        },
+      });
+      const cola = Tablero.cola((j) => mover(j, true));
+      ui.alEvento = (tipo, d) => {
+        if (tipo === "mov" && d && d.partida === J.partida) cola.recibir(d.n, d, () => J.historial.length);
+      };
+
+      const casillas = Tablero.crear($("tablero"), tocar);
+      const vista = (i) => (J.volteado ? 63 - i : i); // casilla en pantalla ↔ casilla real
+
+      function empezar(modo, info) {
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          nombres: info.nombres,
+          dificultad: info.dificultad,
+          pos: nuevaPosicion(),
+          historial: [],
+          elegida: -1,
+          ultima: null,
+          comidas: { w: [], b: [] },
+          activa: true,
+          pensando: false,
+        });
+        // online: el que crea la sala es blancas
+        J.yo = modo === "online" ? (ui.yo === 0 ? "w" : "b") : "w";
+        J.volteado = J.yo === "b";
+        cola.reiniciar();
+        $("zona").classList.remove("oculto");
+        pintar();
+        marcador();
+        ui.ayuda(modo === "local" ? "Pásense el cel en cada turno" : "Toca una pieza para moverla");
+      }
+
+      const puedoMover = () => J.activa && !J.pensando && (J.modo === "local" || J.pos.turno === J.yo);
+
+      function tocar(iPantalla) {
+        if (!puedoMover()) return;
+        const i = vista(iPantalla);
+        const p = J.pos.b[i];
+        if (J.elegida >= 0) {
+          const opciones = legales(J.pos).filter((m) => m.de === J.elegida && m.a === i);
+          if (opciones.length) {
+            if (opciones.length > 1) return elegirCoronacion(opciones);
+            return jugarYo(opciones[0]);
+          }
+        }
+        J.elegida = colorDe(p) === J.pos.turno ? i : -1;
+        if (J.elegida >= 0) sonar("click");
+        pintar();
+      }
+
+      function elegirCoronacion(opciones) {
+        const div = document.createElement("div");
+        div.className = "promo";
+        const blanco = J.pos.turno === "w";
+        div.innerHTML = `<div class="caja">${["q", "r", "b", "n"].map((t) => `<button data-t="${t}" class="pieza ${blanco ? "b" : "n"}">${GLIFO[t]}︎</button>`).join("")}</div>`;
+        div.onclick = (e) => {
+          const b = e.target.closest("[data-t]");
+          div.remove();
+          if (b) jugarYo(opciones.find((m) => m.promo === b.dataset.t));
+        };
+        document.body.appendChild(div);
+      }
+
+      function jugarYo(m) {
+        if (J.modo === "online") ui.enviar("mov", { partida: J.partida, n: J.historial.length, de: m.de, a: m.a, promo: m.promo || null });
+        mover(m);
+        if (J.modo === "bot" && J.activa) turnoBot();
+      }
+
+      function mover(m, remota) {
+        if (remota) {
+          // de una jugada que llegó por internet se busca la jugada legal completa
+          m = legales(J.pos).find((x) => x.de === m.de && x.a === m.a && (x.promo || null) === (m.promo || null));
+          if (!m) return;
+        }
+        const antes = J.pos;
+        J.pos = aplicar(J.pos, m);
+        J.historial.push(m);
+        if (J.pos.comida) J.comidas[antes.turno].push(J.pos.comida);
+        J.ultima = m;
+        J.elegida = -1;
+        sonar(J.pos.comida ? "golpe" : "click", J.pos.comida ? 0.6 : 0.8);
+        if (J.historial.length === 2) ui.ayuda("");
+        pintar();
+        revisarFin();
+        marcador();
+      }
+
+      function revisarFin() {
+        const lista = legales(J.pos);
+        const jaque = enJaque(J.pos);
+        if (lista.length && !materialInsuficiente(J.pos.b) && J.pos.medio < 100) {
+          if (jaque) {
+            ui.avisar("¡Jaque! ♚", "#ff3b3b");
+            sonar("silbato");
+          }
+          return;
+        }
+        J.activa = false;
+        const ganador = lista.length || !jaque ? null : J.pos.turno === "w" ? "b" : "w";
+        const motivo = ganador ? "¡Jaque mate!" : !lista.length ? "Ahogado: tablas" : materialInsuficiente(J.pos.b) ? "Tablas: no alcanza para dar mate" : "Tablas por 50 movimientos";
+        setTimeout(() => {
+          const nombreGanador = ganador ? J.nombres[ganador === "w" ? 0 : 1] : null;
+          const gane = ganador && (J.modo === "local" || ganador === J.yo);
+          sonar(gane ? "ganar" : ganador ? "perder" : "rebote");
+          ui.terminar({
+            emoji: !ganador ? "🤝" : gane ? "🏆" : "😿",
+            texto: !ganador ? "¡Tablas!" : J.modo === "local" ? `¡Ganó ${nombreGanador}!` : gane ? "¡Ganaste!" : `Ganó ${nombreGanador}`,
+            nota: `${motivo} · ${Math.ceil(J.historial.length / 2)} jugadas`,
+            gano: J.modo !== "local" && !!gane,
+          });
+        }, 1200);
+      }
+
+      async function turnoBot() {
+        J.pensando = true;
+        marcador();
+        const partida = J.partida;
+        const m = await Tablero.pensar(() => mejorJugada(J.pos, J.dificultad), 450);
+        if (partida !== J.partida || !J.activa) return;
+        J.pensando = false;
+        if (m) mover(m);
+      }
+
+      function pintar() {
+        const destinos = J.elegida >= 0 ? legales(J.pos).filter((m) => m.de === J.elegida) : [];
+        const reyJaque = enJaque(J.pos) ? rey(J.pos.b, J.pos.turno) : -1;
+        casillas.forEach((el, iPantalla) => {
+          const i = vista(iPantalla);
+          const p = J.pos.b[i];
+          const pieza = el.firstChild;
+          pieza.textContent = p === "." ? "" : GLIFO[p.toLowerCase()] + "︎";
+          pieza.className = "pieza " + (p === "." ? "" : esBlanca(p) ? "b" : "n");
+          el.classList.toggle("elegida", i === J.elegida);
+          el.classList.toggle("ultima", !!J.ultima && (J.ultima.de === i || J.ultima.a === i));
+          el.classList.toggle("jaque", i === reyJaque);
+          const d = destinos.find((m) => m.a === i);
+          el.classList.toggle("destino", !!d);
+          el.classList.toggle("come", !!d && (p !== "." || !!d.alPaso));
+          // coordenadas en la orilla
+          el.querySelectorAll(".coord").forEach((c) => c.remove());
+          if (iPantalla % 8 === 0) el.insertAdjacentHTML("beforeend", `<span class="coord f">${8 - fil(i)}</span>`);
+          if (iPantalla >= 56) el.insertAdjacentHTML("beforeend", `<span class="coord c">${"abcdefgh"[col(i)]}</span>`);
+        });
+        // piezas comidas: arriba las que perdió el de abajo
+        const abajo = J.volteado ? "b" : "w";
+        const fila = (lista) => lista.map((p) => `<span class="pieza ${esBlanca(p) ? "b" : "n"}" style="font-size:1.25rem">${GLIFO[p.toLowerCase()]}︎</span>`).join("");
+        $("cap-abajo").innerHTML = fila(J.comidas[abajo]);
+        $("cap-arriba").innerHTML = fila(J.comidas[abajo === "w" ? "b" : "w"]);
+      }
+
+      function marcador() {
+        const ventaja = (c) => J.comidas[c].reduce((s, p) => s + VALOR[p.toLowerCase()], 0);
+        const panel = (i) => {
+          const color = i === 0 ? "w" : "b";
+          const yoSoy = J.modo === "online" ? J.yo === color : J.modo === "bot" && color === "w";
+          const dif = Math.round((ventaja(color) - ventaja(color === "w" ? "b" : "w")) / 100);
+          return {
+            nombre: `${color === "w" ? "⚪" : "⚫"} ${J.nombres[i]}${yoSoy ? " (tú)" : ""}`,
+            valor: dif > 0 ? `+${dif}` : "♟",
+            detalle: J.pos.turno === color ? (J.pensando ? "🤔 Pensando…" : "Le toca") : "",
+            activo: J.activa && J.pos.turno === color,
+            color: color === "w" ? "#f0d9b5" : "#8a5a3a",
+          };
+        };
+        ui.marcador([panel(0), panel(1)]);
+      }
+    </script>
+  </body>
+</html>

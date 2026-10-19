@@ -171,7 +171,9 @@ const Fiesta = (() => {
     ultimoAvisoPerfil = clave;
     const mayor = Math.max(...estado.jugadores.map((j) => j.puntos));
     const mio = (estado.jugadores.find((j) => j.id === PID) || {}).puntos || 0;
-    Perfil.evento(config.juego, "fin", { gano: mio > 0 && mio === mayor, modo: "online" });
+    // si el juego dice quién ganó la ronda (UNO), se usa eso
+    const gano = estado.ganador_ronda != null ? estado.ganador_ronda === PID : mio > 0 && mio === mayor;
+    Perfil.evento(config.juego, "fin", { gano, modo: "online" });
   }
 
   function pintarJugadores() {
@@ -185,7 +187,7 @@ const Fiesta = (() => {
             ? `<button class="quitar" title="Sacar" onclick="Fiesta.expulsar('${j.id}')">✕</button>`
             : "";
         return `<div class="jugador ${listo ? "listo" : ""}">
-          <div class="avatar" style="background:${colorDe(j.id)}">${esc(j.nombre.charAt(0).toUpperCase())}</div>
+          <div class="avatar" style="background:${colorDe(j.id)}">${esc(([...j.nombre][0] || "?").toUpperCase())}</div>
           <div class="nombre">${esc(j.nombre)}${j.id === PID ? " (tú)" : ""}</div>
           ${j.id === estado.host ? '<span class="etiqueta">👑 Anfitrión</span>' : ""}
           ${listo ? "✅" : ""}
