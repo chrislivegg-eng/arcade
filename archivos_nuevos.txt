@@ -100,3 +100,7 @@ static/js/loteria.js
 static/img/bandera-mexico.svg
 static/audio/loteria/README.md
 static/img/README.md
+
+static/uno.css
+static/js/uno.js
+static/js/uno3d.js

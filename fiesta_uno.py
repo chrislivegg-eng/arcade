@@ -110,6 +110,7 @@ class Uno(JuegoBase):
         mano = u['manos'][pid]
         mano.remove(carta)
         u['pila'].append(carta)
+        u['ultima_jugada'] = {'pid': pid, 'id': carta['id']}
         u['color'] = color if carta['c'] == 'negro' else carta['c']
         quien = nombre(sala, pid)
         texto = {'salta': '⊘ Salta', 'reversa': '⇄ Reversa', 'comodin': '🌈 Comodín', '+4': '+4', '+2': '+2'}.get(carta['v'], carta['v'])
@@ -246,7 +247,7 @@ class Uno(JuegoBase):
             arriba=self._arriba(u), color=u['color'], turno=self._actual(u), sentido=u['sentido'],
             limite=u['limite'], log=u['log'], mazo=len(u['mazo']), robo=u['robo'] if self._actual(u) == pid else None,
             cuentas=[{'id': p, 'n': len(u['manos'].get(p, []))} for p in orden_visible],
-            dije_uno=pid in u['dijo_uno'],
+            dije_uno=pid in u['dijo_uno'], ultima_jugada=u.get('ultima_jugada'),
         )
         mano = u['manos'].get(pid)
         if mano is not None:
