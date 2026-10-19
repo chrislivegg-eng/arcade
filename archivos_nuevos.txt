@@ -57,3 +57,5 @@ templates/juego_corredor.html
 templates/juego_ladrillos.html
 templates/juego_box.html
 templates/juego_arco.html
+templates/juego_voleibol.html
+templates/juego_hockey.html

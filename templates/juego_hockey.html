@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0d1b2a" />
+    <title>Hockey sobre Hielo · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      #reloj {
+        position: fixed;
+        top: calc(92px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        font-weight: 900;
+        font-size: 1.3rem;
+        background: rgba(20, 12, 24, 0.72);
+        padding: 4px 14px;
+        border-radius: 16px;
+        z-index: 5;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+    <div id="reloj" class="oculto"></div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, sonar, gauss } = Arcade;
+      // Pista: x de -W a W, z de -L a L. El equipo 0 (rojo) defiende z > 0 y ataca hacia z < 0.
+      const W = 6,
+        L = 11,
+        LINEA_GOL = 9.6,
+        BOCA = 0.95,
+        R_DISCO = 0.13,
+        R_JUG = 0.42,
+        V_MAX = 7.2,
+        ACEL = 16,
+        V_TIRO = 19,
+        DURACION = 180,
+        GOLES_GANAR = 5;
+
+      // =========================================================
+      //  ESCENA: la pista
+      // =========================================================
+      const M = Arcade.mundo({ fondo: 0x0d1b2a, fov: 50, exposicion: 1.1, colorAmbiente: 0xc8e0ff, lamparas: [[0, 10, 0, 0xffffff, 5], [-8, 4, 6, 0x4fb3ff, 1], [8, 4, -6, 0xff4f6b, 1]] });
+      const { escena, camara } = M;
+      const mat = (c, x = {}) => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.6, ...x });
+      escena.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 0.7));
+      const luz = new THREE.DirectionalLight(0xffffff, 0.9);
+      luz.position.set(4, 18, 6);
+      luz.castShadow = true;
+      luz.shadow.mapSize.set(2048, 2048);
+      Object.assign(luz.shadow.camera, { left: -9, right: 9, top: 13, bottom: -13, near: 1, far: 40 });
+      escena.add(luz);
+      const caja = (w, h, d, m, x = 0, y = 0, z = 0) => {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+        b.position.set(x, y, z);
+        b.castShadow = b.receiveShadow = true;
+        return b;
+      };
+      const texHielo = M.textura(512, 1024, (g, w, h) => {
+        const sx = w / (W * 2),
+          sz = h / (L * 2);
+        const X = (x) => (x + W) * sx,
+          Z = (z) => (z + L) * sz;
+        g.fillStyle = "#f4f9ff";
+        g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 400; i++) {
+          g.strokeStyle = `rgba(160,190,220,${azar(0.05, 0.15)})`;
+          g.beginPath();
+          const x = Math.random() * w,
+            y = Math.random() * h;
+          g.moveTo(x, y);
+          g.lineTo(x + azar(-40, 40), y + azar(-40, 40));
+          g.stroke();
+        }
+        g.fillStyle = "#e0323c";
+        g.fillRect(0, Z(-0.08), w, 0.16 * sz);
+        g.fillStyle = "#1f5fd0";
+        [-3.4, 3.4].forEach((z) => g.fillRect(0, Z(z - 0.15), w, 0.3 * sz));
+        g.fillStyle = "#e0323c";
+        [-LINEA_GOL, LINEA_GOL].forEach((z) => g.fillRect(0, Z(z - 0.04), w, 0.08 * sz));
+        g.strokeStyle = "#1f5fd0";
+        g.lineWidth = 4;
+        g.beginPath();
+        g.arc(X(0), Z(0), 2 * sx, 0, Math.PI * 2);
+        g.stroke();
+        g.strokeStyle = "#e0323c";
+        [-1, 1].forEach((lz) =>
+          [-1, 1].forEach((lx) => {
+            g.beginPath();
+            g.arc(X(lx * 3), Z(lz * 6.6), 1.6 * sx, 0, Math.PI * 2);
+            g.stroke();
+          }),
+        );
+        // área del portero
+        g.fillStyle = "rgba(80,150,255,.35)";
+        [-1, 1].forEach((lz) => {
+          g.beginPath();
+          g.arc(X(0), Z(lz * LINEA_GOL), 1.3 * sx, lz > 0 ? Math.PI : 0, lz > 0 ? Math.PI * 2 : Math.PI);
+          g.fill();
+        });
+      });
+      const hielo = new THREE.Mesh(new THREE.PlaneGeometry(W * 2, L * 2), new THREE.MeshStandardMaterial({ map: texHielo, roughness: 0.15, metalness: 0.05 }));
+      hielo.rotation.x = -Math.PI / 2;
+      hielo.receiveShadow = true;
+      escena.add(hielo);
+      // bardas
+      const matBarda = mat(0xffffff, { roughness: 0.4 }),
+        matBorde = mat(0xffd84f);
+      escena.add(caja(0.25, 0.9, L * 2 + 0.5, matBarda, -W - 0.125, 0.45, 0), caja(0.25, 0.9, L * 2 + 0.5, matBarda, W + 0.125, 0.45, 0));
+      escena.add(caja(W * 2 + 0.5, 0.9, 0.25, matBarda, 0, 0.45, -L - 0.125), caja(W * 2 + 0.5, 0.9, 0.25, matBarda, 0, 0.45, L + 0.125));
+      escena.add(caja(0.28, 0.08, L * 2 + 0.5, matBorde, -W - 0.125, 0.92, 0), caja(0.28, 0.08, L * 2 + 0.5, matBorde, W + 0.125, 0.92, 0));
+      // porterías
+      function porteria(z, lado) {
+        const g = new THREE.Group();
+        const rojo = mat(0xe0323c, { metalness: 0.4 });
+        g.add(caja(0.08, 1.2, 0.08, rojo, -BOCA, 0.6, 0), caja(0.08, 1.2, 0.08, rojo, BOCA, 0.6, 0), caja(BOCA * 2 + 0.08, 0.08, 0.08, rojo, 0, 1.2, 0));
+        const red = new THREE.Mesh(new THREE.BoxGeometry(BOCA * 2, 1.2, 0.9), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, wireframe: true }));
+        red.position.set(0, 0.6, lado * 0.45);
+        g.add(red);
+        g.position.z = z;
+        escena.add(g);
+      }
+      porteria(-LINEA_GOL, -1);
+      porteria(LINEA_GOL, 1);
+      // público
+      for (let i = 0; i < 220; i++) {
+        const lado = Math.random() < 0.5 ? -1 : 1;
+        const fila = Math.floor(Math.random() * 5);
+        const p = caja(0.4, 0.9, 0.4, mat(new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex()), lado * (W + 1.2 + fila * 0.7), 0.6 + fila * 0.45, azar(-L, L));
+        p.castShadow = false;
+        escena.add(p);
+      }
+
+      // jugadores
+      function crearPatinador(color, numero) {
+        const g = new THREE.Group();
+        const cuerpo = new THREE.Group();
+        g.add(cuerpo);
+        cuerpo.add(caja(0.55, 0.62, 0.36, mat(color), 0, 1.05, 0));
+        cuerpo.add(caja(0.5, 0.36, 0.34, mat(0x1d1d2a), 0, 0.6, 0));
+        cuerpo.add(caja(0.38, 0.38, 0.38, mat(color, { roughness: 0.3, metalness: 0.2 }), 0, 1.55, 0)); // casco
+        cuerpo.add(caja(0.3, 0.14, 0.05, mat(0x222222), 0, 1.5, 0.2));
+        [-1, 1].forEach((l) => {
+          cuerpo.add(caja(0.18, 0.45, 0.2, mat(0x1d1d2a), l * 0.14, 0.22, 0));
+          cuerpo.add(caja(0.14, 0.05, 0.4, mat(0xcccccc, { metalness: 0.8 }), l * 0.14, 0.02, 0.02));
+        });
+        const palo = new THREE.Group();
+        palo.add(caja(0.05, 0.05, 1.2, mat(0x8b5a2b), 0, 0.55, 0.5));
+        palo.add(caja(0.08, 0.06, 0.35, mat(0x222222), 0.1, 0.05, 1.05));
+        palo.position.x = 0.3;
+        palo.rotation.x = 0.45;
+        cuerpo.add(palo);
+        g.userData = { cuerpo, palo };
+        escena.add(g);
+        return g;
+      }
+      function crearPortero(color) {
+        const g = new THREE.Group();
+        g.add(caja(0.8, 0.7, 0.45, mat(color), 0, 0.85, 0));
+        g.add(caja(0.42, 0.4, 0.42, mat(0xffffff, { roughness: 0.3 }), 0, 1.4, 0));
+        [-1, 1].forEach((l) => g.add(caja(0.32, 0.55, 0.3, mat(0xffffff), l * 0.24, 0.28, 0.08)));
+        g.add(caja(0.35, 0.35, 0.12, mat(0xffd84f), -0.5, 0.75, 0.15));
+        escena.add(g);
+        return g;
+      }
+      const mallas = [crearPatinador(0xe0323c), crearPatinador(0x1f5fd0)];
+      const porteros = [crearPortero(0xe0323c), crearPortero(0x1f5fd0)];
+      const disco = new THREE.Mesh(new THREE.CylinderGeometry(R_DISCO, R_DISCO, 0.07, 20), mat(0x111111, { roughness: 0.3 }));
+      disco.castShadow = true;
+      escena.add(disco);
+
+      // =========================================================
+      //  ESTADO Y FÍSICA
+      // =========================================================
+      const P = [0, 1].map(() => ({ x: 0, z: 0, vx: 0, vz: 0, ox: 0, oz: 0, dir: 0, recuperar: 0 }));
+      const G = [{ x: 0 }, { x: 0 }];
+      const D = { x: 0, z: 0, vx: 0, vz: 0, dueno: null }; // dueno = jugador que lo lleva pegado al palo
+      const J = { modo: null, jugando: false, pausa: true, goles: [0, 0], n: 0, autoridad: 0, ultimoEnvio: 0, sesion: 0 };
+
+      // el equipo 0 ataca hacia z negativa
+      const haciaPorteria = (i) => (i === 0 ? -1 : 1);
+
+      function controlo(i) {
+        if (J.modo === "local") return true;
+        if (J.modo === "online") return i === J.yo;
+        return i === 0;
+      }
+
+      function saque(quien) {
+        Object.assign(P[0], { x: 0, z: 1.2, vx: 0, vz: 0, ox: 0, oz: 1.2, recuperar: 0 });
+        Object.assign(P[1], { x: 0, z: -1.2, vx: 0, vz: 0, ox: 0, oz: -1.2, recuperar: 0 });
+        Object.assign(D, { x: 0, z: quien === 0 ? 0.4 : -0.4, vx: 0, vz: 0, dueno: null });
+        G[0].x = G[1].x = 0;
+        J.autoridad = quien;
+      }
+
+      function moverPatinador(p, dt, vmax) {
+        const dx = p.ox - p.x,
+          dz = p.oz - p.z;
+        const d = Math.hypot(dx, dz);
+        // quiere ir hacia el dedo, con inercia de patinaje
+        const deseoX = d > 0.15 ? (dx / d) * Math.min(vmax, d * 4) : 0,
+          deseoZ = d > 0.15 ? (dz / d) * Math.min(vmax, d * 4) : 0;
+        const ax = limitar(deseoX - p.vx, -ACEL * dt, ACEL * dt),
+          az = limitar(deseoZ - p.vz, -ACEL * dt, ACEL * dt);
+        p.vx += ax;
+        p.vz += az;
+        p.x = limitar(p.x + p.vx * dt, -W + R_JUG, W - R_JUG);
+        p.z = limitar(p.z + p.vz * dt, -L + R_JUG, L - R_JUG);
+        if (Math.hypot(p.vx, p.vz) > 0.6) p.dir = Math.atan2(p.vx, p.vz);
+        p.recuperar = Math.max(0, p.recuperar - dt);
+      }
+
+      function tirar(i, tx, tz) {
+        if (D.dueno !== i) return;
+        const dx = tx - D.x,
+          dz = tz - D.z;
+        const d = Math.hypot(dx, dz) || 1;
+        const v = V_TIRO * azar(0.9, 1.05);
+        D.vx = (dx / d) * v;
+        D.vz = (dz / d) * v;
+        D.dueno = null;
+        P[i].recuperar = 0.45;
+        sonar("golpe", 0.9);
+        mallas[i].userData.palo.rotation.x = -0.4;
+        if (J.modo === "online") avisarDisco(true);
+      }
+
+      // ¿quién decide el disco en online? el que lo trae o el último que lo tocó
+      const decidoYo = () => J.modo !== "online" || J.autoridad === J.yo;
+
+      function pasoFisica(dt) {
+        P.forEach((p, i) => moverPatinador(p, dt, J.modo === "bot" && i === 1 ? { facil: 5, normal: 6.2, pro: 7.2 }[J.dificultad] : V_MAX));
+        // los porteros siguen al disco
+        G.forEach((g, i) => {
+          const objetivo = limitar(D.x * 0.8, -BOCA + 0.25, BOCA - 0.25);
+          g.x += limitar(objetivo - g.x, -4.5 * dt, 4.5 * dt);
+        });
+        if (!decidoYo()) {
+          // solo avanzo el disco con lo último que me mandaron
+          if (D.dueno == null) {
+            D.x += D.vx * dt;
+            D.z += D.vz * dt;
+          } else pegarAlPalo(D.dueno);
+          return null;
+        }
+        if (D.dueno != null) {
+          pegarAlPalo(D.dueno);
+        } else {
+          const zAntes = D.z;
+          D.x += D.vx * dt;
+          D.z += D.vz * dt;
+          D.vx *= 1 - 0.35 * dt;
+          D.vz *= 1 - 0.35 * dt;
+          if (Math.abs(D.x) > W - R_DISCO) {
+            D.x = Math.sign(D.x) * (W - R_DISCO);
+            D.vx *= -0.8;
+            sonar("rebote", Math.min(1, Math.abs(D.vx) / 8));
+          }
+          if (Math.abs(D.z) > L - R_DISCO) {
+            D.z = Math.sign(D.z) * (L - R_DISCO);
+            D.vz *= -0.8;
+            sonar("rebote", Math.min(1, Math.abs(D.vz) / 8));
+          }
+          // cruza la línea de gol por la boca de la portería
+          for (const lado of [-1, 1]) {
+            const linea = lado * LINEA_GOL;
+            if ((zAntes - linea) * (D.z - linea) <= 0 && zAntes !== D.z && Math.sign(D.vz) === lado) {
+              const defensor = lado > 0 ? 0 : 1;
+              if (Math.abs(D.x) < BOCA - R_DISCO) {
+                // ¿lo para el portero?
+                const alcance = 0.42 + (J.modo === "bot" && defensor === 1 ? { facil: 0.05, normal: 0.12, pro: 0.2 }[J.dificultad] : 0.12);
+                const rapidez = Math.hypot(D.vx, D.vz);
+                if (Math.abs(D.x - G[defensor].x) < alcance && Math.random() < 0.9 - rapidez / 60) {
+                  D.z = linea - lado * 0.3;
+                  D.vz = -D.vz * 0.4;
+                  D.vx = azar(-3, 3);
+                  sonar("rebote", 0.9);
+                  ui.avisar("🧤 ¡Atajada!", "#4fb3ff");
+                  if (J.modo === "online") avisarDisco(true);
+                } else return 1 - defensor; // gol del que ataca
+              } else if (Math.abs(D.x) < BOCA + 0.1) {
+                // pegó en el poste
+                D.vx = -D.vx;
+                D.vz *= -0.6;
+                sonar("ping", 1);
+              }
+            }
+          }
+          // ¿alguien lo recoge?
+          for (let i = 0; i < 2; i++) {
+            if (J.modo === "online" && i !== J.yo) continue;
+            const p = P[i];
+            if (p.recuperar > 0) continue;
+            if (Math.hypot(D.x - p.x, D.z - p.z) < R_JUG + R_DISCO + 0.25) {
+              D.dueno = i;
+              J.autoridad = i;
+              J.n++;
+              sonar("click");
+              if (J.modo === "online") avisarDisco(true);
+            }
+          }
+        }
+        // robar el disco: choque con el que lo lleva
+        if (D.dueno != null) {
+          const robador = 1 - D.dueno;
+          const a = P[robador],
+            b = P[D.dueno];
+          if ((J.modo !== "online" || robador === J.yo) && Math.hypot(a.x - b.x, a.z - b.z) < R_JUG * 2 + 0.2 && a.recuperar <= 0) {
+            a.recuperar = 0.3;
+            const prob = J.modo === "bot" && robador === 1 ? { facil: 0.18, normal: 0.32, pro: 0.48 }[J.dificultad] : 0.4;
+            if (Math.random() < prob) {
+              D.dueno = robador;
+              J.autoridad = robador;
+              J.n++;
+              b.recuperar = 0.5;
+              sonar("golpe", 0.5);
+              if (controlo(robador) || J.modo === "local") ui.avisar("🏒 ¡Robo!", robador ? "#4fb3ff" : "#ff4f8b");
+              if (J.modo === "online") avisarDisco(true);
+            }
+          }
+        }
+        return null;
+      }
+
+      function pegarAlPalo(i) {
+        const p = P[i];
+        D.x = p.x + Math.sin(p.dir) * 0.62 + Math.cos(p.dir) * 0.2;
+        D.z = p.z + Math.cos(p.dir) * 0.62 - Math.sin(p.dir) * 0.2;
+        D.vx = p.vx;
+        D.vz = p.vz;
+      }
+
+      // =========================================================
+      //  ONLINE
+      // =========================================================
+      function avisarDisco(urgente) {
+        const ahora = performance.now();
+        if (!urgente && ahora - J.ultimoEnvio < 110) return;
+        J.ultimoEnvio = ahora;
+        const p = P[J.yo];
+        const datos = { partida: J.partida, yo: [+p.x.toFixed(2), +p.z.toFixed(2), +p.dir.toFixed(2)], g: J.goles[0] + J.goles[1] };
+        if (decidoYo()) datos.disco = { n: J.n, x: +D.x.toFixed(3), z: +D.z.toFixed(3), vx: +D.vx.toFixed(2), vz: +D.vz.toFixed(2), dueno: D.dueno };
+        ui.enviar("estado", datos);
+      }
+
+      // =========================================================
+      //  CONTROLES: arrastra para patinar · toca rápido para tirar
+      // =========================================================
+      const plano = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      function puntoPista(e) {
+        const p = new THREE.Vector3();
+        return M.pantallaARayo(e.clientX, e.clientY).ray.intersectPlane(plano, p) ? p : null;
+      }
+      const dedos = new Map();
+      M.lienzo.addEventListener("pointerdown", (e) => {
+        if (!J.jugando) return;
+        M.lienzo.setPointerCapture(e.pointerId);
+        const p = puntoPista(e);
+        if (!p) return;
+        const i = J.modo === "local" ? (p.z > 0 ? 0 : 1) : J.modo === "online" ? J.yo : 0;
+        dedos.set(e.pointerId, { i, t: performance.now(), x: e.clientX, y: e.clientY, movio: false });
+        P[i].ox = p.x;
+        P[i].oz = p.z;
+      });
+      M.lienzo.addEventListener("pointermove", (e) => {
+        const d = dedos.get(e.pointerId);
+        if (!d) return;
+        if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 12) d.movio = true;
+        const p = puntoPista(e);
+        if (p && controlo(d.i)) {
+          P[d.i].ox = p.x;
+          P[d.i].oz = p.z;
+        }
+      });
+      const soltar = (e) => {
+        const d = dedos.get(e.pointerId);
+        dedos.delete(e.pointerId);
+        if (!d || J.pausa) return;
+        // toque corto = tiro hacia donde tocaste (o a la portería si tocaste cerca de ti)
+        if (!d.movio && performance.now() - d.t < 260 && D.dueno === d.i) {
+          const p = puntoPista(e);
+          const yo = P[d.i];
+          let tx = p ? p.x : 0,
+            tz = p ? p.z : haciaPorteria(d.i) * LINEA_GOL;
+          if (!p || (tz - yo.z) * haciaPorteria(d.i) < 1) {
+            tx = azar(-0.6, 0.6);
+            tz = haciaPorteria(d.i) * LINEA_GOL;
+          }
+          tirar(d.i, tx, tz);
+        }
+        // al soltar se queda donde está
+        if (controlo(d.i)) {
+          P[d.i].ox = P[d.i].x + P[d.i].vx * 0.3;
+          P[d.i].oz = P[d.i].z + P[d.i].vz * 0.3;
+        }
+      };
+      M.lienzo.addEventListener("pointerup", soltar);
+      M.lienzo.addEventListener("pointercancel", soltar);
+      const teclas = {};
+      document.addEventListener("keydown", (e) => {
+        teclas[e.key] = true;
+        if (e.key === " " && J.jugando && !J.pausa) {
+          const i = J.modo === "online" ? J.yo : 0;
+          tirar(i, azar(-0.6, 0.6), haciaPorteria(i) * LINEA_GOL);
+        }
+      });
+      document.addEventListener("keyup", (e) => (teclas[e.key] = false));
+
+      // =========================================================
+      //  BOT
+      // =========================================================
+      let pensar = 0;
+      function moverBot(dt) {
+        pensar -= dt;
+        if (pensar > 0) return;
+        pensar = { facil: 0.25, normal: 0.12, pro: 0.05 }[J.dificultad];
+        const b = P[1];
+        if (D.dueno === 1) {
+          // avanza hacia la portería roja (z positiva) esquivando un poquito
+          const meta = LINEA_GOL - 3.2;
+          b.ox = limitar(D.x * 0.6 + Math.sin(performance.now() / 600) * 1.5, -W + 1, W - 1);
+          b.oz = meta + 1;
+          if (b.z > meta - 0.5 || (b.z > 2 && Math.random() < 0.02)) {
+            const esquina = (Math.random() < 0.5 ? -1 : 1) * (BOCA - 0.25) + gauss() * { facil: 0.5, normal: 0.3, pro: 0.15 }[J.dificultad];
+            tirar(1, esquina, LINEA_GOL);
+          }
+        } else if (D.dueno === 0) {
+          b.ox = P[0].x + P[0].vx * 0.3;
+          b.oz = P[0].z + P[0].vz * 0.3 - 0.4;
+        } else {
+          b.ox = D.x + D.vx * 0.25;
+          b.oz = D.z + D.vz * 0.25;
+        }
+      }
+
+      // =========================================================
+      //  CICLO
+      // =========================================================
+      M.alCuadro((dt, ahora) => {
+        if (J.jugando && !J.pausa) {
+          if (teclas.ArrowLeft || teclas.a) P[0].ox = P[0].x - 2;
+          if (teclas.ArrowRight || teclas.d) P[0].ox = P[0].x + 2;
+          if (teclas.ArrowUp || teclas.w) P[0].oz = P[0].z - 2;
+          if (teclas.ArrowDown || teclas.s) P[0].oz = P[0].z + 2;
+          if (J.modo === "bot") moverBot(dt);
+          const pasos = 4;
+          for (let k = 0; k < pasos; k++) {
+            const gol = pasoFisica(dt / pasos);
+            if (gol != null) {
+              anotar(gol, true);
+              break;
+            }
+          }
+          if (J.modo === "online") avisarDisco(false);
+          const quedan = Math.max(0, J.fin - ahora / 1000);
+          $("reloj").textContent = quedan > 0 ? `⏱️ ${Math.floor(quedan / 60)}:${String(Math.floor(quedan % 60)).padStart(2, "0")}` : "⚡ Gol de oro";
+          if (quedan <= 0 && J.goles[0] !== J.goles[1] && !J.doradoAvisado) return terminar(J.goles[0] > J.goles[1] ? 0 : 1);
+        }
+        // dibujar
+        P.forEach((p, i) => {
+          const m = mallas[i];
+          m.position.set(p.x, 0, p.z);
+          m.rotation.y = p.dir;
+          const v = Math.hypot(p.vx, p.vz);
+          m.userData.cuerpo.rotation.x = Math.min(0.35, v / 20);
+          m.userData.cuerpo.rotation.z = Math.sin(ahora / 160) * Math.min(0.12, v / 50);
+          m.userData.palo.rotation.x += (0.45 - m.userData.palo.rotation.x) * Math.min(1, dt * 6);
+        });
+        porteros.forEach((g, i) => g.position.set(G[i].x, 0, (i === 0 ? 1 : -1) * (LINEA_GOL - 0.35)));
+        porteros[0].rotation.y = Math.PI;
+        disco.position.set(D.x, 0.035, D.z);
+        // cámara
+        const aspecto = window.innerWidth / window.innerHeight;
+        if (!J.modo) {
+          camara.position.set(Math.sin(ahora / 5000) * 9, 9, Math.cos(ahora / 5000) * 9);
+          camara.lookAt(0, 0, 0);
+        } else if (J.modo === "local") {
+          // desde arriba, que se vea toda la pista
+          camara.fov = 50;
+          const tan = Math.tan(THREE.MathUtils.degToRad(25));
+          const alto = aspecto < 1 ? Math.max((L + 1) / tan, (W + 1) / (tan * aspecto)) : Math.max((W + 1) / tan, (L + 1) / (tan * aspecto));
+          camara.position.set(0, alto, 0.001);
+          camara.up.set(aspecto < 1 ? 0 : 1, 0, aspecto < 1 ? -1 : 0);
+          camara.lookAt(0, 0, 0);
+        } else {
+          // detrás de mi jugador, siguiendo el disco
+          const lado = J.modo === "online" && J.yo === 1 ? -1 : 1;
+          camara.up.set(0, 1, 0);
+          camara.fov = aspecto < 1 ? 62 : 48;
+          const foco = new THREE.Vector3(D.x * 0.5, 0, limitar(D.z, -L + 3, L - 3));
+          const quiero = new THREE.Vector3(foco.x * 0.6, aspecto < 1 ? 11 : 9, foco.z + lado * (aspecto < 1 ? 8.5 : 9.5));
+          camara.position.lerp(quiero, Math.min(1, dt * 3));
+          camara.lookAt(foco.x * 0.7, 0, foco.z - lado * 1.5);
+        }
+        camara.updateProjectionMatrix();
+      });
+
+      async function anotar(quien, avisarRival) {
+        if (!J.jugando || J.pausa) return;
+        const sesion = J.sesion;
+        J.pausa = true;
+        J.goles[quien]++;
+        if (J.modo === "online" && avisarRival) ui.enviar("gol", { partida: J.partida, quien, goles: J.goles });
+        sonar("publico");
+        sonar("silbato");
+        const mio = J.modo === "online" ? quien === J.yo : J.modo === "bot" ? quien === 0 : true;
+        ui.avisar(J.modo === "local" ? `🚨 ¡GOL de ${J.nombres[quien]}!` : mio ? "🚨 ¡GOOOL!" : "😱 Gol del rival", quien ? "#4fb3ff" : "#ff4f8b");
+        marcador();
+        await esperar(1600);
+        if (!J.jugando || J.sesion !== sesion) return;
+        const tiempoAcabado = performance.now() / 1000 >= J.fin;
+        if (J.goles[quien] >= GOLES_GANAR || tiempoAcabado) return terminar(quien);
+        saque(1 - quien);
+        J.pausa = false;
+      }
+
+      // =========================================================
+      //  INTERFAZ
+      // =========================================================
+      const ui = Arcade.ui({
+        juego: "hockey",
+        titulo: "Hockey sobre Hielo",
+        emoji: "🏒",
+        subtitulo: `Mete ${GOLES_GANAR} goles o gana en ${DURACION / 60} minutos`,
+        modos: ["bot", "online", "local"],
+        textosModo: { local: "👥 2 jugadores en este cel" },
+        dificultad: true,
+        intervaloOnline: 110,
+        reglas: [
+          "Arrastra el dedo: tu jugador patina hacia donde lo pongas.",
+          "Pasa por el disco para llevarlo pegado al palo.",
+          "🏒 Toca rápido (sin arrastrar) hacia donde quieres tirar. ¡Apunta a las esquinas, el portero cubre el centro!",
+          "Choca contra el que lleva el disco para robárselo.",
+          `Gana el primero en meter ${GOLES_GANAR} goles o quien vaya ganando a los ${DURACION / 60} minutos (si van empatados: gol de oro).`,
+          "En 2 jugadores cada quien controla su mitad de la pantalla.",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.sesion++;
+          J.jugando = false;
+          J.modo = null;
+          J.pausa = true;
+          dedos.clear();
+          $("reloj").classList.add("oculto");
+        },
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida || J.modo !== "online") return;
+        const otro = 1 - J.yo;
+        if (tipo === "estado") {
+          const p = P[otro];
+          p.ox = d.yo[0];
+          p.oz = d.yo[1];
+          p.dir = d.yo[2];
+          // la posición del rival se acerca suave a lo que mandó
+          if (Math.hypot(p.x - d.yo[0], p.z - d.yo[1]) > 2) [p.x, p.z] = d.yo;
+          if (d.disco && d.g === J.goles[0] + J.goles[1] && d.disco.n >= J.n && !(d.disco.n === J.n && J.autoridad === J.yo && D.dueno === J.yo)) {
+            J.n = d.disco.n;
+            J.autoridad = otro;
+            Object.assign(D, { x: d.disco.x, z: d.disco.z, vx: d.disco.vx, vz: d.disco.vz, dueno: d.disco.dueno });
+            if (D.dueno == null) {
+              D.x += D.vx * 0.06;
+              D.z += D.vz * 0.06;
+            }
+          }
+        } else if (tipo === "gol" && !J.pausa) {
+          J.goles = d.goles.slice();
+          J.goles[d.quien]--;
+          anotar(d.quien, false);
+        }
+      };
+
+      function marcador() {
+        const yo = J.modo === "online" ? J.yo : 0;
+        ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (J.modo !== "local" && i === yo ? " (tú)" : ""), valor: J.goles[i], detalle: i ? "azul" : "rojo", color: i ? "#1f5fd0" : "#e0323c" })));
+      }
+
+      function empezar(modo, info) {
+        const sesion = ++J.sesion;
+        Object.assign(J, { modo, nombres: info.nombres, dificultad: info.dificultad, partida: info.partida, goles: [0, 0], n: 0, jugando: true, pausa: true, doradoAvisado: false });
+        J.yo = modo === "online" ? ui.yo : 0;
+        dedos.clear();
+        saque(0);
+        marcador();
+        $("reloj").classList.remove("oculto");
+        $("reloj").textContent = `⏱️ ${DURACION / 60}:00`;
+        ui.ayuda("👆 Arrastra para patinar · toca rápido para tirar");
+        ui.avisar("¡A jugar! 🏒", "#ffd84f");
+        sonar("silbato");
+        setTimeout(() => {
+          if (J.jugando && J.sesion === sesion) {
+            J.pausa = false;
+            J.fin = performance.now() / 1000 + DURACION;
+          }
+        }, 1300);
+        setTimeout(() => J.sesion === sesion && ui.ayuda(""), 5000);
+      }
+
+      function terminar(g) {
+        if (!J.jugando) return;
+        J.jugando = false;
+        J.pausa = true;
+        const yo = J.modo === "online" ? J.yo : 0;
+        const gane = g === yo;
+        sonar(gane || J.modo === "local" ? "ganar" : "perder");
+        ui.terminar({
+          emoji: J.modo === "local" || gane ? "🏆" : "😿",
+          texto: J.modo === "local" ? `¡Ganó ${J.nombres[g]}!` : gane ? "¡Ganaste!" : `Ganó ${J.nombres[g]}`,
+          nota: `${J.nombres[0]} ${J.goles[0]} - ${J.goles[1]} ${J.nombres[1]}`,
+          gano: J.modo !== "local" && gane,
+        });
+      }
+
+      J.fin = Infinity;
+      saque(0);
+    </script>
+  </body>
+</html>
