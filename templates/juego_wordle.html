@@ -354,7 +354,6 @@
           return;
         }
         J.enviando = true;
-        const sesion = J.sesion;
         const c = colores(intento, J.palabra);
         J.intentos.push(intento);
         J.actual = "";
@@ -380,7 +379,7 @@
         });
         marcador();
         await esperar(1100);
-        if (sesion !== J.sesion || sesionActual !== J.sesion || partida !== J.partida || !J.activa) return;
+        if (sesionActual !== J.sesion || partida !== J.partida || !J.activa) return;
         J.enviando = false;
         const resuelto = c === "vvvvv";
         if (resuelto || J.intentos.length >= FILAS) terminarMio(resuelto);

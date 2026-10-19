@@ -37,9 +37,6 @@ templates/juego_ping_pong.html
 templates/juego_billar.html
 templates/juego_karts.html
 templates/juego_zombis.html
-templates/juego_naval.html
-static/naval3d.css
-static/js/naval3d.js
 perfil.py
 static/js/perfil.js
 templates/perfil.html
