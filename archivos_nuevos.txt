@@ -75,3 +75,11 @@ templates/juego_reversi.html
 templates/juego_conecta3d.html
 templates/juego_yahtzee.html
 templates/memorama_online.html
+templates/juego_curling.html
+templates/juego_pesca.html
+templates/juego_paracaidas.html
+templates/juego_nieve.html
+templates/juego_asteroides.html
+templates/juego_surf.html
+templates/juego_drift.html
+templates/juego_espadas.html

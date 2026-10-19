@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a1a2e" />
+    <title>Drift · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      #combo {
+        position: fixed;
+        top: calc(100px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        font-weight: 900;
+        font-size: 1.6rem;
+        text-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
+        z-index: 5;
+        text-align: center;
+        pointer-events: none;
+      }
+      #combo small {
+        display: block;
+        font-size: 0.9rem;
+        color: #ffd84f;
+      }
+      .pedal {
+        position: fixed;
+        bottom: calc(18px + env(safe-area-inset-bottom));
+        width: 38vw;
+        max-width: 200px;
+        height: 22vh;
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 3px solid rgba(255, 255, 255, 0.35);
+        z-index: 5;
+        display: grid;
+        place-items: center;
+        font-size: 2.6rem;
+        touch-action: none;
+        user-select: none;
+      }
+      .pedal.activo {
+        background: rgba(255, 216, 79, 0.35);
+      }
+      #izq {
+        left: 12px;
+      }
+      #der {
+        right: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+    <div id="combo"></div>
+    <div id="izq" class="pedal oculto">⬅️</div>
+    <div id="der" class="pedal oculto">➡️</div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, sonar } = Arcade;
+      const SEGUNDOS = 90,
+        ANCHO_PISTA = 14,
+        V_MAX = 30;
+
+      // =========================================================
+      //  PISTA (circuito cerrado)
+      // =========================================================
+      const PUNTOS_PISTA = 400;
+      const centro = [];
+      for (let i = 0; i < PUNTOS_PISTA; i++) {
+        const a = (i / PUNTOS_PISTA) * Math.PI * 2;
+        const r = 70 + Math.sin(a * 3) * 18 + Math.cos(a * 5) * 8;
+        centro.push(new THREE.Vector2(Math.cos(a) * r * 1.2, Math.sin(a) * r));
+      }
+      function masCercano(x, z, desde) {
+        // busca cerca del último índice para que sea rápido
+        let mejor = desde || 0,
+          dMejor = Infinity;
+        const rango = desde == null ? PUNTOS_PISTA : 30;
+        for (let k = -rango; k <= rango; k++) {
+          const i = (((desde || 0) + k) % PUNTOS_PISTA + PUNTOS_PISTA) % PUNTOS_PISTA;
+          const d = (centro[i].x - x) ** 2 + (centro[i].y - z) ** 2;
+          if (d < dMejor) (dMejor = d), (mejor = i);
+        }
+        return { i: mejor, d: Math.sqrt(dMejor) };
+      }
+
+      // =========================================================
+      //  ESCENA
+      // =========================================================
+      const M = Arcade.mundo({ fondo: 0x1a1a2e, fov: 60, niebla: [80, 260], exposicion: 1.1, colorAmbiente: 0x404070, lejos: 500 });
+      const { escena, camara } = M;
+      const mat = (c, x = {}) => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.8, ...x });
+      escena.add(new THREE.HemisphereLight(0xb0b8ff, 0x202030, 0.7));
+      const luna = new THREE.DirectionalLight(0xc8d0ff, 0.8);
+      luna.position.set(-60, 120, 40);
+      escena.add(luna);
+      const suelo = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), mat(0x203a28));
+      suelo.rotation.x = -Math.PI / 2;
+      suelo.position.y = -0.05;
+      escena.add(suelo);
+      // asfalto: una cinta a lo largo del circuito
+      function cinta(ancho, y, color, rayas) {
+        const pos = [],
+          idx = [],
+          col = [];
+        for (let i = 0; i <= PUNTOS_PISTA; i++) {
+          const p = centro[i % PUNTOS_PISTA],
+            q = centro[(i + 1) % PUNTOS_PISTA];
+          const dx = q.x - p.x,
+            dz = q.y - p.y,
+            l = Math.hypot(dx, dz);
+          const nx = -dz / l,
+            nz = dx / l;
+          pos.push(p.x + (nx * ancho) / 2, y, p.y + (nz * ancho) / 2, p.x - (nx * ancho) / 2, y, p.y - (nz * ancho) / 2);
+          const c = new THREE.Color(rayas ? (Math.floor(i / 3) % 2 ? 0xffffff : 0xe0323c) : color).convertSRGBToLinear();
+          col.push(c.r, c.g, c.b, c.r, c.g, c.b);
+          if (i < PUNTOS_PISTA) idx.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+        g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+        g.setIndex(idx);
+        g.computeVertexNormals();
+        const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: THREE.DoubleSide }));
+        escena.add(m);
+        return m;
+      }
+      cinta(ANCHO_PISTA + 2.4, 0.01, 0, true); // pianos rojo/blanco
+      cinta(ANCHO_PISTA, 0.02, 0x2c2c34, false);
+      cinta(0.3, 0.03, 0xffd84f, false);
+      // postes de luz
+      for (let i = 0; i < PUNTOS_PISTA; i += 16) {
+        const p = centro[i];
+        const lado = i % 32 ? 1 : -1;
+        const dir = new THREE.Vector2(p.x, p.y).normalize();
+        const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 7), mat(0x888899));
+        poste.position.set(p.x + dir.x * lado * 11, 3.5, p.y + dir.y * lado * 11);
+        escena.add(poste);
+        const foco = new THREE.Mesh(new THREE.SphereGeometry(0.4, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff0b0 }));
+        foco.position.copy(poste.position).setY(7.2);
+        escena.add(foco);
+      }
+      // edificios y gradas de fondo
+      for (let i = 0; i < 60; i++) {
+        const a = Math.random() * Math.PI * 2,
+          r = azar(150, 230);
+        const h = azar(10, 50);
+        const e = new THREE.Mesh(new THREE.BoxGeometry(azar(8, 20), h, azar(8, 20)), mat(new THREE.Color().setHSL(0.65, 0.3, azar(0.12, 0.25)).getHex(), { emissive: lin(0x222244), emissiveIntensity: 0.4 }));
+        e.position.set(Math.cos(a) * r, h / 2, Math.sin(a) * r);
+        escena.add(e);
+      }
+
+      function crearAuto(color) {
+        const g = new THREE.Group();
+        const carro = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.6, 4), mat(color, { metalness: 0.6, roughness: 0.3 }));
+        carro.position.y = 0.55;
+        g.add(carro);
+        const cabina = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, 1.9), mat(0x111122, { metalness: 0.5, roughness: 0.2 }));
+        cabina.position.set(0, 1.05, 0.2);
+        g.add(cabina);
+        const aleron = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 0.5), mat(0x111111));
+        aleron.position.set(0, 1.15, 1.85);
+        g.add(aleron);
+        [[-0.95, -1.3], [0.95, -1.3], [-0.95, 1.3], [0.95, 1.3]].forEach(([x, z]) => {
+          const r = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.3, 14), mat(0x111111));
+          r.rotation.z = Math.PI / 2;
+          r.position.set(x, 0.38, z);
+          g.add(r);
+        });
+        [-0.6, 0.6].forEach((x) => {
+          const f = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.05), new THREE.MeshBasicMaterial({ color: 0xffffcc }));
+          f.position.set(x, 0.6, -2.02);
+          g.add(f);
+          const t = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.05), new THREE.MeshBasicMaterial({ color: 0xff2020 }));
+          t.position.set(x, 0.6, 2.02);
+          g.add(t);
+        });
+        escena.add(g);
+        return g;
+      }
+      const auto = crearAuto(0xff4f8b);
+      const autoBot = crearAuto(0x4fb3ff);
+      // humo de llantas
+      const humos = [];
+      const geoHumo = new THREE.SphereGeometry(0.6, 8, 6);
+      const matHumo = new THREE.MeshBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.4, depthWrite: false });
+      // marcas de llanta
+      const marcas = [];
+
+      // =========================================================
+      //  FÍSICA DEL AUTO
+      // =========================================================
+      const A = { x: 0, z: 0, dir: 0, vx: 0, vz: 0, giro: 0, idx: 0 };
+      function salida() {
+        const p = centro[0],
+          q = centro[3];
+        A.x = p.x;
+        A.z = p.y;
+        A.dir = Math.atan2(q.x - p.x, q.y - p.y);
+        A.vx = A.vz = 0;
+        A.idx = 0;
+      }
+      let volante = 0;
+      const dedos = new Map();
+      function leerPedales() {
+        let v = 0;
+        dedos.forEach((lado) => (v += lado));
+        volante = limitar(v, -1, 1);
+        $("izq").classList.toggle("activo", volante < 0);
+        $("der").classList.toggle("activo", volante > 0);
+      }
+      M.lienzo.parentNode.addEventListener("pointerdown", (e) => {
+        if (!J.activa) return;
+        dedos.set(e.pointerId, e.clientX < window.innerWidth / 2 ? -1 : 1);
+        leerPedales();
+      });
+      const soltar = (e) => {
+        dedos.delete(e.pointerId);
+        leerPedales();
+      };
+      window.addEventListener("pointerup", soltar);
+      window.addEventListener("pointercancel", soltar);
+      const teclas = {};
+      document.addEventListener("keydown", (e) => (teclas[e.key] = true));
+      document.addEventListener("keyup", (e) => (teclas[e.key] = false));
+
+      function pasoAuto(dt) {
+        let giro = volante;
+        if (teclas.ArrowLeft || teclas.a) giro = -1;
+        if (teclas.ArrowRight || teclas.d) giro = 1;
+        A.giro += (giro - A.giro) * Math.min(1, dt * 8);
+        const v = Math.hypot(A.vx, A.vz);
+        const fuera = masCercano(A.x, A.z, A.idx);
+        A.idx = fuera.i;
+        const enPasto = fuera.d > ANCHO_PISTA / 2 + 1.2;
+        // primero gira el auto; la velocidad se queda apuntando a donde iba (eso es el derrape)
+        A.dir -= A.giro * dt * 2.4 * Math.min(1, v / 8);
+        const fx = Math.sin(A.dir),
+          fz = Math.cos(A.dir);
+        let adelante = A.vx * fx + A.vz * fz;
+        let lado = A.vx * fz - A.vz * fx;
+        // acelera solito
+        const max = enPasto ? 12 : V_MAX;
+        adelante += (max - adelante) * (enPasto ? 1.5 : 0.55) * dt;
+        // agarre lateral: si giras fuerte a alta velocidad, las llantas se sueltan
+        const agarre = Math.abs(A.giro) > 0.6 && v > 16 ? 1.1 : 5;
+        lado *= Math.max(0, 1 - agarre * dt);
+        A.vx = fx * adelante + fz * lado;
+        A.vz = fz * adelante - fx * lado;
+        A.x += A.vx * dt;
+        A.z += A.vz * dt;
+        const deslizamiento = Math.abs(Math.atan2(lado, Math.max(1, adelante)));
+        return { v, deslizamiento, enPasto };
+      }
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      const J = { modo: null, activa: false };
+      const ui = Arcade.ui({
+        juego: "drift",
+        titulo: "Drift",
+        emoji: "🏎️",
+        subtitulo: "Derrapa en las curvas y junta puntos",
+        modos: ["solo", "bot", "online"],
+        textosModo: { bot: "🤖 Contra el bot", online: "🌐 Reto online" },
+        dificultad: true,
+        records: true,
+        unidadRecord: "pts",
+        intervaloOnline: 300,
+        reglas: [
+          "El auto acelera solo. Mantén ⬅️ o ➡️ (mitad izquierda o derecha de la pantalla) para girar.",
+          "Gira fuerte a alta velocidad para derrapar 💨. Mientras más tiempo derrapes, más crece el combo.",
+          "El combo se cobra cuando te enderezas. Si te sales al pasto, ¡lo pierdes!",
+          `Tienes ${SEGUNDOS} segundos. Gana quien junte más puntos de derrape.`,
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.activa = false;
+          J.modo = null;
+          $("izq").classList.add("oculto");
+          $("der").classList.add("oculto");
+          $("combo").textContent = "";
+        },
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "puntos") J.rival = d.puntos;
+        if (tipo === "fin") {
+          J.rival = d.puntos;
+          J.rivalTermino = true;
+          revisarFin();
+        }
+        marcador();
+      };
+
+      function empezar(modo, info) {
+        salida();
+        Object.assign(J, { modo, nombres: info.nombres, partida: info.partida, dificultad: info.dificultad, puntos: 0, combo: 0, multi: 1, sinDerrape: 0, tiempo: -3, activa: true, rival: 0, rivalTermino: false, miFin: false, botIdx: 6, ultimoEnvio: 0 });
+        autoBot.visible = modo === "bot";
+        $("izq").classList.remove("oculto");
+        $("der").classList.remove("oculto");
+        marcador();
+        ui.ayuda("Mantén ⬅️ o ➡️ para girar");
+        (async () => {
+          const partida = J.partida;
+          for (const n of ["3", "2", "1"]) {
+            ui.avisar(n, "#ffd84f");
+            sonar("click");
+            await esperar(1000);
+            if (partida !== J.partida) return;
+          }
+          ui.avisar("¡ARRANCA! 🏁", "#26de81");
+          sonar("silbato");
+          ui.ayuda("");
+        })();
+      }
+
+      M.alCuadro((dt, ahora) => {
+        // humo y marcas
+        for (let i = humos.length - 1; i >= 0; i--) {
+          const h = humos[i];
+          h.vida -= dt;
+          h.malla.scale.multiplyScalar(1 + dt * 1.5);
+          h.malla.material.opacity = Math.max(0, h.vida * 0.35);
+          if (h.vida <= 0) escena.remove(h.malla), humos.splice(i, 1);
+        }
+        if (!J.modo) {
+          const t = ahora / 6000;
+          camara.position.set(Math.cos(t) * 130, 60, Math.sin(t) * 130);
+          camara.lookAt(0, 0, 0);
+          return;
+        }
+        if (J.activa) J.tiempo += dt;
+        if (J.activa && J.tiempo > 0) {
+          const { v, deslizamiento, enPasto } = pasoAuto(dt);
+          if (deslizamiento > 1.3 && v > 10 && J.combo > 0) {
+            // 🌀 demasiado derrape: trompo
+            ui.avisar("🌀 ¡Trompo! Combo perdido", "#ff3b3b");
+            J.combo = 0;
+            J.multi = 1;
+            A.vx *= 0.4;
+            A.vz *= 0.4;
+            sonar("choque", 0.5);
+          }
+          const derrapando = !enPasto && deslizamiento > 0.22 && deslizamiento <= 1.3 && v > 12;
+          if (enPasto && J.combo > 0) {
+            ui.avisar("🌱 ¡Al pasto! Combo perdido", "#ff3b3b");
+            J.combo = 0;
+            J.multi = 1;
+            sonar("perder");
+          }
+          if (derrapando) {
+            J.combo += deslizamiento * v * dt * 6 * J.multi;
+            J.multi = Math.min(5, J.multi + dt * 0.4);
+            J.sinDerrape = 0;
+            if (Math.random() < 0.6) {
+              const h = new THREE.Mesh(geoHumo, matHumo.clone());
+              h.position.set(A.x - Math.sin(A.dir) * 2, 0.5, A.z - Math.cos(A.dir) * 2);
+              escena.add(h);
+              humos.push({ malla: h, vida: 1 });
+            }
+            if (Math.random() < 0.15) sonar("rodar", 0.25);
+          } else if (J.combo > 0) {
+            J.sinDerrape += dt;
+            if (J.sinDerrape > 0.6) {
+              const ganado = Math.round(J.combo);
+              J.puntos += ganado;
+              if (ganado > 50) ui.avisar(`💨 +${ganado}`, ganado > 800 ? "#ffd84f" : "#26de81");
+              if (ganado > 800) sonar("perfecto", 1.3);
+              J.combo = 0;
+              J.multi = 1;
+            }
+          }
+          $("combo").innerHTML = J.combo > 0 ? `${Math.round(J.combo)}<small>x${J.multi.toFixed(1)} DERRAPE</small>` : "";
+          if (J.tiempo >= SEGUNDOS && !J.miFin) terminarCorrida();
+          if (J.modo === "bot") pasoBot(dt);
+          if (J.modo === "online" && ahora - J.ultimoEnvio > 1000) {
+            J.ultimoEnvio = ahora;
+            ui.enviar("puntos", { partida: J.partida, puntos: J.puntos });
+          }
+          if (Math.floor(J.tiempo * 2) !== J.ultMarcador) {
+            J.ultMarcador = Math.floor(J.tiempo * 2);
+            marcador();
+          }
+        }
+        auto.position.set(A.x, 0, A.z);
+        auto.rotation.y = A.dir + Math.PI;
+        auto.rotation.z = -A.giro * 0.05;
+        // cámara detrás del auto (mira hacia donde va el auto, no hacia donde apunta)
+        const v = Math.hypot(A.vx, A.vz);
+        const hacia = v > 2 ? Math.atan2(A.vx, A.vz) : A.dir;
+        const atras = new THREE.Vector3(A.x - Math.sin(hacia) * 11, 5.5, A.z - Math.cos(hacia) * 11);
+        camara.position.lerp(atras, Math.min(1, dt * 4));
+        camara.lookAt(A.x + Math.sin(hacia) * 6, 1, A.z + Math.cos(hacia) * 6);
+        camara.fov = window.innerWidth < window.innerHeight ? 72 : 60;
+        camara.updateProjectionMatrix();
+      });
+
+      // bot: va por el centro de la pista y suma puntos según su nivel
+      function pasoBot(dt) {
+        const vel = { facil: 18, normal: 22, pro: 26 }[J.dificultad];
+        J.botIdx = (J.botIdx + (vel * dt) / 2.3) % PUNTOS_PISTA;
+        const i = Math.floor(J.botIdx);
+        const p = centro[i],
+          q = centro[(i + 3) % PUNTOS_PISTA];
+        autoBot.position.set(p.x, 0, p.y);
+        autoBot.rotation.y = Math.atan2(q.x - p.x, q.y - p.y) + Math.PI + 0.3;
+        J.rival += { facil: 22, normal: 38, pro: 58 }[J.dificultad] * dt * (0.5 + Math.abs(Math.sin(J.botIdx / 25)));
+      }
+
+      function marcador() {
+        const s = Math.max(0, Math.ceil(SEGUNDOS - Math.max(0, J.tiempo)));
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: J.puntos, detalle: `⏱️ ${s} s`, activo: true }, null]);
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const mio = { nombre: J.nombres[yo] + " (tú)", valor: J.puntos, detalle: `⏱️ ${s} s`, activo: true, color: "#ff4f8b" };
+        const suyo = { nombre: J.nombres[1 - yo], valor: Math.round(J.rival), detalle: J.rivalTermino ? "terminó" : "derrapando…", color: "#4fb3ff" };
+        ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
+      }
+      function terminarCorrida() {
+        J.miFin = true;
+        J.puntos += Math.round(J.combo);
+        J.combo = 0;
+        $("combo").textContent = "";
+        if (J.modo === "online") ui.enviar("fin", { partida: J.partida, puntos: J.puntos });
+        if (J.modo === "bot") J.rivalTermino = true;
+        revisarFin();
+      }
+      function revisarFin() {
+        if (!J.miFin || (J.modo === "online" && !J.rivalTermino) || !J.activa) {
+          if (J.miFin && J.activa) ui.avisar("Esperando a tu rival…", "#4fb3ff");
+          return;
+        }
+        J.activa = false;
+        $("izq").classList.add("oculto");
+        $("der").classList.add("oculto");
+        if (J.modo === "solo") {
+          sonar("ganar");
+          return ui.terminar({ emoji: "🏎️", texto: `¡${J.puntos} puntos de derrape!`, nota: J.puntos > 5000 ? "¡Rey del drift! 👑" : "¿Puedes llegar a 5000?", record: J.puntos });
+        }
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const rival = Math.round(J.rival);
+        const gane = J.puntos > rival;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({ emoji: gane ? "🏆" : "😿", texto: gane ? "¡Ganaste el reto!" : `Ganó ${J.nombres[1 - yo]}`, nota: `Tú: ${J.puntos} · ${J.nombres[1 - yo]}: ${rival}`, record: J.puntos, gano: gane });
+      }
+      salida();
+      autoBot.visible = false;
+    </script>
+  </body>
+</html>

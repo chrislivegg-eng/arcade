@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#7ec8e3" />
+    <title>Surf · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      #velocidad {
+        position: fixed;
+        left: 14px;
+        bottom: calc(70px + env(safe-area-inset-bottom));
+        width: 14px;
+        height: 30vh;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 2px solid #fff;
+        overflow: hidden;
+        z-index: 5;
+        display: flex;
+        flex-direction: column-reverse;
+      }
+      #velocidad i {
+        display: block;
+        background: linear-gradient(#ff3b3b, #ffd84f, #26de81);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+    <div id="velocidad" class="oculto"><i id="vel"></i></div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, sonar } = Arcade;
+      const SEGUNDOS = 90,
+        CAIDAS_MAX = 3,
+        ALTO_OLA = 3.4;
+      // perfil de la ola: s = 0 (abajo) … 1 (labio) → (y, z)
+      const perfil = (s) => [Math.pow(s, 1.3) * ALTO_OLA, -Math.sin(s * 1.2) * 2.6];
+
+      // =========================================================
+      //  ESCENA
+      // =========================================================
+      const M = Arcade.mundo({ fondo: 0x9ad8ff, fov: 58, niebla: [60, 160], exposicion: 0.8, colorAmbiente: 0xcfefff, lejos: 250 });
+      const { escena, camara } = M;
+      const mat = (c, x = {}) => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.6, ...x });
+      escena.add(new THREE.HemisphereLight(0xffffff, 0x1a6aa0, 0.45));
+      const sol = new THREE.DirectionalLight(0xfff0d8, 1.2);
+      sol.position.set(-20, 30, 20);
+      escena.add(sol);
+      const mar = new THREE.Mesh(new THREE.PlaneGeometry(400, 300), mat(0x1f8fc9, { roughness: 0.45, metalness: 0, envMapIntensity: 0.3 }));
+      mar.rotation.x = -Math.PI / 2;
+      mar.position.y = -0.05;
+      escena.add(mar);
+      // la ola: una tira larga con forma de rampa que se enrosca
+      const LARGO = 160,
+        SEG_X = 160,
+        SEG_S = 24;
+      const geoOla = new THREE.BufferGeometry();
+      const vert = new Float32Array((SEG_X + 1) * (SEG_S + 1) * 3),
+        colores = new Float32Array((SEG_X + 1) * (SEG_S + 1) * 3);
+      const indices = [];
+      for (let i = 0; i < SEG_X; i++)
+        for (let j = 0; j < SEG_S; j++) {
+          const a = i * (SEG_S + 1) + j,
+            b = a + SEG_S + 1;
+          indices.push(a, b, a + 1, b, b + 1, a + 1);
+        }
+      geoOla.setIndex(indices);
+      geoOla.setAttribute("position", new THREE.BufferAttribute(vert, 3));
+      geoOla.setAttribute("color", new THREE.BufferAttribute(colores, 3));
+      const ola = new THREE.Mesh(geoOla, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0, envMapIntensity: 0.25, side: THREE.DoubleSide }));
+      ola.frustumCulled = false; // la forma cambia en cada cuadro
+      escena.add(ola);
+      function moldearOla(t, x0) {
+        let k = 0;
+        for (let i = 0; i <= SEG_X; i++) {
+          const x = x0 - LARGO / 2 + (i / SEG_X) * LARGO;
+          for (let j = 0; j <= SEG_S; j++) {
+            const s = (j / SEG_S) * 1.25; // un poquito más allá del labio = se enrosca
+            let [y, z] = perfil(Math.min(s, 1));
+            if (s > 1) {
+              const e = (s - 1) / 0.25;
+              y += Math.sin(e * 1.8) * 0.9;
+              z += e * 2.2;
+            }
+            y += Math.sin(x * 0.15 + t * 1.5) * 0.12;
+            vert[k] = x;
+            vert[k + 1] = y;
+            vert[k + 2] = z;
+            const espuma = s > 0.92 ? 1 : 0;
+            const c = new THREE.Color().setHSL(0.55 - s * 0.04, 0.75, 0.32 + s * 0.22).lerp(new THREE.Color(1, 1, 1), espuma * 0.8).convertSRGBToLinear();
+            colores[k] = c.r;
+            colores[k + 1] = c.g;
+            colores[k + 2] = c.b;
+            k += 3;
+          }
+        }
+        geoOla.attributes.position.needsUpdate = true;
+        geoOla.attributes.color.needsUpdate = true;
+        geoOla.computeVertexNormals();
+      }
+      // espuma que persigue (la sección que se cierra)
+      const espuma = new THREE.Mesh(new THREE.SphereGeometry(2.5, 16, 12), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.85 }));
+      espuma.scale.set(3, 1, 1.4);
+      escena.add(espuma);
+      // isla y palmeras al fondo
+      const isla = new THREE.Mesh(new THREE.SphereGeometry(30, 20, 12), mat(0xf2d9a0));
+      isla.scale.y = 0.15;
+      isla.position.set(40, -2, -110);
+      escena.add(isla);
+
+      // surfista
+      const surfista = new THREE.Group();
+      const tabla = new THREE.Mesh(new THREE.BoxGeometry(2, 0.08, 0.5), mat(0xff4f8b, { roughness: 0.3 }));
+      tabla.scale.z = 1;
+      surfista.add(tabla);
+      const persona = new THREE.Group();
+      const pieza = (w, h, d, color, x, y) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
+        m.position.set(x, y, 0);
+        persona.add(m);
+      };
+      pieza(0.4, 0.55, 0.3, 0xffd84f, 0, 0.95);
+      pieza(0.3, 0.3, 0.3, 0xc68a5a, 0, 1.4);
+      [-1, 1].forEach((l) => {
+        pieza(0.15, 0.55, 0.15, 0x3a4a8a, l * 0.25, 0.4);
+        pieza(0.55, 0.12, 0.12, 0xc68a5a, l * 0.45, 1.05);
+      });
+      persona.rotation.y = Math.PI / 2;
+      surfista.add(persona);
+      escena.add(surfista);
+
+      // =========================================================
+      //  FÍSICA DEL SURFISTA
+      // =========================================================
+      const S = { x: 0, s: 0.3, vs: 0, v: 12, meta: 0.3, aire: false, y: 0, vy: 0, giro: 0, vgiro: 0, trucos: 0, caido: 0 };
+      // controles: el dedo marca a qué altura de la ola quieres ir
+      let toque = null;
+      M.lienzo.addEventListener("pointerdown", (e) => (toque = { x: e.clientX, y: e.clientY, s: S.meta, ultX: e.clientX }));
+      M.lienzo.addEventListener("pointermove", (e) => {
+        if (!toque || !J.activa) return;
+        if (S.aire) {
+          // en el aire: deslizar de lado = girar
+          const dx = e.clientX - toque.ultX;
+          S.vgiro += dx * 0.0009;
+          toque.ultX = e.clientX;
+        } else S.meta = limitar(toque.s - (e.clientY - toque.y) / (window.innerHeight * 0.4), 0, 1);
+      });
+      M.lienzo.addEventListener("pointerup", () => (toque = null));
+      const teclas = {};
+      document.addEventListener("keydown", (e) => (teclas[e.key] = true));
+      document.addEventListener("keyup", (e) => (teclas[e.key] = false));
+
+      M.alCuadro((dt, ahora) => {
+        const t = ahora / 1000;
+        moldearOla(t, S.x);
+        mar.position.x = isla.position.x = S.x; // el mar viaja contigo
+        isla.position.x += 40;
+        if (!J.activa) {
+          if (!J.modo) {
+            S.x += dt * 8;
+            colocar(dt, t);
+          }
+          return;
+        }
+        if (teclas.ArrowUp || teclas.w) S.meta = Math.min(1, S.meta + dt * 1.5);
+        if (teclas.ArrowDown || teclas.s) S.meta = Math.max(0, S.meta - dt * 1.5);
+        if (S.aire) {
+          if (teclas.ArrowLeft || teclas.a) S.vgiro -= dt * 9;
+          if (teclas.ArrowRight || teclas.d) S.vgiro += dt * 9;
+        }
+        if (S.caido > 0) {
+          S.caido -= dt;
+          S.v = Math.max(6, S.v - dt * 10);
+          if (S.caido <= 0) {
+            S.s = 0.3;
+            S.meta = 0.3;
+            S.v = 10;
+          }
+        } else if (S.aire) {
+          S.vy -= 18 * dt;
+          S.y += S.vy * dt;
+          S.giro += S.vgiro * dt * 60;
+          S.vgiro *= 1 - dt * 0.8;
+          if (S.y <= perfil(0.85)[0]) aterrizar();
+        } else {
+          const antes = S.s;
+          S.s += limitar(S.meta - S.s, -1.4 * dt, 1.4 * dt);
+          S.vs = (S.s - antes) / dt;
+          // bajar la ola da velocidad, subirla la gasta
+          // bajar da más velocidad de la que cuesta subir: así "bombear" en la ola acelera
+          S.v += (S.vs < 0 ? -S.vs * 13 : -S.vs * 5.5) * dt - (S.v - 11) * 0.1 * dt;
+          S.v = limitar(S.v, 4, 26);
+          // ¡al aire! si llegas al labio con velocidad
+          if (S.s >= 0.98 && S.vs > 0.35 && S.v > 14) {
+            S.aire = true;
+            S.y = perfil(1)[0];
+            S.vy = 5 + (S.v - 14) * 0.5;
+            S.giro = 0;
+            S.vgiro = 0;
+            sonar("salto");
+          }
+        }
+        S.x += S.v * dt;
+        // la espuma te persigue: si vas muy lento te alcanza
+        J.espuma += (J.espumaVel + J.tiempo * 0.04) * dt;
+        if (J.espuma > S.x - 2 && S.caido <= 0) {
+          caer("🌊 ¡Te alcanzó la ola!");
+          J.espuma = S.x - 14;
+        }
+        J.espuma = Math.max(J.espuma, S.x - 30);
+        J.tiempo += dt;
+        J.puntos += S.v * dt * 0.5 * (S.caido > 0 ? 0 : 1);
+        if (J.tiempo >= SEGUNDOS || J.caidas >= CAIDAS_MAX) terminarOla();
+        colocar(dt, t);
+        $("vel").style.height = ((S.v - 4) / 22) * 100 + "%";
+        if (Math.floor(J.tiempo * 4) !== J.ultimoMarcador) {
+          J.ultimoMarcador = Math.floor(J.tiempo * 4);
+          marcador();
+          if (J.modo === "online" && J.ultimoMarcador % 4 === 0) ui.enviar("puntos", { partida: J.partida, puntos: Math.round(J.puntos) });
+        }
+      });
+
+      function colocar(dt, t) {
+        const [y, z] = perfil(S.s);
+        surfista.position.set(S.x, S.aire ? S.y : y + 0.05, S.aire ? perfil(1)[1] + 0.3 : z);
+        // inclinado según la pendiente de la ola
+        const [y2, z2] = perfil(Math.min(1, S.s + 0.02));
+        const pend = Math.atan2(y2 - y, -(z2 - z));
+        surfista.rotation.set(S.aire ? 0 : -pend * 0.8, S.aire ? (S.giro * Math.PI) / 180 : 0, S.caido > 0 ? 1.4 : 0);
+        persona.rotation.z = S.caido > 0 ? 0 : Math.sin(t * 3) * 0.05;
+        espuma.position.set(J.espuma || S.x - 20, 1.2, -1.2);
+        // cámara desde la playa, un poquito adelante
+        const aspecto = window.innerWidth / window.innerHeight;
+        camara.position.lerp(new THREE.Vector3(S.x + (aspecto < 1 ? 3 : 6), 3.6, aspecto < 1 ? 13 : 10), Math.min(1, dt * 4));
+        camara.lookAt(S.x + 2, 1.4, -1);
+        camara.fov = aspecto < 1 ? 70 : 58;
+        camara.updateProjectionMatrix();
+      }
+
+      function aterrizar() {
+        S.aire = false;
+        S.s = 0.85;
+        S.meta = 0.6;
+        const vueltas = Math.round(S.giro / 360);
+        const torcido = Math.abs(S.giro - vueltas * 360);
+        if (torcido > 50) return caer("💦 ¡Caíste chueco!");
+        const medias = Math.round(Math.abs(S.giro) / 180);
+        const puntos = 100 + medias * 150;
+        J.puntos += puntos;
+        S.trucos++;
+        const nombre = medias >= 4 ? "¡720!" : medias >= 2 ? "¡360!" : medias === 1 ? "¡180!" : "¡Aéreo!";
+        ui.avisar(`🏄 ${nombre} +${puntos}`, medias >= 2 ? "#ffd84f" : "#26de81");
+        sonar(medias >= 2 ? "ganar" : "perfecto", 1.2);
+        if (J.modo === "online") ui.enviar("puntos", { partida: J.partida, puntos: Math.round(J.puntos) });
+      }
+      function caer(texto) {
+        S.aire = false;
+        S.caido = 1.6;
+        J.caidas++;
+        ui.avisar(`${texto} (${CAIDAS_MAX - J.caidas} ${CAIDAS_MAX - J.caidas === 1 ? "queda" : "quedan"})`, "#ff3b3b");
+        sonar("agua", 1);
+        if (navigator.vibrate) navigator.vibrate(120);
+        marcador();
+      }
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      const J = { modo: null, activa: false, espuma: -20, espumaVel: 9 };
+      const ui = Arcade.ui({
+        juego: "surf",
+        titulo: "Surf",
+        emoji: "🏄",
+        subtitulo: "Agarra velocidad y vuela sobre la ola",
+        modos: ["solo", "online", "local"],
+        textosModo: { online: "🌐 Reto online", local: "👥 2 jugadores (por turnos)" },
+        records: true,
+        unidadRecord: "pts",
+        reglas: [
+          "Arrastra arriba/abajo para subir y bajar por la ola. Bajar te da velocidad.",
+          "Sube rápido hasta el labio (la parte blanca) para salir volando ✈️.",
+          "En el aire desliza a los lados para girar: 180, 360, 720…",
+          "Aterriza derechito o te caes. ¡Y no dejes que la espuma te alcance!",
+          `${SEGUNDOS} segundos o ${CAIDAS_MAX} caídas.`,
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.activa = false;
+          J.modo = null;
+          $("velocidad").classList.add("oculto");
+        },
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "puntos") J.rival = d.puntos;
+        if (tipo === "fin") {
+          J.rival = d.puntos;
+          J.rivalTermino = true;
+          J.alTerminarRival && J.alTerminarRival();
+        }
+        marcador();
+      };
+      function marcador() {
+        const pts = Math.round(J.puntos || 0);
+        const det = `⏱️ ${Math.max(0, Math.ceil(SEGUNDOS - (J.tiempo || 0)))} s · ${"🏄".repeat(Math.max(0, CAIDAS_MAX - (J.caidas || 0)))}`;
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: pts, detalle: det, activo: true }, null]);
+        if (J.modo === "online") {
+          const yo = ui.yo;
+          const v = yo === 0 ? [pts, J.rival] : [J.rival, pts];
+          return ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (i === yo ? " (tú)" : ""), valor: v[i], detalle: i === yo ? det : J.rivalTermino ? "terminó" : "surfeando…", activo: i === yo })));
+        }
+        ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i], valor: i === J.turno ? pts : J.resultados[i] ?? "—", detalle: i === J.turno ? det : "", activo: i === J.turno })));
+      }
+      function empezar(modo, info) {
+        Object.assign(J, { modo, nombres: info.nombres, partida: info.partida, resultados: [null, null], turno: 0, rival: 0, rivalTermino: false, alTerminarRival: null });
+        nuevaOla();
+      }
+      function nuevaOla() {
+        Object.assign(S, { x: 0, s: 0.3, vs: 0, v: 12, meta: 0.3, aire: false, y: 0, vy: 0, giro: 0, vgiro: 0, trucos: 0, caido: 0 });
+        Object.assign(J, { puntos: 0, tiempo: 0, caidas: 0, espuma: -22, activa: true, ultimoMarcador: -1, terminando: false });
+        $("velocidad").classList.remove("oculto");
+        if (J.modo === "local") ui.avisar(`Surfea ${J.nombres[J.turno]}`, J.turno ? "#4fb3ff" : "#ff4f8b");
+        ui.ayuda("👆 Arrastra arriba/abajo en la ola");
+        setTimeout(() => ui.ayuda(""), 4000);
+        marcador();
+      }
+      async function terminarOla() {
+        if (J.terminando) return;
+        J.terminando = true;
+        J.activa = false;
+        const pts = Math.round(J.puntos);
+        const nota = `${S.trucos} trucos · ${J.caidas} caídas`;
+        await esperar(800);
+        if (!J.modo) return;
+        if (J.modo === "solo") {
+          sonar("ganar");
+          return ui.terminar({ emoji: "🏄", texto: `¡${pts} puntos!`, nota, record: pts });
+        }
+        if (J.modo === "local") {
+          J.resultados[J.turno] = pts;
+          if (J.turno === 0) {
+            J.turno = 1;
+            return nuevaOla();
+          }
+          const [a, b] = J.resultados;
+          return ui.terminar({ emoji: a === b ? "🤝" : "🏆", texto: a === b ? "¡Empate!" : `¡Ganó ${J.nombres[a > b ? 0 : 1]}!`, nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}` });
+        }
+        ui.enviar("fin", { partida: J.partida, puntos: pts });
+        if (!J.rivalTermino) {
+          ui.avisar("Esperando a tu rival…", "#4fb3ff");
+          await Promise.race([new Promise((r) => (J.alTerminarRival = r)), esperar(120000)]);
+        }
+        const yo = ui.yo;
+        const gane = pts > J.rival,
+          empate = pts === J.rival;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({ emoji: empate ? "🤝" : gane ? "🏆" : "😿", texto: empate ? "¡Empate!" : gane ? "¡Rey de las olas!" : `Ganó ${J.nombres[1 - yo]}`, nota: `Tú: ${pts} · ${J.nombres[1 - yo]}: ${J.rival}`, record: pts });
+      }
+    </script>
+  </body>
+</html>

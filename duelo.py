@@ -58,6 +58,14 @@ JUEGOS = {
     'reversi': 'juego_reversi.html',
     'conecta3d': 'juego_conecta3d.html',
     'yahtzee': 'juego_yahtzee.html',
+    'curling': 'juego_curling.html',
+    'pesca': 'juego_pesca.html',
+    'paracaidas': 'juego_paracaidas.html',
+    'nieve': 'juego_nieve.html',
+    'asteroides': 'juego_asteroides.html',
+    'surf': 'juego_surf.html',
+    'drift': 'juego_drift.html',
+    'espadas': 'juego_espadas.html',
 }
 # En estos juegos el récord es "menos es mejor" (golpes, milisegundos)
 RECORD_MENOR = {'mini_golf', 'reflejos', 'karts', 'sudoku', 'buscaminas', 'sopa', 'flow', 'parejas', 'nonograma'}

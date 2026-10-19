@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#7ec8e3" />
+    <title>Pesca · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      #tension {
+        position: fixed;
+        left: 50%;
+        bottom: calc(110px + env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        width: min(80vw, 360px);
+        z-index: 5;
+      }
+      #tension .barra {
+        position: relative;
+        height: 22px;
+        border-radius: 12px;
+        background: linear-gradient(90deg, #ffd84f 0 18%, #26de81 18% 72%, #ff3b3b 72%);
+        border: 3px solid #fff;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+      }
+      #tension .aguja {
+        position: absolute;
+        top: -6px;
+        width: 6px;
+        height: 28px;
+        margin-left: -3px;
+        background: #222;
+        border-radius: 3px;
+      }
+      #tension .avance {
+        height: 10px;
+        border-radius: 6px;
+        margin-top: 8px;
+        background: rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+      #tension .avance i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: #4fb3ff;
+      }
+      #tension .txt {
+        text-align: center;
+        font-weight: 900;
+        margin-top: 6px;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+    <div id="tension" class="oculto">
+      <div class="barra"><div class="aguja" id="aguja"></div></div>
+      <div class="avance"><i id="avance"></i></div>
+      <div class="txt">✋ Mantén para enrollar · suelta si se pone rojo</div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, sonar } = Arcade;
+      const SEGUNDOS = 120;
+      const PECES = [
+        // nombre, emoji, kg [min, max], fuerza, color
+        ["Mojarra", "🐟", [0.2, 0.6], 0.6, 0x9fc5e8],
+        ["Trucha", "🐟", [0.5, 2], 0.9, 0xb6d7a8],
+        ["Bagre", "🐡", [1, 4], 1.1, 0x8a7a5a],
+        ["Carpa", "🐠", [2, 7], 1.3, 0xf6b26b],
+        ["Lobina", "🐟", [1.5, 5], 1.5, 0x6aa84f],
+        ["Pez espada", "🗡️", [8, 20], 2.2, 0x3d85c6],
+        ["Bota vieja", "👢", [0.5, 0.5], 0.3, 0x5b3a1e],
+      ];
+
+      // =========================================================
+      //  ESCENA: un lago
+      // =========================================================
+      const M = Arcade.mundo({ fondo: 0x9ad8ff, fov: 55, niebla: [40, 120], exposicion: 1.05, colorAmbiente: 0xcfefff, lejos: 200 });
+      const { escena, camara } = M;
+      const mat = (c, x = {}) => new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.8, ...x });
+      escena.add(new THREE.HemisphereLight(0xeaf6ff, 0x4a6a3a, 0.8));
+      const sol = new THREE.DirectionalLight(0xfff0d8, 1.2);
+      sol.position.set(-15, 25, 10);
+      sol.castShadow = true;
+      sol.shadow.mapSize.set(1024, 1024);
+      escena.add(sol);
+      const agua = new THREE.Mesh(new THREE.PlaneGeometry(200, 200, 60, 60), new THREE.MeshStandardMaterial({ color: lin(0x2e86c1), roughness: 0.15, metalness: 0.3, transparent: true, opacity: 0.92 }));
+      agua.rotation.x = -Math.PI / 2;
+      escena.add(agua);
+      const posAgua = agua.geometry.attributes.position;
+      const baseZ = Array.from({ length: posAgua.count }, (_, i) => [posAgua.getX(i), posAgua.getY(i)]);
+      // orilla y muelle
+      const pasto = new THREE.Mesh(new THREE.CircleGeometry(80, 40, 0, Math.PI), mat(0x6fbf4a));
+      pasto.rotation.x = -Math.PI / 2;
+      pasto.position.set(0, 0.05, 6);
+      escena.add(pasto);
+      const muelle = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.2, 7), new THREE.MeshStandardMaterial({ map: M.textura(256, 512, (g, w, h) => Arcade.dibujarMadera(g, w, h, { tablas: 6, vertical: false })) }));
+      muelle.position.set(0, 0.6, 3);
+      muelle.castShadow = muelle.receiveShadow = true;
+      escena.add(muelle);
+      for (let i = 0; i < 4; i++) {
+        const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.5), mat(0x5b3a1e));
+        poste.position.set(i % 2 ? 1.1 : -1.1, 0, i < 2 ? 0 : 3);
+        escena.add(poste);
+      }
+      // montañas y árboles
+      for (let i = 0; i < 14; i++) {
+        const m = new THREE.Mesh(new THREE.ConeGeometry(azar(12, 22), azar(14, 26), 6), mat(new THREE.Color().setHSL(0.3, 0.25, azar(0.3, 0.42)).getHex(), { flatShading: true }));
+        m.position.set(azar(-90, 90), 5, azar(-110, -70));
+        escena.add(m);
+      }
+      for (let i = 0; i < 30; i++) {
+        const a = new THREE.Mesh(new THREE.ConeGeometry(1, 4, 7), mat(0x2e7d32));
+        a.position.set(azar(-30, 30), 2, azar(8, 20));
+        escena.add(a);
+      }
+      // caña
+      escena.add(camara);
+      const cana = new THREE.Group();
+      const vara = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.02, 1.8, 8), mat(0x3a2a1a));
+      vara.rotation.x = -1.0;
+      vara.position.set(0, 0.25, -0.75);
+      cana.add(vara);
+      const carrete = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 16), mat(0xc0c0c8, { metalness: 0.8 }));
+      carrete.rotation.z = Math.PI / 2;
+      carrete.position.set(0.04, -0.3, -0.25);
+      cana.add(carrete);
+      cana.position.set(0.25, -0.35, -0.3);
+      camara.add(cana);
+      const punta = new THREE.Object3D();
+      punta.position.set(0, 0.9, 0);
+      vara.add(punta);
+      // boya e hilo
+      const boya = new THREE.Group();
+      const b1 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 12), mat(0xff3b3b, { roughness: 0.4 }));
+      const b2 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mat(0xffffff));
+      boya.add(b1, b2);
+      boya.visible = false;
+      escena.add(boya);
+      const hiloGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+      const hilo = new THREE.Line(hiloGeo, new THREE.LineBasicMaterial({ color: 0xffffff }));
+      hilo.visible = false;
+      escena.add(hilo);
+      // pez que salta al atraparlo
+      const pezVisible = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 12), mat(0xffffff));
+      pezVisible.scale.set(1.6, 0.6, 0.6);
+      pezVisible.visible = false;
+      escena.add(pezVisible);
+
+      // =========================================================
+      //  ESTADO
+      // =========================================================
+      const J = { modo: null, activa: false };
+      const P = { fase: "listo", pez: null, tension: 0.4, avance: 0, jalando: false };
+
+      const ui = Arcade.ui({
+        juego: "pesca",
+        titulo: "Pesca",
+        emoji: "🐟",
+        subtitulo: "Lanza, espera… ¡y no reviente el hilo!",
+        modos: ["solo", "bot", "online", "local"],
+        textosModo: { bot: "🤖 Torneo contra el bot", online: "🌐 Torneo online", local: "👥 2 jugadores (por turnos)" },
+        dificultad: true,
+        records: true,
+        unidadRecord: "kg",
+        reglas: [
+          "👆 Desliza hacia arriba para lanzar: entre más largo, más lejos (allá hay peces más grandes).",
+          "Espera a que la boya se hunda y ¡toca rápido para clavar el anzuelo!",
+          "Mantén el dedo para enrollar. La aguja debe quedarse en lo verde: si llega a lo rojo se rompe el hilo, si se va a lo amarillo el pez se escapa.",
+          `Tienes ${SEGUNDOS / 60} minutos. Gana quien junte más kilos.`,
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.activa = false;
+          J.modo = null;
+          clearTimeout(J.timerBot);
+          ocultarPesca();
+        },
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "kilos") {
+          J.rival = d.kilos;
+          if (d.pez) ui.avisar(`${J.nombres[1 - ui.yo]} sacó ${d.pez}`, "#4fb3ff");
+          marcador();
+        } else if (tipo === "fin") {
+          J.rival = d.kilos;
+          J.rivalFin = true;
+          revisarFin();
+        }
+      };
+
+      function ocultarPesca() {
+        boya.visible = hilo.visible = pezVisible.visible = false;
+        $("tension").classList.add("oculto");
+        P.fase = "listo";
+      }
+
+      // =========================================================
+      //  CONTROLES
+      // =========================================================
+      let gesto = null;
+      M.lienzo.addEventListener("pointerdown", (e) => {
+        if (!J.activa) return;
+        gesto = { x: e.clientX, y: e.clientY, t: performance.now() };
+        if (P.fase === "pica") return clavar();
+        if (P.fase === "pelea") P.jalando = true;
+      });
+      M.lienzo.addEventListener("pointerup", (e) => {
+        P.jalando = false;
+        if (!gesto || !J.activa) return;
+        const dy = gesto.y - e.clientY,
+          dx = e.clientX - gesto.x;
+        gesto = null;
+        if (P.fase === "listo" && dy > 40) lanzar(limitar(dy / (window.innerHeight * 0.55), 0.15, 1), limitar(dx / 300, -0.4, 0.4));
+      });
+      M.lienzo.addEventListener("pointercancel", () => (P.jalando = false));
+
+      async function lanzar(fuerza, lado) {
+        P.fase = "lanzando";
+        sonar("swoosh", 1);
+        const dist = 6 + fuerza * 26;
+        P.boya = new THREE.Vector3(Math.sin(lado) * dist, 0, -Math.cos(lado) * dist);
+        P.distancia = dist;
+        boya.visible = hilo.visible = true;
+        const desde = new THREE.Vector3();
+        punta.getWorldPosition(desde);
+        await M.animar(700, (t) => {
+          boya.position.lerpVectors(desde, P.boya, t);
+          boya.position.y += Math.sin(t * Math.PI) * dist * 0.3;
+        });
+        sonar("agua", 0.8);
+        P.fase = "esperando";
+        // cuánto tarda en picar
+        const partida = J.partida;
+        await esperar(azar(1500, 5500));
+        if (partida !== J.partida || P.fase !== "esperando") return;
+        // ¿qué pez? lejos hay más grandes
+        const lejos = (dist - 6) / 26;
+        const r = Math.random();
+        let idx = r < 0.06 ? 6 : r < 0.3 - lejos * 0.2 ? 0 : r < 0.5 ? 1 : r < 0.68 ? 2 : r < 0.84 ? 3 : r < 0.96 - lejos * 0.05 ? 4 : 5;
+        if (idx === 5 && lejos < 0.6) idx = 4;
+        const [nombre, emoji, [a, b], fuerzaPez, color] = PECES[idx];
+        P.pez = { nombre, emoji, kg: +(azar(a, b) * (1 + lejos * 0.3)).toFixed(1), fuerza: fuerzaPez, color };
+        P.fase = "pica";
+        ui.avisar("❗ ¡PICA! ¡Toca!", "#ffd84f");
+        sonar("ping", 1);
+        if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+        P.limitePica = performance.now() + 900;
+      }
+
+      function clavar() {
+        P.fase = "pelea";
+        P.tension = 0.45;
+        P.avance = 0;
+        P.jalando = true;
+        $("tension").classList.remove("oculto");
+        sonar("golpe", 0.6);
+      }
+
+      async function atrapado() {
+        P.fase = "atrapado";
+        $("tension").classList.add("oculto");
+        const pez = P.pez;
+        J.kilos = +(J.kilos + pez.kg).toFixed(1);
+        J.lista.push(pez);
+        sonar(pez.kg > 5 ? "ganar" : "perfecto", 1.2);
+        pezVisible.material.color.set(lin(pez.color));
+        pezVisible.scale.set(1.6 * (0.6 + pez.kg / 8), 0.6 * (0.6 + pez.kg / 8), 0.6 * (0.6 + pez.kg / 8));
+        pezVisible.visible = true;
+        const desde = boya.position.clone();
+        const hacia = camara.position.clone().add(new THREE.Vector3(0, 0.5, -2.5));
+        await M.animar(900, (t) => {
+          pezVisible.position.lerpVectors(desde, hacia, t);
+          pezVisible.position.y += Math.sin(t * Math.PI) * 2;
+          pezVisible.rotation.z = t * 6;
+        });
+        ui.avisar(`${pez.emoji} ¡${pez.nombre}! ${pez.kg} kg`, "#26de81");
+        if (J.modo === "online") ui.enviar("kilos", { partida: J.partida, kilos: J.kilos, pez: `${pez.emoji} ${pez.kg} kg` });
+        marcador();
+        await esperar(900);
+        pezVisible.visible = false;
+        terminarIntento();
+      }
+      function escapo(texto) {
+        P.fase = "fallo";
+        $("tension").classList.add("oculto");
+        ui.avisar(texto, "#ff3b3b");
+        sonar("perder");
+        setTimeout(terminarIntento, 900);
+      }
+      function terminarIntento() {
+        boya.visible = hilo.visible = false;
+        P.fase = "listo";
+        if (J.activa && performance.now() / 1000 >= J.fin) finTiempo();
+      }
+
+      // =========================================================
+      //  CICLO
+      // =========================================================
+      M.alCuadro((dt, ahora) => {
+        // olas
+        for (let i = 0; i < posAgua.count; i++) {
+          const [x, y] = baseZ[i];
+          posAgua.setZ(i, Math.sin(x * 0.3 + ahora / 900) * 0.08 + Math.cos(y * 0.25 + ahora / 1100) * 0.08);
+        }
+        posAgua.needsUpdate = true;
+        camara.position.set(0, 1.9, 5.5);
+        camara.lookAt(0, 0.3, -10);
+        if (boya.visible && P.fase !== "lanzando") {
+          let hunde = 0;
+          if (P.fase === "esperando") hunde = Math.sin(ahora / 400) * 0.03;
+          if (P.fase === "pica") hunde = -0.18 + Math.sin(ahora / 60) * 0.06;
+          if (P.fase === "pelea") {
+            hunde = -0.25;
+            // el pez jala a los lados y hacia atrás conforme avanzas
+            P.boya.x += Math.sin(ahora / 300) * dt * P.pez.fuerza;
+            P.boya.z = -6 - (P.distancia - 6) * (1 - P.avance);
+          }
+          boya.position.set(P.boya.x, hunde, P.boya.z);
+        }
+        if (hilo.visible) {
+          const a = new THREE.Vector3();
+          punta.getWorldPosition(a);
+          hiloGeo.attributes.position.setXYZ(0, a.x, a.y, a.z);
+          hiloGeo.attributes.position.setXYZ(1, boya.position.x, boya.position.y + 0.1, boya.position.z);
+          hiloGeo.attributes.position.needsUpdate = true;
+        }
+        if (P.fase === "pica" && performance.now() > P.limitePica) escapo("😅 Muy lento, se llevó la carnada");
+        if (P.fase === "pelea") {
+          // jalar sube la tensión; el pez la sube con sus tirones; soltar la baja
+          const tiron = Math.max(0, Math.sin(ahora / (220 / P.pez.fuerza)) + Math.sin(ahora / 700)) * 0.22 * P.pez.fuerza;
+          P.tension += (P.jalando ? 0.42 + tiron : -0.65) * dt;
+          P.tension = limitar(P.tension, 0, 1);
+          if (P.jalando && P.tension < 0.72) P.avance += dt * (0.32 / Math.sqrt(P.pez.fuerza));
+          vara.rotation.x = -1.0 + P.tension * 0.5 + Math.sin(ahora / 50) * P.tension * 0.03;
+          $("aguja").style.left = P.tension * 100 + "%";
+          $("avance").style.width = P.avance * 100 + "%";
+          if (P.tension >= 0.98) escapo("💥 ¡Se rompió el hilo!");
+          else if (P.tension <= 0.05 && P.avance > 0.05) escapo("🐟 Se soltó…");
+          else if (P.avance >= 1) atrapado();
+          if (Math.random() < dt * 4) sonar("click", 0.15);
+        } else vara.rotation.x += (-1.0 - vara.rotation.x) * Math.min(1, dt * 5);
+        if (J.activa) {
+          marcador();
+          if (P.fase === "listo" && ahora / 1000 >= J.fin) finTiempo();
+        }
+      });
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      function marcador() {
+        const s = Math.max(0, Math.ceil(J.fin - performance.now() / 1000));
+        const reloj = `⏱️ ${(s / 60) | 0}:${String(s % 60).padStart(2, "0")}`;
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: `${J.kilos} kg`, detalle: `${reloj} · ${J.lista.length} 🐟`, activo: true }, null]);
+        if (J.modo === "local")
+          return ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i], valor: i === J.turno ? `${J.kilos} kg` : J.resultados[i] == null ? "—" : `${J.resultados[i]} kg`, detalle: i === J.turno ? reloj : "", activo: i === J.turno })));
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const mio = { nombre: J.nombres[yo] + " (tú)", valor: `${J.kilos} kg`, detalle: reloj, activo: true };
+        const suyo = { nombre: J.nombres[1 - yo], valor: `${J.rival} kg`, detalle: J.rivalFin ? "terminó" : "pescando…" };
+        ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
+      }
+      function empezar(modo, info) {
+        clearTimeout(J.timerBot);
+        Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, dificultad: info.dificultad, turno: 0, resultados: [null, null], rival: 0, rivalFin: false });
+        nuevaRonda();
+        if (modo === "bot") turnoBot();
+      }
+      function nuevaRonda() {
+        ocultarPesca();
+        Object.assign(J, { kilos: 0, lista: [], activa: true, terminado: false, fin: performance.now() / 1000 + SEGUNDOS });
+        marcador();
+        if (J.modo === "local") ui.avisar(`Turno de ${J.nombres[J.turno]}`, J.turno ? "#4fb3ff" : "#ff4f8b");
+        ui.ayuda("👆 Desliza hacia arriba para lanzar");
+        setTimeout(() => ui.ayuda(""), 4000);
+      }
+      function finTiempo() {
+        if (J.terminado) return;
+        J.terminado = true;
+        ocultarPesca();
+        if (J.modo === "local" && J.turno === 0) {
+          J.resultados[0] = J.kilos;
+          J.turno = 1;
+          ui.avisar(`⏱️ ¡Tiempo! ${J.kilos} kg`, "#ffd84f");
+          return setTimeout(nuevaRonda, 1500);
+        }
+        if (J.modo === "online") ui.enviar("fin", { partida: J.partida, kilos: J.kilos });
+        if (J.modo === "bot") J.rivalFin = true;
+        revisarFin();
+      }
+      function revisarFin() {
+        if (!J.terminado || (J.modo === "online" && !J.rivalFin) || !J.activa) return;
+        J.activa = false;
+        clearTimeout(J.timerBot);
+        const mejor = J.lista.slice().sort((a, b) => b.kg - a.kg)[0];
+        const nota = mejor ? `Tu mejor pez: ${mejor.emoji} ${mejor.nombre} de ${mejor.kg} kg` : "Ni una sardina 😅";
+        if (J.modo === "solo") {
+          sonar("ganar");
+          return ui.terminar({ emoji: "🎣", texto: `¡${J.kilos} kg de pescado!`, nota, record: Math.round(J.kilos) });
+        }
+        if (J.modo === "local") {
+          const [a, b] = [J.resultados[0], J.kilos];
+          return ui.terminar({ emoji: a === b ? "🤝" : "🏆", texto: a === b ? "¡Empate!" : `¡Ganó ${J.nombres[a > b ? 0 : 1]}!`, nota: `${J.nombres[0]} ${a} kg - ${b} kg ${J.nombres[1]}` });
+        }
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const gane = J.kilos > J.rival,
+          empate = J.kilos === J.rival;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({ emoji: empate ? "🤝" : gane ? "🏆" : "😿", texto: empate ? "¡Empate!" : gane ? "¡Ganaste el torneo!" : `Ganó ${J.nombres[1 - yo]}`, nota: `Tú: ${J.kilos} kg · ${J.nombres[1 - yo]}: ${J.rival} kg`, record: Math.round(J.kilos), gano: gane });
+      }
+      function turnoBot() {
+        const partida = J.partida;
+        const [cada, falla] = { facil: [16, 0.45], normal: [12, 0.3], pro: [9, 0.15] }[J.dificultad];
+        J.timerBot = setTimeout(() => {
+          if (partida !== J.partida || !J.activa || performance.now() / 1000 >= J.fin) return;
+          if (Math.random() > falla) {
+            const pez = PECES[Math.floor(Math.random() * 6)];
+            J.rival = +(J.rival + azar(...pez[2])).toFixed(1);
+            marcador();
+          }
+          turnoBot();
+        }, cada * azar(0.6, 1.4) * 1000);
+      }
+    </script>
+  </body>
+</html>
