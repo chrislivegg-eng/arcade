@@ -21,6 +21,7 @@
     <canvas id="lienzo"></canvas>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tablero.js') }}"></script>
     <script>
@@ -39,8 +40,9 @@
         colorAmbiente: 0x3050a0,
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "interior");
       const mat = (c, x = {}) =>
-        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.4, ...x });
+        Arcade.materialPBR({ color: lin(c), roughness: 0.4, ...x });
       escena.add(new THREE.HemisphereLight(0xd0e0ff, 0x203050, 0.7));
       const luz = new THREE.DirectionalLight(0xffffff, 1.0);
       luz.position.set(4, 10, 8);
@@ -58,7 +60,7 @@
       // mesa
       const mesa = new THREE.Mesh(
         new THREE.BoxGeometry(14, 0.3, 6),
-        new THREE.MeshStandardMaterial({
+        Arcade.materialPBR({
           map: M.textura(512, 256, (g, w, h) =>
             Arcade.dibujarMadera(g, w, h, { tablas: 5, vertical: false }),
           ),
@@ -68,6 +70,7 @@
       mesa.position.y = -0.15;
       mesa.receiveShadow = true;
       escena.add(mesa);
+      acabado3D.superficie(mesa, "madera", { repetir: 3 });
       // tablero: dos caras con hoyos (textura con transparencia)
       const ANCHO_T = COLS * K + 0.4,
         ALTO_T = FILAS * K + 0.4;
@@ -96,7 +99,7 @@
             }
         },
       );
-      const matTablero = new THREE.MeshStandardMaterial({
+      const matTablero = Arcade.materialPBR({
         color: lin(0x1f5fd0),
         alphaMap: texHoyos,
         transparent: true,

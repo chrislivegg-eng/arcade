@@ -12,6 +12,7 @@
     <canvas id="lienzo"></canvas>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, limitar, gauss, lin, material, sonar } = Arcade;
@@ -31,6 +32,7 @@
       // =========================================================
       const M = Arcade.mundo({ fondo: 0x0a0716, fov: 50, exposicion: 1.1, lamparas: [[0, 6, 0, 0xffffff, 3], [-5, 2, 3, 0xff4f8b, 1.5], [5, 2, -3, 0x4fb3ff, 1.5]] });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "interior");
       escena.add(new THREE.HemisphereLight(0xffffff, 0x221133, 0.55));
       const foco = new THREE.SpotLight(0xffffff, 1.6, 0, 0.7, 0.6, 1);
       foco.position.set(0, 3.5, 0);

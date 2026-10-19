@@ -80,6 +80,7 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, lin, material, sonar } = Arcade;
@@ -103,6 +104,7 @@
         ],
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "interior");
       escena.add(new THREE.HemisphereLight(0x8094c8, 0x1a1a24, 0.95));
       const luna = new THREE.DirectionalLight(0xc6d6ff, 1.25);
       luna.position.set(-8, 20, -25);

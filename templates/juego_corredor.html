@@ -33,6 +33,7 @@
     <div id="monedas" class="oculto">🪙 0</div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, lin, sonar } = Arcade;
@@ -52,8 +53,9 @@
         lejos: 140,
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "cielo");
       const mat = (color, extra = {}) =>
-        new THREE.MeshStandardMaterial({
+        Arcade.materialPBR({
           color: lin(color),
           roughness: 0.75,
           ...extra,
@@ -97,11 +99,12 @@
       texGrava.repeat.set(4, 60);
       const suelo = new THREE.Mesh(
         new THREE.PlaneGeometry(9, 240),
-        new THREE.MeshStandardMaterial({ map: texGrava, roughness: 1 }),
+        Arcade.materialPBR({ map: texGrava, roughness: 1 }),
       );
       suelo.rotation.x = -Math.PI / 2;
       suelo.receiveShadow = true;
       escena.add(suelo);
+      acabado3D.superficie(suelo, "asfalto", { repetir: 20 });
       const pasto = new THREE.Mesh(
         new THREE.PlaneGeometry(200, 240),
         mat(0x8fcf6a),
@@ -109,16 +112,23 @@
       pasto.rotation.x = -Math.PI / 2;
       pasto.position.y = -0.02;
       escena.add(pasto);
+      acabado3D.superficie(pasto, "cesped", { repetir: 40 });
       const rieles = new THREE.Group();
       const matRiel = mat(0xb0b4bc, { metalness: 0.8, roughness: 0.3 });
       const matDurmiente = mat(0x6b4a33);
+      const durmientes = new THREE.InstancedMesh(new THREE.BoxGeometry(1.6,.06,.25),matDurmiente,600);
+      durmientes.castShadow = durmientes.receiveShadow = true;
+      const matrizDurmiente = new THREE.Matrix4();
+      let nDurmiente = 0;
       [-1, 0, 1].forEach((l) => {
         [-0.55, 0.55].forEach((o) =>
           rieles.add(caja(0.1, 0.12, 240, matRiel, l * CARRIL + o, 0.08, 0)),
         );
         for (let z = -120; z < 120; z += 1.2)
-          rieles.add(caja(1.6, 0.06, 0.25, matDurmiente, l * CARRIL, 0.03, z));
+          durmientes.setMatrixAt(nDurmiente++, matrizDurmiente.makeTranslation(l*CARRIL,.03,z));
       });
+      durmientes.instanceMatrix.needsUpdate = true;
+      rieles.add(durmientes);
       escena.add(rieles);
 
       // edificios a los lados (se reciclan)
@@ -151,11 +161,11 @@
           e.material,
           e.material,
           e.material,
-          new THREE.MeshStandardMaterial({
+          Arcade.materialPBR({
             map: v,
             color: lin(tonosEdificio[i % 6]),
           }),
-          new THREE.MeshStandardMaterial({
+          Arcade.materialPBR({
             map: v,
             color: lin(tonosEdificio[i % 6]),
           }),

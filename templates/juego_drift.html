@@ -68,6 +68,7 @@
     <div id="der" class="pedal oculto">➡️</div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, lin, sonar } = Arcade;
@@ -111,8 +112,9 @@
         lejos: 500,
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "interior");
       const mat = (c, x = {}) =>
-        new THREE.MeshStandardMaterial({ color: lin(c), roughness: 0.8, ...x });
+        Arcade.materialPBR({ color: lin(c), roughness: 0.8, ...x });
       escena.add(new THREE.HemisphereLight(0xb0b8ff, 0x202030, 0.7));
       const luna = new THREE.DirectionalLight(0xc8d0ff, 0.8);
       luna.position.set(-60, 120, 40);
@@ -124,6 +126,7 @@
       suelo.rotation.x = -Math.PI / 2;
       suelo.position.y = -0.05;
       escena.add(suelo);
+      acabado3D.superficie(suelo, "cesped", { repetir: 60 });
       // asfalto: una cinta a lo largo del circuito
       function cinta(ancho, y, color, rayas) {
         const pos = [],
@@ -162,16 +165,18 @@
         const g = new THREE.BufferGeometry();
         g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
         g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+        g.setAttribute("uv", new THREE.Float32BufferAttribute(Array.from({length:PUNTOS_PISTA+1},(_,i)=>[0,i/20,1,i/20]).flat(),2));
         g.setIndex(idx);
         g.computeVertexNormals();
         const m = new THREE.Mesh(
           g,
-          new THREE.MeshStandardMaterial({
+          Arcade.materialPBR({
             vertexColors: true,
             roughness: 0.85,
             side: THREE.DoubleSide,
           }),
         );
+        if (!rayas && ancho > 1) acabado3D.superficie(m, "asfalto", { repetir: 4 });
         escena.add(m);
         return m;
       }
@@ -213,19 +218,21 @@
           }),
         );
         e.position.set(Math.cos(a) * r, h / 2, Math.sin(a) * r);
+        acabado3D.superficie(e, "fachada", { repetir: 2 });
+        e.material.emissiveMap = e.material.map;
         escena.add(e);
       }
 
       function crearAuto(color) {
         const g = new THREE.Group();
         const carro = new THREE.Mesh(
-          new THREE.BoxGeometry(1.9, 0.6, 4),
-          mat(color, { metalness: 0.6, roughness: 0.3 }),
+          Graficos3D.cajaSuave(1.9, 0.6, 4, .12),
+          mat(color, { metalness: 0.6, roughness: 0.26, clearcoat: .8, clearcoatRoughness: .18 }),
         );
         carro.position.y = 0.55;
         g.add(carro);
         const cabina = new THREE.Mesh(
-          new THREE.BoxGeometry(1.6, 0.5, 1.9),
+          Graficos3D.cajaSuave(1.6, 0.5, 1.9, .1),
           mat(0x111122, { metalness: 0.5, roughness: 0.2 }),
         );
         cabina.position.set(0, 1.05, 0.2);
@@ -249,6 +256,8 @@
           r.rotation.z = Math.PI / 2;
           r.position.set(x, 0.38, z);
           g.add(r);
+          const llanta = new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.32,16),mat(0xc7d3df,{metalness:.85,roughness:.22}));
+          llanta.rotation.z = Math.PI/2;llanta.position.copy(r.position);g.add(llanta);
         });
         [-0.6, 0.6].forEach((x) => {
           const f = new THREE.Mesh(

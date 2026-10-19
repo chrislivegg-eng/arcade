@@ -85,6 +85,7 @@
     <div class="flecha-lado oculto" id="flecha-der" style="right: 18px">➡️</div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
     <script>
       const { $, esperar, azar, limitar, lin, material, sonar } = Arcade;
@@ -124,6 +125,7 @@
         ],
       });
       const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "cielo");
       escena.add(new THREE.HemisphereLight(0xdff2ff, 0x4a7a3a, 0.8));
       const sol = new THREE.DirectionalLight(0xfff1dd, 1.3);
       sol.castShadow = true;
@@ -148,6 +150,7 @@
       pasto.position.y = -0.02;
       pasto.receiveShadow = true;
       escena.add(pasto);
+      acabado3D.superficie(pasto, "cesped", { repetir: 40 });
 
       // asfalto
       const texturaAsfalto = M.textura(256, 256, (g, w, h) => {
