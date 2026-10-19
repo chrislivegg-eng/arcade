@@ -194,7 +194,7 @@
         records: true,
         unidadRecord: "seguidas",
         reglas: [
-          "Escribe cualquier palabra de 5 letras y toca ENVIAR.",
+          "Escribe una palabra de 5 letras del diccionario incluido y toca ENVIAR.",
           "<b style='color:#26b86b'>Verde</b>: la letra está en su lugar.",
           "<b style='color:#e6b422'>Amarillo</b>: la letra está en la palabra pero en otro lugar.",
           "<b style='color:#9a90aa'>Gris</b>: la letra no está.",
@@ -203,6 +203,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          J.sesion = (J.sesion || 0) + 1;
           J.activa = false;
           clearTimeout(J.timerBot);
           $("zona").classList.add("oculto");
@@ -246,7 +247,7 @@
       });
 
       function tecla(k) {
-        if (!J.activa || J.miFin) return;
+        if (!J.activa || J.miFin || J.enviando) return;
         const fila = J.intentos.length;
         if (k === "BORRAR") J.actual = [...J.actual].slice(0, -1).join("");
         else if (k === "ENTER") return enviarIntento();
@@ -278,6 +279,8 @@
       const CLASE = { v: "verde", a: "amarilla", g: "gris" };
 
       function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
+        J.enviando = false;
         clearTimeout(J.timerBot);
         J.modo = modo;
         J.partida = info.partida;
@@ -334,8 +337,10 @@
       }
 
       async function enviarIntento() {
+        if (!J.activa || J.miFin || J.enviando) return;
         const fila = J.intentos.length;
         const el = $("tablero").children[fila];
+        if (!el) return;
         if ([...J.actual].length < 5) {
           el.classList.remove("sacudir");
           void el.offsetWidth;
@@ -344,9 +349,16 @@
           return;
         }
         const intento = J.actual;
+        if (!PALABRAS.includes(intento)) {
+          ui.avisar("No está en el diccionario incluido", "#ff3b3b");
+          return;
+        }
+        J.enviando = true;
+        const sesion = J.sesion;
         const c = colores(intento, J.palabra);
         J.intentos.push(intento);
         J.actual = "";
+        const sesionActual = J.sesion;
         const partida = J.partida;
         if (J.modo === "online") ui.enviar("fila", { partida, n: fila, colores: c });
         [...el.children].forEach((cas, i) => {
@@ -368,7 +380,8 @@
         });
         marcador();
         await esperar(1100);
-        if (partida !== J.partida || !J.activa) return;
+        if (sesion !== J.sesion || sesionActual !== J.sesion || partida !== J.partida || !J.activa) return;
+        J.enviando = false;
         const resuelto = c === "vvvvv";
         if (resuelto || J.intentos.length >= FILAS) terminarMio(resuelto);
       }
@@ -426,11 +439,12 @@
 
       // ---------- Bot: adivina de verdad usando las pistas ----------
       function jugarBot(partida) {
+        const sesionActual = J.sesion;
         const cfg = { facil: { lista: 0.35, espera: [9000, 15000], primera: 0.5 }, normal: { lista: 0.75, espera: [7000, 12000], primera: 0.8 }, pro: { lista: 1, espera: [5000, 9000], primera: 1 } }[J.dificultad];
         let candidatos = PALABRAS.slice();
         const pistas = [];
         const turno = () => {
-          if (partida !== J.partida || !J.activa) return;
+          if (sesionActual !== J.sesion || partida !== J.partida || !J.activa) return;
           const n = J.rival.filas.length;
           // a veces el bot "se distrae" y prueba una palabra que no encaja con las pistas
           const usaPistas = Math.random() < (n === 0 ? 1 : cfg.lista);

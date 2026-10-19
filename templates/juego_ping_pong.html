@@ -214,7 +214,12 @@
       // =========================================================
       //  PARTIDA
       // =========================================================
-      const J = { modo: null, nombres: [], puntos: [0, 0], saca: 0, yo: 0, dificultad: "normal", partida: 0, jugando: false, esperando: null, golpeN: 0, recibido: {} };
+      const J = { modo: null, nombres: [], puntos: [0, 0], saca: 0, yo: 0, dificultad: "normal", partida: 0, jugando: false, esperando: null, golpeN: 0, recibido: {}, sesion: 0 };
+      const sesionActiva = sesion => J.jugando && J.sesion === sesion;
+      function cancelarPartida() {
+        J.sesion++; J.jugando = false; J.modo = null; B.activa = false;
+        alDeslizar = null; J.esperando = null; J.pendiente = null;
+      }
       const ladoDe = (i) => (i === 0 ? 1 : -1); // el jugador 0 está del lado +z
 
       function soyYo(i) {
@@ -233,6 +238,7 @@
 
       async function punto(ganador, motivo) {
         if (!J.jugando) return;
+        const sesion = J.sesion;
         B.activa = false;
         J.puntos[ganador]++;
         const yoGane = J.modo === "online" ? ganador === J.yo : ganador === 0;
@@ -241,7 +247,7 @@
         sonar(yoGane ? "publico" : "abucheo");
         marcador();
         await esperar(1500);
-        if (!J.jugando) return;
+        if (!sesionActiva(sesion)) return;
         const [a, b] = J.puntos;
         if ((a >= PUNTOS_PARA_GANAR || b >= PUNTOS_PARA_GANAR) && Math.abs(a - b) >= 2) return terminar(a > b ? 0 : 1);
         // el saque cambia cada 2 puntos (cada punto si van 10-10)
@@ -255,6 +261,8 @@
       }
 
       async function sacar() {
+        const sesion = J.sesion;
+        if (!sesionActiva(sesion)) return;
         alDeslizar = null;
         J.pendiente = null;
         ventanaAbierta = false;
@@ -266,6 +274,7 @@
         if (soyYo(s)) {
           ui.ayuda("👆 Desliza hacia arriba para sacar");
           const g = await new Promise((r) => (alDeslizar = r));
+          if (!sesionActiva(sesion) || !g) return;
           alDeslizar = null;
           ui.ayuda("");
           const tiro = tiroDesdeGesto(g, lado);
@@ -273,6 +282,7 @@
           golpear(s, tiro);
         } else if (J.modo === "bot") {
           await esperar(900);
+          if (!sesionActiva(sesion)) return;
           golpear(s, { T: 0.75, x: azar(-0.5, 0.5), z: -lado * azar(0.6, 1.0) });
         } else {
           ui.ayuda(`Saca ${J.nombres[s]}…`);
@@ -281,6 +291,7 @@
 
       // pega el jugador i con este tiro (también se usa cuando llega el golpe del rival)
       function golpear(i, tiro) {
+        if (!J.jugando) return;
         const lado = ladoDe(i);
         B.x = limitar(B.x, -MEDIO_ANCHO - 0.3, MEDIO_ANCHO + 0.3);
         const resultado = lanzar(lado, tiro);
@@ -421,9 +432,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
-          J.jugando = false;
-          J.modo = null;
-          alDeslizar = null;
+          cancelarPartida();
         },
       });
       ui.alEvento = (tipo, datos) => {
@@ -457,6 +466,7 @@
       }
 
       function empezar(modo, info) {
+        cancelarPartida();
         J.modo = modo;
         J.nombres = info.nombres;
         J.dificultad = info.dificultad;
@@ -473,7 +483,8 @@
         J.pendiente = null;
         ventanaAbierta = false;
         ui.avisar("¡A jugar! 🏓", "#4fb3ff");
-        setTimeout(sacar, 900);
+        const sesion = J.sesion;
+        setTimeout(() => { if (sesionActiva(sesion)) sacar(); }, 900);
       }
 
       function terminar(g) {

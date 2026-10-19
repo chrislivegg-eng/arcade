@@ -265,6 +265,7 @@
 
       // ---------- Partida ----------
       function parar() {
+        J.sesion = (J.sesion || 0) + 1;
         J.activa = false;
         clearInterval(J.reloj);
         clearTimeout(J.timerBot);
@@ -272,6 +273,7 @@
       }
 
       function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
         parar();
         Object.assign(J, {
           modo,
@@ -319,6 +321,7 @@
       }
 
       async function jugada(dir) {
+        const sesionEspera = J.sesion;
         if (!J.activa || J.miFin || J.ocupado) return;
         const r = mover(J.g, dir);
         if (!r.movio) return;
@@ -331,6 +334,7 @@
         r.muertos.forEach(colocar);
         sonar(r.puntos ? "ping" : "click", r.puntos ? 0.6 : 0.4);
         await esperar(115);
+        if (sesionEspera !== J.sesion || !J.activa) return;
         r.muertos.forEach((t) => t.el.remove());
         r.nacidos.forEach((t) => crearFicha(t, "fusion"));
         crearFicha(nacer(J.g, J.rand), "nueva");
@@ -351,6 +355,7 @@
         if (!puedeMover(num)) {
           ui.avisar("Sin movimientos 😵", "#ff3b3b");
           await esperar(900);
+          if (sesionEspera !== J.sesion || !J.activa) return;
           terminarMio();
         }
       }
@@ -474,9 +479,10 @@
         J.bot = { g: [0, 1, 2, 3].map(() => [0, 0, 0, 0]), rand: Arcade.rng(semilla + 99) };
         nacer(J.bot.g, J.bot.rand, true);
         nacer(J.bot.g, J.bot.rand, true);
+        const sesionActual = J.sesion;
         const partida = J.partida;
         const turno = () => {
-          if (partida !== J.partida || !J.activa || J.rival.fin) return;
+          if (sesionActual !== J.sesion || partida !== J.partida || !J.activa || J.rival.fin) return;
           if (Date.now() >= J.fin || !pasoBot()) {
             J.rival.fin = true;
             return revisarFin();

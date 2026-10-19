@@ -235,6 +235,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          J.sesion = (J.sesion || 0) + 1;
           J.activa = false;
           clearTimeout(J.timerBot);
           $("zona").classList.add("oculto");
@@ -254,6 +255,7 @@
       }
 
       function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
         clearTimeout(J.timerBot);
         Object.keys(pendientes).forEach((k) => delete pendientes[k]);
         Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, pos: [0, 0], turno: 0, n: 0, activa: true, moviendo: false });
@@ -295,6 +297,7 @@
       $("dado").onclick = () => miTurno() && tirar();
 
       async function jugarTiro(v) {
+        const sesionActual = J.sesion;
         const partida = J.partida;
         J.moviendo = true;
         actualizar();
@@ -303,15 +306,17 @@
           dibujarDado(1 + Math.floor(Math.random() * 6));
           sonar("click");
           await esperar(70);
+          if (sesionActual !== J.sesion) return;
         }
         $("dado").classList.remove("girando");
         dibujarDado(v);
         await esperar(250);
+        if (sesionActual !== J.sesion) return;
         const i = J.turno;
         let p = J.pos[i];
         let rebote = false;
         for (let k = 0; k < v; k++) {
-          if (partida !== J.partida) return;
+          if (sesionActual !== J.sesion || partida !== J.partida) return;
           if (p === 100) rebote = true;
           p += rebote ? -1 : 1;
           J.pos[i] = p;
@@ -322,15 +327,18 @@
           f.classList.add("brinco");
           sonar("ping", 0.4);
           await esperar(210);
+          if (sesionActual !== J.sesion) return;
         }
         if (rebote) ui.avisar("¡Rebote! ↩️", "#ffd84f");
         if (ESCALERAS[p]) {
           await esperar(200);
+          if (sesionActual !== J.sesion) return;
           ui.avisar("🪜 ¡Escalera!", "#26de81");
           sonar("salto");
           p = ESCALERAS[p];
         } else if (SERPIENTES[p]) {
           await esperar(200);
+          if (sesionActual !== J.sesion) return;
           ui.avisar("🐍 ¡Serpiente!", "#ff3b3b");
           sonar("perder");
           p = SERPIENTES[p];
@@ -339,7 +347,7 @@
         ponerFicha(i, p);
         ponerFicha(1 - i, J.pos[1 - i]);
         await esperar(450);
-        if (partida !== J.partida) return;
+        if (sesionActual !== J.sesion || partida !== J.partida) return;
         J.n++;
         J.moviendo = false;
         if (p === 100) return fin(i);

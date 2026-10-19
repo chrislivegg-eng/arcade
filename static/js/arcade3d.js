@@ -6,12 +6,14 @@
 //   Arcade.deslizar() → leer gestos de deslizar el dedo / mouse
 
 // Carga el perfil (avatar, monedas y logros) en todos los juegos
-if (!window.Perfil && !document.getElementById("script-perfil")) {
+const perfilListo = window.Perfil ? Promise.resolve(window.Perfil) : new Promise((resolver) => {
   const s = document.createElement("script");
   s.id = "script-perfil";
   s.src = "/static/js/perfil.js";
+  s.onload = () => resolver(window.Perfil);
+  s.onerror = () => resolver(null);
   document.head.appendChild(s);
-}
+});
 
 const Arcade = (() => {
   const $ = (id) => document.getElementById(id);
@@ -553,6 +555,8 @@ const Arcade = (() => {
       estado.modo = modo;
       estado.nombres = nombres;
       estado.partida++;
+      estado.perfil = perfilListo.then((p) => p?.iniciar(config.juego, { modo, dificultad: estado.dificultad }));
+      estado.finalizada = false;
       mostrar(null);
       $("badge-centro").classList.toggle("oculto", modo !== "online");
       if (modo === "online") $("badge-centro").textContent = "SALA " + estado.online.codigo;
@@ -762,6 +766,11 @@ const Arcade = (() => {
     }
 
     async function terminar({ emoji = "🏆", texto, nota = "", record = null, gano = null, datos = {} }) {
+      if (estado.finalizada) return;
+      estado.finalizada = true;
+      const partida = estado.partida, modo = estado.modo, dificultad = estado.dificultad;
+      const contexto = estado.perfil;
+      const nombre = estado.nombres[estado.online ? estado.online.yo : 0];
       $("fin-emoji").textContent = emoji;
       $("fin-texto").textContent = texto;
       $("fin-nota").textContent = nota;
@@ -771,15 +780,15 @@ const Arcade = (() => {
       let recordNuevo = false;
       if (record != null && config.records) {
         try {
-          const yo = estado.online ? estado.online.yo : 0;
-          const r = await api(`/api/records/${config.juego}`, { nombre: estado.nombres[yo], puntos: record });
+          const r = await api(`/api/records/${config.juego}`, { nombre, puntos: record });
           recordNuevo = !!r.nuevo_record;
-          if (r.nuevo_record) $("fin-record").classList.remove("oculto");
+          if (r.nuevo_record && estado.partida === partida) $("fin-record").classList.remove("oculto");
         } catch (e) {}
       }
       // monedas y logros (si el juego no dice si ganaste, se adivina por el trofeo)
-      if (gano == null) gano = estado.modo !== "solo" && estado.modo !== "local" && ["🏆", "🥇"].includes(emoji);
-      window.Perfil && Perfil.evento(config.juego, "fin", { gano, modo: estado.modo, dificultad: estado.dificultad, record_nuevo: recordNuevo, ...datos });
+      if (gano == null) gano = modo !== "solo" && modo !== "local" && ["🏆", "🥇"].includes(emoji);
+      const perfil = await contexto;
+      if (perfil && window.Perfil) Perfil.evento(config.juego, "fin", { ...datos, gano, modo, dificultad, record_nuevo: recordNuevo }, perfil);
     }
 
     function enviar(tipo, datos) {

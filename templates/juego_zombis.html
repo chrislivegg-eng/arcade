@@ -269,6 +269,8 @@
       }
 
       async function matar(z, cabeza) {
+        if (z.muerto || !zombis.includes(z)) return;
+        const sesion = J.sesion;
         z.muerto = true;
         J.puntos += z.puntos * (cabeza ? 2 : 1);
         J.muertos++;
@@ -280,10 +282,14 @@
           z.g.rotation.z = giro * t * 0.4;
           z.g.position.y = -t * 0.2;
         });
+        if (J.sesion !== sesion) return;
         await esperar(700);
+        if (J.sesion !== sesion) return;
         await M.animar(400, (t) => (z.g.position.y = -0.2 - t * 1.5));
+        if (J.sesion !== sesion) return;
         escena.remove(z.g);
-        zombis.splice(zombis.indexOf(z), 1);
+        const indice = zombis.indexOf(z);
+        if (indice >= 0) zombis.splice(indice, 1);
       }
 
       // chispas verdes al pegar
@@ -311,6 +317,7 @@
       // =========================================================
       const cajas = [];
       function crearCaja() {
+        if (!J.jugando) return;
         const tipo = Math.random() < 0.55 ? "vida" : "bomba";
         const c = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), material(tipo === "vida" ? 0xffffff : 0x333333, { emissive: lin(tipo === "vida" ? 0xff3b3b : 0xff8a00), emissiveIntensity: 0.35 }));
         const marca = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5), new THREE.MeshBasicMaterial({ map: M.textura(64, 64, (g) => { g.font = "48px Arial"; g.textAlign = "center"; g.fillText(tipo === "vida" ? "➕" : "💣", 32, 50); }), transparent: true }));
@@ -330,11 +337,13 @@
         $("balas").textContent = J.recargando ? "🔄 recargando…" : `🔫 ${J.balas}/${CARGADOR}`;
       }
       async function recargar() {
-        if (J.recargando || J.balas === CARGADOR) return;
+        if (!J.jugando || J.recargando || J.balas === CARGADOR) return;
+        const sesion = J.sesion;
         J.recargando = true;
         actualizarBalas();
         sonar("click");
         await esperar(1100);
+        if (!J.jugando || J.sesion !== sesion) return;
         sonar("click");
         J.balas = CARGADOR;
         J.recargando = false;
@@ -370,7 +379,7 @@
           z.g.position.z -= 0.25; // lo empuja tantito
           if (z.vida <= 0) matar(z, cabeza);
         }
-        if (J.balas === 0) setTimeout(recargar, 200);
+        if (J.balas === 0) programar(recargar, 200);
       }
       function usarCaja(c) {
         escena.remove(c.malla);
@@ -407,7 +416,11 @@
       // =========================================================
       //  PARTIDA
       // =========================================================
-      const J = { modo: null, nombres: [], jugando: false, puntos: 0, vida: 100, balas: CARGADOR, recargando: false, oleada: 0, muertos: 0, porSalir: [], partida: 0, rival: 0, rivalTermino: false };
+      const J = { modo: null, nombres: [], jugando: false, puntos: 0, vida: 100, balas: CARGADOR, recargando: false, oleada: 0, muertos: 0, porSalir: [], partida: 0, rival: 0, rivalTermino: false, sesion: 0 };
+      function programar(accion, demora) {
+        const sesion = J.sesion;
+        return setTimeout(() => { if (J.jugando && J.sesion === sesion) accion(); }, demora);
+      }
 
       function actualizarVida() {
         $("vida").style.width = Math.max(0, J.vida) + "%";
@@ -437,7 +450,7 @@
         }
         J.siguienteSalida = performance.now() + 1500;
         J.intervalo = Math.max(450, 1900 - J.oleada * 150);
-        if (J.oleada > 1 && Math.random() < 0.8) setTimeout(crearCaja, 4000);
+        if (J.oleada > 1 && Math.random() < 0.8) programar(crearCaja, 4000);
       }
 
       let golpeado = 0;
@@ -508,7 +521,7 @@
           J.puntos += 25 * J.oleada;
           marcador();
           ui.avisar(`✅ ¡Oleada ${J.oleada} superada!<small>+${25 * J.oleada}</small>`, "#26de81");
-          setTimeout(() => {
+          programar(() => {
             J.entreOleadas = false;
             if (J.jugando) siguienteOleada();
           }, 2800);
@@ -548,6 +561,8 @@
       };
 
       function limpiar() {
+        J.sesion++;
+        if (J.alTerminarRival) { J.alTerminarRival(); J.alTerminarRival = null; }
         J.jugando = false;
         J.modo = null;
         zombis.slice().forEach((z) => escena.remove(z.g));
@@ -555,6 +570,7 @@
         cajas.slice().forEach((c) => escena.remove(c.malla));
         cajas.length = 0;
         $("estado-jugador").classList.add("oculto");
+        $("danio").classList.remove("pegado");
       }
 
       function empezar(modo, info) {
@@ -564,22 +580,26 @@
         actualizarVida();
         actualizarBalas();
         ui.ayuda("👆 Toca a los zombis para dispararles");
-        setTimeout(() => ui.ayuda(""), 4000);
+        programar(() => ui.ayuda(""), 4000);
         siguienteOleada();
       }
 
       async function perder() {
+        if (!J.jugando) return;
+        const sesion = J.sesion;
         J.jugando = false;
         if (J.muertos) window.Perfil && Perfil.evento("zombis", "zombi", { n: J.muertos });
         sonar("perder");
         ui.avisar("💀 ¡Te alcanzaron!", "#ff3b3b");
         await esperar(1800);
+        if (J.sesion !== sesion) return;
         $("estado-jugador").classList.add("oculto");
         if (J.modo === "online") {
           ui.enviar("fin", { partida: J.partida, puntos: J.puntos });
           if (!J.rivalTermino) {
             ui.avisar("Tu rival sigue vivo…", "#4fb3ff");
             await Promise.race([new Promise((r) => (J.alTerminarRival = r)), esperar(120000)]);
+            if (J.sesion !== sesion) return;
           }
           const gane = J.puntos > J.rival,
             empate = J.puntos === J.rival;

@@ -267,7 +267,9 @@
       const enMovimiento = () => bolas.some((b) => !b.dentro && (b.vx || b.vz));
 
       // corre el tiro hasta que todo se detiene (animado), regresa lo que pasó
-      async function simular(tiro) {
+      let cancelarSimulacion = null;
+      async function simular(tiro, sesion = J.sesion) {
+        if (!sesionActiva(sesion)) return null;
         const eventos = { metidas: [], primera: null, bandas: 0, choques: [] };
         blanca.vx = tiro.dx * tiro.v;
         blanca.vz = tiro.dz * tiro.v;
@@ -276,7 +278,9 @@
         await new Promise((listo) => {
           const DT = 1 / 240;
           let pasos = 0;
+          cancelarSimulacion = () => { M.alCuadro.siguiente = null; cancelarSimulacion = null; listo(); };
           M.alCuadro.siguiente = (dt) => {
+            if (!sesionActiva(sesion)) return cancelarSimulacion?.();
             pendiente += dt;
             while (pendiente >= DT) {
               pendiente -= DT;
@@ -287,6 +291,7 @@
               eventos.choques.splice(0).forEach((f) => f > 0.05 && sonar("ping", f));
               if (!enMovimiento() || pasos > 240 * 25) {
                 M.alCuadro.siguiente = null;
+                cancelarSimulacion = null;
                 return listo();
               }
             }
@@ -494,7 +499,15 @@
       // =========================================================
       //  REGLAS Y PARTIDA
       // =========================================================
-      const J = { modo: null, nombres: [], turno: 0, grupos: [null, null], yo: 0, dificultad: "normal", partida: 0, activa: false, tiroN: 0, recibido: {} };
+      const J = { modo: null, nombres: [], turno: 0, grupos: [null, null], yo: 0, dificultad: "normal", partida: 0, activa: false, tiroN: 0, recibido: {}, sesion: 0 };
+      const sesionActiva = sesion => J.activa && J.sesion === sesion;
+      function cancelarPartida() {
+        J.activa = false; J.sesion++;
+        cancelarSimulacion?.();
+        if (esperandoTiro) { const resolver = esperandoTiro; esperandoTiro = null; resolver(null); }
+        if (J.esperando) { const resolver = J.esperando.r; J.esperando = null; resolver(null); }
+        ocultarMira();
+      }
 
       const ui = Arcade.ui({
         juego: "billar",
@@ -512,9 +525,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
-          J.activa = false;
-          esperandoTiro = null;
-          ocultarMira();
+          cancelarPartida();
         },
       });
       ui.alEvento = (tipo, datos) => {
@@ -549,6 +560,7 @@
       }
 
       function empezar(modo, info) {
+        cancelarPartida();
         J.modo = modo;
         J.nombres = info.nombres;
         J.dificultad = info.dificultad;
@@ -561,7 +573,7 @@
         J.turno = modo === "bot" ? 0 : Arcade.rng(info.semilla)() < 0.5 ? 0 : 1;
         acomodar();
         marcador();
-        jugar(info.partida);
+        jugar(J.sesion);
       }
 
       function colocarBlanca() {
@@ -576,8 +588,8 @@
         }
       }
 
-      async function jugar(partida) {
-        while (J.activa && partida === J.partida) {
+      async function jugar(sesion) {
+        while (sesionActiva(sesion)) {
           const t = J.turno;
           marcador();
           ui.avisar(J.modo === "local" ? `Tira ${J.nombres[t]}` : soyYo(t) ? "¡Tu turno!" : `Turno de ${J.nombres[t]}`, t ? "#4fb3ff" : "#ff4f8b");
@@ -586,26 +598,31 @@
           if (soyYo(t)) {
             ui.ayuda("👆 Jala hacia atrás desde la mesa y suelta");
             tiro = await new Promise((r) => (esperandoTiro = r));
+            if (!sesionActiva(sesion) || !tiro) return;
             ui.ayuda("");
           } else if (J.modo === "bot") {
             await esperar(1100);
+            if (!sesionActiva(sesion)) return;
             tiro = tiroBot(t);
             mostrarMira(tiro.dx, tiro.dz, tiro.v / VEL_MAX);
             await esperar(700);
+            if (!sesionActiva(sesion)) return;
             ocultarMira();
           } else {
             ui.ayuda(`${J.nombres[t]} está apuntando…`);
             rival = J.recibido[n] || (await new Promise((r) => (J.esperando = { n, r })));
+            if (!sesionActiva(sesion) || !rival) return;
             ui.ayuda("");
             tiro = rival.tiro;
           }
-          if (!J.activa || partida !== J.partida) return;
-          const ev = await simular(tiro);
-          if (!J.activa || partida !== J.partida) return;
+          if (!sesionActiva(sesion) || !tiro) return;
+          const ev = await simular(tiro, sesion);
+          if (!sesionActiva(sesion)) return;
           if (rival) {
             // deja las bolas exactamente como quedaron en el cel que tiró
             rival.final.forEach(([x, z, dentro], i) => {
               Object.assign(bolas[i], { x, z, dentro: !!dentro, vx: 0, vz: 0 });
+              bolas[i].malla.visible = !dentro;
               if (!dentro) {
                 bolas[i].malla.visible = true;
                 bolas[i].malla.position.y = R;
@@ -636,8 +653,8 @@
         }
         if (metio8) {
           const tocaba = grupo && !bolasDe(grupo).length;
-          if (tocaba && !metioBlanca) return { ganador: t, motivo: "8" };
-          return { ganador: otro, motivo: metioBlanca ? "8_blanca" : "8_antes" };
+          if (tocaba && !falta) return { ganador: t, motivo: "8" };
+          return { ganador: otro, motivo: metioBlanca ? "8_blanca" : tocaba && falta ? "8_falta" : "8_antes" };
         }
         // grupos: el primero que mete (sin falta) se queda con lo que metió
         const buenas = ev.metidas.filter((n) => n !== 0 && n !== 8);
@@ -667,7 +684,7 @@
         const yo = J.modo === "online" ? J.yo : 0;
         const gane = g === yo;
         sonar(gane || J.modo === "local" ? "ganar" : "perder");
-        const razones = { 8: "¡Metió la 8 limpiamente! 🎱", "8_blanca": "Metió la 8 junto con la blanca 😬", "8_antes": "Metió la 8 antes de tiempo 😬" };
+        const razones = { 8: "¡Metió la 8 limpiamente! 🎱", "8_blanca": "Metió la 8 junto con la blanca 😬", "8_falta": "Metió la 8 cometiendo una falta 😬", "8_antes": "Metió la 8 antes de tiempo 😬" };
         ui.terminar({
           emoji: J.modo === "local" || gane ? "🏆" : "😿",
           texto: J.modo === "local" ? `¡Ganó ${J.nombres[g]}!` : gane ? "¡Ganaste!" : `Ganó ${J.nombres[g]}`,

@@ -268,6 +268,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          J.sesion = (J.sesion || 0) + 1;
           J.activa = false;
           $("zona").classList.add("oculto");
         },
@@ -280,6 +281,7 @@
       const vista = (i) => (J.volteado ? 63 - i : i);
 
       function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
         Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, dificultad: info.dificultad, pos: inicial(), n: 0, elegida: -1, ultima: null, activa: true, pensando: false });
         J.yo = modo === "online" ? (ui.yo === 0 ? "b" : "n") : "b";
         J.volteado = J.yo === "n";
@@ -341,7 +343,9 @@
         if (!sinJugadas && !tablas) return;
         J.activa = false;
         const ganador = tablas ? null : J.pos.turno === "b" ? "n" : "b";
+        const sesionFinal = J.sesion;
         setTimeout(() => {
+          if (sesionFinal !== J.sesion) return;
           const gane = ganador && (J.modo === "local" || ganador === J.yo);
           const nombreG = ganador ? J.nombres[ganador === "b" ? 0 : 1] : "";
           sonar(gane ? "ganar" : ganador ? "perder" : "rebote");
@@ -357,9 +361,10 @@
       async function turnoBot() {
         J.pensando = true;
         marcador();
+        const sesionActual = J.sesion;
         const partida = J.partida;
         const j = await Tablero.pensar(() => mejorJugada(J.pos, J.dificultad), 500);
-        if (partida !== J.partida || !J.activa) return;
+        if (sesionActual !== J.sesion || partida !== J.partida || !J.activa) return;
         J.pensando = false;
         if (j) mover(j);
       }

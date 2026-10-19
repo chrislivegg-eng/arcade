@@ -318,6 +318,7 @@
           }
           sonar(efectos.length ? "golpe" : "ping", Math.min(1.4, 0.6 + cascada * 0.15));
           await esperar(200);
+          if (S.cancelado) return false;
           fichas.forEach((f) => f.el && f.el.remove());
         }
         return fichas.length;
@@ -352,6 +353,7 @@
       async function resolver(S, cambiadas, forzado) {
         let cascada = 0;
         while (true) {
+          if (S.cancelado) return 0;
           const grupos = buscarGrupos(S.g);
           if (!grupos.length && !forzado) break;
           cascada++;
@@ -363,6 +365,7 @@
           for (const gr of grupos) {
             gr.claves.forEach((k) => claves.add(k));
             const largo = Math.max(...gr.corridas.map((c) => c.celdas.length));
+            if (S.vis && largo >= 5 && window.Perfil) Perfil.evento("combina3", "combo", { n: largo });
             const cruz = gr.corridas.some((c) => c.dir === "h") && gr.corridas.some((c) => c.dir === "v");
             let esp = null;
             if (largo >= 5) esp = "arcoiris";
@@ -376,6 +379,7 @@
             nacen.push({ r: (k / N) | 0, c: k % N, t: esp === "arcoiris" ? ARCOIRIS : muestra.t, esp: esp === "arcoiris" ? null : esp });
           }
           await romper(S, claves, cascada, forzado && forzado.color);
+          if (S.cancelado) return 0;
           forzado = null;
           cambiadas = null;
           for (const n of nacen) {
@@ -388,7 +392,9 @@
             }
           }
           if (S.vis && nacen.length) await esperar(150);
+          if (S.cancelado) return 0;
           await caer(S);
+          if (S.cancelado) return 0;
           if (S.vis && cascada >= 2) ui.avisar(["", "", "¡Dulce!", "¡Delicioso!", "¡Divino!", "¡Increíble!"][Math.min(cascada, 5)] + ` x${cascada}`, "#ff4fd8");
         }
         // si ya no hay jugadas, revuelve
@@ -424,6 +430,7 @@
           colocar(b);
           sonar("swoosh", 0.5);
           await esperar(200);
+          if (S.cancelado) return false;
         }
         // arcoíris: rompe todos los del color con el que lo cambiaste
         if (a.t === ARCOIRIS || b.t === ARCOIRIS) {
@@ -442,6 +449,7 @@
             colocar(a);
             colocar(b);
             await esperar(200);
+          if (S.cancelado) return false;
           }
           return false;
         }
@@ -486,12 +494,16 @@
 
       // =================== PARTIDA ===================
       function parar() {
+        if (S) S.cancelado = true;
+        if (J.bot) J.bot.cancelado = true;
+        J.sesion = (J.sesion || 0) + 1;
         J.activa = false;
         clearTimeout(J.timerBot);
         $("zona").classList.add("oculto");
       }
 
       function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
         parar();
         Object.assign(J, {
           modo,
@@ -527,16 +539,17 @@
         if (r2 < 0 || c2 < 0 || r2 >= N || c2 >= N) return;
         J.ocupado = true;
         quitarElegido();
+        const sesionActual = J.sesion;
         const partida = J.partida;
         const cascadas = await cambiar(S, r1, c1, r2, c2);
-        if (partida !== J.partida) return;
+        if (sesionActual !== J.sesion || partida !== J.partida) return;
         J.ocupado = false;
         if (cascadas === false) {
           sonar("rebote", 0.4);
           return;
         }
         ui.ayuda("");
-        if (cascadas >= 5 && window.Perfil) Perfil.evento("combina3", "combo", { n: cascadas });
+
         if (J.modo === "online") ui.enviar("puntos", { partida, puntos: S.puntos, movs: S.movs });
         marcador();
         if (S.movs <= 0) {
@@ -647,11 +660,14 @@
         return mejor;
       }
       async function pasoBot() {
+        const sesion = J.sesion;
         const B = J.bot;
         if (B.movs <= 0) return false;
         const j = await elegirBot(B);
+        if (sesion !== J.sesion || B.cancelado) return false;
         if (!j) return false;
         await cambiar(B, ...j);
+        if (sesion !== J.sesion || B.cancelado) return false;
         J.rival.puntos = B.puntos;
         J.rival.movs = B.movs;
         return true;
@@ -659,10 +675,13 @@
       function empezarBot(semilla) {
         J.bot = nuevoTablero(Arcade.rng(semilla), false);
         J.bot.rand = Arcade.rng(semilla + 7); // los dulces nuevos le caen distinto
+        const sesionActual = J.sesion;
         const partida = J.partida;
         const turno = async () => {
-          if (partida !== J.partida || !J.activa || J.rival.fin) return;
-          if (!(await pasoBot()) || J.bot.movs <= 0) {
+          if (sesionActual !== J.sesion || partida !== J.partida || !J.activa || J.rival.fin) return;
+          const siguio = await pasoBot();
+          if (sesionActual !== J.sesion || !J.activa) return;
+          if (!siguio || J.bot.movs <= 0) {
             J.rival.fin = true;
             return revisarFin();
           }
@@ -674,9 +693,10 @@
       async function terminarBotYa() {
         if (J.rival.fin) return;
         clearTimeout(J.timerBot);
+        const sesionActual = J.sesion;
         const partida = J.partida;
-        while (J.bot.movs > 0 && (await pasoBot()));
-        if (partida !== J.partida) return;
+        while (sesionActual === J.sesion && J.activa && J.bot.movs > 0 && (await pasoBot()));
+        if (sesionActual !== J.sesion || partida !== J.partida) return;
         J.rival.fin = true;
         revisarFin();
       }

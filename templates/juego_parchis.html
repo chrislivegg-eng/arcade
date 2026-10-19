@@ -279,6 +279,7 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          J.sesion = (J.sesion || 0) + 1;
           J.activa = false;
           clearTimeout(J.timerBot);
           $("zona").classList.add("oculto");
@@ -298,6 +299,7 @@
       }
 
       function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
         clearTimeout(J.timerBot);
         Object.keys(pendientes).forEach((k) => delete pendientes[k]);
         // en bot juegan los 4 colores; en 2 jugadores, rojo contra amarillo
@@ -404,26 +406,31 @@
       $("dado").onclick = tirarDado;
 
       async function animarDado(v) {
+        const sesionEspera = J.sesion;
         $("dado").classList.add("girando");
         for (let i = 0; i < 6; i++) {
           dibujarDado(1 + Math.floor(Math.random() * 6));
           sonar("click");
           await esperar(65);
+          if (sesionEspera !== J.sesion || !J.activa) return;
         }
         $("dado").classList.remove("girando");
         dibujarDado(v);
       }
 
       async function lanzar(v) {
+        const sesionEspera = J.sesion;
         J.ocupado = true;
         actualizar();
         await animarDado(v);
+        if (sesionEspera !== J.sesion || !J.activa) return;
         J.dado = v;
         J.ocupado = false;
         const opciones = movibles(J.turno, v);
         if (!opciones.length) {
           ui.avisar(v === 6 ? "No puedes mover 😅" : "Sin jugadas 🤷", "#9a90aa");
           await esperar(700);
+          if (sesionEspera !== J.sesion || !J.activa) return;
           return mover(-1);
         }
         if (opciones.length === 1 || new Set(opciones.map((k) => J.fichas[J.turno][k])).size === 1) return mover(opciones[0]);
@@ -442,6 +449,7 @@
         document.querySelectorAll(".ficha.mueve").forEach((f) => f.classList.remove("mueve"));
         if (!remota && J.modo === "online") ui.enviar("jugada", { partida: J.partida, n: J.n, valor: v, ficha: k });
         J.ocupado = true;
+        const sesionActual = J.sesion;
         const partida = J.partida;
         let extra = v === 6;
         if (k >= 0) {
@@ -449,11 +457,12 @@
           const hasta = destino(j, k, v);
           // paso a paso
           for (let p = desde < 0 ? 0 : desde + 1; p <= hasta; p++) {
-            if (partida !== J.partida) return;
+            if (sesionActual !== J.sesion || partida !== J.partida) return;
             J.fichas[j][k] = p;
             colocarTodas();
             sonar("ping", 0.35);
             await esperar(desde < 0 ? 150 : 170);
+            if (sesionActual !== J.sesion) return;
           }
           // ¿se comió a alguien?
           const abs = absoluta(j, hasta);
@@ -477,7 +486,7 @@
           colocarTodas();
         }
         await esperar(300);
-        if (partida !== J.partida) return;
+        if (sesionActual !== J.sesion || partida !== J.partida) return;
         J.n++;
         J.dado = null;
         J.ocupado = false;
@@ -489,8 +498,10 @@
       }
 
       async function jugarRemota(d) {
+        const sesionEspera = J.sesion;
         J.ocupado = true;
         await animarDado(d.valor);
+        if (sesionEspera !== J.sesion || !J.activa) return;
         J.dado = d.valor;
         J.ocupado = false;
         mover(d.ficha, true);
@@ -498,16 +509,19 @@
 
       // =================== BOTS ===================
       async function turnoBot() {
+        const sesionEspera = J.sesion;
         if (!J.activa || humano(J.turno) || J.ocupado) return;
         const j = J.turno;
         const v = 1 + Math.floor(Math.random() * 6);
         J.ocupado = true;
         await animarDado(v);
+        if (sesionEspera !== J.sesion || !J.activa) return;
         J.dado = v;
         J.ocupado = false;
         const ops = movibles(j, v);
         if (!ops.length) {
           await esperar(400);
+          if (sesionEspera !== J.sesion || !J.activa) return;
           return mover(-1);
         }
         let mejor = ops[Math.floor(Math.random() * ops.length)];
@@ -530,6 +544,7 @@
           mejor = ops.reduce((a, b) => (valor(b) > valor(a) ? b : a));
         }
         await esperar(350);
+        if (sesionEspera !== J.sesion || !J.activa) return;
         mover(mejor);
       }
 

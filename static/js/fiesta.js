@@ -166,14 +166,14 @@ const Fiesta = (() => {
   let ultimoAvisoPerfil = "";
   function avisarPerfil() {
     if (!window.Perfil || (estado.fase !== "final" && estado.fase !== "resultado")) return;
-    const clave = `${codigo}:${estado.ronda}:${estado.fase}`;
+    const clave = `${codigo}:${estado.ronda}`;
     if (clave === ultimoAvisoPerfil) return;
     ultimoAvisoPerfil = clave;
     const mayor = Math.max(...estado.jugadores.map((j) => j.puntos));
     const mio = (estado.jugadores.find((j) => j.id === PID) || {}).puntos || 0;
     // si el juego dice quién ganó la ronda (UNO), se usa eso
     const gano = estado.ganador_ronda != null ? estado.ganador_ronda === PID : mio > 0 && mio === mayor;
-    Perfil.evento(config.juego, "fin", { gano, modo: "online" });
+    Perfil.evento(config.juego, "fin", { codigo, ronda: estado.ronda }, null);
   }
 
   function pintarJugadores() {

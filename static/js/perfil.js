@@ -90,17 +90,42 @@
     return datos;
   }
 
-  async function evento(juego, tipo, extra) {
+  const partidas = new Map();
+  const nuevoId = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36);
+  function iniciar(juego, config) {
+    const contexto = { cola: Promise.resolve() };
+    contexto.lista = fetch('/api/perfil/iniciar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pid: PID, nombre: leer('nombreUsuario') || '', juego, ...config }),
+    }).then(async (r) => r.ok ? (await r.json()).partida : null).catch(() => null);
+    partidas.set(juego, contexto);
+    return contexto;
+  }
+
+  function evento(juego, tipo, extra = {}, contexto = partidas.get(juego)) {
+    // Mantiene los contadores anteriores al fin y captura la partida antes de cualquier espera.
+    const id = nuevoId();
+    const enviar = () => enviarEvento(juego, tipo, extra, contexto, id);
+    if (!contexto) return enviar(); // Las rondas de fiesta se verifican directamente en su sala.
+    contexto.cola = contexto.cola.then(enviar, enviar);
+    return contexto.cola;
+  }
+
+  async function enviarEvento(juego, tipo, extra, contexto, id) {
     try {
+      const partida = contexto ? await contexto.lista : null;
+      if (contexto && !partida) return;
       const r = await fetch("/api/perfil/evento", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pid: PID, juego, tipo, nombre: leer("nombreUsuario") || "", datos: extra || {} }),
+        body: JSON.stringify({ pid: PID, juego, tipo, partida, evento: id,
+          codigo: extra.codigo, ronda: extra.ronda, nombre: leer("nombreUsuario") || "", datos: extra }),
       });
       if (!r.ok) return;
       const j = await r.json();
       if (datos) {
         datos.monedas = j.monedas;
+        (j.logros || []).forEach((l) => { datos.logros[l.id] = Date.now() / 1000; });
         guardar("perfil_cache", JSON.stringify(datos));
       }
       if (j.ganadas > 0 && tipo === "fin") avisar(`<span class="icono">🪙</span> +${j.ganadas} monedas`, "monedas", 2600);
@@ -135,6 +160,7 @@
     cargar,
     editar,
     evento,
+    iniciar,
     insignia,
     avisar,
     claseMarco,

@@ -139,7 +139,7 @@
         { x: 0, z: -0.8, vx: 0, vz: 0, objX: 0, objZ: -0.8 },
       ];
       // dueno: quién manda la posición del disco (el último que le pegó); golpeN cuenta los golpes
-      const J = { modo: null, nombres: [], goles: [0, 0], jugando: false, pausa: true, dificultad: "normal", partida: 0, dueno: 0, golpeN: 0, yo: 0, ultimoEnvio: 0 };
+      const J = { modo: null, nombres: [], goles: [0, 0], jugando: false, pausa: true, dificultad: "normal", partida: 0, dueno: 0, golpeN: 0, yo: 0, ultimoEnvio: 0, sesion: 0 };
 
       function colocarSaque(quien) {
         // el que recibió el gol saca desde su lado
@@ -376,6 +376,8 @@
       });
 
       async function anotar(quien, avisarRival) {
+        if (!J.jugando) return;
+        const sesion = J.sesion;
         J.pausa = true;
         J.goles[quien]++;
         if (J.modo === "online" && avisarRival) ui.enviar("gol", { partida: J.partida, quien, goles: J.goles });
@@ -384,7 +386,7 @@
         ui.avisar(J.modo === "local" ? `⚡ ¡GOL de ${J.nombres[quien]}!` : yoAnote ? "⚡ ¡GOOOL!" : "😱 Gol del rival", quien ? "#4fb3ff" : "#ff4f8b");
         marcador();
         await esperar(1300);
-        if (!J.jugando) return;
+        if (!J.jugando || J.sesion !== sesion) return;
         if (J.goles[quien] >= GOLES_PARA_GANAR) return terminar(quien);
         colocarSaque(1 - quien);
         reiniciarPalas();
@@ -411,8 +413,10 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          J.sesion++;
           J.jugando = false;
           J.modo = null;
+          J.pausa = true; dedos.clear();
         },
       });
       ui.alEvento = (tipo, datos) => {
@@ -447,6 +451,7 @@
       }
 
       function empezar(modo, info) {
+        const sesion = ++J.sesion;
         J.modo = modo;
         J.nombres = info.nombres;
         J.dificultad = info.dificultad;
@@ -460,10 +465,10 @@
         if (modo === "bot") colocarSaque(0);
         marcador();
         ui.ayuda("👆 Arrastra el dedo para mover tu paleta");
-        setTimeout(() => ui.ayuda(""), 3500);
+        setTimeout(() => { if (J.jugando && J.sesion === sesion) ui.ayuda(""); }, 3500);
         J.pausa = true;
         ui.avisar("¡A jugar! 🏒", "#ffd84f");
-        setTimeout(() => (J.pausa = false), 1200);
+        setTimeout(() => { if (J.jugando && J.sesion === sesion) J.pausa = false; }, 1200);
       }
 
       function terminar(g) {

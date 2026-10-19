@@ -399,6 +399,8 @@
         ],
         alEmpezar: empezar,
         alSalir: () => {
+          J.sesion = (J.sesion || 0) + 1;
+        document.querySelectorAll(".promo").forEach((el) => el.remove());
           J.activa = false;
           $("zona").classList.add("oculto");
         },
@@ -412,6 +414,8 @@
       const vista = (i) => (J.volteado ? 63 - i : i); // casilla en pantalla ↔ casilla real
 
       function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
+        document.querySelectorAll(".promo").forEach((el) => el.remove());
         Object.assign(J, {
           modo,
           partida: info.partida,
@@ -456,12 +460,13 @@
       function elegirCoronacion(opciones) {
         const div = document.createElement("div");
         div.className = "promo";
+        const sesionPromo = J.sesion;
         const blanco = J.pos.turno === "w";
         div.innerHTML = `<div class="caja">${["q", "r", "b", "n"].map((t) => `<button data-t="${t}" class="pieza ${blanco ? "b" : "n"}">${GLIFO[t]}︎</button>`).join("")}</div>`;
         div.onclick = (e) => {
           const b = e.target.closest("[data-t]");
           div.remove();
-          if (b) jugarYo(opciones.find((m) => m.promo === b.dataset.t));
+          if (b && J.activa && sesionPromo === J.sesion) jugarYo(opciones.find((m) => m.promo === b.dataset.t));
         };
         document.body.appendChild(div);
       }
@@ -504,7 +509,9 @@
         J.activa = false;
         const ganador = lista.length || !jaque ? null : J.pos.turno === "w" ? "b" : "w";
         const motivo = ganador ? "¡Jaque mate!" : !lista.length ? "Ahogado: tablas" : materialInsuficiente(J.pos.b) ? "Tablas: no alcanza para dar mate" : "Tablas por 50 movimientos";
+        const sesionFinal = J.sesion;
         setTimeout(() => {
+          if (sesionFinal !== J.sesion) return;
           const nombreGanador = ganador ? J.nombres[ganador === "w" ? 0 : 1] : null;
           const gane = ganador && (J.modo === "local" || ganador === J.yo);
           sonar(gane ? "ganar" : ganador ? "perder" : "rebote");
@@ -520,9 +527,10 @@
       async function turnoBot() {
         J.pensando = true;
         marcador();
+        const sesionActual = J.sesion;
         const partida = J.partida;
         const m = await Tablero.pensar(() => mejorJugada(J.pos, J.dificultad), 450);
-        if (partida !== J.partida || !J.activa) return;
+        if (sesionActual !== J.sesion || partida !== J.partida || !J.activa) return;
         J.pensando = false;
         if (m) mover(m);
       }

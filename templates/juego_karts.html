@@ -425,7 +425,12 @@
       // =========================================================
       //  CARRERA
       // =========================================================
-      const J = { modo: null, karts: [], yo: 0, corriendo: false, inicio: 0, dificultad: "normal", partida: 0, nombres: [], ultimoEnvio: 0, remoto: null };
+      const J = { modo: null, karts: [], yo: 0, corriendo: false, inicio: 0, dificultad: "normal", partida: 0, nombres: [], ultimoEnvio: 0, remoto: null, sesion: 0 };
+      const sesionActiva = sesion => J.modo && J.sesion === sesion;
+      function programar(accion, demora) {
+        const sesion = J.sesion;
+        return setTimeout(() => { if (sesionActiva(sesion)) accion(); }, demora);
+      }
       const yo = () => J.karts[J.yo];
       const FACTOR_BOT = { facil: 0.8, normal: 0.9, pro: 0.98 };
 
@@ -547,11 +552,12 @@
           sonar("publico");
           ui.avisar(`🏁 ¡META!<small>${orden.indexOf(k) + 1}º lugar · ${fmt(k.fin)}</small>`, "#26de81");
           if (J.modo === "online") ui.enviar("meta", { partida: J.partida, tiempo: k.fin });
-          setTimeout(terminar, J.modo === "online" && !J.remotoMeta ? 15000 : 3500);
+          programar(terminar, J.modo === "online" && !J.remotoMeta ? 15000 : 3500);
         }
       }
 
       async function cuentaSalida() {
+        const sesion = J.sesion;
         const c = $("cuenta-salida");
         c.classList.remove("oculto");
         for (const t of ["3", "2", "1"]) {
@@ -559,6 +565,7 @@
           c.style.color = "#ff6b81";
           sonar("click");
           await esperar(800);
+          if (!sesionActiva(sesion)) return;
         }
         c.textContent = "¡YA!";
         c.style.color = "#26de81";
@@ -566,6 +573,7 @@
         J.corriendo = true;
         J.inicio = performance.now();
         await esperar(700);
+        if (!sesionActiva(sesion)) return;
         c.classList.add("oculto");
       }
 
@@ -598,11 +606,13 @@
         if (tipo === "meta") {
           J.remotoMeta = true;
           J.karts[1 - J.yo].fin = datos.tiempo;
-          if (J.anuncieMeta) setTimeout(terminar, 1500);
+          if (J.anuncieMeta) programar(terminar, 1500);
         }
       };
 
       function limpiar() {
+        J.sesion++;
+        dedos.clear(); teclas.izq = teclas.der = false;
         J.corriendo = false;
         J.modo = null;
         J.karts.forEach((k) => escena.remove(k.malla));
@@ -639,7 +649,7 @@
           modo === "online" ? { nombre: nombres[1 - J.yo], valor: "🏎️", detalle: "🌐 en vivo", color: "#" + new THREE.Color(COLORES[1 - J.yo]).getHexString() } : { nombre: "3 bots", valor: "🤖", detalle: J.dificultad, color: "#26de81" },
         ]);
         ui.ayuda("👈 Toca izquierda o derecha para dar vuelta 👉");
-        setTimeout(() => ui.ayuda(""), 4500);
+        programar(() => ui.ayuda(""), 4500);
         cuentaSalida();
       }
 

@@ -12,6 +12,8 @@ import json
 import os
 import threading
 import time
+import secrets
+from copy import deepcopy
 
 from flask import Blueprint, render_template, request, jsonify
 
@@ -72,16 +74,17 @@ JUEGOS_FIESTA = {"impostor", "probable", "verdad_reto", "dibuja", "verdades", "t
 def _leer():
     if os.path.exists(ARCHIVO_PERFILES):
         try:
-            with open(ARCHIVO_PERFILES) as f:
+            with open(ARCHIVO_PERFILES, encoding="utf-8") as f:
                 return json.load(f)
-        except (ValueError, OSError):
-            return {}
+        except (ValueError, OSError) as exc:
+            # No sustituir perfiles dañados por una base vacía al guardar.
+            raise RuntimeError("No se pudo leer perfiles.json; conserva el archivo para recuperarlo") from exc
     return {}
 
 
 def _guardar(perfiles):
     temporal = ARCHIVO_PERFILES + ".tmp"
-    with open(temporal, "w") as f:
+    with open(temporal, "w", encoding="utf-8") as f:
         json.dump(perfiles, f, ensure_ascii=False)
     os.replace(temporal, ARCHIVO_PERFILES)
 
@@ -217,19 +220,21 @@ def ver_perfil():
 
 @perfil_bp.route('/api/perfil', methods=['POST'])
 def editar_perfil():
-    datos = request.json or {}
+    datos = _json_objeto()
     pid = str(datos.get('pid', ''))[:40]
     if not pid:
         return jsonify({'error': 'Falta el jugador'}), 400
     with candado:
         perfiles = _leer()
-        p = perfiles.setdefault(pid, _nuevo())
+        p = deepcopy(perfiles.get(pid, _nuevo()))
         if datos.get('nombre'):
             p['nombre'] = str(datos['nombre']).strip()[:14] or p['nombre']
         for campo, lista in (('avatar', AVATARES), ('marco', COLORES_MARCO)):
             valor = datos.get(campo)
             if valor is None:
                 continue
+            if not isinstance(valor, str):
+                return jsonify({'error': 'Eso no existe'}), 400
             precio = dict(lista).get(valor)
             if precio is None:
                 return jsonify({'error': 'Eso no existe'}), 400
@@ -239,22 +244,119 @@ def editar_perfil():
                 p['monedas'] -= precio
                 p['comprados'].append(valor)
             p[campo] = valor
+        perfiles[pid] = p
         _guardar(perfiles)
         return jsonify(_publico(p))
 
 
+def _json_objeto():
+    datos = request.get_json(silent=True)
+    return datos if isinstance(datos, dict) else {}
+
+
+@perfil_bp.route('/api/perfil/iniciar', methods=['POST'])
+def iniciar_partida():
+    from duelo import JUEGOS
+    datos = _json_objeto()
+    pid = str(datos.get('pid') or '')[:40]
+    juego = str(datos.get('juego') or '')
+    modo = str(datos.get('modo') or '')
+    if not pid or juego not in {*JUEGOS, 'dardos', 'naval'} or modo not in ('solo', 'local', 'bot', 'online'):
+        return jsonify({'error': 'Partida inválida'}), 400
+    token = secrets.token_urlsafe(24)
+    with candado:
+        perfiles = _leer()
+        p = perfiles.setdefault(pid, _nuevo(str(datos.get('nombre') or '')))
+        partidas = p.setdefault('_partidas', {})
+        # Una ficha expirada ya no se acepta, aunque se reenvíe su resultado.
+        partidas = {k: v for k, v in partidas.items() if v['creado'] > time.time() - 86400}
+        if sum(not v.get('fin') for v in partidas.values()) >= 30:
+            pendientes = [k for k, v in partidas.items() if not v.get('fin')]
+            del partidas[pendientes[0]]
+        partidas[token] = {'juego': juego, 'modo': modo, 'dificultad': datos.get('dificultad'),
+                           'creado': time.time(), 'eventos': [], 'fin': False}
+        p['_partidas'] = partidas
+        _guardar(perfiles)
+    return jsonify({'partida': token})
+
+
+def _resultado_fiesta(datos, pid, juego):
+    """Usa la sala real y la ronda actual; nunca el ganador enviado por el navegador."""
+    from fiesta import salas_fiesta, candado as candado_fiesta
+    with candado_fiesta:
+        sala = salas_fiesta.get(str(datos.get('codigo') or '').upper())
+        if (not sala or sala['juego'] != juego or pid not in sala['jugadores']
+                or sala['fase'] not in ('resultado', 'final') or datos.get('ronda') != sala['ronda']):
+            raise ValueError('La ronda no ha terminado o no perteneces a ella')
+        identidad = sala.setdefault('perfil_id', secrets.token_urlsafe(24))
+        if juego == 'uno':
+            gano = sala['uno']['ganador'] == pid
+        elif juego == 'impostor':
+            gano = (pid not in sala['impostores']) == bool(sala['resultado']['atrapado'])
+        elif juego == 'espia':
+            gano = (pid == sala['espia']) == (sala['resultado']['gano'] == 'espia')
+        else:
+            puntos = sala['jugadores'][pid]['puntos']
+            gano = puntos > 0 and puntos == max(j['puntos'] for j in sala['jugadores'].values())
+        return f"{identidad}:{sala['ronda']}", {'gano': gano, 'modo': 'online'}
+
+
 @perfil_bp.route('/api/perfil/evento', methods=['POST'])
 def evento_perfil():
-    datos = request.json or {}
+    datos = _json_objeto()
     pid = str(datos.get('pid', ''))[:40]
     juego = str(datos.get('juego', ''))[:30]
     tipo = str(datos.get('tipo', ''))[:20]
     if not pid or not juego or not tipo:
         return jsonify({'error': 'Datos incompletos'}), 400
+    extra = datos.get('datos') or {}
+    if not isinstance(extra, dict):
+        return jsonify({'error': 'Datos inválidos'}), 400
+    clave_fiesta = None
+    if juego in JUEGOS_FIESTA:
+        if tipo != 'fin':
+            return jsonify({'error': 'Evento inválido'}), 400
+        try:
+            clave_fiesta, extra = _resultado_fiesta(datos, pid, juego)
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
     with candado:
         perfiles = _leer()
         p = perfiles.setdefault(pid, _nuevo(str(datos.get('nombre', ''))))
-        ganadas, nuevos = procesar_evento(p, juego, tipo, datos.get('datos'))
+        partida = None
+        if clave_fiesta:
+            cobradas = p.setdefault('_rondas', [])
+            if clave_fiesta in cobradas:
+                return jsonify({'monedas': p['monedas'], 'ganadas': 0, 'logros': []})
+        else:
+            partida = p.get('_partidas', {}).get(str(datos.get('partida') or ''))
+            if (not partida or partida['juego'] != juego or partida['creado'] < time.time() - 86400):
+                return jsonify({'error': 'Inicia una partida antes de enviar su resultado'}), 400
+            evento = str(datos.get('evento') or '')[:80]
+            if not evento:
+                return jsonify({'error': 'Falta el identificador del evento'}), 400
+            if partida['fin'] or evento in partida['eventos']:
+                return jsonify({'monedas': p['monedas'], 'ganadas': 0, 'logros': []})
+            permitidos = {'boliche': {'strike'}, 'basquet': {'canasta'}, 'zombis': {'zombi'},
+                          'mini_golf': {'hoyo_en_uno'}, 'reflejos': {'reaccion'},
+                          '2048': {'ficha'}, 'combina3': {'combo'}}
+            if tipo != 'fin' and tipo not in permitidos.get(juego, set()):
+                return jsonify({'error': 'Evento inválido para este juego'}), 400
+            extra = {**extra, 'modo': partida['modo'], 'dificultad': partida['dificultad']}
+        # Validar antes de tocar contadores, incluso cuando un cliente manda datos malformados.
+        for campo in ('n', 'ms', 'valor', 'intentos'):
+            if campo in extra:
+                valor = extra[campo]
+                if isinstance(valor, bool) or not isinstance(valor, int) or not 0 <= valor <= 1000000:
+                    return jsonify({'error': 'Contador inválido'}), 400
+        ganadas, nuevos = procesar_evento(p, juego, tipo, extra)
+        if clave_fiesta:
+            cobradas.append(clave_fiesta)
+        else:
+            partida['eventos'].append(evento)
+            if tipo == 'fin':
+                partida['fin'] = True
+                partida['eventos'] = []
         _guardar(perfiles)
         return jsonify({'monedas': p['monedas'], 'ganadas': ganadas, 'logros': nuevos})
 
@@ -301,7 +403,7 @@ TABLAS = [
 def _leer_tabla(archivo):
     filas = {}
     if os.path.exists(archivo):
-        with open(archivo) as f:
+        with open(archivo, encoding="utf-8") as f:
             for linea in f:
                 if ':' in linea:
                     n, v = linea.strip().rsplit(':', 1)

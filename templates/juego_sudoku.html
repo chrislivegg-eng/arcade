@@ -258,6 +258,8 @@
 
       // =================== PARTIDA ===================
       function parar() {
+        J.sesion = (J.sesion || 0) + 1;
+        clearTimeout(J.timerDerrota);
         J.activa = false;
         clearInterval(J.reloj);
         clearTimeout(J.timerBot);
@@ -266,6 +268,7 @@
       const rivalNombre = () => J.nombres[1 - (J.modo === "online" ? ui.yo : 0)];
 
       function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
         parar();
         const nivel = modo === "online" ? "normal" : info.dificultad;
         const { solucion, tablero } = generar(Arcade.rng(info.semilla), PISTAS[nivel]);
@@ -370,7 +373,7 @@
 
       function poner(n) {
         const i = J.sel;
-        if (!J.activa || J.miFin || i < 0 || J.b[i]) return;
+        if (!J.activa || J.miFin || J.vidas <= 0 || i < 0 || J.b[i]) return;
         if (J.modoNotas) {
           J.notas[i].has(n) ? J.notas[i].delete(n) : J.notas[i].add(n);
           sonar("click");
@@ -383,7 +386,10 @@
           pintar();
           const el = $("tablero").children[i];
           el.classList.add("error");
-          if (J.vidas <= 0) setTimeout(() => sinVidas(), 600);
+          if (J.vidas === 0) {
+            const sesion = J.sesion;
+            J.timerDerrota = setTimeout(() => { if (sesion === J.sesion) sinVidas(); }, 600);
+          }
           return;
         }
         J.b[i] = n;
@@ -442,9 +448,10 @@
 
       // =================== BOT ===================
       function empezarBot() {
+        const sesionActual = J.sesion;
         const partida = J.partida;
         const turno = () => {
-          if (partida !== J.partida || !J.activa) return;
+          if (sesionActual !== J.sesion || partida !== J.partida || !J.activa) return;
           J.rival.llenas++;
           marcador();
           if (J.rival.llenas >= J.vacias) {

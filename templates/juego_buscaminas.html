@@ -165,6 +165,7 @@
 
       // =================== PARTIDA ===================
       function parar() {
+        J.sesion = (J.sesion || 0) + 1;
         J.activa = false;
         clearInterval(J.reloj);
         clearTimeout(J.timerBot);
@@ -186,6 +187,7 @@
       };
 
       function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
         parar();
         const nivelId = modo === "online" ? "normal" : info.dificultad;
         const nivel = NIVELES[nivelId];
@@ -227,7 +229,8 @@
         J.reloj = setInterval(marcador, 1000);
         if (modo === "bot") empezarBot();
         ui.ayuda("Mantén presionado para 🚩");
-        setTimeout(() => ui.ayuda(""), 4000);
+        const sesionAyuda = J.sesion;
+        setTimeout(() => { if (sesionAyuda === J.sesion) ui.ayuda(""); }, 4000);
       }
 
       const seguras = () => J.total - J.minas.size;
@@ -321,6 +324,7 @@
       }
 
       async function explotar(i) {
+        const sesionEspera = J.sesion;
         J.miFin = { ms: Date.now() - J.inicio };
         clearInterval(J.reloj);
         mostrarMinas(i);
@@ -329,6 +333,7 @@
         ui.avisar("💥 ¡BOOM!", "#ff3b3b");
         if (J.modo === "online") ui.enviar("fin", { partida: J.partida, resultado: "boom" });
         await esperar(1600);
+        if (sesionEspera !== J.sesion || !J.activa) return;
         if (!J.activa) return;
         if (J.modo === "solo") {
           parar();
@@ -402,12 +407,13 @@
       // =================== BOT ===================
       // el bot "excava" a su ritmo; a veces se equivoca y pisa una mina
       function empezarBot() {
+        const sesionActual = J.sesion;
         const partida = J.partida;
         const total = J.nivel.bot * Arcade.azar(0.8, 1.25);
         const explota = Math.random() < 0.18 ? Arcade.azar(0.2, 0.9) : 2;
         const inicio = Date.now();
         const turno = () => {
-          if (partida !== J.partida || !J.activa || J.miFin) return;
+          if (sesionActual !== J.sesion || partida !== J.partida || !J.activa || J.miFin) return;
           const avance = Math.min(1, (Date.now() - inicio) / 1000 / total);
           J.rival.pct = Math.round(avance * 100);
           marcador();

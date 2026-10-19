@@ -46,7 +46,7 @@ class GamesTest(unittest.TestCase):
 
     def test_new_pages_and_static_assets(self):
         routes = ['/secreto', '/impostor', '/mas_probable', '/verdad_reto', '/dibuja',
-                  '/trivia', '/basta', '/espia', '/verdades', '/completa_frase', '/juego_dardos']
+                  '/trivia', '/basta', '/espia', '/verdades', '/completa_frase', '/juego_dardos', '/juego_naval']
         routes += ['/juego/' + game for game in duelo.JUEGOS]
         import re
         for url in routes:
@@ -72,6 +72,18 @@ class GamesTest(unittest.TestCase):
                 compile(updated, 'app.py', 'exec')
                 for bp in ['fiesta_bp', 'duelo_bp', 'dardos_bp']:
                     self.assertEqual(updated.count('register_blueprint(' + bp + ')'), 1)
+
+    def test_deploy_manifest_keeps_naval_and_every_registered_game(self):
+        root = Path(__file__).resolve().parents[1]
+        files = [line.strip() for line in (root / 'archivos_nuevos.txt').read_text(encoding='utf-8').splitlines()
+                 if line.strip() and not line.startswith('#')]
+        self.assertEqual(len(files), len(set(files)))
+        for path in files:
+            self.assertTrue((root / path).is_file(), path)
+        for template in duelo.JUEGOS.values():
+            self.assertIn('templates/' + template, files)
+        for path in ['templates/juego_naval.html', 'static/naval3d.css', 'static/js/naval3d.js']:
+            self.assertIn(path, files)
 
     def test_duels_all_games(self):
         for game in duelo.JUEGOS:
