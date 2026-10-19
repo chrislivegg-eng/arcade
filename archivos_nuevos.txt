@@ -111,3 +111,8 @@ static/video/intro-pc-v1.mp4
 static/video/intro-movil-v1.mp4
 static/video/intro-pc-v1.jpg
 static/video/intro-movil-v1.jpg
+
+templates/juego_pinball.html
+static/pinball.css
+static/js/pinball-fisica.js
+static/js/pinball.js

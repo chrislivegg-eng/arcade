@@ -486,6 +486,7 @@ def evento_perfil():
 # ---------------- 📊 Récords de todos los juegos ----------------
 # (archivo, nombre visible, unidad, ¿menos es mejor?)
 TABLAS = [
+    ("record_pinball.txt", "🪩 Pinball Nova", "pts", False),
     ("record_templo.txt", "🏛️ Umbra · Templo perdido", "s", True),
     ("record_basquet.txt", "🏀 Básquet 3D", "pts", False),
     ("record_boliche.txt", "🎳 Boliche 3D", "pts", False),
