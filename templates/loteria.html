@@ -1,199 +1,31 @@
-{% extends "fiesta_base.html" %}
-{% block titulo %}Lotería{% endblock %}
-{% block emoji %}🎯{% endblock %}
-{% block subtitulo %}¡Corre y se va corriendo! La lotería mexicana{% endblock %}
-
-{% block estilos %}
-<style>
-  .cantada {
-    border-radius: 22px;
-    background: #fffaf0;
-    border: 6px solid #e0323c;
-    box-shadow: 0 12px 30px rgba(224, 50, 60, 0.3);
-    text-align: center;
-    padding: 12px;
-    animation: entra 0.4s ease-out;
-  }
-  .cantada .dibujo {
-    font-size: 4.5rem;
-    line-height: 1.1;
-  }
-  .cantada .nombre {
-    font-size: 1.6rem;
-    font-weight: 900;
-    color: #e0323c;
-  }
-  .cantada .verso {
-    font-style: italic;
-    opacity: 0.8;
-  }
-  @keyframes entra {
-    from {
-      transform: rotateY(90deg);
-    }
-  }
-  .tabla {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    background: #6b3e26;
-    padding: 8px;
-    border-radius: 16px;
-  }
-  .casilla-lot {
-    position: relative;
-    aspect-ratio: 3/4;
-    background: #fffaf0;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.62rem;
-    font-weight: 800;
-    text-align: center;
-    padding: 2px;
-    cursor: pointer;
-    border: none;
-    font-family: inherit;
-    color: #333;
-  }
-  .casilla-lot .e {
-    font-size: 1.9rem;
-  }
-  .casilla-lot.marcada::after {
-    content: "";
-    position: absolute;
-    width: 62%;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #c98a4a, #7a4a1e);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
-  }
-  .casilla-lot.salio {
-    outline: 3px solid #26de81;
-  }
-  .grito {
-    font-size: 1.6rem;
-    background: linear-gradient(135deg, #ff7a00, #e0323c);
-  }
-  .historial {
-    display: flex;
-    gap: 4px;
-    overflow-x: auto;
-    font-size: 1.6rem;
-  }
-  .chips-min {
-    display: flex;
-    gap: 8px;
-  }
-  .chip {
-    flex: 1;
-    border: 2px solid #e2d6ff;
-    background: #fff;
-    border-radius: 14px;
-    padding: 8px;
-    font-family: inherit;
-    font-weight: 800;
-    cursor: pointer;
-  }
-  .chip.activo {
-    background: var(--morado);
-    border-color: var(--morado);
-    color: #fff;
-  }
-</style>
-{% endblock %}
-
-{% block como_jugar %}
+{% extends "fiesta_base.html" %} {% block titulo %}Lotería{% endblock %} {%
+block emoji %}🇲🇽{% endblock %} {% block subtitulo %}¡Corre y se va! Hasta tres
+tablas y un gritón con mucho chisme{% endblock %} {% block estilos %}<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='loteria.css') }}"
+/>{% endblock %} {% block como_jugar %}
 <ol class="nota" style="text-align: left; padding-left: 20px; margin: 0">
-  <li>Cada quien tiene su tabla de 16 cartas.</li>
-  <li>El cel va "cantando" las cartas una por una. Si la tienes, tócala para ponerle su frijolito.</li>
-  <li>Cuando completes tu tabla (o una línea, según el modo), ¡grita <b>LOTERÍA</b>!</li>
-  <li>Si gritas antes de tiempo te castigan 10 segundos 😅. Se pueden agregar bots.</li>
+  <li>
+    Elige de <b>una a tres tablas</b> de 16 cartas y un color para cada una
+    antes de empezar.
+  </li>
+  <li>
+    Cuando el gritón cante una carta, se iluminará suavemente si está en tus
+    tablas. Tócala para poner tu frijolito.
+  </li>
+  <li>
+    En celular cambia de tabla con las pestañas. Cada tabla conserva sus propias
+    marcas.
+  </li>
+  <li>
+    Grita <b>¡LOTERÍA!</b> al completar cualquiera de tus tablas, o una línea o
+    cuatro esquinas según el modo.
+  </li>
+  <li>
+    Un grito falso te castiga 10 segundos. Puedes jugar con amigos o agregar
+    bots.
+  </li>
 </ol>
-{% endblock %}
-
-{% block script %}
-<script>
-  let intervalo = 5,
-    modo = "llena";
-  let marcadas = new Set();
-  let rondaVista = 0;
-  let ultimaCantada = null;
-  function elegir(tipo, v) {
-    if (tipo === "i") intervalo = v;
-    else modo = v;
-    pintar(Fiesta.estado, document.getElementById("zona-juego"));
-  }
-  function marcar(i) {
-    marcadas.has(i) ? marcadas.delete(i) : marcadas.add(i);
-    pintar(Fiesta.estado, document.getElementById("zona-juego"));
-  }
-  function decir(texto) {
-    try {
-      const u = new SpeechSynthesisUtterance(texto);
-      u.lang = "es-MX";
-      u.rate = 1.05;
-      speechSynthesis.cancel();
-      speechSynthesis.speak(u);
-    } catch (e) {}
-  }
-  function pintar(e, zona) {
-    if (!e) return;
-    const n = e.jugadores.length;
-    if (e.fase === "lobby") {
-      zona.innerHTML = e.soy_host
-        ? `<div class="tarjeta pila"><h2>⏱️ Velocidad del gritón</h2>
-            <div class="chips-min">${[3, 5, 8].map((v) => `<button class="chip ${v === intervalo ? "activo" : ""}" onclick="elegir('i',${v})">${v} s</button>`).join("")}</div>
-            <h2>🏆 Para ganar</h2>
-            <div class="chips-min"><button class="chip ${modo === "llena" ? "activo" : ""}" onclick="elegir('m','llena')">Tabla llena</button><button class="chip ${modo === "linea" ? "activo" : ""}" onclick="elegir('m','linea')">Línea o 4 esquinas</button></div>
-            <button class="boton morado" onclick="Fiesta.accion('agregar_bot')">➕🤖 Agregar bot</button>
-            <button class="boton verde" onclick="Fiesta.accion('iniciar',{intervalo, modo})">🎯 ¡Empezar a cantar!</button></div>`
-        : `<div class="tarjeta centro pila"><div class="grande">⏳</div><p class="nota">Esperando a <b>${Fiesta.esc(Fiesta.nombreDe(e.host))}</b>…</p></div>`;
-      return;
-    }
-    if (e.ronda !== rondaVista) {
-      rondaVista = e.ronda;
-      marcadas = new Set();
-    }
-    const C = e.cartas;
-    const salidas = new Set(e.cantadas);
-    let html = "";
-    if (e.actual != null) {
-      const [nom, dib] = C[e.actual];
-      html += `<div class="cantada" ${ultimaCantada === e.actual ? 'style="animation:none"' : ""}><div class="dibujo">${dib}</div><div class="nombre">${nom}</div>${e.verso ? `<div class="verso">"${e.verso}"</div>` : ""}<div class="nota">${e.cantadas.length} de 54</div></div>`;
-      if (ultimaCantada !== e.actual && e.fase === "jugando") {
-        ultimaCantada = e.actual;
-        decir((e.verso ? e.verso + ". " : "") + nom);
-      }
-    } else html += `<div class="cantada"><div class="dibujo">🎴</div><div class="nombre">¡Prepárense!</div></div>`;
-    if (e.mi_tabla) {
-      html += `<div class="tabla">${e.mi_tabla
-        .map((c) => `<button class="casilla-lot ${marcadas.has(c) ? "marcada" : ""} ${salidas.has(c) && !marcadas.has(c) && e.fase === "jugando" ? "" : ""}" onclick="marcar(${c})"><span class="e">${C[c][1]}</span>${C[c][0]}</button>`)
-        .join("")}</div>`;
-    }
-    if (e.fase === "jugando" && e.mi_tabla) {
-      const castigo = e.castigo && Fiesta.segundosHasta(e.castigo) > 0;
-      html += `<button class="boton grito" ${castigo ? "disabled" : ""} onclick="Fiesta.accion('loteria')">${castigo ? "⏳ Castigado…" : "📣 ¡LOTERÍA!"}</button>`;
-      html += `<div class="historial">${e.cantadas
-        .slice()
-        .reverse()
-        .slice(0, 12)
-        .map((c) => `<span title="${C[c][0]}">${C[c][1]}</span>`)
-        .join("")}</div>`;
-    }
-    if (e.fase === "resultado") {
-      html = `<div class="tarjeta centro pila"><div class="grande">${e.ganador_ronda ? "🏆" : "🤷"}</div><h2>${e.ganador_ronda ? `¡${Fiesta.esc(Fiesta.nombreDe(e.ganador_ronda))} gritó LOTERÍA!` : "Se acabaron las cartas"}</h2>
-        ${e.tabla_ganadora ? `<div class="tabla">${e.tabla_ganadora.map((c) => `<div class="casilla-lot ${salidas.has(c) ? "marcada" : ""}"><span class="e">${C[c][1]}</span>${C[c][0]}</div>`).join("")}</div>` : ""}
-        ${e.soy_host ? `<button class="boton verde" onclick="Fiesta.accion('iniciar',{intervalo, modo})">🔁 Otra ronda</button><button class="boton morado" onclick="Fiesta.accion('agregar_bot')">➕🤖 Agregar bot</button>` : ""}</div>${Fiesta.ranking(e)}`;
-      if (e.ganador_ronda && ultimaCantada !== "fin" + e.ronda) {
-        ultimaCantada = "fin" + e.ronda;
-        decir("¡Lotería!");
-      }
-    }
-    zona.innerHTML = html;
-  }
-  Fiesta.iniciar({ juego: "loteria", titulo: "Lotería 🎯", pintar, intervalo: 800 });
-</script>
+{% endblock %} {% block script %}
+<script src="{{ url_for('static', filename='js/loteria.js') }}"></script>
 {% endblock %}

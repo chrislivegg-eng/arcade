@@ -9,6 +9,7 @@
 # no tienen nada que ver con las monedas del perfil.
 
 import random
+from pathlib import Path
 from itertools import combinations
 
 from flask import render_template
@@ -718,12 +719,70 @@ CARTAS_LOTERIA = [
     ('La Palma', '🌴'), ('La Maceta', '🪴'), ('El Arpa', '🪕'), ('La Rana', '🐸'),
 ]
 VERSOS = {
-    'El Gallo': 'El que le cantó a San Pedro', 'El Diablito': 'Pórtate bien, cuatito', 'La Dama': 'Puliendo el paso',
-    'El Catrín': 'Don Ferruco en la alameda', 'La Sirena': 'Con los cantos de sirena', 'La Escalera': 'Súbeme paso a pasito',
-    'La Muerte': 'La muerte tilica y flaca', 'La Luna': 'El farol de los enamorados', 'El Corazón': 'No me extrañes, corazón',
-    'La Sandía': 'La barriga que todo come', 'El Borracho': 'A qué borracho tan necio', 'La Rana': 'Al ver a la verde rana',
-    'El Nopal': 'Al nopal lo van a ver nomás cuando tiene tunas', 'El Sol': 'La cobija de los pobres', 'La Mano': 'La mano de un criminal',
+    'El Gallo': '¡El despertador que nunca trae botón de posponer!',
+    'El Diablito': '¡El diablo anda suelto! ¡Escondan las travesuras!',
+    'La Dama': 'Llegó la dama; compórtense, aunque sea cinco minutos.',
+    'El Catrín': 'Muy elegante, pero todavía debe la tanda.',
+    'El Paraguas': 'Lo compras cuando llueve y lo olvidas cuando escampa.',
+    'La Sirena': 'Canta bonito, pero no acepta solicitudes.',
+    'La Escalera': 'Súbele al éxito, pero agárrate del barandal.',
+    'La Botella': '¡Pásame la botella! Que no se quede en aquella mesa.',
+    'El Barril': 'Se parece a mi ahorro: puro hueco por dentro.',
+    'El Árbol': 'Da sombra gratis y ni te pide seguir su cuenta.',
+    'El Melón': 'Este sí salió bueno; no como mi última decisión.',
+    'El Valiente': 'Muy valiente, hasta que vio la cucaracha volar.',
+    'El Gorrito': 'Para las ideas brillantes… y el mal peinado.',
+    'La Muerte': 'La tilica llegó temprano; todavía no acabamos la ronda.',
+    'La Pera': 'Es pera, pero ya no esperes: ¡márcala!',
+    'La Bandera': '¡Verde, blanco y rojo! ¡Que viva México!',
+    'El Bandolón': 'Trae más cuerdas que mis excusas para no trabajar.',
+    'El Violoncello': 'El primo elegante del que toca en la fiesta.',
+    'La Garza': 'Tan estirada, y todavía sale bien en las fotos.',
+    'El Pájaro': 'Este sí vuela; mis planes nomás se quedan en visto.',
+    'La Mano': '¡Levanta la mano quien todavía no tiene ni una línea!',
+    'La Bota': 'La que pisa fuerte, pero se queda afuera si trae lodo.',
+    'La Luna': 'De noche alumbra; de día se hace la desaparecida.',
+    'El Cotorro': 'Ya habló más que el grupo de la familia.',
+    'El Borracho': 'Dijo «una y nos vamos»… y apenas va llegando.',
+    'El Negrito': '¡Ese paso sí trae ritmo! Se armó la pista de baile.',
+    'El Corazón': 'Late por ti… y por los tacos de la esquina.',
+    'La Sandía': 'Grande, fresca y con más semillas que mis pendientes.',
+    'El Tambor': '¡Que retumbe! Pero avísenle al vecino.',
+    'El Camarón': '¡El veracruzano! ¡El camarón! Este no se duerme.',
+    'Las Jaras': 'Directitas al blanco; ojalá así cayera la quincena.',
+    'El Músico': 'Le piden una y termina dando concierto completo.',
+    'La Araña': 'Ocho patas y aun así no llega temprano.',
+    'El Soldado': '¡Firmes! Pero sin tirar los frijolitos.',
+    'La Estrella': 'La del cielo; la de esta mesa todavía no canta lotería.',
+    'El Cazo': '¡Caso cerrado! ¡El cazo! Aquí se cocina el chisme.',
+    'El Mundo': 'Da tantas vueltas como yo buscando las llaves.',
+    'El Apache': 'La puntería lista; que nadie mueva la tabla.',
+    'El Nopal': 'Da tunas y pone límites: ¡no me abraces tan fuerte!',
+    'El Alacrán': 'Chiquito, pero no le anden buscando cosquillas.',
+    'La Rosa': 'Bonita, pero con carácter: cuidado con las espinas.',
+    'La Calavera': 'Sonríe para la foto… ¡siempre sale igual!',
+    'La Campana': '¡Tilín, tilín! No es el recreo: sigue marcando.',
+    'El Cantarito': 'Trae más fiesta que toda la mesa junta.',
+    'El Venado': '¡El Venao! ¿Quién pidió pista para bailar?',
+    'El Sol': 'Ya salió el sol; guarda la cobija y marca tu carta.',
+    'La Corona': 'La reina de la mesa todavía está buscando la última.',
+    'La Chalupa': 'Esta navega; la de la cena lleva salsa.',
+    'El Pino': 'Todavía no es diciembre y ya quiere los regalos.',
+    'El Pescado': '¡El primo del veracruzano! ¡El pescado! Llegó con la marea.',
+    'La Palma': 'De vacaciones todo el año, y uno aquí trabajando.',
+    'La Maceta': 'Mucho estilo y cero ganas de cambiarse de casa.',
+    'El Arpa': 'Suena celestial; mis vecinos no opinan igual.',
+    'La Rana': '¡Brinca, brinca! Pero no te saltes ninguna carta.',
 }
+COLORES_LOTERIA = {'rosa': '#d95386', 'azul': '#3e7fc4', 'verde': '#318e72',
+                   'morado': '#8055ba', 'naranja': '#d78036', 'rojo': '#c74747',
+                   'turquesa': '#258d98', 'dorado': '#a88328'}
+AUDIOS_LOTERIA = {44: 'venado', 7: 'botella', 1: 'diablito', 29: 'camaron', 49: 'pescado', 35: 'cazo'}
+
+
+def audios_loteria():
+    carpeta = Path(__file__).resolve().parent / 'static' / 'audio' / 'loteria'
+    return {i: f'/static/audio/loteria/{n}.mp3' for i, n in AUDIOS_LOTERIA.items() if (carpeta / (n + '.mp3')).is_file()}
 
 
 class Loteria(MesaBase):
@@ -731,10 +790,16 @@ class Loteria(MesaBase):
 
     def preparar(self, sala):
         super().preparar(sala)
-        sala.update(lot=None, intervalo=5, modo_lot='llena')
+        sala.update(lot=None, intervalo=5, modo_lot='llena', preferencias_lot={})
+
+    def _preferencias(self, sala, pid):
+        return sala['preferencias_lot'].get(pid, {'cantidad': 1, 'colores': ['rosa', 'azul', 'verde']})
 
     def _tabla(self):
         return random.sample(range(len(CARTAS_LOTERIA)), 16)
+
+    def _tablas(self, e, pid):
+        return [e['tablas'][pid]] + e.get('tablas_extra', {}).get(pid, []) if pid in e['tablas'] else []
 
     def _completa(self, tabla, cantadas, modo):
         marcadas = [c in cantadas for c in tabla]
@@ -743,6 +808,10 @@ class Loteria(MesaBase):
         lineas = [range(r * 4, r * 4 + 4) for r in range(4)] + [range(c, 16, 4) for c in range(4)] + [(0, 5, 10, 15), (3, 6, 9, 12)]
         return any(all(marcadas[i] for i in l) for l in lineas) or all(marcadas[i] for i in (0, 3, 12, 15))
 
+    def _ganadora(self, sala, pid):
+        return next((i for i, t in enumerate(self._tablas(sala['lot'], pid))
+                     if self._completa(t, sala['lot']['cantadas'], sala['modo_lot'])), None)
+
     def tick(self, sala):
         e = sala.get('lot')
         if not e or sala['fase'] != 'jugando':
@@ -750,12 +819,13 @@ class Loteria(MesaBase):
         if ahora() >= e['siguiente'] and e['mazo']:
             e['cantadas'].append(e['mazo'].pop())
             e['siguiente'] = ahora() + sala['intervalo']
-        # los bots gritan ¡Lotería! un ratito después de completar
-        for p, t in e['tablas'].items():
-            if es_bot(p) and p in sala['jugadores'] and self._completa(t, e['cantadas'], sala['modo_lot']):
-                e.setdefault('bot_listo', {}).setdefault(p, ahora() + random.uniform(1.5, 4))
-                if ahora() > e['bot_listo'][p]:
-                    return self._gana(sala, p)
+        for p in e['tablas']:
+            if es_bot(p) and p in sala['jugadores']:
+                indice = self._ganadora(sala, p)
+                if indice is not None:
+                    e.setdefault('bot_listo', {}).setdefault(p, ahora() + random.uniform(1.5, 4))
+                    if ahora() > e['bot_listo'][p]:
+                        return self._gana(sala, p, indice)
         if not e['mazo'] and ahora() > e['siguiente'] + 10:
             e['ganador'] = None
             sala['fase'] = 'resultado'
@@ -763,25 +833,31 @@ class Loteria(MesaBase):
     def gano(self, sala, pid):
         return (sala.get('lot') or {}).get('ganador') == pid
 
-    def _gana(self, sala, p):
+    def _gana(self, sala, p, indice=0):
         e = sala['lot']
-        e['ganador'] = p
+        e['ganador'], e['indice_ganadora'] = p, indice
         sala['jugadores'][p]['puntos'] += 100
         sala['fase'] = 'resultado'
 
     def vista(self, sala, pid, args):
         v = {'bots': [p for p in sala['orden'] if es_bot(p)], 'intervalo': sala['intervalo'], 'modo_lot': sala['modo_lot'],
-             'cartas': CARTAS_LOTERIA}
+             'cartas': CARTAS_LOTERIA, 'versos': [VERSOS[n] for n, _ in CARTAS_LOTERIA],
+             'colores_disponibles': COLORES_LOTERIA, 'preferencias': self._preferencias(sala, pid), 'audios': audios_loteria(),
+             'tablas_por_jugador': {p: self._preferencias(sala, sala['host'] if es_bot(p) else p)['cantidad'] for p in sala['orden']}}
         e = sala.get('lot')
         if not e or sala['fase'] == 'lobby':
             return v
         actual = e['cantadas'][-1] if e['cantadas'] else None
-        v.update(cantadas=e['cantadas'], actual=actual, verso=VERSOS.get(CARTAS_LOTERIA[actual][0]) if actual is not None else None,
-                 mi_tabla=e['tablas'].get(pid), siguiente=e['siguiente'], quedan=len(e['mazo']), castigo=e['castigo'].get(pid, 0))
+        v.update(cantadas=e['cantadas'], actual=actual, verso=VERSOS[CARTAS_LOTERIA[actual][0]] if actual is not None else None,
+                 mi_tabla=e['tablas'].get(pid), mis_tablas=self._tablas(e, pid), mis_colores=e['colores'].get(pid, []),
+                 siguiente=e['siguiente'], quedan=len(e['mazo']), castigo=e['castigo'].get(pid, 0))
         if sala['fase'] == 'resultado':
             v['ganador_ronda'] = e.get('ganador')
             if e.get('ganador'):
-                v['tabla_ganadora'] = e['tablas'][e['ganador']]
+                indice = e.get('indice_ganadora', 0)
+                v['tabla_ganadora'] = self._tablas(e, e['ganador'])[indice]
+                v['numero_tabla_ganadora'] = indice + 1
+                v['color_ganadora'] = e['colores'][e['ganador']][indice]
         return v
 
     def accion(self, sala, pid, accion, datos, es_host):
@@ -789,7 +865,17 @@ class Loteria(MesaBase):
         if hecha:
             return r
         e = sala.get('lot')
-        if accion == 'iniciar':
+        if accion == 'configurar_tablas':
+            if sala['fase'] not in ('lobby', 'resultado'):
+                return {'error': 'Elige tus tablas antes de comenzar la ronda'}
+            cantidad = datos.get('cantidad')
+            colores = datos.get('colores')
+            if type(cantidad) is not int or not 1 <= cantidad <= 3:
+                return {'error': 'Puedes jugar con una, dos o tres tablas'}
+            if not isinstance(colores, list) or len(colores) != 3 or any(not isinstance(c, str) or c not in COLORES_LOTERIA for c in colores):
+                return {'error': 'Elige un color disponible para cada tabla'}
+            sala['preferencias_lot'][pid] = {'cantidad': cantidad, 'colores': colores[:]}
+        elif accion == 'iniciar':
             if sala['fase'] == 'jugando':
                 return None
             error = self.puede_empezar(sala, es_host)
@@ -801,15 +887,29 @@ class Loteria(MesaBase):
                 sala['modo_lot'] = datos['modo']
             mazo = list(range(len(CARTAS_LOTERIA)))
             random.shuffle(mazo)
-            sala['lot'] = {'mazo': mazo, 'cantadas': [], 'tablas': {p: self._tabla() for p in activos(sala)},
+            primeras, extras, colores = {}, {}, {}
+            for p in activos(sala):
+                preferencia = self._preferencias(sala, sala['host'] if es_bot(p) else p)
+                tablas = []
+                while len(tablas) < preferencia['cantidad']:
+                    tabla = self._tabla()
+                    if not any(set(tabla) == set(t) for t in tablas):
+                        tablas.append(tabla)
+                primeras[p], extras[p], colores[p] = tablas[0], tablas[1:], preferencia['colores'][:len(tablas)]
+            sala['lot'] = {'mazo': mazo, 'cantadas': [], 'tablas': primeras, 'tablas_extra': extras, 'colores': colores,
                            'siguiente': ahora() + 3, 'castigo': {}}
             sala['fase'] = 'jugando'
             sala['ronda'] += 1
         elif accion == 'loteria' and e and sala['fase'] == 'jugando' and pid in e['tablas']:
             if e['castigo'].get(pid, 0) > ahora():
                 return {'error': 'Espera tu castigo ⏳'}
-            if self._completa(e['tablas'][pid], e['cantadas'], sala['modo_lot']):
-                self._gana(sala, pid)
+            indice = datos.get('tabla')
+            if indice is not None and (type(indice) is not int or not 0 <= indice < len(self._tablas(e, pid))):
+                return {'error': 'Esa tabla no pertenece a tu juego'}
+            if indice is None:
+                indice = self._ganadora(sala, pid)
+            if indice is not None and self._completa(self._tablas(e, pid)[indice], e['cantadas'], sala['modo_lot']):
+                self._gana(sala, pid, indice)
             else:
                 e['castigo'][pid] = ahora() + 10
                 return {'error': '¡Todavía no! 😅 Castigo de 10 segundos'}

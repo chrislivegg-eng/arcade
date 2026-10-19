@@ -94,3 +94,9 @@ static/js/graficos3d.js
 templates/juego_templo.html
 static/templo.css
 static/js/templo.js
+
+static/loteria.css
+static/js/loteria.js
+static/img/bandera-mexico.svg
+static/audio/loteria/README.md
+static/img/README.md
