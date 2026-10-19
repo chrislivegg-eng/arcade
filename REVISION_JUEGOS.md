@@ -20,7 +20,7 @@ Instalar las dependencias de `requirements.txt` en un entorno virtual y ejecutar
 python -m unittest discover -s tests -v
 ```
 
-Las 15 pruebas cubren páginas y recursos de todos los juegos registrados, salas y eventos de duelo, récords, turnos/victoria/revancha de Dardos, partidas completas de los seis juegos de fiesta adicionales, los dos juegos originales de salas, victoria del impostor al adivinar, control de permisos, actualización desde el app.py antiguo y la lista completa de archivos de despliegue, incluida Batalla Naval 3D.
+Las pruebas del servidor cubren páginas y recursos de todos los juegos registrados, salas y eventos de duelo, récords, turnos/victoria/revancha de Dardos, partidas completas de los seis juegos de fiesta adicionales, los dos juegos originales de salas, victoria del impostor al adivinar, control de permisos, actualización desde el app.py antiguo y la lista completa de archivos de despliegue, incluida Batalla Naval 3D.
 
 Para las pruebas de navegador se necesita Node.js, Playwright y Microsoft Edge. Con la aplicación disponible en `http://127.0.0.1:5055`:
 
@@ -34,6 +34,8 @@ node tests/impostor-check.cjs
 node tests/naval-check.cjs
 node tests/pong-check.cjs
 node tests/new-games-check.cjs
+node tests/puzzle-check.cjs
+node tests/uno-check.cjs
 ```
 
 Se puede indicar `PLAYWRIGHT_PATH` para usar una instalación existente de Playwright y `PLAYWRIGHT_CHANNEL` para seleccionar otro canal de Chromium.
@@ -76,3 +78,17 @@ Se incorporan Air Hockey, Ping Pong, Billar 8, Karts y Zombis, sus rutas y sus e
 - Karts limita cuentas y avisos de meta a la carrera que los creó.
 - Zombis descarta animaciones, recargas, oleadas y resultados de partidas anteriores; la retirada de un enemigo verifica que siga perteneciendo a la lista.
 - Ping Pong y Air Hockey descartan saques y continuaciones de puntos o goles de una partida anterior.
+
+## Tableros, rompecabezas y perfiles
+
+Se integran UNO, Ajedrez, Damas, Wordle en español, Serpientes y Escaleras, Parchís, 2048, Combina 3, Sudoku y Buscaminas. Se conservan los juegos y correcciones anteriores.
+
+Wordle valida el diccionario incluido y bloquea entradas durante la animación. Sudoku bloquea entradas al quedarse sin vidas y cancela la derrota pendiente al reiniciar. Los nueve juegos de duelo descartan continuaciones de sesiones anteriores, incluidos dados, coronación, finales de tablero y cascadas. El logro de Combina 3 corresponde a una línea de cinco dulces.
+
+Los perfiles se guardan en UTF-8 mediante reemplazo de archivo. Las partidas de arcade reciben una ficha del servidor al comenzar; sus eventos se procesan en orden y el fin solo se cobra una vez. Los reenvíos y fichas expiradas no vuelven a entregar premios. En fiesta se comprueba pertenencia, ronda y resultado directamente en la sala; recargar el resultado no vuelve a cobrarlo. Las compras fallidas no descuentan monedas ni cambian el avatar. Un archivo de perfiles ilegible se conserva y produce error, en lugar de reemplazarse con perfiles vacíos.
+
+Los juegos locales y los duelos de arcade continúan calculando su resultado en el navegador: las monedas son recompensas recreativas, no un sistema contra clientes modificados. Las rondas de fiesta usan el resultado del servidor. Los perfiles siguen ligados al identificador de este navegador; no hay cuentas con contraseña ni sincronización automática entre dispositivos.
+
+La suite tiene 21 pruebas Python. `puzzle-check.cjs` cubre arranque PC/móvil, Wordle y premios, vidas y solución de Sudoku, posiciones legales de Ajedrez, fusiones y cancelación de animaciones, finales de tablero y conexión/jugadas o resultados de los nueve duelos. `uno-check.cjs` completa una ronda PC/móvil, comprueba el logro del ganador y recarga la página para verificar que no duplique monedas.
+
+No se agregaron Box, corredor infinito, tiro con arco, hockey sobre hielo/voleibol ni rompe-ladrillos: estos juegos no estaban en los cambios de Claude revisados.

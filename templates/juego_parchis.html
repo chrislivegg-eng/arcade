@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c14" />
+    <title>Parchís · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: radial-gradient(ellipse at top, #2b2d5a, #0e0f1f 70%);
+      }
+      #zona {
+        position: fixed;
+        top: calc(84px + env(safe-area-inset-top));
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+      #tablero {
+        --lado: min(96vw, calc(100vh - 230px), 560px);
+        --k: calc(var(--lado) / 15);
+        position: relative;
+        width: var(--lado);
+        height: var(--lado);
+        display: grid;
+        grid-template-columns: repeat(15, 1fr);
+        grid-template-rows: repeat(15, 1fr);
+        background: #fff;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 5px solid #fff;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+      }
+      .c {
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        display: grid;
+        place-items: center;
+        font-size: calc(var(--k) * 0.55);
+        color: rgba(0, 0, 0, 0.35);
+      }
+      .c.vacio {
+        border: none;
+      }
+      .base {
+        border-radius: 18px;
+        margin: 6%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        place-items: center;
+        box-shadow: inset 0 0 0 calc(var(--k) * 0.55) rgba(255, 255, 255, 0.85);
+      }
+      .meta {
+        background: conic-gradient(from 225deg, #ff4f4f 0 25%, #26b86b 0 50%, #ffcc00 0 75%, #3a86ff 0);
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+      }
+      .rojo {
+        background: #ff4f4f;
+      }
+      .verde {
+        background: #26b86b;
+      }
+      .amarillo {
+        background: #ffcc00;
+      }
+      .azul {
+        background: #3a86ff;
+      }
+      .c.claro.rojo {
+        background: #ffb3b3;
+      }
+      .c.claro.verde {
+        background: #a8e6c4;
+      }
+      .c.claro.amarillo {
+        background: #ffe680;
+      }
+      .c.claro.azul {
+        background: #a9c8ff;
+      }
+      .ficha {
+        position: absolute;
+        width: calc(var(--k) * 0.78);
+        height: calc(var(--k) * 0.78);
+        margin: calc(var(--k) * 0.11);
+        border-radius: 50%;
+        border: 3px solid #fff;
+        box-shadow:
+          0 3px 0 rgba(0, 0, 0, 0.35),
+          0 5px 8px rgba(0, 0, 0, 0.3);
+        transition:
+          left 0.17s ease-out,
+          top 0.17s ease-out,
+          transform 0.17s;
+        z-index: 3;
+        pointer-events: none;
+      }
+      .ficha.mueve {
+        z-index: 5;
+        pointer-events: auto;
+        cursor: pointer;
+        animation: latido 0.5s infinite alternate;
+        box-shadow:
+          0 0 0 3px #fff,
+          0 0 16px 4px #fff;
+      }
+      #fila-dado {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      #dado {
+        width: 74px;
+        height: 74px;
+        border-radius: 18px;
+        background: #fff;
+        border: none;
+        box-shadow:
+          0 6px 0 #c7c7c7,
+          0 10px 20px rgba(0, 0, 0, 0.35);
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        padding: 10px;
+        cursor: pointer;
+      }
+      #dado:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      #dado.puede {
+        animation: latido 0.6s infinite alternate;
+      }
+      #dado.girando {
+        animation: girar 0.15s linear infinite;
+      }
+      @keyframes girar {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #dado i {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #2d3436;
+        place-self: center;
+        visibility: hidden;
+      }
+      #dado i.on {
+        visibility: visible;
+      }
+      #texto-turno {
+        font-weight: 900;
+        font-size: 1.05rem;
+        max-width: 190px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona" class="oculto">
+      <div id="tablero"></div>
+      <div id="fila-dado">
+        <button id="dado"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></button>
+        <div id="texto-turno"></div>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, sonar } = Arcade;
+      // =================== TABLERO ===================
+      // Recorrido de 52 casillas en una cuadrícula de 15x15 (fila, columna)
+      const RECORRIDO = [];
+      (() => {
+        const tramo = (r, c, dr, dc, n) => {
+          for (let i = 0; i < n; i++) RECORRIDO.push([r + dr * i, c + dc * i]);
+        };
+        tramo(6, 1, 0, 1, 5);
+        tramo(5, 6, -1, 0, 6);
+        tramo(0, 7, 0, 1, 2);
+        tramo(1, 8, 1, 0, 5);
+        tramo(6, 9, 0, 1, 6);
+        tramo(7, 14, 1, 0, 2);
+        tramo(8, 13, 0, -1, 5);
+        tramo(9, 8, 1, 0, 6);
+        tramo(14, 7, 0, -1, 2);
+        tramo(13, 6, -1, 0, 5);
+        tramo(8, 5, 0, -1, 6);
+        tramo(7, 0, -1, 0, 2);
+      })();
+      const COLORES = ["rojo", "verde", "amarillo", "azul"];
+      const TONO = { rojo: "#ff4f4f", verde: "#26b86b", amarillo: "#ffcc00", azul: "#3a86ff" };
+      const SALIDA = [0, 13, 26, 39]; // dónde entra cada color al recorrido
+      const SEGUROS = new Set([0, 13, 26, 39, 8, 21, 34, 47]);
+      // pasillo final de cada color (5 casillas) y bases
+      const PASILLO = [
+        [1, 2, 3, 4, 5].map((c) => [7, c]),
+        [1, 2, 3, 4, 5].map((r) => [r, 7]),
+        [13, 12, 11, 10, 9].map((c) => [7, c]),
+        [13, 12, 11, 10, 9].map((r) => [r, 7]),
+      ];
+      const BASE = [
+        [0, 0],
+        [0, 9],
+        [9, 9],
+        [9, 0],
+      ];
+      const META = 56; // 0..50 recorrido, 51..55 pasillo, 56 = llegó
+
+      (() => {
+        const celdas = Array.from({ length: 225 }, () => ({ clase: "c vacio", txt: "" }));
+        RECORRIDO.forEach(([r, c], i) => {
+          const k = SALIDA.indexOf(i);
+          celdas[r * 15 + c] = { clase: "c" + (k >= 0 ? " claro " + COLORES[k] : ""), txt: SEGUROS.has(i) ? (k >= 0 ? "" : "★") : "" };
+        });
+        PASILLO.forEach((l, k) => l.forEach(([r, c]) => (celdas[r * 15 + c] = { clase: "c " + COLORES[k], txt: "" })));
+        let html = "";
+        for (let r = 0; r < 15; r++)
+          for (let c = 0; c < 15; c++) {
+            const base = BASE.findIndex(([br, bc]) => r === br && c === bc);
+            if (base >= 0) {
+              html += `<div class="base ${COLORES[base]}" style="grid-row:${r + 1}/span 6;grid-column:${c + 1}/span 6"></div>`;
+              continue;
+            }
+            if (BASE.some(([br, bc]) => r >= br && r < br + 6 && c >= bc && c < bc + 6)) continue;
+            if (r === 6 && c === 6) {
+              html += `<div class="meta" style="grid-row:7/span 3;grid-column:7/span 3"></div>`;
+              continue;
+            }
+            if (r >= 6 && r <= 8 && c >= 6 && c <= 8) continue;
+            const x = celdas[r * 15 + c];
+            html += `<div class="${x.clase}" style="grid-row:${r + 1};grid-column:${c + 1}">${x.txt}</div>`;
+          }
+        $("tablero").innerHTML = html;
+      })();
+
+      // ¿en qué celda (fila, col) se dibuja la ficha k del color j?
+      function celda(j, k, prog) {
+        if (prog < 0) {
+          const [br, bc] = BASE[j];
+          return [br + 1.5 + (k >> 1) * 2, bc + 1.5 + (k & 1) * 2];
+        }
+        if (prog >= META) return [7 + [0, -1, 0, 1][j] * 0.75 + (k >> 1) * 0.3 - 0.15, 7 + [-1, 0, 1, 0][j] * 0.75 + (k & 1) * 0.3 - 0.15];
+        if (prog > 50) return PASILLO[j][prog - 51];
+        return RECORRIDO[(SALIDA[j] + prog) % 52];
+      }
+      const absoluta = (j, prog) => (prog >= 0 && prog <= 50 ? (SALIDA[j] + prog) % 52 : -1);
+
+      // =================== PARTIDA ===================
+      const PUNTOS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+      function dibujarDado(v) {
+        [...$("dado").children].forEach((p, i) => p.classList.toggle("on", PUNTOS[v].includes(i)));
+      }
+      dibujarDado(6);
+
+      const J = { activa: false };
+      const ui = Arcade.ui({
+        juego: "parchis",
+        titulo: "Parchís",
+        emoji: "🎲",
+        subtitulo: "Lleva tus 4 fichas a la meta",
+        modos: ["bot", "online", "local"],
+        textosModo: { bot: "🤖 Contra 3 bots" },
+        dificultad: true,
+        reglas: [
+          "Necesitas sacar <b>6</b> para sacar una ficha de tu casa.",
+          "Con 6 vuelves a tirar.",
+          "Si caes donde está una ficha rival, ¡se la comes! Se regresa a su casa y tú tiras otra vez.",
+          "En las casillas con ★ y en las salidas nadie te puede comer.",
+          "Da la vuelta completa, entra por tu pasillo de color y llega exacto a la meta.",
+          "Gana el primero en meter sus 4 fichas.",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.sesion = (J.sesion || 0) + 1;
+          J.activa = false;
+          clearTimeout(J.timerBot);
+          $("zona").classList.add("oculto");
+        },
+      });
+      const pendientes = {};
+      ui.alEvento = (tipo, d) => {
+        if (tipo !== "jugada" || !d || d.partida !== J.partida) return;
+        pendientes[d.n] = d;
+        siguientePendiente();
+      };
+      function siguientePendiente() {
+        if (J.ocupado || !pendientes[J.n]) return;
+        const d = pendientes[J.n];
+        delete pendientes[J.n];
+        jugarRemota(d);
+      }
+
+      function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
+        clearTimeout(J.timerBot);
+        Object.keys(pendientes).forEach((k) => delete pendientes[k]);
+        // en bot juegan los 4 colores; en 2 jugadores, rojo contra amarillo
+        const colores = modo === "bot" ? [0, 1, 2, 3] : [0, 2];
+        const nombres = {};
+        if (modo === "bot") {
+          nombres[0] = info.nombres[0];
+          nombres[1] = "Bot Verde";
+          nombres[2] = "Bot Amarillo";
+          nombres[3] = "Bot Azul";
+        } else {
+          nombres[0] = info.nombres[0];
+          nombres[2] = info.nombres[1];
+        }
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          dificultad: info.dificultad,
+          colores,
+          nombres,
+          fichas: { 0: [-1, -1, -1, -1], 1: [-1, -1, -1, -1], 2: [-1, -1, -1, -1], 3: [-1, -1, -1, -1] },
+          turno: 0,
+          dado: null,
+          n: 0,
+          seises: 0,
+          activa: true,
+          ocupado: false,
+        });
+        J.yo = modo === "online" ? (ui.yo === 0 ? 0 : 2) : 0;
+        document.querySelectorAll(".ficha").forEach((f) => f.remove());
+        for (const j of colores)
+          for (let k = 0; k < 4; k++) {
+            const f = document.createElement("div");
+            f.className = "ficha " + COLORES[j];
+            f.id = `f${j}${k}`;
+            f.onclick = () => elegir(k);
+            $("tablero").appendChild(f);
+          }
+        $("zona").classList.remove("oculto");
+        colocarTodas();
+        actualizar();
+      }
+
+      function colocarTodas() {
+        // si varias fichas caen en la misma casilla se acomodan
+        const ocupadas = {};
+        for (const j of J.colores)
+          J.fichas[j].forEach((p, k) => {
+            const [r, c] = celda(j, k, p);
+            const clave = p < 0 || p >= META ? `x${j}${k}` : `${r},${c}`;
+            const n = (ocupadas[clave] = (ocupadas[clave] || 0) + 1) - 1;
+            const f = $(`f${j}${k}`);
+            f.style.left = `calc(var(--k) * ${c + (n % 2) * 0.22})`;
+            f.style.top = `calc(var(--k) * ${r + (n >> 1) * 0.22})`;
+            f.style.transform = n ? "scale(.82)" : "";
+          });
+      }
+
+      const humano = (j) => (J.modo === "local" ? true : J.modo === "online" ? j === J.yo : j === 0);
+      const miTurno = () => J.activa && !J.ocupado && humano(J.turno);
+
+      function actualizar() {
+        const t = J.turno;
+        const nombre = Arcade.esc(J.nombres[t]);
+        $("texto-turno").innerHTML = !J.activa
+          ? ""
+          : miTurno()
+            ? J.dado == null
+              ? J.modo === "local"
+                ? `Tira <b style="color:${TONO[COLORES[t]]}">${nombre}</b> 🎲`
+                : "¡Te toca! Tira el dado 🎲"
+              : "Elige qué ficha mover 👆"
+            : `Turno de <b style="color:${TONO[COLORES[t]]}">${nombre}</b>…`;
+        $("dado").disabled = !(miTurno() && J.dado == null);
+        $("dado").classList.toggle("puede", miTurno() && J.dado == null);
+        const enMeta = (j) => J.fichas[j].filter((p) => p >= META).length;
+        const lado = (j) => ({ nombre: J.nombres[j] + (humano(j) && J.modo !== "local" ? " (tú)" : ""), valor: `${enMeta(j)}/4`, detalle: "en la meta", activo: J.activa && J.turno === j, color: TONO[COLORES[j]] });
+        if (J.modo === "bot") {
+          // tú contra el bot que va mejor
+          const rival = [1, 2, 3].sort((a, b) => enMeta(b) - enMeta(a) || (J.turno === b) - (J.turno === a))[0];
+          ui.marcador([lado(0), { ...lado(J.turno !== 0 ? J.turno : rival) }]);
+        } else ui.marcador([lado(0), lado(2)]);
+        if (J.activa && !humano(J.turno) && J.modo === "bot" && !J.ocupado) {
+          clearTimeout(J.timerBot);
+          J.timerBot = setTimeout(turnoBot, 700);
+        }
+      }
+
+      // a dónde llegaría una ficha (o null si no puede moverse)
+      function destino(j, k, v) {
+        const p = J.fichas[j][k];
+        if (p >= META) return null;
+        if (p < 0) return v === 6 ? 0 : null;
+        const nuevo = p + v;
+        if (nuevo > META) return null;
+        return nuevo;
+      }
+      const movibles = (j, v) => [0, 1, 2, 3].filter((k) => destino(j, k, v) != null);
+
+      function tirarDado() {
+        if (!miTurno() || J.dado != null) return;
+        lanzar(1 + Math.floor(Math.random() * 6));
+      }
+      $("dado").onclick = tirarDado;
+
+      async function animarDado(v) {
+        const sesionEspera = J.sesion;
+        $("dado").classList.add("girando");
+        for (let i = 0; i < 6; i++) {
+          dibujarDado(1 + Math.floor(Math.random() * 6));
+          sonar("click");
+          await esperar(65);
+          if (sesionEspera !== J.sesion || !J.activa) return;
+        }
+        $("dado").classList.remove("girando");
+        dibujarDado(v);
+      }
+
+      async function lanzar(v) {
+        const sesionEspera = J.sesion;
+        J.ocupado = true;
+        actualizar();
+        await animarDado(v);
+        if (sesionEspera !== J.sesion || !J.activa) return;
+        J.dado = v;
+        J.ocupado = false;
+        const opciones = movibles(J.turno, v);
+        if (!opciones.length) {
+          ui.avisar(v === 6 ? "No puedes mover 😅" : "Sin jugadas 🤷", "#9a90aa");
+          await esperar(700);
+          if (sesionEspera !== J.sesion || !J.activa) return;
+          return mover(-1);
+        }
+        if (opciones.length === 1 || new Set(opciones.map((k) => J.fichas[J.turno][k])).size === 1) return mover(opciones[0]);
+        actualizar();
+        opciones.forEach((k) => $(`f${J.turno}${k}`).classList.add("mueve"));
+      }
+
+      function elegir(k) {
+        if (!miTurno() || J.dado == null || !movibles(J.turno, J.dado).includes(k)) return;
+        mover(k);
+      }
+
+      async function mover(k, remota) {
+        const j = J.turno,
+          v = J.dado;
+        document.querySelectorAll(".ficha.mueve").forEach((f) => f.classList.remove("mueve"));
+        if (!remota && J.modo === "online") ui.enviar("jugada", { partida: J.partida, n: J.n, valor: v, ficha: k });
+        J.ocupado = true;
+        const sesionActual = J.sesion;
+        const partida = J.partida;
+        let extra = v === 6;
+        if (k >= 0) {
+          const desde = J.fichas[j][k];
+          const hasta = destino(j, k, v);
+          // paso a paso
+          for (let p = desde < 0 ? 0 : desde + 1; p <= hasta; p++) {
+            if (sesionActual !== J.sesion || partida !== J.partida) return;
+            J.fichas[j][k] = p;
+            colocarTodas();
+            sonar("ping", 0.35);
+            await esperar(desde < 0 ? 150 : 170);
+            if (sesionActual !== J.sesion) return;
+          }
+          // ¿se comió a alguien?
+          const abs = absoluta(j, hasta);
+          if (abs >= 0 && !SEGUROS.has(abs)) {
+            for (const o of J.colores) {
+              if (o === j) continue;
+              J.fichas[o].forEach((p, kk) => {
+                if (absoluta(o, p) === abs) {
+                  J.fichas[o][kk] = -1;
+                  extra = true;
+                  ui.avisar(`😋 ¡${J.nombres[j]} se comió una ficha!`, TONO[COLORES[j]]);
+                  sonar("golpe");
+                }
+              });
+            }
+          }
+          if (hasta === META) {
+            ui.avisar("🏁 ¡Ficha en la meta!", TONO[COLORES[j]]);
+            sonar("perfecto", 1.3);
+          }
+          colocarTodas();
+        }
+        await esperar(300);
+        if (sesionActual !== J.sesion || partida !== J.partida) return;
+        J.n++;
+        J.dado = null;
+        J.ocupado = false;
+        if (J.fichas[j].every((p) => p >= META)) return fin(j);
+        if (!extra) J.turno = J.colores[(J.colores.indexOf(j) + 1) % J.colores.length];
+        else if (k >= 0 || v === 6) ui.avisar("🎲 ¡Tira otra vez!", TONO[COLORES[j]]);
+        actualizar();
+        siguientePendiente();
+      }
+
+      async function jugarRemota(d) {
+        const sesionEspera = J.sesion;
+        J.ocupado = true;
+        await animarDado(d.valor);
+        if (sesionEspera !== J.sesion || !J.activa) return;
+        J.dado = d.valor;
+        J.ocupado = false;
+        mover(d.ficha, true);
+      }
+
+      // =================== BOTS ===================
+      async function turnoBot() {
+        const sesionEspera = J.sesion;
+        if (!J.activa || humano(J.turno) || J.ocupado) return;
+        const j = J.turno;
+        const v = 1 + Math.floor(Math.random() * 6);
+        J.ocupado = true;
+        await animarDado(v);
+        if (sesionEspera !== J.sesion || !J.activa) return;
+        J.dado = v;
+        J.ocupado = false;
+        const ops = movibles(j, v);
+        if (!ops.length) {
+          await esperar(400);
+          if (sesionEspera !== J.sesion || !J.activa) return;
+          return mover(-1);
+        }
+        let mejor = ops[Math.floor(Math.random() * ops.length)];
+        if (J.dificultad !== "facil" || Math.random() < 0.3) {
+          const valor = (k) => {
+            const h = destino(j, k, v);
+            const abs = absoluta(j, h);
+            let s = h; // avanzar
+            if (J.fichas[j][k] < 0) s += 40; // sacar ficha
+            if (h === META) s += 60;
+            if (abs >= 0 && !SEGUROS.has(abs) && J.colores.some((o) => o !== j && J.fichas[o].some((p) => absoluta(o, p) === abs))) s += 100; // comer
+            if (abs >= 0 && SEGUROS.has(abs)) s += 15;
+            if (J.dificultad === "pro" && abs >= 0 && !SEGUROS.has(abs)) {
+              // ¿quedaría expuesta a menos de 6 casillas de un rival?
+              const peligro = J.colores.some((o) => o !== j && J.fichas[o].some((p) => p >= 0 && p <= 50 && ((abs - absoluta(o, p) + 52) % 52) <= 6 && ((abs - absoluta(o, p) + 52) % 52) > 0));
+              if (peligro) s -= 30;
+            }
+            return s + Math.random() * 5;
+          };
+          mejor = ops.reduce((a, b) => (valor(b) > valor(a) ? b : a));
+        }
+        await esperar(350);
+        if (sesionEspera !== J.sesion || !J.activa) return;
+        mover(mejor);
+      }
+
+      function fin(j) {
+        J.activa = false;
+        actualizar();
+        const gane = J.modo === "local" || humano(j);
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({
+          emoji: gane ? "🏆" : "😿",
+          texto: J.modo === "local" ? `¡Ganó ${J.nombres[j]}!` : gane ? "¡Ganaste el Parchís!" : `Ganó ${J.nombres[j]}`,
+          nota: J.colores.map((c) => `${J.nombres[c]}: ${J.fichas[c].filter((p) => p >= META).length}/4`).join(" · "),
+          gano: J.modo !== "local" && humano(j),
+        });
+      }
+    </script>
+  </body>
+</html>

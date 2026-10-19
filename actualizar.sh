@@ -3,7 +3,7 @@
 # 🔄 Actualiza el arcade en PythonAnywhere desde GitHub
 # =======================================================
 # Úsalo desde una consola Bash de PythonAnywhere:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/chrislivegg-eng/arcade/main/actualizar.sh)
+#   CARPETA="$PWD" RAMA=main bash <(curl -fsSL https://raw.githubusercontent.com/chrislivegg-eng/arcade/main/actualizar.sh)
 
 set -e
 
@@ -46,7 +46,7 @@ codigo, corregidas = re.subn(
     r"(records_pixel_art=leer_records\(ARCHIVO_PIXEL_ART\))([ \t]*\n)",
     r"\1,\2", codigo)
 cambios = bool(corregidas)
-for modulo, bp in [("fiesta", "fiesta_bp"), ("dardos", "dardos_bp"), ("duelo", "duelo_bp")]:
+for modulo, bp in [("fiesta", "fiesta_bp"), ("dardos", "dardos_bp"), ("duelo", "duelo_bp"), ("perfil", "perfil_bp")]:
     if f"register_blueprint({bp})" in codigo:
         continue
     codigo = re.sub(r"^(from flask import .*)$", rf"\1\nfrom {modulo} import {bp}", codigo, count=1, flags=re.M)
@@ -64,7 +64,7 @@ else:
     print("   ✅ app.py ya estaba listo")
 EOF
 
-python3 -m py_compile app.py fiesta.py fiesta_juegos.py dardos.py duelo.py
+python3 -m py_compile app.py fiesta.py fiesta_juegos.py dardos.py duelo.py perfil.py fiesta_uno.py
 echo "   ✅ app.py no tiene errores"
 
 echo "🔄 Recargando la página..."

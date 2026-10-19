@@ -796,6 +796,7 @@
   }
   function start(mode, room = "", player = "p1") {
     clearSession();
+    window.Perfil && Perfil.iniciar("naval", { modo: mode });
     state.mode = mode;
     state.room = room;
     state.player = player;
@@ -993,6 +994,7 @@
     if (state.phase === "finished") return;
     state.phase = "finished";
     state.won = won;
+    window.Perfil && Perfil.evento("naval", "fin", { gano: won });
     clearInterval(pollTimer);
     status(
       won ? "Victoria. La flota rival ha caído." : "Tu flota ha sido hundida.",

@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c14" />
+    <title>2048 · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: radial-gradient(ellipse at top, #3a2350, #120c14 70%);
+      }
+      #zona {
+        position: fixed;
+        top: calc(84px + env(safe-area-inset-top));
+        bottom: calc(60px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        display: grid;
+        place-items: center;
+        touch-action: none;
+      }
+      #tablero {
+        --lado: min(94vw, calc(100vh - 170px), 460px);
+        --gap: calc(var(--lado) * 0.03);
+        --cel: calc((var(--lado) - var(--gap) * 5) / 4);
+        position: relative;
+        width: var(--lado);
+        height: var(--lado);
+        background: #2a1f38;
+        border-radius: 16px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+      .hueco,
+      .ficha {
+        position: absolute;
+        width: var(--cel);
+        height: var(--cel);
+        border-radius: 12px;
+        left: 0;
+        top: 0;
+        transform: translate(calc(var(--gap) + var(--c) * (var(--cel) + var(--gap))), calc(var(--gap) + var(--r) * (var(--cel) + var(--gap))));
+      }
+      .hueco {
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .ficha {
+        display: grid;
+        place-items: center;
+        font-weight: 900;
+        font-size: calc(var(--cel) * 0.42);
+        transition: transform 0.11s ease-in-out;
+        z-index: 1;
+      }
+      .ficha span {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        background: var(--fondo);
+        color: var(--tinta, #fff);
+        box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+      }
+      .ficha.nueva span {
+        animation: aparecer 0.18s ease-out;
+      }
+      .ficha.fusion span {
+        animation: fusion 0.2s ease-out;
+      }
+      .ficha.fusion {
+        z-index: 2;
+      }
+      .ficha.chica {
+        font-size: calc(var(--cel) * 0.32);
+      }
+      .ficha.mini {
+        font-size: calc(var(--cel) * 0.25);
+      }
+      @keyframes aparecer {
+        from {
+          transform: scale(0);
+        }
+      }
+      @keyframes fusion {
+        50% {
+          transform: scale(1.18);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona" class="oculto"><div id="tablero"></div></div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, sonar } = Arcade;
+      const SEGUNDOS_DUELO = 180;
+      const COLORES = {
+        2: ["#fde2f0", "#6b3a55"],
+        4: ["#ffc9e3", "#6b3a55"],
+        8: ["#ff9f6b"],
+        16: ["#ff7f50"],
+        32: ["#ff5f5f"],
+        64: ["#ff3b3b"],
+        128: ["#ffd84f", "#5a4000"],
+        256: ["#ffcb2f", "#5a4000"],
+        512: ["#ffb800", "#4a3000"],
+        1024: ["#7be0ad", "#0d4a2a"],
+        2048: ["#26de81"],
+        4096: ["#4fb3ff"],
+        8192: ["#a29bfe"],
+      };
+
+      const J = { activa: false };
+      let ids = 0;
+
+      const ui = Arcade.ui({
+        juego: "2048",
+        titulo: "2048",
+        emoji: "🔢",
+        subtitulo: "Desliza y junta números iguales",
+        modos: ["solo", "bot", "online"],
+        textosModo: { bot: "🤖 Carrera contra el bot (3 min)", online: "🌐 Carrera online (3 min)" },
+        dificultad: true,
+        records: true,
+        unidadRecord: "pts",
+        reglas: [
+          "Desliza el dedo (o usa las flechas) para mover TODAS las fichas.",
+          "Dos fichas iguales que chocan se juntan: 2+2=4, 4+4=8…",
+          "¡Llega a la ficha 2048! Y si puedes, sigue.",
+          "Se acaba cuando ya no puedes mover nada.",
+          `En carrera ganas si tienes más puntos al terminar los ${SEGUNDOS_DUELO / 60} minutos.`,
+        ],
+        alEmpezar: empezar,
+        alSalir: parar,
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "puntos") {
+          J.rival.puntos = d.puntos;
+          J.rival.max = d.max;
+          marcador();
+        } else if (tipo === "fin") {
+          J.rival = { ...J.rival, ...d, fin: true };
+          revisarFin();
+        }
+      };
+
+      // ---------- Tablero ----------
+      const vacio = () => [0, 1, 2, 3].map(() => [null, null, null, null]);
+      $("tablero").innerHTML = Array.from({ length: 16 }, (_, i) => `<div class="hueco" style="--r:${(i / 4) | 0};--c:${i % 4}"></div>`).join("");
+
+      function crearFicha(t, clase) {
+        const el = document.createElement("div");
+        const [fondo, tinta] = COLORES[t.v] || ["#2d3436"];
+        el.className = "ficha " + (clase || "") + (t.v >= 1024 ? " mini" : t.v >= 128 ? " chica" : "");
+        el.style.setProperty("--fondo", fondo);
+        if (tinta) el.style.setProperty("--tinta", tinta);
+        el.innerHTML = `<span>${t.v}</span>`;
+        t.el = el;
+        colocar(t);
+        $("tablero").appendChild(el);
+      }
+      function colocar(t) {
+        t.el.style.setProperty("--r", t.r);
+        t.el.style.setProperty("--c", t.c);
+      }
+
+      function libres(g) {
+        const l = [];
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (!g[r][c]) l.push([r, c]);
+        return l;
+      }
+      function nacer(g, rand, comoNumero) {
+        const l = libres(g);
+        if (!l.length) return null;
+        const [r, c] = l[Math.floor(rand() * l.length)];
+        const v = rand() < 0.9 ? 2 : 4;
+        g[r][c] = comoNumero ? v : { id: ++ids, v, r, c };
+        return g[r][c];
+      }
+
+      // recorre cada línea empezando por el lado hacia donde se mueve
+      function lineas(dir) {
+        return [0, 1, 2, 3].map((k) =>
+          [0, 1, 2, 3].map((i) => {
+            const j = dir === "der" || dir === "aba" ? 3 - i : i;
+            return dir === "izq" || dir === "der" ? [k, j] : [j, k];
+          }),
+        );
+      }
+      // versión con fichas (para animar)
+      function mover(g, dir) {
+        const ng = vacio();
+        let puntos = 0,
+          movio = false;
+        const muertos = [],
+          nacidos = [];
+        for (const linea of lineas(dir)) {
+          let pos = 0,
+            previa = null;
+          for (const [r, c] of linea) {
+            const t = g[r][c];
+            if (!t) continue;
+            if (previa && previa.v === t.v && !previa.nueva) {
+              const [dr, dc] = linea[pos - 1];
+              t.r = dr;
+              t.c = dc;
+              muertos.push(t, previa);
+              const n = { id: ++ids, v: t.v * 2, r: dr, c: dc, nueva: true };
+              ng[dr][dc] = n;
+              nacidos.push(n);
+              puntos += n.v;
+              previa = n;
+              movio = true;
+            } else {
+              const [dr, dc] = linea[pos++];
+              if (dr !== r || dc !== c) movio = true;
+              t.r = dr;
+              t.c = dc;
+              ng[dr][dc] = t;
+              previa = t;
+            }
+          }
+        }
+        nacidos.forEach((n) => delete n.nueva);
+        return { g: ng, puntos, movio, muertos, nacidos };
+      }
+      // versión con números (para el bot)
+      function moverNum(g, dir) {
+        const ng = [0, 1, 2, 3].map(() => [0, 0, 0, 0]);
+        let puntos = 0,
+          movio = false;
+        for (const linea of lineas(dir)) {
+          let pos = 0,
+            previa = 0,
+            fusion = false;
+          for (const [r, c] of linea) {
+            const v = g[r][c];
+            if (!v) continue;
+            if (previa === v && !fusion) {
+              const [dr, dc] = linea[pos - 1];
+              ng[dr][dc] = v * 2;
+              puntos += v * 2;
+              movio = true;
+              fusion = true;
+              previa = v * 2;
+            } else {
+              const [dr, dc] = linea[pos++];
+              if (dr !== r || dc !== c) movio = true;
+              ng[dr][dc] = v;
+              previa = v;
+              fusion = false;
+            }
+          }
+        }
+        return { g: ng, puntos, movio };
+      }
+      const DIRS = ["izq", "der", "arr", "aba"];
+      const puedeMover = (num) => DIRS.some((d) => moverNum(num, d).movio);
+      const aNumeros = (g) => g.map((f) => f.map((t) => (t ? t.v : 0)));
+      const maximo = (num) => Math.max(...num.flat());
+
+      // ---------- Partida ----------
+      function parar() {
+        J.sesion = (J.sesion || 0) + 1;
+        J.activa = false;
+        clearInterval(J.reloj);
+        clearTimeout(J.timerBot);
+        $("zona").classList.add("oculto");
+      }
+
+      function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
+        parar();
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          nombres: info.nombres,
+          dificultad: info.dificultad,
+          rand: Arcade.rng(info.semilla),
+          g: vacio(),
+          puntos: 0,
+          max: 2,
+          movimientos: 0,
+          miFin: null,
+          rival: { puntos: 0, max: 2, fin: false },
+          llego2048: false,
+          activa: true,
+          ocupado: false,
+        });
+        $("zona").classList.remove("oculto");
+        document.querySelectorAll(".ficha").forEach((e) => e.remove());
+        for (let i = 0; i < 2; i++) crearFicha(nacer(J.g, J.rand), "nueva");
+        J.fin = modo === "solo" ? null : Date.now() + SEGUNDOS_DUELO * 1000;
+        if (J.fin) J.reloj = setInterval(tic, 250);
+        if (modo === "bot") empezarBot(info.semilla);
+        ui.ayuda("👆 Desliza para mover");
+        marcador();
+      }
+
+      function tic() {
+        if (!J.activa) return;
+        if (!J.miFin && Date.now() >= J.fin) {
+          ui.avisar("⏱️ ¡Tiempo!", "#ffd84f");
+          terminarMio();
+        }
+        marcador();
+      }
+
+      function marcador() {
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: J.puntos, detalle: `Ficha mayor: ${J.max}`, activo: true }, null]);
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const s = Math.max(0, Math.ceil((J.fin - Date.now()) / 1000));
+        const reloj = `⏱️ ${(s / 60) | 0}:${String(s % 60).padStart(2, "0")}`;
+        const mio = { nombre: J.nombres[yo] + " (tú)", valor: J.puntos, detalle: J.miFin ? "✅ Terminaste" : `${reloj} · ${J.max}`, activo: !J.miFin };
+        const suyo = { nombre: J.nombres[1 - yo], valor: J.rival.puntos, detalle: J.rival.fin ? "✅ Terminó" : `Ficha ${J.rival.max}` };
+        ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
+      }
+
+      async function jugada(dir) {
+        const sesionEspera = J.sesion;
+        if (!J.activa || J.miFin || J.ocupado) return;
+        const r = mover(J.g, dir);
+        if (!r.movio) return;
+        J.ocupado = true;
+        J.g = r.g;
+        J.puntos += r.puntos;
+        J.movimientos++;
+        // mueve todas las fichas (las que se juntan también viajan)
+        J.g.flat().forEach((t) => t && t.el && colocar(t));
+        r.muertos.forEach(colocar);
+        sonar(r.puntos ? "ping" : "click", r.puntos ? 0.6 : 0.4);
+        await esperar(115);
+        if (sesionEspera !== J.sesion || !J.activa) return;
+        r.muertos.forEach((t) => t.el.remove());
+        r.nacidos.forEach((t) => crearFicha(t, "fusion"));
+        crearFicha(nacer(J.g, J.rand), "nueva");
+        const num = aNumeros(J.g);
+        const antes = J.max;
+        J.max = maximo(num);
+        if (J.max > antes && J.max >= 128) ui.avisar(`¡${J.max}! ✨`, (COLORES[J.max] || ["#4fb3ff"])[0]);
+        if (J.max >= 2048 && !J.llego2048) {
+          J.llego2048 = true;
+          sonar("ganar");
+          ui.avisar("🎉 ¡LLEGASTE A 2048! 🎉<small>Sigue para más puntos</small>", "#26de81");
+          window.Perfil && Perfil.evento("2048", "ficha", { valor: J.max });
+        }
+        if (J.movimientos === 3) ui.ayuda("");
+        J.ocupado = false;
+        avisarPuntos();
+        marcador();
+        if (!puedeMover(num)) {
+          ui.avisar("Sin movimientos 😵", "#ff3b3b");
+          await esperar(900);
+          if (sesionEspera !== J.sesion || !J.activa) return;
+          terminarMio();
+        }
+      }
+
+      let ultimoEnvio = 0;
+      function avisarPuntos(forzar) {
+        if (J.modo !== "online") return;
+        if (!forzar && Date.now() - ultimoEnvio < 1200) return;
+        ultimoEnvio = Date.now();
+        ui.enviar("puntos", { partida: J.partida, puntos: J.puntos, max: J.max });
+      }
+
+      function terminarMio() {
+        if (J.miFin || !J.activa) return;
+        J.miFin = { puntos: J.puntos, max: J.max };
+        if (J.modo === "solo") {
+          J.activa = false;
+          sonar(J.max >= 2048 ? "ganar" : "perder");
+          return ui.terminar({ emoji: J.max >= 2048 ? "🏆" : "🔢", texto: `${J.puntos} puntos`, nota: `Ficha mayor: ${J.max}`, record: J.puntos, gano: J.max >= 2048 });
+        }
+        if (J.modo === "online") ui.enviar("fin", { partida: J.partida, puntos: J.puntos, max: J.max });
+        if (J.modo === "bot") terminarBotYa();
+        ui.ayuda(J.rival.fin ? "" : "Esperando a tu rival… ⏳");
+        revisarFin();
+      }
+
+      function revisarFin() {
+        marcador();
+        if (!J.miFin || !J.rival.fin || !J.activa) return;
+        parar();
+        ui.ayuda("");
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const rival = J.nombres[1 - yo];
+        const empate = J.miFin.puntos === J.rival.puntos;
+        const gane = J.miFin.puntos > J.rival.puntos;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({
+          emoji: empate ? "🤝" : gane ? "🏆" : "😿",
+          texto: empate ? "¡Empate!" : gane ? "¡Ganaste la carrera!" : `Ganó ${rival}`,
+          nota: `Tú: ${J.miFin.puntos} (ficha ${J.miFin.max}) · ${rival}: ${J.rival.puntos} (ficha ${J.rival.max})`,
+          record: J.miFin.puntos,
+          gano: gane,
+        });
+      }
+
+      // ---------- Controles ----------
+      let toque = null;
+      $("zona").addEventListener("pointerdown", (e) => (toque = { x: e.clientX, y: e.clientY }));
+      $("zona").addEventListener("pointerup", (e) => {
+        if (!toque) return;
+        const dx = e.clientX - toque.x,
+          dy = e.clientY - toque.y;
+        toque = null;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+        jugada(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "der" : "izq") : dy > 0 ? "aba" : "arr");
+      });
+      document.addEventListener("keydown", (e) => {
+        const d = { ArrowLeft: "izq", ArrowRight: "der", ArrowUp: "arr", ArrowDown: "aba", a: "izq", d: "der", w: "arr", s: "aba" }[e.key];
+        if (d && J.activa && document.activeElement.tagName !== "INPUT") {
+          e.preventDefault();
+          jugada(d);
+        }
+      });
+
+      // ---------- Bot: juega su propio tablero ----------
+      const PESOS = [
+        [4096, 1024, 256, 64],
+        [1024, 256, 64, 16],
+        [256, 64, 16, 4],
+        [64, 16, 4, 1],
+      ];
+      function valorar(g) {
+        let s = 0,
+          vacias = 0;
+        for (let r = 0; r < 4; r++)
+          for (let c = 0; c < 4; c++) {
+            s += g[r][c] * PESOS[r][c];
+            if (!g[r][c]) vacias++;
+          }
+        return s + vacias * 4000;
+      }
+      function elegirBot(g) {
+        const validas = DIRS.map((d) => [d, moverNum(g, d)]).filter(([, r]) => r.movio);
+        if (!validas.length) return null;
+        if (J.dificultad === "facil" && Math.random() < 0.55) return validas[Math.floor(Math.random() * validas.length)][1];
+        let mejor = null,
+          mejorV = -Infinity;
+        for (const [, r] of validas) {
+          let v;
+          if (J.dificultad === "pro") {
+            // promedio de dónde podría salir la ficha nueva
+            const l = libres(r.g);
+            v = 0;
+            for (const [y, x] of l) {
+              r.g[y][x] = 2;
+              v += 0.9 * valorar(r.g);
+              r.g[y][x] = 4;
+              v += 0.1 * valorar(r.g);
+              r.g[y][x] = 0;
+            }
+            v = l.length ? v / l.length : valorar(r.g);
+          } else v = valorar(r.g) + (J.dificultad === "normal" ? Math.random() * 3000 : 0);
+          if (v > mejorV) {
+            mejorV = v;
+            mejor = r;
+          }
+        }
+        return mejor;
+      }
+      const RITMO = { facil: 1100, normal: 750, pro: 520 };
+      function pasoBot() {
+        const r = elegirBot(J.bot.g);
+        if (!r) return false;
+        J.bot.g = r.g;
+        J.rival.puntos += r.puntos;
+        nacer(J.bot.g, J.bot.rand, true);
+        J.rival.max = maximo(J.bot.g);
+        return true;
+      }
+      function empezarBot(semilla) {
+        J.bot = { g: [0, 1, 2, 3].map(() => [0, 0, 0, 0]), rand: Arcade.rng(semilla + 99) };
+        nacer(J.bot.g, J.bot.rand, true);
+        nacer(J.bot.g, J.bot.rand, true);
+        const sesionActual = J.sesion;
+        const partida = J.partida;
+        const turno = () => {
+          if (sesionActual !== J.sesion || partida !== J.partida || !J.activa || J.rival.fin) return;
+          if (Date.now() >= J.fin || !pasoBot()) {
+            J.rival.fin = true;
+            return revisarFin();
+          }
+          marcador();
+          J.timerBot = setTimeout(turno, RITMO[J.dificultad] * Arcade.azar(0.7, 1.3));
+        };
+        J.timerBot = setTimeout(turno, 1200);
+      }
+      // si terminas antes, el bot juega rapidito lo que le quedaba de tiempo
+      function terminarBotYa() {
+        if (J.rival.fin) return;
+        clearTimeout(J.timerBot);
+        let quedan = Math.max(0, (J.fin - Date.now()) / RITMO[J.dificultad]);
+        while (quedan-- > 0 && pasoBot());
+        J.rival.fin = true;
+      }
+    </script>
+  </body>
+</html>

@@ -514,6 +514,7 @@
       </div>
     </div>
 
+    <script src="{{ url_for('static', filename='js/perfil.js') }}"></script>
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
     <script>
       // =========================================================
@@ -1188,6 +1189,7 @@
       }
 
       function empezarPartida(modo, nombres) {
+        window.Perfil && Perfil.iniciar("dardos", { modo, dificultad: J.dificultad });
         limpiarTablero();
         Object.assign(J, {
           modo,
@@ -1208,6 +1210,8 @@
 
       function mostrarFin(ganador) {
         J.terminado = true;
+        const gane = J.modo === "online" ? ganador === O.yo : J.modo === "bot" ? ganador === 0 : false;
+        window.Perfil && Perfil.evento("dardos", "fin", { gano: gane, modo: J.modo, dificultad: J.dificultad === "pro" ? "pro" : J.dificultad });
         actualizarHUD();
         let texto = `¡Ganó ${J.nombres[ganador]}!`,
           emoji = "🏆";
@@ -1403,6 +1407,7 @@
 
         // Empezó la partida (o una revancha)
         if (J.modo !== "online" || (anterior && e.turno_n < J.turnoN) || (anterior && anterior.fase === "terminado" && e.fase === "jugando")) {
+          window.Perfil && Perfil.iniciar("dardos", { modo: "online", dificultad: J.dificultad });
           J.modo = "online";
           J.terminado = false;
           J.turnoN = e.turno_n;

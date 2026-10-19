@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ff3385" />
+    <title>Mi perfil · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='fiesta.css') }}" />
+    <style>
+      .cabeza { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+      .cara-grande { width: 110px; height: 110px; border-radius: 50%; display: grid; place-items: center; font-size: 4rem; background: #fff; border: 6px solid var(--marco, #ff4f8b); box-shadow: 0 10px 30px rgba(0,0,0,.15); }
+      .monedas-grandes { font-size: 1.6rem; font-weight: 900; color: #e8930c; }
+      .rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 10px; }
+      .opcion { position: relative; aspect-ratio: 1; border-radius: 18px; border: 3px solid #f1e3ec; background: #fff; display: grid; place-items: center; font-size: 2rem; cursor: pointer; font-family: inherit; padding: 0; }
+      .opcion.puesto { border-color: var(--morado); box-shadow: 0 0 0 3px rgba(108,92,231,.25); }
+      .opcion.bloqueado { opacity: .55; }
+      .opcion .precio { position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); background: #ffd34f; color: #6b4a00; font-size: .7rem; font-weight: 900; padding: 1px 6px; border-radius: 10px; white-space: nowrap; }
+      .opcion .muestra { width: 60%; height: 60%; border-radius: 50%; }
+      .estadisticas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+      .estadisticas div { background: var(--rosa-claro); border-radius: 16px; padding: 10px 4px; }
+      .estadisticas b { display: block; font-size: 1.5rem; color: var(--rosa); }
+      .estadisticas small { font-weight: 800; opacity: .8; }
+      .logros { display: grid; gap: 8px; }
+      .logro { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 16px; background: #f7f3fb; }
+      .logro .icono { font-size: 2rem; filter: grayscale(1); opacity: .45; }
+      .logro.si { background: linear-gradient(135deg, #fff4d6, #ffe6f0); }
+      .logro.si .icono { filter: none; opacity: 1; }
+      .logro b { display: block; }
+      .logro small { opacity: .8; font-weight: 700; }
+      .logro .premio { margin-left: auto; font-weight: 900; color: #e8930c; white-space: nowrap; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="tarjeta cabeza">
+        <div id="cara" class="cara-grande">😺</div>
+        <div class="fila" style="width: 100%">
+          <input id="nombre" class="campo" maxlength="14" placeholder="Tu nombre" autocomplete="nickname" />
+          <button id="guardar" class="boton morado" style="flex: 0 0 auto; width: auto; padding: 0 18px">Guardar</button>
+        </div>
+        <div class="monedas-grandes">🪙 <span id="monedas">0</span></div>
+        <p class="nota">Ganas monedas jugando: 5 por partida, +10 si ganas, +5 online, +15 por récord y más con los logros.</p>
+      </div>
+
+      <div id="error" class="error"></div>
+
+      <div class="tarjeta pila">
+        <h2>📈 Mis números</h2>
+        <div class="estadisticas">
+          <div><b id="st-partidas">0</b><small>Partidas</small></div>
+          <div><b id="st-victorias">0</b><small>Victorias</small></div>
+          <div><b id="st-juegos">0</b><small>Juegos</small></div>
+        </div>
+      </div>
+
+      <div class="tarjeta pila">
+        <h2>😺 Avatar</h2>
+        <div class="rejilla" id="avatares">
+          {% for emoji, precio in avatares %}
+          <button class="opcion" data-tipo="avatar" data-valor="{{ emoji }}" data-precio="{{ precio }}">{{ emoji }}{% if precio %}<span class="precio">🪙 {{ precio }}</span>{% endif %}</button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="tarjeta pila">
+        <h2>🎨 Marco</h2>
+        <div class="rejilla" id="marcos">
+          {% for color, precio in marcos %}
+          <button class="opcion" data-tipo="marco" data-valor="{{ color }}" data-precio="{{ precio }}">
+            <span class="muestra {% if color == 'arcoiris' %}marco-arcoiris{% elif color == 'oro' %}marco-oro{% endif %}" style="{% if color == 'arcoiris' %}background: linear-gradient(90deg,#ff4f8b,#ffd84f,#26de81,#4fb3ff,#a29bfe){% elif color == 'oro' %}background: linear-gradient(135deg,#ffd700,#f7b731){% else %}background: {{ color }}{% endif %}"></span>
+            {% if precio %}<span class="precio">🪙 {{ precio }}</span>{% endif %}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="tarjeta pila">
+        <h2>🏅 Logros (<span id="cuenta-logros">0</span>/{{ logros|length }})</h2>
+        <div class="logros">
+          {% for l in logros %}
+          <div class="logro" data-id="{{ l.id }}">
+            <span class="icono">{{ l.icono }}</span>
+            <span><b>{{ l.nombre }}</b><small>{{ l.descripcion }}</small></span>
+            {% if l.premio %}<span class="premio">🪙 {{ l.premio }}</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <a class="boton morado" href="/records" style="text-decoration: none; text-align: center">📊 Ver tabla de récords</a>
+      <div class="pie"><a href="/secreto">← Volver al menú de juegos</a></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/perfil.js') }}"></script>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      function pintar(d) {
+        if (!d) return;
+        const cara = $("cara");
+        cara.textContent = d.avatar;
+        cara.className = "cara-grande " + Perfil.claseMarco(d.marco);
+        cara.style.setProperty("--marco", d.marco);
+        if (document.activeElement !== $("nombre")) $("nombre").value = d.nombre;
+        $("monedas").textContent = d.monedas;
+        $("st-partidas").textContent = d.stats.partidas || 0;
+        $("st-victorias").textContent = d.stats.victorias || 0;
+        $("st-juegos").textContent = d.juegos.length;
+        document.querySelectorAll(".opcion").forEach((b) => {
+          const v = b.dataset.valor;
+          const precio = +b.dataset.precio;
+          const tengo = precio === 0 || d.comprados.includes(v);
+          b.classList.toggle("puesto", d[b.dataset.tipo] === v);
+          b.classList.toggle("bloqueado", !tengo);
+          const etiqueta = b.querySelector(".precio");
+          if (etiqueta) etiqueta.style.display = tengo ? "none" : "";
+        });
+        let n = 0;
+        document.querySelectorAll(".logro").forEach((l) => {
+          const si = !!d.logros[l.dataset.id];
+          l.classList.toggle("si", si);
+          if (si) n++;
+        });
+        $("cuenta-logros").textContent = n;
+      }
+      async function cambiar(cambios) {
+        $("error").textContent = "";
+        try {
+          pintar(await Perfil.editar(cambios));
+        } catch (e) {
+          $("error").textContent = e.message;
+        }
+      }
+      document.querySelectorAll(".opcion").forEach((b) =>
+        b.addEventListener("click", () => {
+          const d = Perfil.datos;
+          const precio = +b.dataset.precio;
+          if (d && precio > 0 && !d.comprados.includes(b.dataset.valor)) {
+            if (d.monedas < precio) {
+              $("error").textContent = `Te faltan ${precio - d.monedas} monedas 🪙 ¡Sigue jugando!`;
+              return;
+            }
+            if (!confirm(`¿Comprar por ${precio} monedas?`)) return;
+          }
+          cambiar({ [b.dataset.tipo]: b.dataset.valor });
+        }),
+      );
+      $("guardar").addEventListener("click", () => {
+        const nombre = $("nombre").value.trim();
+        if (nombre) cambiar({ nombre }).then(() => Perfil.avisar('<span class="icono">✅</span> Nombre guardado', "", 1800));
+      });
+      pintar(Perfil.datos);
+      Perfil.cargar().then(pintar);
+    </script>
+  </body>
+</html>

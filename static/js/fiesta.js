@@ -156,9 +156,24 @@ const Fiesta = (() => {
       estado = nuevo;
       pintarJugadores();
       config.pintar(estado, $("zona-juego"));
+      avisarPerfil();
     } catch (e) {
       if (/no existe|Ya no estás/.test(e.message)) salirAlInicio(e.message);
     }
+  }
+
+  // al terminar una ronda o el juego: monedas y logros en el perfil
+  let ultimoAvisoPerfil = "";
+  function avisarPerfil() {
+    if (!window.Perfil || (estado.fase !== "final" && estado.fase !== "resultado")) return;
+    const clave = `${codigo}:${estado.ronda}`;
+    if (clave === ultimoAvisoPerfil) return;
+    ultimoAvisoPerfil = clave;
+    const mayor = Math.max(...estado.jugadores.map((j) => j.puntos));
+    const mio = (estado.jugadores.find((j) => j.id === PID) || {}).puntos || 0;
+    // si el juego dice quién ganó la ronda (UNO), se usa eso
+    const gano = estado.ganador_ronda != null ? estado.ganador_ronda === PID : mio > 0 && mio === mayor;
+    Perfil.evento(config.juego, "fin", { codigo, ronda: estado.ronda }, null);
   }
 
   function pintarJugadores() {
@@ -172,7 +187,7 @@ const Fiesta = (() => {
             ? `<button class="quitar" title="Sacar" onclick="Fiesta.expulsar('${j.id}')">✕</button>`
             : "";
         return `<div class="jugador ${listo ? "listo" : ""}">
-          <div class="avatar" style="background:${colorDe(j.id)}">${esc(j.nombre.charAt(0).toUpperCase())}</div>
+          <div class="avatar" style="background:${colorDe(j.id)}">${esc(([...j.nombre][0] || "?").toUpperCase())}</div>
           <div class="nombre">${esc(j.nombre)}${j.id === PID ? " (tú)" : ""}</div>
           ${j.id === estado.host ? '<span class="etiqueta">👑 Anfitrión</span>' : ""}
           ${listo ? "✅" : ""}

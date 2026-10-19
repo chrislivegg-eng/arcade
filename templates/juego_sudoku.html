@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c14" />
+    <title>Sudoku · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: radial-gradient(ellipse at top, #1f3050, #0c1018 70%);
+      }
+      #zona {
+        position: fixed;
+        top: calc(84px + env(safe-area-inset-top));
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 0 8px;
+      }
+      #tablero {
+        --lado: min(96vw, calc(100vh - 300px), 470px);
+        width: var(--lado);
+        height: var(--lado);
+        display: grid;
+        grid-template-columns: repeat(9, 1fr);
+        background: #f4f1fa;
+        border: 3px solid #2b2140;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+      }
+      .celda {
+        position: relative;
+        display: grid;
+        place-items: center;
+        font-size: calc(var(--lado) / 15);
+        font-weight: 900;
+        color: #4f5bd5;
+        border-right: 1px solid #c9c2d8;
+        border-bottom: 1px solid #c9c2d8;
+        cursor: pointer;
+      }
+      .celda.fija {
+        color: #2b2140;
+      }
+      .celda:nth-child(9n + 3),
+      .celda:nth-child(9n + 6) {
+        border-right: 2px solid #2b2140;
+      }
+      .celda:nth-child(9n) {
+        border-right: none;
+      }
+      .celda:nth-child(n + 19):nth-child(-n + 27),
+      .celda:nth-child(n + 46):nth-child(-n + 54) {
+        border-bottom: 2px solid #2b2140;
+      }
+      .celda.zona-sel {
+        background: #e4ddf3;
+      }
+      .celda.igual {
+        background: #c9bdf0;
+      }
+      .celda.sel {
+        background: #a99cf0;
+      }
+      .celda.error {
+        animation: error 0.5s;
+      }
+      @keyframes error {
+        30% {
+          background: #ff6b81;
+        }
+      }
+      .notas {
+        position: absolute;
+        inset: 1px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        font-size: calc(var(--lado) / 36);
+        color: #7a6f90;
+        font-weight: 800;
+        text-align: center;
+        line-height: 1.1;
+      }
+      #botones {
+        width: min(96vw, 470px);
+        display: flex;
+        gap: 8px;
+      }
+      #botones button,
+      .num {
+        flex: 1;
+        border: none;
+        border-radius: 12px;
+        font-family: inherit;
+        font-weight: 900;
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+      #botones button {
+        padding: 9px 4px;
+        background: rgba(255, 255, 255, 0.14);
+        color: #fff;
+        font-size: 0.9rem;
+      }
+      #botones button.activo {
+        background: #ffd84f;
+        color: #3a2a00;
+      }
+      #numeros {
+        width: min(96vw, 470px);
+        display: grid;
+        grid-template-columns: repeat(9, 1fr);
+        gap: 5px;
+      }
+      .num {
+        height: min(58px, 8vh);
+        background: #fff;
+        color: #4f5bd5;
+        font-size: 1.5rem;
+        position: relative;
+      }
+      .num small {
+        position: absolute;
+        bottom: 2px;
+        right: 5px;
+        font-size: 0.6rem;
+        color: #9a90aa;
+      }
+      .num.agotado {
+        opacity: 0.25;
+      }
+      #vidas {
+        font-size: 1.1rem;
+        letter-spacing: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona" class="oculto">
+      <div id="tablero"></div>
+      <div id="botones">
+        <button id="btn-notas">✏️ Notas</button>
+        <button id="btn-borrar">⌫ Borrar</button>
+        <button id="vidas" disabled>❤️❤️❤️</button>
+      </div>
+      <div id="numeros"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, sonar } = Arcade;
+      const PISTAS = { facil: 38, normal: 30, pro: 25 };
+      const BOT_SEG = { facil: 16, normal: 11, pro: 7 }; // segundos por casilla
+      const VIDAS = 3;
+      const NOMBRE_NIVEL = { facil: "Fácil", normal: "Normal", pro: "Difícil" };
+
+      const J = { activa: false };
+
+      const ui = Arcade.ui({
+        juego: "sudoku",
+        titulo: "Sudoku",
+        emoji: "🧩",
+        subtitulo: "Del 1 al 9 sin repetir",
+        modos: ["solo", "bot", "online"],
+        textosModo: { bot: "🤖 Carrera contra el bot", online: "🌐 Carrera online" },
+        dificultad: { etiqueta: "🧩 Dificultad", nombres: { pro: "Difícil" }, siempre: true },
+        records: true,
+        unidadRecord: "s",
+        reglas: [
+          "Llena el tablero: cada fila, columna y cuadro de 3×3 lleva del 1 al 9 sin repetir.",
+          "Toca una casilla y luego un número. Con ✏️ Notas apuntas posibles números.",
+          `Tienes ${VIDAS} vidas ❤️: cada número equivocado te quita una.`,
+          "En carrera los dos resuelven el MISMO sudoku: gana quien termine primero.",
+          "Online siempre es dificultad Normal.",
+        ],
+        alEmpezar: empezar,
+        alSalir: parar,
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "progreso") {
+          J.rival.llenas = d.llenas;
+          marcador();
+        } else if (tipo === "fin") {
+          J.rival.fin = d;
+          if (!J.miFin) {
+            if (d.resultado === "gano") return finDuelo(false, `${rivalNombre()} terminó primero`);
+            if (d.resultado === "perdio") return finDuelo(true, `${rivalNombre()} se quedó sin vidas`);
+          }
+        }
+      };
+
+      // =================== GENERADOR ===================
+      const fila = (i) => (i / 9) | 0,
+        col = (i) => i % 9,
+        caja = (i) => ((fila(i) / 3) | 0) * 3 + ((col(i) / 3) | 0);
+      function posibles(b, i) {
+        let usado = 0;
+        const f = fila(i),
+          c = col(i),
+          k = caja(i);
+        for (let j = 0; j < 81; j++) if (b[j] && (fila(j) === f || col(j) === c || caja(j) === k)) usado |= 1 << b[j];
+        const l = [];
+        for (let n = 1; n <= 9; n++) if (!(usado & (1 << n))) l.push(n);
+        return l;
+      }
+      // cuenta soluciones (hasta "limite"), eligiendo siempre la casilla con menos opciones
+      function contar(b, limite, rand) {
+        let mejor = -1,
+          opciones = null;
+        for (let i = 0; i < 81; i++) {
+          if (b[i]) continue;
+          const p = posibles(b, i);
+          if (!p.length) return 0;
+          if (!opciones || p.length < opciones.length) {
+            mejor = i;
+            opciones = p;
+            if (p.length === 1) break;
+          }
+        }
+        if (mejor < 0) return 1;
+        if (rand) opciones.sort(() => rand() - 0.5);
+        let total = 0;
+        for (const n of opciones) {
+          b[mejor] = n;
+          total += contar(b, limite - total, rand);
+          if (total >= limite) {
+            if (rand) return total; // al llenar nos quedamos con la solución
+            break;
+          }
+        }
+        b[mejor] = 0;
+        return total;
+      }
+      function generar(rand, pistas) {
+        const solucion = Array(81).fill(0);
+        contar(solucion, 1, rand);
+        const tablero = solucion.slice();
+        const orden = [...Array(81).keys()].sort(() => rand() - 0.5);
+        let llenas = 81;
+        for (const i of orden) {
+          if (llenas <= pistas) break;
+          const antes = tablero[i];
+          tablero[i] = 0;
+          if (contar(tablero.slice(), 2) !== 1) tablero[i] = antes;
+          else llenas--;
+        }
+        return { solucion, tablero };
+      }
+
+      // =================== PARTIDA ===================
+      function parar() {
+        J.sesion = (J.sesion || 0) + 1;
+        clearTimeout(J.timerDerrota);
+        J.activa = false;
+        clearInterval(J.reloj);
+        clearTimeout(J.timerBot);
+        $("zona").classList.add("oculto");
+      }
+      const rivalNombre = () => J.nombres[1 - (J.modo === "online" ? ui.yo : 0)];
+
+      function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
+        parar();
+        const nivel = modo === "online" ? "normal" : info.dificultad;
+        const { solucion, tablero } = generar(Arcade.rng(info.semilla), PISTAS[nivel]);
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          nombres: info.nombres,
+          nivel,
+          solucion,
+          fijas: tablero.map((v) => !!v),
+          b: tablero.slice(),
+          notas: Array.from({ length: 81 }, () => new Set()),
+          vacias: tablero.filter((v) => !v).length,
+          sel: -1,
+          modoNotas: false,
+          vidas: VIDAS,
+          inicio: Date.now(),
+          miFin: null,
+          rival: { llenas: 0, fin: null },
+          activa: true,
+        });
+        $("btn-notas").classList.remove("activo");
+        $("zona").classList.remove("oculto");
+        J.reloj = setInterval(marcador, 1000);
+        if (modo === "bot") empezarBot();
+        pintar();
+        marcador();
+        ui.ayuda("");
+      }
+
+      const reloj = (ms) => {
+        const s = Math.floor(ms / 1000);
+        return `${(s / 60) | 0}:${String(s % 60).padStart(2, "0")}`;
+      };
+      const llenas = () => J.b.filter((v, i) => v && !J.fijas[i]).length;
+
+      function marcador() {
+        if (!J.activa && !J.miFin) return;
+        const t = reloj((J.miFin ? J.miFin.ms : Date.now() - J.inicio) || 0);
+        const pct = Math.round((llenas() / J.vacias) * 100);
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: `⏱️ ${t}`, detalle: `${pct}% · ${NOMBRE_NIVEL[J.nivel]}`, activo: true }, null]);
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const mio = { nombre: J.nombres[yo] + " (tú)", valor: `${pct}%`, detalle: `⏱️ ${t}`, activo: true };
+        const suyo = { nombre: J.nombres[1 - yo], valor: `${Math.round((J.rival.llenas / J.vacias) * 100)}%`, detalle: J.rival.fin ? "🏁" : "Resolviendo…" };
+        ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
+      }
+
+      function pintar() {
+        const sel = J.sel,
+          v = sel >= 0 ? J.b[sel] : 0;
+        $("tablero").innerHTML = J.b
+          .map((n, i) => {
+            const clases = ["celda"];
+            if (J.fijas[i]) clases.push("fija");
+            if (sel >= 0 && (fila(i) === fila(sel) || col(i) === col(sel) || caja(i) === caja(sel))) clases.push("zona-sel");
+            if (v && n === v) clases.push("igual");
+            if (i === sel) clases.push("sel");
+            const notas = !n && J.notas[i].size ? `<div class="notas">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => `<span>${J.notas[i].has(k) ? k : ""}</span>`).join("")}</div>` : "";
+            return `<div class="${clases.join(" ")}" data-i="${i}">${n || ""}${notas}</div>`;
+          })
+          .join("");
+        const cuenta = Array(10).fill(0);
+        J.b.forEach((n) => n && cuenta[n]++);
+        $("numeros").innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button class="num ${cuenta[n] >= 9 ? "agotado" : ""}" data-n="${n}">${n}<small>${9 - cuenta[n]}</small></button>`).join("");
+        $("vidas").textContent = "❤️".repeat(J.vidas) + "🖤".repeat(VIDAS - J.vidas);
+      }
+
+      $("tablero").addEventListener("click", (e) => {
+        const c = e.target.closest(".celda");
+        if (!c || !J.activa) return;
+        J.sel = +c.dataset.i;
+        sonar("click");
+        pintar();
+      });
+      $("numeros").addEventListener("click", (e) => {
+        const b = e.target.closest(".num");
+        if (b) poner(+b.dataset.n);
+      });
+      $("btn-notas").onclick = () => {
+        J.modoNotas = !J.modoNotas;
+        $("btn-notas").classList.toggle("activo", J.modoNotas);
+      };
+      $("btn-borrar").onclick = () => {
+        if (!J.activa || J.sel < 0 || J.fijas[J.sel]) return;
+        J.notas[J.sel].clear();
+        pintar();
+      };
+      document.addEventListener("keydown", (e) => {
+        if (!J.activa || document.activeElement.tagName === "INPUT") return;
+        if (/^[1-9]$/.test(e.key)) poner(+e.key);
+        else if (e.key === "n") $("btn-notas").click();
+        else if (e.key === "Backspace" || e.key === "Delete") $("btn-borrar").click();
+        else {
+          const d = { ArrowUp: -9, ArrowDown: 9, ArrowLeft: -1, ArrowRight: 1 }[e.key];
+          if (d) {
+            e.preventDefault();
+            J.sel = J.sel < 0 ? 40 : (J.sel + d + 81) % 81;
+            pintar();
+          }
+        }
+      });
+
+      function poner(n) {
+        const i = J.sel;
+        if (!J.activa || J.miFin || J.vidas <= 0 || i < 0 || J.b[i]) return;
+        if (J.modoNotas) {
+          J.notas[i].has(n) ? J.notas[i].delete(n) : J.notas[i].add(n);
+          sonar("click");
+          return pintar();
+        }
+        if (J.solucion[i] !== n) {
+          J.vidas--;
+          sonar("perder");
+          ui.avisar("¡Ese no va! 💔", "#ff3b3b");
+          pintar();
+          const el = $("tablero").children[i];
+          el.classList.add("error");
+          if (J.vidas === 0) {
+            const sesion = J.sesion;
+            J.timerDerrota = setTimeout(() => { if (sesion === J.sesion) sinVidas(); }, 600);
+          }
+          return;
+        }
+        J.b[i] = n;
+        J.notas[i].clear();
+        // quita esa nota de los vecinos
+        J.notas.forEach((s, j) => (fila(j) === fila(i) || col(j) === col(i) || caja(j) === caja(i)) && s.delete(n));
+        sonar("ping", 0.6);
+        pintar();
+        marcador();
+        if (J.modo === "online") ui.enviar("progreso", { partida: J.partida, llenas: llenas() });
+        if (J.b.every(Boolean)) resuelto();
+      }
+
+      function resuelto() {
+        const ms = Date.now() - J.inicio;
+        J.miFin = { ms };
+        if (J.modo === "solo") {
+          parar();
+          sonar("ganar");
+          return ui.terminar({
+            emoji: "🏆",
+            texto: `¡Resuelto en ${reloj(ms)}!`,
+            nota: `Dificultad ${NOMBRE_NIVEL[J.nivel]} · ${VIDAS - J.vidas} errores`,
+            record: Math.round(ms / 1000),
+            gano: true,
+            datos: { nivel: J.nivel === "pro" ? "dificil" : J.nivel },
+          });
+        }
+        if (J.modo === "online") ui.enviar("fin", { partida: J.partida, resultado: "gano", ms });
+        finDuelo(true, `Lo resolviste en ${reloj(ms)}`);
+      }
+
+      function sinVidas() {
+        if (!J.activa) return;
+        J.miFin = { ms: Date.now() - J.inicio };
+        if (J.modo === "solo") {
+          parar();
+          return ui.terminar({ emoji: "💔", texto: "Te quedaste sin vidas", nota: `Llevabas ${Math.round((llenas() / J.vacias) * 100)}%`, gano: false });
+        }
+        if (J.modo === "online") ui.enviar("fin", { partida: J.partida, resultado: "perdio" });
+        finDuelo(false, "Te quedaste sin vidas 💔");
+      }
+
+      function finDuelo(gane, nota) {
+        if (!J.activa) return;
+        parar();
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({
+          emoji: gane ? "🏆" : "😿",
+          texto: gane ? "¡Ganaste la carrera!" : `Ganó ${rivalNombre()}`,
+          nota,
+          gano: gane,
+          datos: { nivel: J.nivel === "pro" ? "dificil" : J.nivel },
+        });
+      }
+
+      // =================== BOT ===================
+      function empezarBot() {
+        const sesionActual = J.sesion;
+        const partida = J.partida;
+        const turno = () => {
+          if (sesionActual !== J.sesion || partida !== J.partida || !J.activa) return;
+          J.rival.llenas++;
+          marcador();
+          if (J.rival.llenas >= J.vacias) {
+            J.rival.fin = true;
+            return finDuelo(false, `${rivalNombre()} terminó primero`);
+          }
+          J.timerBot = setTimeout(turno, BOT_SEG[J.nivel] * 1000 * Arcade.azar(0.4, 1.6));
+        };
+        J.timerBot = setTimeout(turno, BOT_SEG[J.nivel] * 1000);
+      }
+    </script>
+  </body>
+</html>

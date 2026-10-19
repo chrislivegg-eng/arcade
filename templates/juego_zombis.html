@@ -588,6 +588,7 @@
         if (!J.jugando) return;
         const sesion = J.sesion;
         J.jugando = false;
+        if (J.muertos) window.Perfil && Perfil.evento("zombis", "zombi", { n: J.muertos });
         sonar("perder");
         ui.avisar("💀 ¡Te alcanzaron!", "#ff3b3b");
         await esperar(1800);

@@ -47,6 +47,7 @@ class GamesTest(unittest.TestCase):
     def test_new_pages_and_static_assets(self):
         routes = ['/secreto', '/impostor', '/mas_probable', '/verdad_reto', '/dibuja',
                   '/trivia', '/basta', '/espia', '/verdades', '/completa_frase', '/juego_dardos', '/juego_naval']
+        routes += ['/uno', '/perfil', '/records']
         routes += ['/juego/' + game for game in duelo.JUEGOS]
         import re
         for url in routes:

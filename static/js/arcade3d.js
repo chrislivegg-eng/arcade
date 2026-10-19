@@ -5,6 +5,16 @@
 //   Arcade.ui({...}) → menú, marcador, avisos, modo online y récords
 //   Arcade.deslizar() → leer gestos de deslizar el dedo / mouse
 
+// Carga el perfil (avatar, monedas y logros) en todos los juegos
+const perfilListo = window.Perfil ? Promise.resolve(window.Perfil) : new Promise((resolver) => {
+  const s = document.createElement("script");
+  s.id = "script-perfil";
+  s.src = "/static/js/perfil.js";
+  s.onload = () => resolver(window.Perfil);
+  s.onerror = () => resolver(null);
+  document.head.appendChild(s);
+});
+
 const Arcade = (() => {
   const $ = (id) => document.getElementById(id);
   const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -401,6 +411,9 @@ const Arcade = (() => {
 
   function ui(config) {
     const modos = config.modos || ["bot", "online", "local"];
+    // dificultad: true, o { etiqueta, nombres: {facil, normal, pro}, siempre } para juegos sin bot
+    const dif = typeof config.dificultad === "object" ? config.dificultad : {};
+    const nombresDif = Object.assign({ facil: "Fácil", normal: "Normal", pro: "Pro" }, dif.nombres);
     const html = `
       <div id="hud" class="oculto">
         <div class="marcador">
@@ -417,6 +430,7 @@ const Arcade = (() => {
 
       <div id="menu" class="capa">
         <div class="tarjeta">
+          <div id="insignia-perfil" style="text-align:center"></div>
           <div class="titulo">
             <div class="emoji">${config.emoji}</div>
             <h1>${config.titulo}</h1>
@@ -425,12 +439,12 @@ const Arcade = (() => {
           <div class="etiqueta">Tu nombre</div>
           <input id="nombre" class="campo" maxlength="14" placeholder="Tu nombre" />
           ${
-            config.dificultad && modos.includes("bot")
-              ? `<div class="etiqueta">🤖 Dificultad del bot</div>
+            config.dificultad && (modos.includes("bot") || dif.siempre)
+              ? `<div class="etiqueta">${dif.etiqueta || "🤖 Dificultad del bot"}</div>
                  <div class="chips" id="chips-dificultad">
-                   <button class="chip" data-d="facil">Fácil</button>
-                   <button class="chip activo" data-d="normal">Normal</button>
-                   <button class="chip" data-d="pro">Pro</button>
+                   <button class="chip" data-d="facil">${nombresDif.facil}</button>
+                   <button class="chip activo" data-d="normal">${nombresDif.normal}</button>
+                   <button class="chip" data-d="pro">${nombresDif.pro}</button>
                  </div>`
               : ""
           }
@@ -511,6 +525,15 @@ const Arcade = (() => {
     }
 
     $("nombre").value = $("nombre-online").value = nombreGuardado();
+    // la insignia del perfil (avatar, nombre y monedas) arriba del menú
+    const esperarPerfil = setInterval(() => {
+      if (!window.Perfil) return;
+      clearInterval(esperarPerfil);
+      Perfil.insignia($("insignia-perfil"));
+      Perfil.cargar().then((d) => {
+        if (d && d.nombre && d.nombre !== "Jugador" && !$("nombre").value) $("nombre").value = $("nombre-online").value = d.nombre;
+      });
+    }, 100);
     $("nombre").addEventListener("input", () => ($("nombre-online").value = $("nombre").value));
     $("nombre-online").addEventListener("input", () => ($("nombre").value = $("nombre-online").value));
     function miNombre() {
@@ -532,6 +555,8 @@ const Arcade = (() => {
       estado.modo = modo;
       estado.nombres = nombres;
       estado.partida++;
+      estado.perfil = perfilListo.then((p) => p?.iniciar(config.juego, { modo, dificultad: estado.dificultad }));
+      estado.finalizada = false;
       mostrar(null);
       $("badge-centro").classList.toggle("oculto", modo !== "online");
       if (modo === "online") $("badge-centro").textContent = "SALA " + estado.online.codigo;
@@ -557,7 +582,7 @@ const Arcade = (() => {
           if (otro === null) return;
           empezar("local", [miNombre(), (otro.trim() || "Jugador 2").slice(0, 14)]);
         } else if (modo === "bot") {
-          const nivel = { facil: "Fácil", normal: "Normal", pro: "Pro" }[estado.dificultad];
+          const nivel = nombresDif[estado.dificultad];
           empezar("bot", [miNombre(), config.dificultad ? `Bot ${nivel}` : "Bot"]);
         } else {
           empezar(modo, [miNombre(), ""]);
@@ -740,20 +765,30 @@ const Arcade = (() => {
       $("ayuda").style.opacity = texto ? 1 : 0;
     }
 
-    async function terminar({ emoji = "🏆", texto, nota = "", record = null }) {
+    async function terminar({ emoji = "🏆", texto, nota = "", record = null, gano = null, datos = {} }) {
+      if (estado.finalizada) return;
+      estado.finalizada = true;
+      const partida = estado.partida, modo = estado.modo, dificultad = estado.dificultad;
+      const contexto = estado.perfil;
+      const nombre = estado.nombres[estado.online ? estado.online.yo : 0];
       $("fin-emoji").textContent = emoji;
       $("fin-texto").textContent = texto;
       $("fin-nota").textContent = nota;
       $("fin-record").classList.add("oculto");
       $("btn-revancha").textContent = estado.modo === "online" ? "🔁 Revancha" : "🔁 Otra vez";
       mostrar("menu-fin");
+      let recordNuevo = false;
       if (record != null && config.records) {
         try {
-          const yo = estado.online ? estado.online.yo : 0;
-          const r = await api(`/api/records/${config.juego}`, { nombre: estado.nombres[yo], puntos: record });
-          if (r.nuevo_record) $("fin-record").classList.remove("oculto");
+          const r = await api(`/api/records/${config.juego}`, { nombre, puntos: record });
+          recordNuevo = !!r.nuevo_record;
+          if (r.nuevo_record && estado.partida === partida) $("fin-record").classList.remove("oculto");
         } catch (e) {}
       }
+      // monedas y logros (si el juego no dice si ganaste, se adivina por el trofeo)
+      if (gano == null) gano = modo !== "solo" && modo !== "local" && ["🏆", "🥇"].includes(emoji);
+      const perfil = await contexto;
+      if (perfil && window.Perfil) Perfil.evento(config.juego, "fin", { ...datos, gano, modo, dificultad, record_nuevo: recordNuevo }, perfil);
     }
 
     function enviar(tipo, datos) {

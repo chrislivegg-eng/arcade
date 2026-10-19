@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ff3385" />
+    <title>Récords · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='fiesta.css') }}" />
+    <style>
+      .tablas { display: grid; gap: 14px; }
+      .tabla h2 { margin-bottom: 6px; }
+      .fila-record { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 12px; font-weight: 800; }
+      .fila-record:nth-child(odd) { background: #faf5fb; }
+      .fila-record .lugar { width: 28px; text-align: center; font-size: 1.15rem; }
+      .fila-record .valor { margin-left: auto; color: var(--rosa); font-weight: 900; }
+      .vacio { text-align: center; opacity: .7; font-weight: 800; }
+      .pestanas { display: flex; gap: 8px; }
+      .pestanas button { flex: 1; border: none; border-radius: 14px; padding: 10px; font-family: inherit; font-weight: 900; background: #fff; color: var(--morado); cursor: pointer; }
+      .pestanas button.activa { background: var(--morado); color: #fff; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="encabezado">
+        <div class="emoji">📊</div>
+        <h1>Tabla de récords</h1>
+        <p>Los mejores de cada juego en un solo lugar</p>
+      </div>
+      <div id="insignia-perfil" class="centro"></div>
+      <div class="pestanas">
+        <button class="activa" data-vista="juegos">🎮 Juegos</button>
+        <button data-vista="jugadores">👑 Jugadores</button>
+      </div>
+      <div id="vista-juegos" class="tablas"><p class="vacio">Cargando…</p></div>
+      <div id="vista-jugadores" class="tablas oculto"></div>
+      <div class="pie"><a href="/secreto">← Volver al menú de juegos</a></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/perfil.js') }}"></script>
+    <script>
+      Perfil.insignia(document.getElementById("insignia-perfil"));
+      const MEDALLAS = ["🥇", "🥈", "🥉", "4", "5", "6", "7", "8", "9", "10"];
+      const esc = (t) => {
+        const d = document.createElement("div");
+        d.textContent = t;
+        return d.innerHTML;
+      };
+      function tabla(titulo, filas, unidad, conAvatar) {
+        const cuerpo = filas.length
+          ? filas
+              .map(
+                (f, i) =>
+                  `<div class="fila-record"><span class="lugar">${MEDALLAS[i]}</span><span>${conAvatar ? f.avatar + " " : ""}${esc(f.nombre)}</span><span class="valor">${f.valor} ${unidad}</span></div>`,
+              )
+              .join("")
+          : '<p class="vacio">Nadie todavía… ¡sé el primero!</p>';
+        return `<div class="tarjeta tabla"><h2>${titulo}</h2>${cuerpo}</div>`;
+      }
+      fetch("/api/records_generales")
+        .then((r) => r.json())
+        .then((d) => {
+          document.getElementById("vista-juegos").innerHTML = d.tablas.length
+            ? d.tablas.map((t) => tabla(t.juego, t.top, t.unidad)).join("")
+            : '<p class="vacio">Todavía no hay récords. ¡Ve a jugar!</p>';
+          document.getElementById("vista-jugadores").innerHTML =
+            tabla("🪙 Más monedas", d.monedas, "🪙", true) + tabla(`🏅 Más logros (de ${d.total_logros})`, d.logros, "🏅", true);
+        })
+        .catch(() => (document.getElementById("vista-juegos").innerHTML = '<p class="vacio">No se pudo cargar 😿</p>'));
+      document.querySelectorAll(".pestanas button").forEach((b) =>
+        b.addEventListener("click", () => {
+          document.querySelectorAll(".pestanas button").forEach((x) => x.classList.toggle("activa", x === b));
+          document.getElementById("vista-juegos").classList.toggle("oculto", b.dataset.vista !== "juegos");
+          document.getElementById("vista-jugadores").classList.toggle("oculto", b.dataset.vista !== "jugadores");
+        }),
+      );
+    </script>
+  </body>
+</html>

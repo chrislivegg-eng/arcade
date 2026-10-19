@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c14" />
+    <title>Combina 3 · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: radial-gradient(ellipse at top, #5a1f5e, #1a0c20 70%);
+      }
+      #zona {
+        position: fixed;
+        top: calc(84px + env(safe-area-inset-top));
+        bottom: calc(60px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        display: grid;
+        place-items: center;
+      }
+      #tablero {
+        --lado: min(96vw, calc(100vh - 170px), 480px);
+        --cel: calc(var(--lado) / 8);
+        position: relative;
+        width: var(--lado);
+        height: var(--lado);
+        background: rgba(255, 255, 255, 0.08);
+        border: 3px solid rgba(255, 255, 255, 0.18);
+        border-radius: 16px;
+        overflow: hidden;
+        touch-action: none;
+        background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.04) 75%),
+          linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.04) 75%);
+        background-size: calc(var(--cel) * 2) calc(var(--cel) * 2);
+        background-position:
+          0 0,
+          var(--cel) var(--cel);
+      }
+      .dulce {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: var(--cel);
+        height: var(--cel);
+        display: grid;
+        place-items: center;
+        font-size: calc(var(--cel) * 0.68);
+        transform: translate(calc(var(--c) * var(--cel)), calc(var(--r) * var(--cel)));
+        transition:
+          transform 0.22s cubic-bezier(0.3, 0, 0.4, 1.25),
+          opacity 0.18s;
+        pointer-events: none;
+      }
+      .dulce > span {
+        transition: transform 0.18s;
+        filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.35));
+      }
+      .dulce.elegido > span {
+        transform: scale(1.22);
+        animation: latido 0.5s infinite alternate;
+      }
+      .dulce.fuera > span {
+        transform: scale(0) rotate(90deg);
+      }
+      .dulce.rayoH::after,
+      .dulce.rayoV::after {
+        content: "";
+        position: absolute;
+        inset: 18%;
+        border-radius: 8px;
+        background: repeating-linear-gradient(var(--ang), rgba(255, 255, 255, 0.85) 0 3px, transparent 3px 8px);
+        mix-blend-mode: overlay;
+        pointer-events: none;
+      }
+      .dulce.rayoH {
+        --ang: 0deg;
+      }
+      .dulce.rayoV {
+        --ang: 90deg;
+      }
+      .dulce.rayoH > span,
+      .dulce.rayoV > span {
+        filter: drop-shadow(0 0 6px #fff) drop-shadow(0 3px 2px rgba(0, 0, 0, 0.35));
+      }
+      .dulce.bomba > span {
+        filter: drop-shadow(0 0 8px #ffd84f) drop-shadow(0 0 3px #ff4f1f);
+        animation: latido 0.7s infinite alternate;
+      }
+      .dulce.arcoiris > span {
+        animation: girar 2.5s linear infinite;
+      }
+      @keyframes girar {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .flotante {
+        position: absolute;
+        z-index: 5;
+        font-weight: 900;
+        font-size: calc(var(--cel) * 0.45);
+        color: #fff;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        pointer-events: none;
+        animation: subir 0.9s ease-out forwards;
+      }
+      @keyframes subir {
+        to {
+          transform: translateY(-50px);
+          opacity: 0;
+        }
+      }
+      .rayo-efecto {
+        position: absolute;
+        z-index: 4;
+        background: linear-gradient(var(--ang), transparent, #fff, transparent);
+        pointer-events: none;
+        animation: destello 0.35s ease-out forwards;
+      }
+      @keyframes destello {
+        to {
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona" class="oculto"><div id="tablero"></div></div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, sonar } = Arcade;
+      const N = 8,
+        TIPOS = 6,
+        MOVIMIENTOS = 25;
+      const EMOJI = ["🍓", "🍋", "🍇", "🍏", "🍊", "🍬"];
+      const ARCOIRIS = -1;
+      let ids = 0;
+
+      const J = { activa: false };
+      let S = null; // mi tablero
+
+      const ui = Arcade.ui({
+        juego: "combina3",
+        titulo: "Combina 3",
+        emoji: "🍬",
+        subtitulo: "Junta 3 o más dulces iguales",
+        modos: ["solo", "bot", "online"],
+        textosModo: { bot: "🤖 Duelo contra el bot", online: "🌐 Duelo online" },
+        dificultad: true,
+        records: true,
+        unidadRecord: "pts",
+        reglas: [
+          "Desliza un dulce hacia el de al lado para cambiarlos (o toca uno y luego el otro).",
+          "Junta 3 o más iguales en línea para romperlos.",
+          "4 en línea → ⚡ dulce rayado: rompe toda una fila o columna.",
+          "En forma de L o T → 💥 bomba: rompe todo a su alrededor.",
+          "5 en línea → 🌈 arcoíris: cámbialo por un dulce y rompe todos los de ese color.",
+          `Tienes ${MOVIMIENTOS} movimientos. En duelo gana quien haga más puntos.`,
+        ],
+        alEmpezar: empezar,
+        alSalir: parar,
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "puntos") {
+          J.rival.puntos = d.puntos;
+          J.rival.movs = d.movs;
+          marcador();
+        } else if (tipo === "fin") {
+          J.rival = { ...J.rival, puntos: d.puntos, movs: 0, fin: true };
+          revisarFin();
+        }
+      };
+
+      // =================== LÓGICA DEL TABLERO ===================
+      // S = { g: [r][c] → ficha, rand, puntos, movs, vis (¿se dibuja?) }
+      const ficha = (S, r, c, t = Math.floor(S.rand() * TIPOS), esp = null) => ({ id: ++ids, t, esp, r, c });
+      const igual = (a, b) => a && b && a.t >= 0 && a.t === b.t;
+
+      function nuevoTablero(rand, vis) {
+        const S = { g: [], rand, puntos: 0, movs: MOVIMIENTOS, vis };
+        do {
+          S.g = [];
+          for (let r = 0; r < N; r++) {
+            S.g.push([]);
+            for (let c = 0; c < N; c++) {
+              let f;
+              do f = ficha(S, r, c);
+              while ((c >= 2 && igual(f, S.g[r][c - 1]) && igual(f, S.g[r][c - 2])) || (r >= 2 && igual(f, S.g[r - 1][c]) && igual(f, S.g[r - 2][c])));
+              S.g[r].push(f);
+            }
+          }
+        } while (!jugadas(S.g).length);
+        return S;
+      }
+
+      function buscarGrupos(g) {
+        const corridas = [];
+        for (let r = 0; r < N; r++)
+          for (let c = 0; c < N; ) {
+            let k = c;
+            while (k + 1 < N && igual(g[r][c], g[r][k + 1])) k++;
+            if (k - c >= 2) corridas.push({ dir: "h", celdas: Array.from({ length: k - c + 1 }, (_, i) => [r, c + i]) });
+            c = k + 1;
+          }
+        for (let c = 0; c < N; c++)
+          for (let r = 0; r < N; ) {
+            let k = r;
+            while (k + 1 < N && igual(g[r][c], g[k + 1][c])) k++;
+            if (k - r >= 2) corridas.push({ dir: "v", celdas: Array.from({ length: k - r + 1 }, (_, i) => [r + i, c]) });
+            r = k + 1;
+          }
+        // corridas que comparten casilla forman un grupo (L o T)
+        const grupos = [];
+        for (const cor of corridas) {
+          const claves = cor.celdas.map(([r, c]) => r * N + c);
+          const unidos = grupos.filter((gr) => claves.some((k) => gr.claves.has(k)));
+          const nuevo = { claves: new Set(claves), corridas: [cor] };
+          unidos.forEach((gr) => {
+            gr.claves.forEach((k) => nuevo.claves.add(k));
+            nuevo.corridas.push(...gr.corridas);
+            grupos.splice(grupos.indexOf(gr), 1);
+          });
+          grupos.push(nuevo);
+        }
+        return grupos;
+      }
+
+      // ¿qué cambios hacen combinación? → [[r1,c1,r2,c2], ...]
+      function jugadas(g) {
+        const lista = [];
+        const t = g.map((f) => f.map((x) => (x ? x.t : -9)));
+        const hace = (r, c) => {
+          const v = t[r][c];
+          if (v < 0) return false;
+          let h = 1,
+            k = c - 1;
+          while (k >= 0 && t[r][k] === v) (h++, k--);
+          k = c + 1;
+          while (k < N && t[r][k] === v) (h++, k++);
+          let w = 1;
+          k = r - 1;
+          while (k >= 0 && t[k][c] === v) (w++, k--);
+          k = r + 1;
+          while (k < N && t[k][c] === v) (w++, k++);
+          return h >= 3 || w >= 3;
+        };
+        for (let r = 0; r < N; r++)
+          for (let c = 0; c < N; c++)
+            for (const [dr, dc] of [
+              [0, 1],
+              [1, 0],
+            ]) {
+              const r2 = r + dr,
+                c2 = c + dc;
+              if (r2 >= N || c2 >= N) continue;
+              if (t[r][c] === ARCOIRIS || t[r2][c2] === ARCOIRIS) {
+                lista.push([r, c, r2, c2]);
+                continue;
+              }
+              [t[r][c], t[r2][c2]] = [t[r2][c2], t[r][c]];
+              if (hace(r, c) || hace(r2, c2)) lista.push([r, c, r2, c2]);
+              [t[r][c], t[r2][c2]] = [t[r2][c2], t[r][c]];
+            }
+        return lista;
+      }
+
+      // casillas que rompe un especial
+      function zonaEspecial(S, f, extra) {
+        const z = [];
+        if (f.esp === "rayoH") for (let c = 0; c < N; c++) z.push([f.r, c]);
+        else if (f.esp === "rayoV") for (let r = 0; r < N; r++) z.push([r, f.c]);
+        else if (f.esp === "bomba") {
+          for (let r = f.r - 1; r <= f.r + 1; r++) for (let c = f.c - 1; c <= f.c + 1; c++) if (r >= 0 && c >= 0 && r < N && c < N) z.push([r, c]);
+        } else if (f.t === ARCOIRIS) {
+          // rompe todos los de un color (el del dulce con que lo cambiaste o el más común)
+          let tipo = extra;
+          if (tipo == null || tipo < 0) {
+            const cuenta = Array(TIPOS).fill(0);
+            S.g.flat().forEach((x) => x && x.t >= 0 && cuenta[x.t]++);
+            tipo = cuenta.indexOf(Math.max(...cuenta));
+          }
+          S.g.forEach((fila, r) => fila.forEach((x, c) => x && x.t === tipo && z.push([r, c])));
+          z.push([f.r, f.c]);
+        }
+        return z;
+      }
+
+      // Rompe un conjunto de casillas (y los especiales que haya dentro, en cadena)
+      async function romper(S, claves, cascada, colorArcoiris) {
+        const cola = [...claves];
+        const rotas = new Set();
+        const efectos = [];
+        while (cola.length) {
+          const k = cola.pop();
+          if (rotas.has(k)) continue;
+          const f = S.g[(k / N) | 0][k % N];
+          if (!f) continue;
+          rotas.add(k);
+          if (f.esp || f.t === ARCOIRIS) {
+            efectos.push(f);
+            zonaEspecial(S, f, colorArcoiris).forEach(([r, c]) => cola.push(r * N + c));
+          }
+        }
+        const fichas = [...rotas].map((k) => S.g[(k / N) | 0][k % N]);
+        fichas.forEach((f) => (S.g[f.r][f.c] = null));
+        const ganados = fichas.length * 10 * cascada + efectos.length * 30;
+        S.puntos += ganados;
+        if (S.vis) {
+          efectos.forEach(dibujarEfecto);
+          fichas.forEach((f) => f.el && f.el.classList.add("fuera"));
+          if (fichas.length) {
+            const m = fichas[(fichas.length / 2) | 0];
+            flotante(`+${ganados}`, m.r, m.c);
+          }
+          sonar(efectos.length ? "golpe" : "ping", Math.min(1.4, 0.6 + cascada * 0.15));
+          await esperar(200);
+          if (S.cancelado) return false;
+          fichas.forEach((f) => f.el && f.el.remove());
+        }
+        return fichas.length;
+      }
+
+      // Las fichas caen y entran nuevas por arriba
+      async function caer(S) {
+        const nuevas = [];
+        for (let c = 0; c < N; c++) {
+          let destino = N - 1;
+          for (let r = N - 1; r >= 0; r--) {
+            const f = S.g[r][c];
+            if (!f) continue;
+            S.g[r][c] = null;
+            S.g[destino][c] = f;
+            f.r = destino--;
+          }
+          for (let r = destino, k = 1; r >= 0; r--, k++) {
+            const f = ficha(S, r, c);
+            S.g[r][c] = f;
+            nuevas.push([f, -k]);
+          }
+        }
+        if (!S.vis) return;
+        nuevas.forEach(([f, inicio]) => dibujar(f, inicio));
+        void $("tablero").offsetWidth;
+        S.g.flat().forEach(colocar);
+        await esperar(250);
+      }
+
+      // Resuelve combinaciones en cascada. Devuelve cuántas cascadas hubo.
+      async function resolver(S, cambiadas, forzado) {
+        let cascada = 0;
+        while (true) {
+          if (S.cancelado) return 0;
+          const grupos = buscarGrupos(S.g);
+          if (!grupos.length && !forzado) break;
+          cascada++;
+          const claves = new Set();
+          const nacen = [];
+          if (forzado) {
+            forzado.claves.forEach((k) => claves.add(k));
+          }
+          for (const gr of grupos) {
+            gr.claves.forEach((k) => claves.add(k));
+            const largo = Math.max(...gr.corridas.map((c) => c.celdas.length));
+            if (S.vis && largo >= 5 && window.Perfil) Perfil.evento("combina3", "combo", { n: largo });
+            const cruz = gr.corridas.some((c) => c.dir === "h") && gr.corridas.some((c) => c.dir === "v");
+            let esp = null;
+            if (largo >= 5) esp = "arcoiris";
+            else if (cruz) esp = "bomba";
+            else if (largo === 4) esp = gr.corridas[0].dir === "h" ? "rayoH" : "rayoV";
+            if (!esp) continue;
+            const lista = [...gr.claves];
+            let k = (cambiadas || []).find((x) => gr.claves.has(x));
+            if (k == null) k = lista[(lista.length / 2) | 0];
+            const muestra = S.g[(k / N) | 0][k % N];
+            nacen.push({ r: (k / N) | 0, c: k % N, t: esp === "arcoiris" ? ARCOIRIS : muestra.t, esp: esp === "arcoiris" ? null : esp });
+          }
+          await romper(S, claves, cascada, forzado && forzado.color);
+          if (S.cancelado) return 0;
+          forzado = null;
+          cambiadas = null;
+          for (const n of nacen) {
+            const f = ficha(S, n.r, n.c, n.t, n.esp);
+            S.g[n.r][n.c] = f;
+            S.puntos += 20;
+            if (S.vis) {
+              dibujar(f);
+              sonar("perfecto", 1.4);
+            }
+          }
+          if (S.vis && nacen.length) await esperar(150);
+          if (S.cancelado) return 0;
+          await caer(S);
+          if (S.cancelado) return 0;
+          if (S.vis && cascada >= 2) ui.avisar(["", "", "¡Dulce!", "¡Delicioso!", "¡Divino!", "¡Increíble!"][Math.min(cascada, 5)] + ` x${cascada}`, "#ff4fd8");
+        }
+        // si ya no hay jugadas, revuelve
+        while (!jugadas(S.g).length) {
+          const todas = S.g.flat();
+          todas.forEach((f) => {
+            if (f.t >= 0 && !f.esp) f.t = Math.floor(S.rand() * TIPOS);
+          });
+          if (!buscarGrupos(S.g).length && jugadas(S.g).length) {
+            if (S.vis) {
+              ui.avisar("🔀 Revolviendo…", "#4fb3ff");
+              todas.forEach((f) => {
+                f.el && f.el.remove();
+                dibujar(f);
+              });
+            }
+            break;
+          }
+        }
+        return cascada;
+      }
+
+      // Hace un cambio; devuelve false si no sirvió (y lo regresa)
+      async function cambiar(S, r1, c1, r2, c2) {
+        const a = S.g[r1][c1],
+          b = S.g[r2][c2];
+        if (!a || !b) return false;
+        S.g[r1][c1] = b;
+        S.g[r2][c2] = a;
+        [a.r, a.c, b.r, b.c] = [r2, c2, r1, c1];
+        if (S.vis) {
+          colocar(a);
+          colocar(b);
+          sonar("swoosh", 0.5);
+          await esperar(200);
+          if (S.cancelado) return false;
+        }
+        // arcoíris: rompe todos los del color con el que lo cambiaste
+        if (a.t === ARCOIRIS || b.t === ARCOIRIS) {
+          const arco = a.t === ARCOIRIS ? a : b,
+            otro = arco === a ? b : a;
+          const claves = new Set([arco.r * N + arco.c]);
+          if (otro.t === ARCOIRIS) S.g.flat().forEach((f) => claves.add(f.r * N + f.c));
+          S.movs--;
+          return resolver(S, null, { claves, color: otro.t });
+        }
+        if (!buscarGrupos(S.g).length) {
+          S.g[r1][c1] = a;
+          S.g[r2][c2] = b;
+          [a.r, a.c, b.r, b.c] = [r1, c1, r2, c2];
+          if (S.vis) {
+            colocar(a);
+            colocar(b);
+            await esperar(200);
+          if (S.cancelado) return false;
+          }
+          return false;
+        }
+        S.movs--;
+        return resolver(S, [r1 * N + c1, r2 * N + c2]);
+      }
+
+      // =================== DIBUJO ===================
+      function dibujar(f, filaInicio) {
+        const el = document.createElement("div");
+        el.className = "dulce" + (f.esp ? " " + f.esp : "") + (f.t === ARCOIRIS ? " arcoiris" : "");
+        el.innerHTML = `<span>${f.t === ARCOIRIS ? "🌈" : EMOJI[f.t]}</span>`;
+        f.el = el;
+        el.style.setProperty("--r", filaInicio != null ? filaInicio : f.r);
+        el.style.setProperty("--c", f.c);
+        $("tablero").appendChild(el);
+      }
+      function colocar(f) {
+        if (!f || !f.el) return;
+        f.el.style.setProperty("--r", f.r);
+        f.el.style.setProperty("--c", f.c);
+      }
+      function flotante(texto, r, c) {
+        const el = document.createElement("div");
+        el.className = "flotante";
+        el.textContent = texto;
+        el.style.left = `calc(${c} * var(--cel))`;
+        el.style.top = `calc(${r} * var(--cel))`;
+        $("tablero").appendChild(el);
+        setTimeout(() => el.remove(), 900);
+      }
+      function dibujarEfecto(f) {
+        const el = document.createElement("div");
+        el.className = "rayo-efecto";
+        if (f.esp === "rayoH") Object.assign(el.style, { left: 0, right: 0, top: `calc(${f.r} * var(--cel))`, height: "var(--cel)", "--ang": "0deg" });
+        else if (f.esp === "rayoV") Object.assign(el.style, { top: 0, bottom: 0, left: `calc(${f.c} * var(--cel))`, width: "var(--cel)" });
+        else Object.assign(el.style, { inset: 0, background: "radial-gradient(circle, rgba(255,255,255,.8), transparent 70%)" });
+        el.style.setProperty("--ang", f.esp === "rayoH" ? "0deg" : "90deg");
+        $("tablero").appendChild(el);
+        setTimeout(() => el.remove(), 400);
+      }
+
+      // =================== PARTIDA ===================
+      function parar() {
+        if (S) S.cancelado = true;
+        if (J.bot) J.bot.cancelado = true;
+        J.sesion = (J.sesion || 0) + 1;
+        J.activa = false;
+        clearTimeout(J.timerBot);
+        $("zona").classList.add("oculto");
+      }
+
+      function empezar(modo, info) {
+        J.sesion = (J.sesion || 0) + 1;
+        parar();
+        Object.assign(J, {
+          modo,
+          partida: info.partida,
+          nombres: info.nombres,
+          dificultad: info.dificultad,
+          activa: true,
+          ocupado: false,
+          elegido: null,
+          miFin: null,
+          rival: { puntos: 0, movs: MOVIMIENTOS, fin: false },
+        });
+        $("tablero").innerHTML = "";
+        $("zona").classList.remove("oculto");
+        S = nuevoTablero(Arcade.rng(info.semilla), true);
+        S.g.flat().forEach((f) => dibujar(f));
+        if (modo === "bot") empezarBot(info.semilla);
+        ui.ayuda("👆 Desliza un dulce hacia otro");
+        marcador();
+      }
+
+      function marcador() {
+        if (!S) return;
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: S.puntos, detalle: `🍬 ${S.movs} movimientos`, activo: true }, null]);
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const mio = { nombre: J.nombres[yo] + " (tú)", valor: S.puntos, detalle: J.miFin ? "✅ Terminaste" : `🍬 ${S.movs} movimientos`, activo: !J.miFin };
+        const suyo = { nombre: J.nombres[1 - yo], valor: J.rival.puntos, detalle: J.rival.fin ? "✅ Terminó" : `🍬 ${J.rival.movs} movimientos` };
+        ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
+      }
+
+      async function jugar(r1, c1, r2, c2) {
+        if (!J.activa || J.ocupado || J.miFin || S.movs <= 0) return;
+        if (r2 < 0 || c2 < 0 || r2 >= N || c2 >= N) return;
+        J.ocupado = true;
+        quitarElegido();
+        const sesionActual = J.sesion;
+        const partida = J.partida;
+        const cascadas = await cambiar(S, r1, c1, r2, c2);
+        if (sesionActual !== J.sesion || partida !== J.partida) return;
+        J.ocupado = false;
+        if (cascadas === false) {
+          sonar("rebote", 0.4);
+          return;
+        }
+        ui.ayuda("");
+
+        if (J.modo === "online") ui.enviar("puntos", { partida, puntos: S.puntos, movs: S.movs });
+        marcador();
+        if (S.movs <= 0) {
+          await esperar(500);
+          terminarMio();
+        }
+      }
+
+      function terminarMio() {
+        if (J.miFin || !J.activa) return;
+        J.miFin = { puntos: S.puntos };
+        marcador();
+        if (J.modo === "solo") {
+          J.activa = false;
+          sonar("ganar");
+          return ui.terminar({ emoji: "🍬", texto: `${S.puntos} puntos`, nota: "¡Se acabaron los movimientos!", record: S.puntos, gano: false });
+        }
+        if (J.modo === "online") ui.enviar("fin", { partida: J.partida, puntos: S.puntos });
+        if (J.modo === "bot") terminarBotYa();
+        ui.ayuda(J.rival.fin ? "" : "Esperando a tu rival… ⏳");
+        revisarFin();
+      }
+
+      function revisarFin() {
+        marcador();
+        if (!J.miFin || !J.rival.fin || !J.activa) return;
+        J.activa = false;
+        clearTimeout(J.timerBot);
+        ui.ayuda("");
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const rival = J.nombres[1 - yo];
+        const empate = J.miFin.puntos === J.rival.puntos,
+          gane = J.miFin.puntos > J.rival.puntos;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({
+          emoji: empate ? "🤝" : gane ? "🏆" : "😿",
+          texto: empate ? "¡Empate!" : gane ? "¡Ganaste el duelo dulce!" : `Ganó ${rival}`,
+          nota: `Tú: ${J.miFin.puntos} · ${rival}: ${J.rival.puntos}`,
+          record: J.miFin.puntos,
+          gano: gane,
+        });
+      }
+
+      // =================== CONTROLES ===================
+      let toque = null;
+      function celda(e) {
+        const r = $("tablero").getBoundingClientRect();
+        return [Math.floor(((e.clientY - r.top) / r.height) * N), Math.floor(((e.clientX - r.left) / r.width) * N)];
+      }
+      function quitarElegido() {
+        if (J.elegido) {
+          const f = S.g[J.elegido[0]][J.elegido[1]];
+          f && f.el && f.el.classList.remove("elegido");
+        }
+        J.elegido = null;
+      }
+      $("tablero").addEventListener("pointerdown", (e) => {
+        if (!J.activa || J.ocupado) return;
+        const [r, c] = celda(e);
+        if (r < 0 || c < 0 || r >= N || c >= N) return;
+        $("tablero").setPointerCapture(e.pointerId);
+        toque = { x: e.clientX, y: e.clientY, r, c, usado: false };
+      });
+      $("tablero").addEventListener("pointermove", (e) => {
+        if (!toque || toque.usado) return;
+        const dx = e.clientX - toque.x,
+          dy = e.clientY - toque.y;
+        const umbral = $("tablero").clientWidth / N / 3;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < umbral) return;
+        toque.usado = true;
+        const [dr, dc] = Math.abs(dx) > Math.abs(dy) ? [0, Math.sign(dx)] : [Math.sign(dy), 0];
+        jugar(toque.r, toque.c, toque.r + dr, toque.c + dc);
+      });
+      $("tablero").addEventListener("pointerup", () => {
+        if (!toque || toque.usado) return (toque = null);
+        const { r, c } = toque;
+        toque = null;
+        // tocar uno y luego otro de al lado
+        if (J.elegido && Math.abs(J.elegido[0] - r) + Math.abs(J.elegido[1] - c) === 1) return jugar(J.elegido[0], J.elegido[1], r, c);
+        const mismo = J.elegido && J.elegido[0] === r && J.elegido[1] === c;
+        quitarElegido();
+        if (mismo) return;
+        J.elegido = [r, c];
+        S.g[r][c].el.classList.add("elegido");
+        sonar("click");
+      });
+
+      // =================== BOT ===================
+      // juega su propio tablero (sin dibujarlo) con el mismo inicio que tú
+      const RITMO = { facil: 4200, normal: 3200, pro: 2500 };
+      function copiar(B) {
+        return { g: B.g.map((f) => f.map((x) => ({ ...x }))), rand: Math.random, puntos: B.puntos, movs: B.movs, vis: false };
+      }
+      async function elegirBot(B) {
+        const lista = jugadas(B.g);
+        if (J.dificultad === "facil" || !lista.length) return lista[Math.floor(Math.random() * lista.length)];
+        let mejor = lista[0],
+          mejorP = -1;
+        const prueba = lista.filter(() => Math.random() < (J.dificultad === "pro" ? 0.4 : 0.15)).concat([lista[0]]);
+        for (const j of prueba) {
+          const C = copiar(B);
+          await cambiar(C, ...j);
+          if (C.puntos > mejorP) {
+            mejorP = C.puntos;
+            mejor = j;
+          }
+        }
+        return mejor;
+      }
+      async function pasoBot() {
+        const sesion = J.sesion;
+        const B = J.bot;
+        if (B.movs <= 0) return false;
+        const j = await elegirBot(B);
+        if (sesion !== J.sesion || B.cancelado) return false;
+        if (!j) return false;
+        await cambiar(B, ...j);
+        if (sesion !== J.sesion || B.cancelado) return false;
+        J.rival.puntos = B.puntos;
+        J.rival.movs = B.movs;
+        return true;
+      }
+      function empezarBot(semilla) {
+        J.bot = nuevoTablero(Arcade.rng(semilla), false);
+        J.bot.rand = Arcade.rng(semilla + 7); // los dulces nuevos le caen distinto
+        const sesionActual = J.sesion;
+        const partida = J.partida;
+        const turno = async () => {
+          if (sesionActual !== J.sesion || partida !== J.partida || !J.activa || J.rival.fin) return;
+          const siguio = await pasoBot();
+          if (sesionActual !== J.sesion || !J.activa) return;
+          if (!siguio || J.bot.movs <= 0) {
+            J.rival.fin = true;
+            return revisarFin();
+          }
+          marcador();
+          J.timerBot = setTimeout(turno, RITMO[J.dificultad] * Arcade.azar(0.7, 1.3));
+        };
+        J.timerBot = setTimeout(turno, 2500);
+      }
+      async function terminarBotYa() {
+        if (J.rival.fin) return;
+        clearTimeout(J.timerBot);
+        const sesionActual = J.sesion;
+        const partida = J.partida;
+        while (sesionActual === J.sesion && J.activa && J.bot.movs > 0 && (await pasoBot()));
+        if (sesionActual !== J.sesion || partida !== J.partida) return;
+        J.rival.fin = true;
+        revisarFin();
+      }
+    </script>
+  </body>
+</html>

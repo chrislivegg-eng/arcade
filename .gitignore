@@ -1,3 +1,6 @@
 .venv/
 __pycache__/
 *.pyc
+perfiles.json
+perfiles.json.tmp
+record_*.txt
