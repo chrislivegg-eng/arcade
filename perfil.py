@@ -9,13 +9,18 @@
 # y aquí se reparten monedas y se revisan los logros.
 
 import json
+import base64
+import binascii
+import hashlib
+import struct
+import zlib
 import os
 import threading
 import time
 import secrets
 from copy import deepcopy
 
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, Response
 
 from cuentas import cuentas_bp, cuenta_actual, identidad_perfil, es_admin, ids_administradores, ids_invitados_copiados
 
@@ -102,6 +107,7 @@ def _publico(p):
     cuenta = cuenta_actual()
     admin = es_admin()
     return {
+        "avatar_url": _icono_url(p, cuenta["id"]) if cuenta else None,
         "cuenta": bool(cuenta), "administrador": admin, "monedas_infinitas": admin,
         "nombre": cuenta["usuario"] if cuenta else p["nombre"], "avatar": p["avatar"], "marco": p["marco"], "monedas": p["monedas"],
         "comprados": list(dict.fromkeys(p["comprados"] + ([v for v, _ in AVATARES + COLORES_MARCO] if admin else []))), "logros": p["logros"], "stats": p["stats"], "juegos": p["juegos"],
@@ -255,9 +261,103 @@ def editar_perfil():
                 p['monedas'] -= precio
                 p['comprados'].append(valor)
             p[campo] = valor
+            if campo == 'avatar':
+                p['icono_activo'] = False
         perfiles[pid] = p
         _guardar(perfiles)
         return jsonify(_publico(p))
+
+
+# El navegador recorta la imagen a PNG de 256 × 256; el servidor comprueba también
+# estructura, CRC, dimensiones y descompresión acotada. No se aceptan SVG ni HTML.
+def _validar_icono(imagen):
+    prefijo = 'data:image/png;base64,'
+    if not isinstance(imagen, str) or not imagen.startswith(prefijo) or len(imagen) > 400000:
+        raise ValueError('Selecciona una imagen PNG, JPG o WebP de hasta 5 MB')
+    try:
+        raw = base64.b64decode(imagen[len(prefijo):], validate=True)
+        if raw[:8] != b'\x89PNG\r\n\x1a\n':
+            raise ValueError()
+        pos, idat, cabecera, final = 8, bytearray(), None, False
+        while pos < len(raw):
+            largo = struct.unpack('>I', raw[pos:pos+4])[0]
+            tipo = raw[pos+4:pos+8]
+            datos = raw[pos+8:pos+8+largo]
+            crc = raw[pos+8+largo:pos+12+largo]
+            if len(crc) != 4 or struct.unpack('>I', crc)[0] != zlib.crc32(tipo+datos):
+                raise ValueError()
+            if cabecera is None and tipo != b'IHDR':
+                raise ValueError()
+            if tipo == b'IHDR':
+                if cabecera is not None or datos != struct.pack('>IIBBBBB',256,256,8,6,0,0,0):
+                    raise ValueError()
+                cabecera = datos
+            elif tipo == b'IDAT':
+                idat.extend(datos)
+            elif tipo == b'IEND':
+                if largo or pos+12 != len(raw):
+                    raise ValueError()
+                final = True
+            elif tipo[:1].isupper():
+                raise ValueError()
+            pos += largo+12
+        esperado = 256*(1+256*4)
+        decoder = zlib.decompressobj()
+        pixeles = decoder.decompress(bytes(idat), esperado+1)
+        if not final or len(pixeles) != esperado or not decoder.eof or decoder.unused_data:
+            raise ValueError()
+        if any(pixeles[i] > 4 for i in range(0,esperado,1025)):
+            raise ValueError()
+        def chunk(tipo, datos):
+            return struct.pack('>I',len(datos))+tipo+datos+struct.pack('>I',zlib.crc32(tipo+datos))
+        limpio = raw[:8]+chunk(b'IHDR',cabecera)+chunk(b'IDAT',bytes(idat))+chunk(b'IEND',b'')
+        return base64.b64encode(limpio).decode('ascii')
+    except (ValueError, binascii.Error, struct.error, zlib.error, TypeError):
+        raise ValueError('La imagen no es válida. Vuelve a seleccionarla') from None
+
+
+def _icono_url(p, identidad):
+    imagen = p.get('icono_personal')
+    if not imagen or not p.get('icono_activo'):
+        return None
+    version = hashlib.sha256(imagen.encode()).hexdigest()[:16]
+    return f'/api/perfil/icono/{identidad}?v={version}'
+
+
+@perfil_bp.route('/api/perfil/icono', methods=['POST'])
+def subir_icono():
+    if not es_admin():
+        return jsonify({'error':'Solo el administrador puede subir su propio icono'}),403
+    if request.content_length is None or request.content_length > 410000:
+        return jsonify({'error':'La imagen es demasiado grande'}),413
+    datos = _json_objeto()
+    pid = identidad_perfil(str(datos.get('pid') or '')[:40])
+    try:
+        imagen = _validar_icono(datos.get('imagen'))
+    except ValueError as exc:
+        return jsonify({'error':str(exc)}),400
+    with candado:
+        perfiles = _leer()
+        p = perfiles.setdefault(pid,_nuevo(cuenta_actual()['usuario']))
+        p['icono_personal'] = imagen
+        p['icono_activo'] = True
+        _guardar(perfiles)
+        return jsonify(_publico(p))
+
+
+@perfil_bp.route('/api/perfil/icono/<identidad>')
+def ver_icono(identidad):
+    if identidad not in ids_administradores():
+        return Response(status=404)
+    with candado:
+        p = _leer().get(identidad,{})
+        imagen = p.get('icono_personal')
+    if not imagen:
+        return Response(status=404)
+    response = Response(base64.b64decode(imagen),mimetype='image/png')
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
 
 
 def _json_objeto():

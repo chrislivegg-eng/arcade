@@ -25,3 +25,5 @@ Conserva juntos `cuentas.sqlite3` (incluidos sus archivos WAL mientras esté en 
 Por defecto SQLite se guarda junto a `cuentas.py`, independientemente del directorio de trabajo. `ARCADE_CUENTAS_DB` permite configurar otra ruta para SQLite; el proceso web y la consola de administración deben usar la misma ruta. El despliegue actual conserva la arquitectura de un proceso del arcade y sus salas en memoria. Para varios procesos haría falta migrar también perfiles, bloqueos y salas a almacenamiento compartido.
 
 Pruebas: `python -m unittest discover -s tests -v`. `tests/cuentas-browser.cjs` verifica el flujo real en dos navegadores y tamaño móvil con Playwright; `ADMIN_INVITACION` permite añadir la activación en un servidor local de prueba vacío. No ejecutes ese alta de prueba contra producción.
+
+El administrador puede subir un icono personalizado desde su perfil (PNG, JPG o WebP, hasta 5 MB). El navegador recorta al centro a 256 × 256; el servidor valida el PNG y guarda la imagen en perfiles.json, incluido en los respaldos. Elegir un emoji vuelve al avatar del catálogo. Los permisos de subida se comprueban en el servidor.
