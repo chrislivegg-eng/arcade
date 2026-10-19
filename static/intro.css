@@ -1,0 +1,47 @@
+body:has(#arcade-intro[open]) { overflow: hidden; }
+#arcade-intro {
+  position: fixed; inset: 0; z-index: 10000; margin: 0; padding: 0;
+  width: 100%; height: 100%; height: 100dvh; max-width: none; max-height: none;
+  border: 0; background: #060918; color: #f6f7ff; overflow: hidden;
+  font-family: system-ui, sans-serif; text-align: left;
+}
+#arcade-intro::backdrop { background: #060918; }
+#arcade-intro:not([open]), #arcade-intro [hidden], #intro-repetir[hidden] { display: none; }
+#arcade-intro video, #arcade-intro .intro-portada, #arcade-intro .intro-portada img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+}
+#arcade-intro video { opacity: 0; }
+#arcade-intro.intro-reproduciendo video { opacity: 1; }
+#arcade-intro.intro-reproduciendo .intro-portada { visibility: hidden; }
+#arcade-intro .intro-cabecera {
+  position: absolute; inset: 0 0 auto; padding: max(18px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) 30px max(24px, env(safe-area-inset-left));
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: linear-gradient(#060918e6, #06091800);
+}
+#arcade-intro .intro-marca { font-size: 15px; font-weight: 850; letter-spacing: 2px; }
+#arcade-intro .intro-marca b { color: #71ffdd; }
+#arcade-intro form { margin: 0; }
+#arcade-intro button {
+  cursor: pointer; border: 1px solid #ffffff45; border-radius: 999px;
+  padding: 12px 21px; min-height: 44px; background: #11192de8; color: #fff;
+  font: 700 14px system-ui, sans-serif; box-shadow: none;
+}
+#arcade-intro #intro-saltar { background: #71ffdd; color: #071a21; border-color: #71ffdd; }
+#arcade-intro button:focus-visible { outline: 3px solid #ff499d; outline-offset: 4px; }
+#arcade-intro .intro-controles {
+  position: absolute; inset: auto 0 0; padding: 40px max(24px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  background: linear-gradient(#06091800, #060918ed); display: grid; gap: 10px;
+}
+#arcade-intro #intro-estado { color: #e1e7f5; font-size: 12px; margin: 0; }
+#arcade-intro .intro-botones { display: flex; align-items: center; gap: 10px; }
+#arcade-intro progress { appearance: none; display: block; width: 100%; height: 3px; border: 0; border-radius: 3px; background: #ffffff25; }
+#arcade-intro progress::-webkit-progress-bar { background: #ffffff25; }
+#arcade-intro progress::-webkit-progress-value { background: #71ffdd; }
+#arcade-intro progress::-moz-progress-bar { background: #71ffdd; }
+#intro-repetir { cursor: pointer; font: inherit; border: 0; }
+@media (max-width: 700px) {
+  #arcade-intro .intro-cabecera { padding-left: 14px; padding-right: 14px; }
+  #arcade-intro .intro-marca { font-size: 11px; letter-spacing: 1px; }
+  #arcade-intro button { padding: 11px 15px; font-size: 13px; }
+  #arcade-intro .intro-controles { padding-left: 16px; padding-right: 16px; }
+}
