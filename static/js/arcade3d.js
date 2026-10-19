@@ -531,13 +531,14 @@ const Arcade = (() => {
       clearInterval(esperarPerfil);
       Perfil.insignia($("insignia-perfil"));
       Perfil.cargar().then((d) => {
-        if (d && d.nombre && d.nombre !== "Jugador" && !$("nombre").value) $("nombre").value = $("nombre-online").value = d.nombre;
+        if(d?.cuenta) $("nombre").readOnly = $("nombre-online").readOnly = true;
+        if (d && d.nombre && d.nombre !== "Jugador" && (d.cuenta || !$("nombre").value)) $("nombre").value = $("nombre-online").value = d.nombre;
       });
     }, 100);
     $("nombre").addEventListener("input", () => ($("nombre-online").value = $("nombre").value));
     $("nombre-online").addEventListener("input", () => ($("nombre").value = $("nombre-online").value));
     function miNombre() {
-      const n = $("nombre").value.trim() || "Jugador";
+      const n = (window.Perfil?.datos?.cuenta ? Perfil.datos.nombre : $("nombre").value.trim()) || "Jugador";
       try {
         localStorage.setItem("nombreUsuario", n);
       } catch (e) {}

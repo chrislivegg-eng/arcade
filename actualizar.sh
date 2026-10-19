@@ -25,6 +25,20 @@ mkdir -p "$RESPALDO"
 cp -f app.py "$RESPALDO/" 2>/dev/null || true
 cp -f templates/secreto.html "$RESPALDO/" 2>/dev/null || true
 
+# Copias consistentes de los datos de jugadores, incluso si SQLite utiliza WAL.
+python3 - "$RESPALDO" <<'DATOS'
+import os, shutil, sqlite3, sys
+from pathlib import Path
+respaldo = Path(sys.argv[1])
+for archivo in [Path('perfiles.json'), Path('puntos.txt'), *Path('.').glob('record_*.txt'), *Path('.').glob('victorias_*.txt')]:
+    if archivo.is_file():
+        shutil.copy2(archivo, respaldo / archivo.name)
+archivo_db = os.environ.get('ARCADE_CUENTAS_DB', 'cuentas.sqlite3')
+if Path(archivo_db).is_file():
+    with sqlite3.connect(archivo_db) as origen, sqlite3.connect(str(respaldo / 'cuentas.sqlite3')) as destino:
+        origen.backup(destino)
+DATOS
+
 echo "⬇️  Descargando archivos nuevos..."
 for archivo in "${ARCHIVOS[@]}"; do
   mkdir -p "$(dirname "$archivo")"
@@ -37,7 +51,7 @@ echo "🔧 Conectando los juegos nuevos en app.py..."
 python3 - <<'EOF'
 import re
 
-with open("app.py") as f:
+with open("app.py", encoding="utf-8") as f:
     codigo = f.read()
 
 cambios = False
@@ -55,16 +69,21 @@ for modulo, bp in [("fiesta", "fiesta_bp"), ("dardos", "dardos_bp"), ("duelo", "
         raise SystemExit("❌ No encontré 'app = Flask(__name__)' en app.py. No cambié nada.")
     cambios = True
 
+from records_cuenta import preparar_app
+nuevo = preparar_app(codigo)
+cambios = cambios or nuevo != codigo
+codigo = nuevo
+
 if cambios:
     compile(codigo, "app.py", "exec")
-    with open("app.py", "w") as f:
+    with open("app.py", "w", encoding="utf-8") as f:
         f.write(codigo)
     print("   ✅ app.py actualizado")
 else:
     print("   ✅ app.py ya estaba listo")
 EOF
 
-python3 -m py_compile app.py fiesta.py fiesta_juegos.py dardos.py duelo.py perfil.py fiesta_uno.py fiesta_mesa.py
+python3 -m py_compile app.py fiesta.py fiesta_juegos.py dardos.py duelo.py perfil.py fiesta_uno.py fiesta_mesa.py cuentas.py records_cuenta.py
 echo "   ✅ app.py no tiene errores"
 
 echo "🔄 Recargando la página..."

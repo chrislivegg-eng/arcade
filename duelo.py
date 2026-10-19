@@ -189,18 +189,8 @@ def _archivo_record(juego):
 
 
 def _leer_records(juego):
-    records = {}
-    archivo = _archivo_record(juego)
-    if os.path.exists(archivo):
-        with open(archivo) as f:
-            for linea in f:
-                if ':' in linea:
-                    nombre, puntos = linea.strip().rsplit(':', 1)
-                    try:
-                        records[nombre] = int(puntos)
-                    except ValueError:
-                        pass
-    return records
+    from records_cuenta import leer_tabla
+    return leer_tabla(_archivo_record(juego), juego in RECORD_MENOR)
 
 
 @duelo_bp.route('/api/records/<juego>')
@@ -218,7 +208,8 @@ def guardar_record(juego):
     if juego not in JUEGOS:
         abort(404)
     datos = request.json or {}
-    nombre = _nombre(datos.get('nombre'), 'Invitado').replace(':', '').title()
+    from records_cuenta import nombre_guardado
+    nombre = nombre_guardado(_nombre(datos.get('nombre'), 'Invitado'))
     try:
         puntos = int(datos.get('puntos'))
     except (TypeError, ValueError):
@@ -229,7 +220,7 @@ def guardar_record(juego):
         mejor = anterior is None or (puntos < anterior if juego in RECORD_MENOR else puntos > anterior)
         if mejor:
             records[nombre] = puntos
-            with open(_archivo_record(juego), 'w') as f:
+            with open(_archivo_record(juego), 'w', encoding='utf-8') as f:
                 for n, p in records.items():
                     f.write(f"{n}:{p}\n")
     return jsonify({'nuevo_record': mejor})

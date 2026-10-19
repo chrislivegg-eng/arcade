@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer"><title>Mi cuenta · Arcade</title>
+  <link rel="stylesheet" href="/static/fiesta.css">
+  <style>
+    *{box-sizing:border-box} body{margin:0} main{max-width:500px;margin:30px auto;padding:18px}
+    .panel{background:#fff;color:#422f50;border-radius:22px;padding:24px;box-shadow:0 10px 35px #41275222}
+    label{display:block;margin:14px 0 6px;font-weight:bold} input,button{font:inherit;width:100%;padding:12px;border:1px solid #d8c6e5;border-radius:12px}
+    button{cursor:pointer;background:#7956cf;color:white;margin-top:16px} button:disabled{opacity:.6}
+    nav{display:flex;gap:8px} nav button{padding:10px 4px;font-size:14px} [hidden]{display:none!important}
+    #error{color:#a81342;min-height:24px} #codigo{overflow-wrap:anywhere;background:#f1eaff;padding:12px;display:block}
+    a{color:#6b36bc} small{display:block;margin-top:10px} h1{font-size:26px}
+  </style>
+</head>
+<body><main><div class="panel">
+  <a href="/secreto">← Arcade</a><h1>🎮 Tu cuenta</h1>
+  <p>Conserva tu perfil, monedas, compras y logros al cambiar de dispositivo.</p>
+  <section id="sesion" hidden><p id="identidad"></p><a href="/perfil">Abrir mi perfil</a><button id="salir">Cerrar sesión en este dispositivo</button></section>
+  <section id="acceso">
+    <nav aria-label="Acceso"><button type="button" data-modo="entrar">Entrar</button><button type="button" data-modo="registrar">Crear cuenta</button><button type="button" data-modo="recuperar">Recuperar</button></nav>
+    <h2 id="titulo">Iniciar sesión</h2>
+    <form id="formulario">
+      <label for="usuario">Usuario <span id="correo-opcional">(o correo de administrador)</span></label>
+      <input id="usuario" required maxlength="254" autocomplete="username" autocapitalize="none" spellcheck="false">
+      <div id="admin" hidden><label for="correo">Correo del administrador</label><input id="correo" type="email" autocomplete="email"><small>Activación mediante enlace privado del servidor.</small></div>
+      <div id="recuperacion-campo" hidden><label for="recuperacion">Código de recuperación</label><input id="recuperacion" autocomplete="off"></div>
+      <label for="password" id="password-label">Contraseña</label><input id="password" type="password" required minlength="10" maxlength="128" autocomplete="current-password">
+      <small id="ayuda">La contraseña debe tener al menos 10 caracteres.</small>
+      <button id="enviar">Entrar</button>
+    </form>
+  </section>
+  <p id="error" role="alert"></p>
+  <section id="respaldo" hidden><h2>Guarda tu código de recuperación</h2><p>Permite cambiar tu contraseña sin correo. Guárdalo en privado: se muestra una sola vez y no debes compartirlo.</p><code id="codigo"></code><button id="descargar">Descargar código</button><button id="continuar">Continuar</button></section>
+</div></main><script src="/static/js/perfil.js"></script><script src="/static/js/cuenta.js"></script></body>
+</html>

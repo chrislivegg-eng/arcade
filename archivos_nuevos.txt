@@ -83,3 +83,8 @@ templates/juego_asteroides.html
 templates/juego_surf.html
 templates/juego_drift.html
 templates/juego_espadas.html
+
+cuentas.py
+records_cuenta.py
+templates/cuenta.html
+static/js/cuenta.js

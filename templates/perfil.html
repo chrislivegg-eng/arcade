@@ -43,6 +43,7 @@
         <p class="nota">Ganas monedas jugando: 5 por partida, +10 si ganas, +5 online, +15 por récord y más con los logros.</p>
       </div>
 
+      <div class="tarjeta"><a id="cuenta-enlace" href="/cuenta">Crear cuenta o iniciar sesión para guardar entre dispositivos</a><p id="cuenta-info" class="nota"></p></div>
       <div id="error" class="error"></div>
 
       <div class="tarjeta pila">
@@ -102,7 +103,11 @@
         cara.className = "cara-grande " + Perfil.claseMarco(d.marco);
         cara.style.setProperty("--marco", d.marco);
         if (document.activeElement !== $("nombre")) $("nombre").value = d.nombre;
-        $("monedas").textContent = d.monedas;
+        $("monedas").textContent = d.monedas_infinitas ? "∞" : d.monedas;
+        $("nombre").readOnly = !!d.cuenta;
+        $("guardar").hidden = !!d.cuenta;
+        $("cuenta-enlace").textContent = d.cuenta ? "Administrar mi cuenta / cerrar sesión" : "Crear cuenta o iniciar sesión";
+        $("cuenta-info").textContent = d.administrador ? "👑 Administrador · Monedas infinitas y todos los avatares y marcos desbloqueados." : d.cuenta ? "Tu perfil se guarda en tu cuenta. Tu nombre de usuario es fijo." : "Tu perfil actual es de invitado. Al crear una cuenta en este dispositivo se conservará tu progreso.";
         $("st-partidas").textContent = d.stats.partidas || 0;
         $("st-victorias").textContent = d.stats.victorias || 0;
         $("st-juegos").textContent = d.juegos.length;

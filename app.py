@@ -96,14 +96,9 @@ def resumen():
 @app.route('/secreto')
 def secreto():
     def leer_records(archivo, inverso=False):
-        d = {}
-        if os.path.exists(archivo):
-            with open(archivo, "r") as f:
-                for line in f:
-                    if ":" in line:
-                        n, p = line.strip().split(":")
-                        d[n] = int(p)
-        return dict(sorted(d.items(), key=lambda item: item[1], reverse=not inverso))
+        from records_cuenta import leer_tabla
+        filas = leer_tabla(archivo, inverso)
+        return dict(sorted(filas.items(), key=lambda x: x[1], reverse=not inverso))
 
     return render_template('secreto.html',
                            puntuaciones_saltos=leer_records(ARCHIVO_PUNTOS),
@@ -207,34 +202,8 @@ def ahorcado_online(): return render_template('ahorcado_online.html')
 # --- Motor de Guardado (Acumulativo y Limpio) ---
 def guardar_generico(archivo, nombre, puntos, inverso=False, acumulable=False):
     # LIMPIEZA MAESTRA: Normaliza el nombre antes de cualquier comparación
-    nombre_normalizado = nombre.strip().lower().title()
-    
-    lista = {}
-    if os.path.exists(archivo):
-        with open(archivo, "r") as f:
-            for line in f:
-                if ":" in line:
-                    n, p = line.strip().split(":")
-                    # Importante: al leer el archivo, también normalizamos 
-                    # los nombres existentes por si tenías datos viejos "sucios"
-                    lista[n.strip().lower().title()] = int(p)
-
-    if acumulable:
-        if nombre_normalizado in lista:
-            lista[nombre_normalizado] += puntos
-        else:
-            lista[nombre_normalizado] = puntos
-    else:
-        if inverso:
-            if nombre_normalizado not in lista or puntos < lista[nombre_normalizado]: 
-                lista[nombre_normalizado] = puntos
-        else:
-            if nombre_normalizado not in lista or puntos > lista[nombre_normalizado]: 
-                lista[nombre_normalizado] = puntos
-
-    with open(archivo, "w") as f:
-        for n, p in lista.items(): 
-            f.write(f"{n}:{p}\n")
+    from records_cuenta import guardar_legacy
+    guardar_legacy(archivo, nombre, puntos, inverso, acumulable)
     return jsonify({"status": "ok"})
 
 # --- APIs Guardado Juegos Individuales ---
@@ -283,15 +252,9 @@ def guardar_pixel_art(): return guardar_generico(ARCHIVO_PIXEL_ART, request.json
 # --- Obtener Récords ---
 @app.route('/records_pixel_art')  # NUEVO
 def records_pixel_art():
-    records = {}
-    if os.path.exists(ARCHIVO_PIXEL_ART):
-        with open(ARCHIVO_PIXEL_ART, "r") as f:
-            for line in f:
-                if ":" in line:
-                    n, p = line.strip().split(":")
-                    records[n.strip().lower().title()] = int(p)
-    sorted_records = [{"nombre": k, "puntos": v} for k, v in sorted(records.items(), key=lambda item: item[1], reverse=True)]
-    return jsonify(sorted_records)
+    from records_cuenta import leer_tabla
+    records = leer_tabla(ARCHIVO_PIXEL_ART)
+    return jsonify([{"nombre": n, "puntos": p} for n, p in sorted(records.items(), key=lambda x: x[1], reverse=True)])
 
 # --- APIs Guardado Multijugador ---
 @app.route('/guardar_victoria', methods=['POST'])

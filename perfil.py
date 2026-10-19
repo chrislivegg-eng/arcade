@@ -17,7 +17,10 @@ from copy import deepcopy
 
 from flask import Blueprint, render_template, request, jsonify
 
+from cuentas import cuentas_bp, cuenta_actual, identidad_perfil, es_admin, ids_administradores, ids_invitados_copiados
+
 perfil_bp = Blueprint('perfil', __name__)
+perfil_bp.register_blueprint(cuentas_bp)
 
 ARCHIVO_PERFILES = "perfiles.json"
 candado = threading.Lock()
@@ -96,9 +99,12 @@ def _nuevo(nombre=""):
 
 
 def _publico(p):
+    cuenta = cuenta_actual()
+    admin = es_admin()
     return {
-        "nombre": p["nombre"], "avatar": p["avatar"], "marco": p["marco"], "monedas": p["monedas"],
-        "comprados": p["comprados"], "logros": p["logros"], "stats": p["stats"], "juegos": p["juegos"],
+        "cuenta": bool(cuenta), "administrador": admin, "monedas_infinitas": admin,
+        "nombre": cuenta["usuario"] if cuenta else p["nombre"], "avatar": p["avatar"], "marco": p["marco"], "monedas": p["monedas"],
+        "comprados": list(dict.fromkeys(p["comprados"] + ([v for v, _ in AVATARES + COLORES_MARCO] if admin else []))), "logros": p["logros"], "stats": p["stats"], "juegos": p["juegos"],
     }
 
 
@@ -211,6 +217,7 @@ def ver_perfil():
     pid = request.args.get('pid', '')[:40]
     if not pid:
         return jsonify({'error': 'Falta el jugador'}), 400
+    pid = identidad_perfil(pid)
     with candado:
         perfiles = _leer()
         if pid not in perfiles:
@@ -225,10 +232,13 @@ def editar_perfil():
     pid = str(datos.get('pid', ''))[:40]
     if not pid:
         return jsonify({'error': 'Falta el jugador'}), 400
+    pid = identidad_perfil(pid)
     with candado:
         perfiles = _leer()
         p = deepcopy(perfiles.get(pid, _nuevo()))
-        if datos.get('nombre'):
+        if cuenta_actual():
+            p['nombre'] = cuenta_actual()['usuario']
+        elif datos.get('nombre'):
             p['nombre'] = str(datos['nombre']).strip()[:14] or p['nombre']
         for campo, lista in (('avatar', AVATARES), ('marco', COLORES_MARCO)):
             valor = datos.get(campo)
@@ -239,7 +249,7 @@ def editar_perfil():
             precio = dict(lista).get(valor)
             if precio is None:
                 return jsonify({'error': 'Eso no existe'}), 400
-            if precio > 0 and valor not in p['comprados']:
+            if precio > 0 and valor not in p['comprados'] and not es_admin():
                 if p['monedas'] < precio:
                     return jsonify({'error': f'Te faltan {precio - p["monedas"]} monedas 🪙'}), 400
                 p['monedas'] -= precio
@@ -264,6 +274,7 @@ def iniciar_partida():
     modo = str(datos.get('modo') or '')
     if not pid or juego not in {*JUEGOS, 'dardos', 'naval'} or modo not in ('solo', 'local', 'bot', 'online'):
         return jsonify({'error': 'Partida inválida'}), 400
+    pid = identidad_perfil(pid)
     token = secrets.token_urlsafe(24)
     with candado:
         perfiles = _leer()
@@ -318,12 +329,14 @@ def evento_perfil():
     extra = datos.get('datos') or {}
     if not isinstance(extra, dict):
         return jsonify({'error': 'Datos inválidos'}), 400
+    jugador_pid = pid
+    pid = identidad_perfil(pid)
     clave_fiesta = None
     if juego in JUEGOS_FIESTA:
         if tipo != 'fin':
             return jsonify({'error': 'Evento inválido'}), 400
         try:
-            clave_fiesta, extra = _resultado_fiesta(datos, pid, juego)
+            clave_fiesta, extra = _resultado_fiesta(datos, jugador_pid, juego)
         except ValueError as exc:
             return jsonify({'error': str(exc)}), 400
     with candado:
@@ -420,17 +433,9 @@ TABLAS = [
 
 
 def _leer_tabla(archivo):
-    filas = {}
-    if os.path.exists(archivo):
-        with open(archivo, encoding="utf-8") as f:
-            for linea in f:
-                if ':' in linea:
-                    n, v = linea.strip().rsplit(':', 1)
-                    try:
-                        filas[n] = int(v)
-                    except ValueError:
-                        pass
-    return filas
+    from records_cuenta import leer_tabla
+    menor = any(a == archivo and m for a, _, _, m in TABLAS)
+    return leer_tabla(archivo, menor)
 
 
 @perfil_bp.route('/api/records_generales')
@@ -444,7 +449,10 @@ def records_generales():
         tablas.append({"juego": nombre, "unidad": unidad, "top": [{"nombre": n, "valor": v} for n, v in orden]})
     with candado:
         perfiles = _leer()
-    ricos = sorted(perfiles.values(), key=lambda p: p.get("monedas", 0), reverse=True)[:10]
+    copiados = ids_invitados_copiados()
+    perfiles = {pid: p for pid, p in perfiles.items() if pid not in copiados}
+    administradores = ids_administradores()
+    ricos = sorted((p for pid, p in perfiles.items() if pid not in administradores), key=lambda p: p.get("monedas", 0), reverse=True)[:10]
     logreros = sorted(perfiles.values(), key=lambda p: len(p.get("logros", {})), reverse=True)[:10]
     return jsonify({
         "tablas": tablas,

@@ -4,3 +4,6 @@ __pycache__/
 perfiles.json
 perfiles.json.tmp
 record_*.txt
+
+cuentas.sqlite3*
+respaldo_*/
