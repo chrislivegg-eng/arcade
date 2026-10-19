@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c14" />
+    <title>Mate Rápido · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: radial-gradient(ellipse at top, #3d2a66, #120c20 70%);
+      }
+      #zona {
+        position: fixed;
+        top: calc(84px + env(safe-area-inset-top));
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-evenly;
+        padding: 0 12px;
+      }
+      #barra-tiempo {
+        width: min(94vw, 460px);
+        height: 12px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.15);
+        overflow: hidden;
+      }
+      #barra-tiempo i {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #26de81, #ffd84f, #ff3b3b);
+        transition: width 0.25s linear;
+      }
+      #pregunta {
+        font-size: clamp(2.6rem, 13vw, 4.5rem);
+        font-weight: 900;
+        text-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      }
+      #pregunta.bien {
+        animation: bien 0.3s;
+      }
+      #pregunta.mal {
+        animation: mal 0.35s;
+      }
+      @keyframes bien {
+        50% {
+          transform: scale(1.15);
+          color: #26de81;
+        }
+      }
+      @keyframes mal {
+        20%,
+        60% {
+          transform: translateX(-12px);
+          color: #ff3b3b;
+        }
+        40%,
+        80% {
+          transform: translateX(12px);
+        }
+      }
+      #respuesta {
+        min-width: 160px;
+        min-height: 60px;
+        border-bottom: 4px solid #ffd84f;
+        font-size: 2.6rem;
+        font-weight: 900;
+        text-align: center;
+      }
+      #teclado {
+        width: min(94vw, 420px);
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      #teclado button {
+        height: min(64px, 8.5vh);
+        border: none;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.92);
+        color: #3d2a66;
+        font-family: inherit;
+        font-weight: 900;
+        font-size: 1.6rem;
+        touch-action: manipulation;
+        cursor: pointer;
+      }
+      #teclado button:active {
+        transform: scale(0.95);
+      }
+      #teclado .ok {
+        background: #26de81;
+        color: #fff;
+      }
+      #teclado .borrar {
+        background: #ff6b6b;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona" class="oculto">
+      <div id="barra-tiempo"><i></i></div>
+      <div id="pregunta"></div>
+      <div id="respuesta"></div>
+      <div id="teclado"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, sonar } = Arcade;
+      const SEGUNDOS = 60;
+      const J = { activa: false };
+
+      const ui = Arcade.ui({
+        juego: "mate",
+        titulo: "Mate Rápido",
+        emoji: "➕",
+        subtitulo: "¿Cuántas operaciones resuelves en 60 segundos?",
+        modos: ["solo", "bot", "online"],
+        textosModo: { bot: "🤖 Contra el bot", online: "🌐 Duelo online (mismas operaciones)" },
+        dificultad: { etiqueta: "🧮 Nivel", nombres: { facil: "Sumas y restas", normal: "+ − ×", pro: "+ − × ÷ grandes" }, siempre: true },
+        records: true,
+        unidadRecord: "pts",
+        reglas: [
+          "Escribe el resultado y toca ✔️ (o Enter en la compu).",
+          "Cada acierto da puntos; las rachas dan puntos extra 🔥.",
+          "Si te equivocas, la racha se rompe.",
+          "En duelo los dos reciben las mismas operaciones.",
+        ],
+        alEmpezar: empezar,
+        alSalir: parar,
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "puntos") {
+          J.rival = d.puntos;
+          marcador();
+        } else if (tipo === "fin") {
+          J.rival = d.puntos;
+          J.rivalFin = true;
+          revisarFin();
+        }
+      };
+
+      $("teclado").innerHTML = ["7", "8", "9", "4", "5", "6", "1", "2", "3", "−", "0", "⌫", "✔️"]
+        .map((k) => `<button data-k="${k}" class="${k === "✔️" ? "ok" : k === "⌫" ? "borrar" : ""}" ${k === "✔️" ? 'style="grid-column: span 3"' : ""}>${k}</button>`)
+        .join("");
+      $("teclado").addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (b) tecla(b.dataset.k);
+      });
+      document.addEventListener("keydown", (e) => {
+        if (!J.activa || document.activeElement.tagName === "INPUT") return;
+        if (/^\d$/.test(e.key)) tecla(e.key);
+        else if (e.key === "-") tecla("−");
+        else if (e.key === "Backspace") tecla("⌫");
+        else if (e.key === "Enter") tecla("✔️");
+      });
+
+      function operacion(rand, nivel, n) {
+        const dificil = Math.min(1, n / 25);
+        const ent = (a, b) => a + Math.floor(rand() * (b - a + 1));
+        const tipos = { facil: ["+", "−"], normal: ["+", "−", "×"], pro: ["+", "−", "×", "÷"] }[nivel];
+        const t = tipos[Math.floor(rand() * tipos.length)];
+        const tope = { facil: 12, normal: 20, pro: 50 }[nivel] * (1 + dificil);
+        let a, b, r;
+        if (t === "+") (a = ent(1, tope)), (b = ent(1, tope)), (r = a + b);
+        else if (t === "−") (a = ent(1, tope)), (b = ent(1, a)), (r = a - b);
+        else if (t === "×") (a = ent(2, nivel === "pro" ? 15 : 10)), (b = ent(2, 10)), (r = a * b);
+        else (b = ent(2, 12)), (r = ent(2, 12)), (a = b * r);
+        return { texto: `${a} ${t} ${b}`, r };
+      }
+
+      function parar() {
+        J.activa = false;
+        clearInterval(J.reloj);
+        clearTimeout(J.timerBot);
+        $("zona").classList.add("oculto");
+      }
+      async function empezar(modo, info) {
+        parar();
+        Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, nivel: info.dificultad, rand: Arcade.rng(info.semilla), n: 0, puntos: 0, racha: 0, aciertos: 0, rival: 0, rivalFin: false, miFin: false, escrito: "" });
+        $("zona").classList.remove("oculto");
+        $("respuesta").textContent = "";
+        $("barra-tiempo").firstChild.style.width = "100%";
+        marcador();
+        const partida = info.partida;
+        for (const t of ["3", "2", "1"]) {
+          $("pregunta").textContent = t;
+          sonar("click");
+          await esperar(600);
+          if (partida !== J.partida) return;
+        }
+        J.activa = true;
+        J.fin = Date.now() + SEGUNDOS * 1000;
+        siguiente();
+        J.reloj = setInterval(tic, 200);
+        if (modo === "bot") turnoBot();
+      }
+      function siguiente() {
+        J.op = operacion(J.rand, J.nivel, J.n++);
+        J.escrito = "";
+        $("pregunta").textContent = J.op.texto;
+        $("respuesta").textContent = "";
+      }
+      function tecla(k) {
+        if (!J.activa || J.miFin) return;
+        if (k === "⌫") J.escrito = J.escrito.slice(0, -1);
+        else if (k === "−") J.escrito = J.escrito.startsWith("-") ? J.escrito.slice(1) : "-" + J.escrito;
+        else if (k === "✔️") return responder();
+        else if (J.escrito.length < 5) J.escrito += k;
+        $("respuesta").textContent = J.escrito;
+        // si ya escribió el número correcto, se acepta solo
+        if (+J.escrito === J.op.r && J.escrito !== "" && J.escrito !== "-") responder();
+      }
+      function responder() {
+        if (J.escrito === "" || J.escrito === "-") return;
+        const p = $("pregunta");
+        p.classList.remove("bien", "mal");
+        void p.offsetWidth;
+        if (+J.escrito === J.op.r) {
+          J.racha++;
+          J.aciertos++;
+          J.puntos += 10 + Math.min(J.racha - 1, 10) * 2;
+          p.classList.add("bien");
+          sonar("ping", 0.5);
+          if (J.racha % 5 === 0) ui.avisar(`🔥 ¡Racha de ${J.racha}!`, "#ffb84f");
+        } else {
+          J.racha = 0;
+          p.classList.add("mal");
+          sonar("rebote", 0.5);
+          if (navigator.vibrate) navigator.vibrate(60);
+        }
+        if (J.modo === "online") ui.enviar("puntos", { partida: J.partida, puntos: J.puntos });
+        marcador();
+        siguiente();
+      }
+      function tic() {
+        if (!J.activa) return;
+        const quedan = Math.max(0, J.fin - Date.now());
+        $("barra-tiempo").firstChild.style.width = (quedan / (SEGUNDOS * 1000)) * 100 + "%";
+        marcador();
+        if (quedan <= 0 && !J.miFin) {
+          J.miFin = true;
+          clearInterval(J.reloj);
+          $("pregunta").textContent = "⏱️ ¡Tiempo!";
+          if (J.modo === "online") ui.enviar("fin", { partida: J.partida, puntos: J.puntos });
+          if (J.modo === "bot") J.rivalFin = true;
+          revisarFin();
+        }
+      }
+      function marcador() {
+        const s = J.fin ? Math.max(0, Math.ceil((J.fin - Date.now()) / 1000)) : SEGUNDOS;
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: J.puntos, detalle: `⏱️ ${s} s · 🔥 ${J.racha}`, activo: true }, null]);
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const mio = { nombre: J.nombres[yo] + " (tú)", valor: J.puntos, detalle: `⏱️ ${s} s · 🔥 ${J.racha}`, activo: true };
+        const suyo = { nombre: J.nombres[1 - yo], valor: J.rival, detalle: J.rivalFin ? "terminó" : "resolviendo…" };
+        ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
+      }
+      function revisarFin() {
+        if (!J.miFin || (J.modo === "online" && !J.rivalFin)) return;
+        if (!J.activa) return;
+        parar();
+        const nota = `${J.aciertos} aciertos`;
+        if (J.modo === "solo") {
+          sonar("ganar");
+          return ui.terminar({ emoji: "🧮", texto: `¡${J.puntos} puntos!`, nota, record: J.puntos, gano: false });
+        }
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const gane = J.puntos > J.rival,
+          empate = J.puntos === J.rival;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({ emoji: empate ? "🤝" : gane ? "🏆" : "😿", texto: empate ? "¡Empate!" : gane ? "¡Eres más rápido!" : `Ganó ${J.nombres[1 - yo]}`, nota: `Tú: ${J.puntos} · ${J.nombres[1 - yo]}: ${J.rival} · ${nota}`, record: J.puntos, gano: gane });
+      }
+      function turnoBot() {
+        const partida = J.partida;
+        const [ritmo, error] = { facil: [3.6, 0.2], normal: [2.4, 0.12], pro: [1.5, 0.05] }[J.nivel === "facil" ? "facil" : J.nivel === "normal" ? "normal" : "pro"];
+        let racha = 0;
+        const paso = () => {
+          if (partida !== J.partida || !J.activa || Date.now() > J.fin) return;
+          if (Math.random() > error) {
+            racha++;
+            J.rival += 10 + Math.min(racha - 1, 10) * 2;
+          } else racha = 0;
+          marcador();
+          J.timerBot = setTimeout(paso, ritmo * Arcade.azar(0.6, 1.4) * 1000);
+        };
+        J.timerBot = setTimeout(paso, ritmo * 1000);
+      }
+    </script>
+  </body>
+</html>

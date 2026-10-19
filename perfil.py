@@ -68,7 +68,8 @@ LOGROS = {
 }
 
 # Juegos de fiesta (cuentan para "Fiestero")
-JUEGOS_FIESTA = {"impostor", "probable", "verdad_reto", "dibuja", "verdades", "trivia", "frase", "basta", "espia", "uno"}
+JUEGOS_FIESTA = {"impostor", "probable", "verdad_reto", "dibuja", "verdades", "trivia", "frase", "basta", "espia", "uno",
+                 "papa", "blackjack", "poker", "loteria", "domino"}
 
 
 def _leer():
@@ -289,7 +290,12 @@ def _resultado_fiesta(datos, pid, juego):
                 or sala['fase'] not in ('resultado', 'final') or datos.get('ronda') != sala['ronda']):
             raise ValueError('La ronda no ha terminado o no perteneces a ella')
         identidad = sala.setdefault('perfil_id', secrets.token_urlsafe(24))
-        if juego == 'uno':
+        from fiesta import JUEGOS_EXTRA
+        extra = JUEGOS_EXTRA.get(juego)
+        if hasattr(extra, 'gano'):
+            # los juegos de mesa dicen ellos mismos quién ganó la ronda
+            gano = bool(extra.gano(sala, pid))
+        elif juego == 'uno':
             gano = sala['uno']['ganador'] == pid
         elif juego == 'impostor':
             gano = (pid not in sala['impostores']) == bool(sala['resultado']['atrapado'])
@@ -381,6 +387,13 @@ TABLAS = [
     ("record_wordle.txt", "🔤 Wordle", "seguidas", False),
     ("record_sudoku.txt", "🧩 Sudoku", "s", True),
     ("record_buscaminas.txt", "💣 Buscaminas", "s", True),
+    ("record_sopa.txt", "🔠 Sopa de Letras", "s", True),
+    ("record_mate.txt", "➕ Mate Rápido", "pts", False),
+    ("record_flow.txt", "🎨 Conecta Colores", "s", True),
+    ("record_tetris.txt", "🧩 Tetris", "pts", False),
+    ("record_parejas.txt", "🃏 Memorama Duelo", "intentos", True),
+    ("record_nonograma.txt", "🔢 Nonograma", "s", True),
+    ("record_yahtzee.txt", "🎲 Yahtzee", "pts", False),
     ("puntos.txt", "🎀 Kitty Saltarina", "pts", False),
     ("record_shooter.txt", "🚀 Space Defender", "pts", False),
     ("record_vibora.txt", "🐍 Viborita", "largo", False),

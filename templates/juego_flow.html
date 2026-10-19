@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0b14" />
+    <title>Conecta Colores · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: #0b0b14;
+      }
+      #zona {
+        position: fixed;
+        top: calc(84px + env(safe-area-inset-top));
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+      #nivel {
+        font-weight: 900;
+      }
+      #tablero {
+        --lado: min(96vw, calc(100vh - 200px), 520px);
+        width: var(--lado);
+        height: var(--lado);
+        touch-action: none;
+        border: 2px solid #3a3a5a;
+        border-radius: 10px;
+        background: #0b0b14;
+      }
+      #llenado {
+        font-weight: 800;
+        opacity: 0.85;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona" class="oculto">
+      <div id="nivel"></div>
+      <canvas id="tablero"></canvas>
+      <div id="llenado"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, sonar } = Arcade;
+      const COLORES = ["#ff3b3b", "#2f7bff", "#26de81", "#ffd84f", "#ff8c1a", "#00d5ff", "#c56cf0", "#ff6bd6", "#8b5a2b", "#ffffff", "#7a7a7a", "#2ecc71"];
+      const PUZZLES = 5; // por partida
+      const J = { activa: false };
+
+      const ui = Arcade.ui({
+        juego: "flow",
+        titulo: "Conecta Colores",
+        emoji: "🎨",
+        subtitulo: "Une los puntos del mismo color sin cruzar",
+        modos: ["solo", "bot", "online"],
+        textosModo: { solo: `🏆 ${PUZZLES} tableros contra reloj`, bot: "🤖 Carrera contra el bot", online: "🌐 Carrera online" },
+        dificultad: { etiqueta: "📏 Tamaño", nombres: { facil: "5×5", normal: "6×6", pro: "8×8" }, siempre: true },
+        records: true,
+        unidadRecord: "s",
+        reglas: [
+          "Arrastra desde un punto hasta el otro punto del mismo color.",
+          "Los caminos no se pueden cruzar. Si pasas por encima de otro, lo cortas.",
+          "Para pasar de tablero hay que unir todos los colores y llenar TODAS las casillas.",
+          `Son ${PUZZLES} tableros. En carrera gana quien los termine primero.`,
+          "Online siempre es tamaño 6×6.",
+        ],
+        alEmpezar: empezar,
+        alSalir: parar,
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida || !J.activa) return;
+        if (tipo === "avance") {
+          J.rival = Math.max(J.rival, d.hechos);
+          marcador();
+          if (J.rival >= PUZZLES) fin(false);
+        }
+      };
+
+      // =================== GENERADOR (camino que pasa por todas las casillas, cortado en pedazos) ===================
+      function generar(rand, n) {
+        // camino en zigzag y luego muchos "mordiscos" para revolverlo
+        let camino = [];
+        for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) camino.push([r, r % 2 ? n - 1 - k : k]);
+        const vecinos = ([r, c]) => [[r + 1, c], [r - 1, c], [r, c + 1], [r, c - 1]].filter(([a, b]) => a >= 0 && b >= 0 && a < n && b < n);
+        for (let it = 0; it < n * n * 40; it++) {
+          if (rand() < 0.5) camino.reverse();
+          const fin = camino[0];
+          const opciones = vecinos(fin);
+          const v = opciones[Math.floor(rand() * opciones.length)];
+          const i = camino.findIndex(([a, b]) => a === v[0] && b === v[1]);
+          if (i > 1) camino = camino.slice(0, i).reverse().concat(camino.slice(i));
+        }
+        // cortar en pedazos de al menos 3
+        const colores = Math.min(COLORES.length, n + (n > 6 ? 1 : 0));
+        let cortes;
+        for (let intento = 0; intento < 200; intento++) {
+          const c = new Set();
+          while (c.size < colores - 1) c.add(3 + Math.floor(rand() * (n * n - 5)));
+          cortes = [0, ...[...c].sort((a, b) => a - b), n * n];
+          if (cortes.every((x, i) => i === 0 || x - cortes[i - 1] >= 3)) break;
+          cortes = null;
+        }
+        if (!cortes) cortes = Array.from({ length: Math.floor((n * n) / 4) + 1 }, (_, i) => Math.min(n * n, i * 4));
+        const pares = [];
+        for (let i = 1; i < cortes.length; i++) {
+          const tramo = camino.slice(cortes[i - 1], cortes[i]);
+          if (tramo.length >= 2) pares.push([tramo[0], tramo[tramo.length - 1]]);
+        }
+        return { n, pares };
+      }
+
+      // =================== ESTADO DEL TABLERO ===================
+      const T = { n: 5, pares: [], caminos: [], dueno: [] };
+      function cargar(p) {
+        T.n = p.n;
+        T.pares = p.pares;
+        T.caminos = p.pares.map(() => []);
+        T.punto = {};
+        p.pares.forEach(([a, b], k) => {
+          T.punto[a[0] * p.n + a[1]] = k;
+          T.punto[b[0] * p.n + b[1]] = k;
+        });
+        recalcular();
+        dibujar();
+      }
+      function recalcular() {
+        T.dueno = Array(T.n * T.n).fill(-1);
+        T.caminos.forEach((cam, k) => cam.forEach((i) => (T.dueno[i] = k)));
+        Object.entries(T.punto).forEach(([i, k]) => (T.dueno[i] = k));
+      }
+      const completo = (k) => {
+        const cam = T.caminos[k];
+        if (cam.length < 2) return false;
+        const [a, b] = T.pares[k].map(([r, c]) => r * T.n + c);
+        return (cam[0] === a && cam[cam.length - 1] === b) || (cam[0] === b && cam[cam.length - 1] === a);
+      };
+
+      // =================== DIBUJO ===================
+      const lienzo = $("tablero");
+      const ctx = lienzo.getContext("2d");
+      function dibujar() {
+        const lado = lienzo.clientWidth * (window.devicePixelRatio || 1);
+        if (lienzo.width !== lado) lienzo.width = lienzo.height = lado;
+        const k = lado / T.n;
+        ctx.clearRect(0, 0, lado, lado);
+        // fondos de casillas llenas
+        T.dueno.forEach((d, i) => {
+          if (d < 0) return;
+          ctx.fillStyle = COLORES[d] + "33";
+          ctx.fillRect((i % T.n) * k, Math.floor(i / T.n) * k, k, k);
+        });
+        ctx.strokeStyle = "#2a2a44";
+        ctx.lineWidth = 1;
+        for (let i = 1; i < T.n; i++) {
+          ctx.beginPath();
+          ctx.moveTo(i * k, 0);
+          ctx.lineTo(i * k, lado);
+          ctx.moveTo(0, i * k);
+          ctx.lineTo(lado, i * k);
+          ctx.stroke();
+        }
+        const centro = (i) => [(i % T.n) * k + k / 2, Math.floor(i / T.n) * k + k / 2];
+        T.caminos.forEach((cam, c) => {
+          if (cam.length < 2) return;
+          ctx.strokeStyle = COLORES[c];
+          ctx.lineWidth = k * 0.36;
+          ctx.lineCap = ctx.lineJoin = "round";
+          ctx.beginPath();
+          cam.forEach((i, j) => (j ? ctx.lineTo(...centro(i)) : ctx.moveTo(...centro(i))));
+          ctx.stroke();
+        });
+        Object.entries(T.punto).forEach(([i, c]) => {
+          const [x, y] = centro(+i);
+          ctx.fillStyle = COLORES[c];
+          ctx.beginPath();
+          ctx.arc(x, y, k * 0.36, 0, Math.PI * 2);
+          ctx.fill();
+          if (completo(c)) {
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          }
+        });
+        const llenas = T.dueno.filter((d) => d >= 0).length;
+        $("llenado").textContent = `Colores: ${T.pares.filter((_, c) => completo(c)).length}/${T.pares.length} · Llenado: ${Math.round((llenas / (T.n * T.n)) * 100)}%`;
+      }
+      window.addEventListener("resize", () => J.activa && dibujar());
+
+      // =================== TOCAR Y ARRASTRAR ===================
+      let trazando = null; // color que se está dibujando
+      function celda(e) {
+        const r = lienzo.getBoundingClientRect();
+        const c = Math.floor(((e.clientX - r.left) / r.width) * T.n),
+          f = Math.floor(((e.clientY - r.top) / r.height) * T.n);
+        return f >= 0 && c >= 0 && f < T.n && c < T.n ? f * T.n + c : null;
+      }
+      const adyacentes = (a, b) => Math.abs((a % T.n) - (b % T.n)) + Math.abs(Math.floor(a / T.n) - Math.floor(b / T.n)) === 1;
+      lienzo.addEventListener("pointerdown", (e) => {
+        if (!J.activa) return;
+        const i = celda(e);
+        if (i == null) return;
+        lienzo.setPointerCapture(e.pointerId);
+        const c = T.dueno[i];
+        if (c < 0) return;
+        trazando = c;
+        if (T.punto[i] === c) T.caminos[c] = [i]; // empezar de nuevo desde un punto
+        else T.caminos[c] = T.caminos[c].slice(0, T.caminos[c].indexOf(i) + 1); // seguir desde a la mitad
+        recalcular();
+        dibujar();
+      });
+      lienzo.addEventListener("pointermove", (e) => {
+        if (trazando == null) return;
+        const i = celda(e);
+        const cam = T.caminos[trazando];
+        if (i == null || !cam.length || i === cam[cam.length - 1]) return;
+        if (!adyacentes(i, cam[cam.length - 1])) return;
+        // regresar sobre el propio camino lo recorta
+        const yaEsta = cam.indexOf(i);
+        if (yaEsta >= 0) {
+          T.caminos[trazando] = cam.slice(0, yaEsta + 1);
+        } else {
+          if (completo(trazando)) return;
+          // no se puede entrar al punto de otro color
+          if (T.punto[i] != null && T.punto[i] !== trazando) return;
+          // si pasa por el camino de otro color, lo corta
+          const otro = T.dueno[i];
+          if (otro >= 0 && otro !== trazando) {
+            const oc = T.caminos[otro];
+            T.caminos[otro] = oc.slice(0, oc.indexOf(i));
+          }
+          cam.push(i);
+          if (completo(trazando)) sonar("ping", 0.7);
+        }
+        recalcular();
+        dibujar();
+      });
+      const soltar = () => {
+        if (trazando == null) return;
+        trazando = null;
+        revisar();
+      };
+      lienzo.addEventListener("pointerup", soltar);
+      lienzo.addEventListener("pointercancel", soltar);
+
+      function revisar() {
+        const todos = T.pares.every((_, c) => completo(c));
+        const lleno = T.dueno.every((d) => d >= 0);
+        if (todos && !lleno) ui.avisar("¡Casi! Llena todas las casillas 🧩", "#ffd84f");
+        if (todos && lleno) resuelto();
+      }
+
+      // =================== PARTIDA ===================
+      function parar() {
+        J.activa = false;
+        clearInterval(J.reloj);
+        clearTimeout(J.timerBot);
+        $("zona").classList.add("oculto");
+      }
+      function empezar(modo, info) {
+        parar();
+        const nivel = modo === "online" ? "normal" : info.dificultad;
+        const n = { facil: 5, normal: 6, pro: 8 }[nivel];
+        const rand = Arcade.rng(info.semilla);
+        Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, dificultad: info.dificultad, n, puzzles: Array.from({ length: PUZZLES }, (_, i) => generar(rand, n + (i >= 3 && n < 8 ? 1 : 0))), hechos: 0, rival: 0, inicio: Date.now(), activa: true });
+        $("zona").classList.remove("oculto");
+        cargar(J.puzzles[0]);
+        $("nivel").textContent = `Tablero 1 de ${PUZZLES}`;
+        J.reloj = setInterval(marcador, 1000);
+        if (modo === "bot") turnoBot();
+        marcador();
+        ui.ayuda("👆 Arrastra de un punto a su pareja");
+        setTimeout(() => J.partida === info.partida && ui.ayuda(""), 4000);
+      }
+      async function resuelto() {
+        J.hechos++;
+        sonar("perfecto", 1.3);
+        ui.avisar(J.hechos >= PUZZLES ? "🎉 ¡Todos!" : `✅ ¡Tablero ${J.hechos} listo!`, "#26de81");
+        if (J.modo === "online") ui.enviar("avance", { partida: J.partida, hechos: J.hechos });
+        marcador();
+        if (J.hechos >= PUZZLES) return fin(true);
+        const partida = J.partida;
+        await esperar(700);
+        if (partida !== J.partida || !J.activa) return;
+        cargar(J.puzzles[J.hechos]);
+        $("nivel").textContent = `Tablero ${J.hechos + 1} de ${PUZZLES}`;
+      }
+      const seg = () => Math.floor((Date.now() - J.inicio) / 1000);
+      function marcador() {
+        const t = seg();
+        const reloj = `⏱️ ${(t / 60) | 0}:${String(t % 60).padStart(2, "0")}`;
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: `${J.hechos}/${PUZZLES}`, detalle: reloj, activo: true }, null]);
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const mio = { nombre: J.nombres[yo] + " (tú)", valor: `${J.hechos}/${PUZZLES}`, detalle: reloj, activo: true };
+        const suyo = { nombre: J.nombres[1 - yo], valor: `${J.rival}/${PUZZLES}`, detalle: "tableros" };
+        ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
+      }
+      function fin(gane) {
+        if (!J.activa) return;
+        const s = seg();
+        parar();
+        sonar(gane ? "ganar" : "perder");
+        if (J.modo === "solo") return ui.terminar({ emoji: "🏆", texto: `¡${PUZZLES} tableros en ${(s / 60) | 0}:${String(s % 60).padStart(2, "0")}!`, nota: `Tamaño ${J.n}×${J.n}`, record: s, gano: true });
+        const yo = J.modo === "online" ? ui.yo : 0;
+        ui.terminar({ emoji: gane ? "🏆" : "😿", texto: gane ? "¡Ganaste la carrera!" : `Ganó ${J.nombres[1 - yo]}`, nota: `Tú: ${J.hechos} · ${J.nombres[1 - yo]}: ${J.rival}`, gano: gane });
+      }
+      function turnoBot() {
+        const partida = J.partida;
+        const base = { facil: 70, normal: 45, pro: 28 }[J.dificultad] * (J.n / 6);
+        J.timerBot = setTimeout(() => {
+          if (partida !== J.partida || !J.activa) return;
+          J.rival++;
+          marcador();
+          if (J.rival >= PUZZLES) return fin(false);
+          turnoBot();
+        }, base * Arcade.azar(0.6, 1.4) * 1000);
+      }
+    </script>
+  </body>
+</html>

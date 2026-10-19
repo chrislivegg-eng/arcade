@@ -583,7 +583,7 @@ const Arcade = (() => {
           empezar("local", [miNombre(), (otro.trim() || "Jugador 2").slice(0, 14)]);
         } else if (modo === "bot") {
           const nivel = nombresDif[estado.dificultad];
-          empezar("bot", [miNombre(), config.dificultad ? `Bot ${nivel}` : "Bot"]);
+          empezar("bot", [miNombre(), config.dificultad && !dif.siempre ? `Bot ${nivel}` : "Bot"]); // si la dificultad es el tamaño del tablero, el bot no lleva número
         } else {
           empezar(modo, [miNombre(), ""]);
         }

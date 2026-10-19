@@ -49,9 +49,18 @@ JUEGOS = {
     'arco': 'juego_arco.html',
     'voleibol': 'juego_voleibol.html',
     'hockey': 'juego_hockey.html',
+    'sopa': 'juego_sopa.html',
+    'mate': 'juego_mate.html',
+    'flow': 'juego_flow.html',
+    'tetris': 'juego_tetris.html',
+    'parejas': 'juego_parejas.html',
+    'nonograma': 'juego_nonograma.html',
+    'reversi': 'juego_reversi.html',
+    'conecta3d': 'juego_conecta3d.html',
+    'yahtzee': 'juego_yahtzee.html',
 }
 # En estos juegos el récord es "menos es mejor" (golpes, milisegundos)
-RECORD_MENOR = {'mini_golf', 'reflejos', 'karts', 'sudoku', 'buscaminas'}
+RECORD_MENOR = {'mini_golf', 'reflejos', 'karts', 'sudoku', 'buscaminas', 'sopa', 'flow', 'parejas', 'nonograma'}
 
 salas = {}
 candado = threading.Lock()

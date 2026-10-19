@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c14" />
+    <title>Memorama Duelo · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: radial-gradient(ellipse at top, #5a1f4e, #160a14 70%);
+      }
+      #zona {
+        position: fixed;
+        top: calc(90px + env(safe-area-inset-top));
+        bottom: calc(14px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        display: grid;
+        place-items: center;
+      }
+      #cartas {
+        --cols: 4;
+        --filas: 4;
+        --k: min(calc((96vw - (var(--cols) - 1) * 8px) / var(--cols)), calc((100vh - 130px - (var(--filas) - 1) * 8px) / var(--filas) / 1.25), 110px);
+        display: grid;
+        grid-template-columns: repeat(var(--cols), var(--k));
+        gap: 8px;
+      }
+      .carta {
+        width: var(--k);
+        height: calc(var(--k) * 1.25);
+        perspective: 600px;
+        cursor: pointer;
+      }
+      .carta .giro {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.4s;
+        transform-style: preserve-3d;
+      }
+      .carta.volteada .giro {
+        transform: rotateY(180deg);
+      }
+      .carta .cara,
+      .carta .dorso {
+        position: absolute;
+        inset: 0;
+        border-radius: 14px;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        display: grid;
+        place-items: center;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+      }
+      .carta .dorso {
+        background: repeating-linear-gradient(45deg, #ff4f8b, #ff4f8b 8px, #e0337a 8px, #e0337a 16px);
+        border: 4px solid #fff;
+        font-size: calc(var(--k) * 0.35);
+      }
+      .carta .cara {
+        background: #fff;
+        transform: rotateY(180deg);
+        font-size: calc(var(--k) * 0.55);
+      }
+      .carta.par .cara {
+        box-shadow: 0 0 0 4px var(--color, #26de81);
+      }
+      .carta.par {
+        opacity: 0.75;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona" class="oculto"><div id="cartas"></div></div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, sonar } = Arcade;
+      const DIBUJOS = ["🐶", "🐱", "🦊", "🐼", "🐸", "🦄", "🐙", "🦋", "🍓", "🍕", "🌮", "🍩", "⚽", "🎸", "🚀", "🌈", "⭐", "🎁"];
+      const J = { activa: false };
+
+      const ui = Arcade.ui({
+        juego: "parejas",
+        titulo: "Memorama Duelo",
+        emoji: "🃏",
+        subtitulo: "Encuentra más parejas que tu rival",
+        modos: ["solo", "bot", "online", "local"],
+        textosModo: { solo: "🏆 Solo (menos intentos)" },
+        dificultad: { etiqueta: "🃏 Cartas", nombres: { facil: "16", normal: "20", pro: "30" }, siempre: true },
+        records: true,
+        unidadRecord: "intentos",
+        reglas: [
+          "Voltea dos cartas. Si son iguales, son tuyas ¡y vuelves a tirar!",
+          "Si no son iguales, se voltean otra vez y le toca al otro.",
+          "Gana quien junte más parejas. ¡Fíjate bien en lo que voltea tu rival!",
+          "Jugando solo, el récord es con menos intentos.",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.activa = false;
+          clearTimeout(J.timerBot);
+          $("zona").classList.add("oculto");
+        },
+      });
+      const pendientes = {};
+      ui.alEvento = (tipo, d) => {
+        if (tipo !== "voltear" || !d || d.partida !== J.partida) return;
+        pendientes[d.n] = d.i;
+        aplicarPendientes();
+      };
+      function aplicarPendientes() {
+        while (!J.ocupado && pendientes[J.n] != null) {
+          const i = pendientes[J.n];
+          delete pendientes[J.n];
+          voltear(i, true);
+        }
+      }
+
+      function empezar(modo, info) {
+        clearTimeout(J.timerBot);
+        Object.keys(pendientes).forEach((k) => delete pendientes[k]);
+        const [cols, filas] = { facil: [4, 4], normal: [4, 5], pro: [5, 6] }[modo === "online" ? "normal" : info.dificultad];
+        const r = Arcade.rng(info.semilla);
+        const dibujos = DIBUJOS.slice().sort(() => r() - 0.5).slice(0, (cols * filas) / 2);
+        const cartas = [...dibujos, ...dibujos].sort(() => r() - 0.5);
+        Object.assign(J, { modo, partida: info.partida, nombres: info.nombres, dificultad: info.dificultad, cartas, dueno: Array(cartas.length).fill(null), abiertas: [], turno: 0, pares: [0, 0], intentos: 0, n: 0, activa: true, ocupado: false, memoria: {} });
+        J.yo = modo === "online" ? ui.yo : 0;
+        $("cartas").style.setProperty("--cols", cols);
+        $("cartas").style.setProperty("--filas", filas);
+        $("cartas").innerHTML = cartas.map((c, i) => `<div class="carta" data-i="${i}"><div class="giro"><div class="dorso">❔</div><div class="cara">${c}</div></div></div>`).join("");
+        $("zona").classList.remove("oculto");
+        marcador();
+        if (modo === "local") ui.avisar(`Empieza ${J.nombres[0]}`, "#ff4f8b");
+      }
+      $("cartas").addEventListener("click", (e) => {
+        const c = e.target.closest(".carta");
+        if (!c || !J.activa || J.ocupado) return;
+        if (J.modo !== "solo" && J.modo !== "local" && J.turno !== J.yo) return;
+        const i = +c.dataset.i;
+        if (J.dueno[i] != null || J.abiertas.includes(i)) return;
+        if (J.modo === "online") ui.enviar("voltear", { partida: J.partida, n: J.n, i });
+        voltear(i);
+      });
+
+      async function voltear(i, remota) {
+        const el = $("cartas").children[i];
+        el.classList.add("volteada");
+        J.abiertas.push(i);
+        J.n++;
+        sonar("click");
+        // el bot se acuerda (a veces) de lo que se volteó
+        const recuerda = { facil: 0.35, normal: 0.65, pro: 0.92 }[J.dificultad];
+        if (Math.random() < recuerda) J.memoria[i] = J.cartas[i];
+        if (J.abiertas.length < 2) return;
+        J.ocupado = true;
+        const [a, b] = J.abiertas;
+        const partida = J.partida;
+        if (J.turno === 0 || J.modo === "solo") J.intentos++;
+        await esperar(J.cartas[a] === J.cartas[b] ? 450 : 1000);
+        if (partida !== J.partida) return;
+        if (J.cartas[a] === J.cartas[b]) {
+          J.dueno[a] = J.dueno[b] = J.turno;
+          J.pares[J.turno]++;
+          [a, b].forEach((k) => {
+            const c = $("cartas").children[k];
+            c.classList.add("par");
+            c.style.setProperty("--color", J.turno ? "#4fb3ff" : "#ff4f8b");
+            delete J.memoria[k];
+          });
+          sonar("perfecto", 1.2);
+        } else {
+          [a, b].forEach((k) => $("cartas").children[k].classList.remove("volteada"));
+          if (J.modo !== "solo") J.turno = 1 - J.turno;
+          sonar("rebote", 0.4);
+          if (J.modo === "local") ui.avisar(`Turno de ${J.nombres[J.turno]}`, J.turno ? "#4fb3ff" : "#ff4f8b");
+        }
+        J.abiertas = [];
+        J.ocupado = false;
+        marcador();
+        if (J.dueno.every((d) => d != null)) return fin();
+        if (J.modo === "bot" && J.turno === 1) turnoBot();
+        aplicarPendientes();
+      }
+
+      function turnoBot() {
+        const partida = J.partida;
+        const elegir = () => {
+          const libres = J.cartas.map((_, i) => i).filter((i) => J.dueno[i] == null && !J.abiertas.includes(i));
+          // ¿conoce una pareja completa?
+          if (!J.abiertas.length) {
+            const vistos = {};
+            for (const [i, c] of Object.entries(J.memoria)) {
+              if (J.dueno[i] != null) continue;
+              if (vistos[c] != null) return +vistos[c];
+              vistos[c] = i;
+            }
+          } else {
+            const buscado = J.cartas[J.abiertas[0]];
+            const sabe = Object.entries(J.memoria).find(([i, c]) => c === buscado && +i !== J.abiertas[0] && J.dueno[i] == null);
+            if (sabe) return +sabe[0];
+          }
+          const desconocidas = libres.filter((i) => J.memoria[i] == null);
+          const de = desconocidas.length ? desconocidas : libres;
+          return de[Math.floor(Math.random() * de.length)];
+        };
+        J.timerBot = setTimeout(() => {
+          if (partida !== J.partida || !J.activa || J.turno !== 1) return;
+          voltear(elegir());
+          J.timerBot = setTimeout(() => {
+            if (partida !== J.partida || !J.activa || J.turno !== 1 || J.abiertas.length !== 1) return;
+            voltear(elegir());
+          }, 700);
+        }, 900);
+      }
+
+      function marcador() {
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: `${J.pares[0]}/${J.cartas.length / 2}`, detalle: `${J.intentos} intentos`, activo: true }, null]);
+        ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (J.modo !== "local" && i === J.yo ? " (tú)" : ""), valor: J.pares[i], detalle: J.turno === i ? "le toca" : "parejas", activo: J.activa && J.turno === i, color: i ? "#4fb3ff" : "#ff4f8b" })));
+      }
+
+      function fin() {
+        J.activa = false;
+        const [a, b] = J.pares;
+        if (J.modo === "solo") {
+          sonar("ganar");
+          return ui.terminar({ emoji: "🧠", texto: `¡Listo en ${J.intentos} intentos!`, nota: `${J.cartas.length} cartas`, record: J.intentos, gano: true });
+        }
+        const g = a === b ? null : a > b ? 0 : 1;
+        const gane = g === J.yo;
+        sonar(g == null ? "rebote" : gane || J.modo === "local" ? "ganar" : "perder");
+        ui.terminar({
+          emoji: g == null ? "🤝" : J.modo === "local" || gane ? "🏆" : "😿",
+          texto: g == null ? "¡Empate!" : J.modo === "local" ? `¡Ganó ${J.nombres[g]}!` : gane ? "¡Ganaste!" : `Ganó ${J.nombres[g]}`,
+          nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}`,
+          gano: J.modo !== "local" && gane,
+        });
+      }
+    </script>
+  </body>
+</html>
