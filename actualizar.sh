@@ -3,11 +3,11 @@
 # 🔄 Actualiza el arcade en PythonAnywhere desde GitHub
 # =======================================================
 # Úsalo desde una consola Bash de PythonAnywhere:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/chrislivegg-eng/arcade/claude/sweet-cray-umwhon/actualizar.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/chrislivegg-eng/arcade/main/actualizar.sh)
 
 set -e
 
-RAMA="${RAMA:-claude/sweet-cray-umwhon}"
+RAMA="${RAMA:-main}"
 BASE="https://raw.githubusercontent.com/chrislivegg-eng/arcade/$RAMA"
 CARPETA="${CARPETA:-$HOME}"
 RESPALDO="$CARPETA/respaldo_$(date +%Y%m%d_%H%M%S)"
