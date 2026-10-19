@@ -144,7 +144,7 @@
     const d = datos || { nombre: leer("nombreUsuario") || "Jugador", avatar: "😺", marco: "#ff4f8b", monedas: 0 };
     const div = document.createElement("div");
     div.textContent = d.nombre;
-    el.innerHTML = `<a class="perfil-insignia" href="/perfil" title="Mi perfil"><span class="cara ${claseMarco(d.marco)}" style="--marco:${d.marco}">${d.avatar}</span><span>${div.innerHTML}</span><span class="monedas">🪙 ${d.monedas}</span></a>`;
+    el.innerHTML = `<a class="perfil-insignia" href="/perfil" title="Mi perfil"><span class="cara ${claseMarco(d.marco)}" style="--marco:${d.marco}">${d.avatar}</span><span>${div.innerHTML}</span><span class="monedas">🪙 ${d.monedas_infinitas ? "∞" : d.monedas}</span></a>`;
   }
   function insignia(el) {
     if (!el) return;

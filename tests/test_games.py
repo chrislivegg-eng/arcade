@@ -64,6 +64,8 @@ class GamesTest(unittest.TestCase):
         python_code = script.split("python3 - <<'EOF'\n", 1)[1].split('\nEOF', 1)[0]
         old_app = 'from flask import Flask\napp = Flask(__name__)\ndef menu():\n    return dict(records_pixel_art=leer_records(ARCHIVO_PIXEL_ART)\n                victorias_dados=leer_records(ARCHIVO_DADOS))\n'
         with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'records_cuenta.py').write_text((root / 'records_cuenta.py').read_text(encoding='utf-8'), encoding='utf-8')
+            old_app += '\ndef leer_records(archivo, inverso=False):\n    return {}\ndef guardar_generico(archivo, nombre, puntos, inverso=False, acumulable=False):\n    return None\n'
             path = Path(tmp) / 'app.py'
             path.write_text(old_app, encoding='utf-8')
             for _ in range(2):

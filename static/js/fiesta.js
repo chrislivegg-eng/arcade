@@ -73,7 +73,7 @@ const Fiesta = (() => {
   }
 
   function leerNombre() {
-    const nombre = $("nombre").value.trim();
+    const nombre = window.Perfil?.datos?.cuenta ? Perfil.datos.nombre : $("nombre").value.trim();
     if (!nombre) {
       mostrarError("Escribe tu nombre primero ✏️");
       $("nombre").focus();
@@ -295,6 +295,7 @@ const Fiesta = (() => {
   function iniciar(opciones) {
     config = opciones;
     $("nombre").value = nombreGuardado();
+    window.Perfil?.cargar().then(d=>{if(d?.cuenta){$("nombre").value=d.nombre;$("nombre").readOnly=true;}});
     $("btn-crear").onclick = crear;
     $("btn-unirse").onclick = unirse;
     $("btn-compartir").onclick = compartir;
