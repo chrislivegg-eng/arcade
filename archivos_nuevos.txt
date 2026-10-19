@@ -104,3 +104,10 @@ static/img/README.md
 static/uno.css
 static/js/uno.js
 static/js/uno3d.js
+
+static/intro.css
+static/js/intro.js
+static/video/intro-pc-v1.mp4
+static/video/intro-movil-v1.mp4
+static/video/intro-pc-v1.jpg
+static/video/intro-movil-v1.jpg
