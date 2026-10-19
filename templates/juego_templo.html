@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#101714" />
+    <title>Umbra · El templo perdido</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='templo.css') }}"
+    />
+  </head>
+  <body>
+    <canvas
+      id="lienzo"
+      aria-label="Templo perdido en tres dimensiones"
+    ></canvas>
+    <div class="vineta" aria-hidden="true"></div>
+    <div id="hud" hidden>
+      <header>
+        <a href="/secreto" aria-label="Volver al arcade">← ARCADE</a
+        ><span class="marca">U M B R A</span
+        ><button id="pausar" aria-label="Pausar expedición">Ⅱ</button>
+      </header>
+      <div class="objetivo">
+        <small>EXPEDICIÓN · SANTUARIO DE LAS MAREAS</small
+        ><strong id="mision">Recupera los tres sellos del templo</strong
+        ><span id="sellos">☀　☾　≈　 ·　0 / 3</span>
+      </div>
+      <span class="brujula" id="brujula">N</span
+      ><span class="mira" aria-hidden="true">+</span>
+      <div id="interaccion" hidden>
+        <span id="objeto"></span
+        ><button id="interactuar">Examinar <kbd>E</kbd></button>
+      </div>
+      <div class="inferior">
+        <span id="zona">Atrio de las raíces</span><span id="tiempo">00:00</span
+        ><button id="diario">Diario <kbd>J</kbd></button>
+      </div>
+      <div id="joystick" aria-label="Arrastra para caminar"><i></i></div>
+      <p class="controles">
+        WASD para caminar · arrastra para mirar · E para examinar · Esc pausa
+      </p>
+    </div>
+    <section id="portada" class="pantalla">
+      <div class="presentacion">
+        <a class="volver" href="/secreto">← VOLVER AL ARCADE</a
+        ><span class="capitulo">UNA EXPEDICIÓN EN PRIMERA PERSONA</span>
+        <h1>UMBRA<span>El templo perdido.</span></h1>
+        <p class="sinopsis">
+          Bajo las raíces, el agua todavía recuerda.<br />Descifra tres altares
+          y despierta el corazón del santuario.
+        </p>
+        <div class="separador">☀　☾　≈</div>
+        <label class="nombre-label" for="nombre">EXPLORADOR</label
+        ><input
+          id="nombre"
+          maxlength="14"
+          placeholder="Tu nombre"
+          autocomplete="nickname"
+        />
+        <button id="empezar" class="principal">
+          Comenzar expedición <span>↗</span>
+        </button>
+        <button id="continuar" class="secundario" hidden>
+          Continuar expedición guardada
+        </button>
+        <div id="calidad"></div>
+        <p class="nota">
+          Computadora: WASD + mouse · Celular: palanca + arrastrar para
+          mirar.<br />El avance de esta expedición se guarda en este
+          dispositivo.
+        </p>
+        <p id="error" role="alert"></p>
+      </div>
+      <div class="sello-portada" aria-hidden="true">
+        <span>✦</span><small>LOS TRES SELLOS<br />AGUARDAN</small>
+      </div>
+    </section>
+    <section id="pausa" class="pantalla centrada" hidden>
+      <div class="panel">
+        <small>EL TEMPLO PUEDE ESPERAR</small>
+        <h2>Un momento de calma.</h2>
+        <p>Tu avance está guardado.</p>
+        <button id="reanudar" class="principal">Seguir explorando</button
+        ><button id="volver-portada" class="secundario">
+          Volver a la portada
+        </button>
+        <div id="calidad-pausa"></div>
+        <button id="sonido" class="secundario" aria-pressed="true">
+          Sonido: activado
+        </button>
+      </div>
+    </section>
+    <section id="final" class="pantalla centrada" hidden>
+      <div class="panel">
+        <small>EXPEDICIÓN COMPLETADA</small>
+        <div class="reliquia-final">✦</div>
+        <h2>El santuario vive.</h2>
+        <p>Has devuelto la luz al corazón de Umbra.</p>
+        <strong id="resultado"></strong>
+        <p id="guardado-final" role="status"></p>
+        <button id="otra" class="principal">Nueva expedición</button
+        ><a class="secundario" href="/records">Ver récords</a
+        ><a class="volver" href="/secreto">Volver al arcade →</a>
+      </div>
+    </section>
+    <dialog id="lectura">
+      <form method="dialog">
+        <button class="cerrar" aria-label="Cerrar">×</button
+        ><small id="tipo-lectura">INSCRIPCIÓN</small>
+        <h2 id="titulo-lectura"></h2>
+        <div id="contenido-lectura"></div>
+      </form>
+    </dialog>
+    <div id="aviso" role="status"></div>
+    <div id="cargando">Preparando el santuario…</div>
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/templo.js') }}"></script>
+  </body>
+</html>

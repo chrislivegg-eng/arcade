@@ -47,6 +47,7 @@ COLORES_MARCO = [
 # ---------------- Logros ----------------
 # id: (icono, nombre, descripción, monedas de premio)
 LOGROS = {
+    "templo": ("🏛️", "Guardián de Umbra", "Despierta el corazón del templo perdido", 150),
     "primer_juego": ("🎮", "¡A jugar!", "Termina tu primera partida", 20),
     "explorador": ("🧭", "Explorador", "Juega 10 juegos distintos", 100),
     "todologo": ("🌎", "Todólogo", "Juega 25 juegos distintos", 300),
@@ -171,6 +172,8 @@ def procesar_evento(p, juego, tipo, datos):
                     _dar_logro(p, "bot_pro_5", nuevos)
                 if juego == "penales":
                     _dar_logro(p, "penales_pro", nuevos)
+            if juego == "templo":
+                _dar_logro(p, "templo", nuevos)
             if juego == "karts":
                 _dar_logro(p, "karts_1", nuevos)
             if juego == "buscaminas":
@@ -483,6 +486,7 @@ def evento_perfil():
 # ---------------- 📊 Récords de todos los juegos ----------------
 # (archivo, nombre visible, unidad, ¿menos es mejor?)
 TABLAS = [
+    ("record_templo.txt", "🏛️ Umbra · Templo perdido", "s", True),
     ("record_basquet.txt", "🏀 Básquet 3D", "pts", False),
     ("record_boliche.txt", "🎳 Boliche 3D", "pts", False),
     ("record_beer_pong.txt", "🥤 Vaso Pong", "vasos", False),

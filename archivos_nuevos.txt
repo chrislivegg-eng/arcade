@@ -90,3 +90,7 @@ templates/cuenta.html
 static/js/cuenta.js
 
 static/js/graficos3d.js
+
+templates/juego_templo.html
+static/templo.css
+static/js/templo.js

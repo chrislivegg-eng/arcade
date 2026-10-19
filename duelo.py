@@ -66,9 +66,10 @@ JUEGOS = {
     'surf': 'juego_surf.html',
     'drift': 'juego_drift.html',
     'espadas': 'juego_espadas.html',
+    'templo': 'juego_templo.html',
 }
 # En estos juegos el récord es "menos es mejor" (golpes, milisegundos)
-RECORD_MENOR = {'mini_golf', 'reflejos', 'karts', 'sudoku', 'buscaminas', 'sopa', 'flow', 'parejas', 'nonograma'}
+RECORD_MENOR = {'mini_golf', 'reflejos', 'karts', 'sudoku', 'buscaminas', 'sopa', 'flow', 'parejas', 'nonograma', 'templo'}
 
 salas = {}
 candado = threading.Lock()
