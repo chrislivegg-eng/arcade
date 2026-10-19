@@ -575,7 +575,7 @@ const Arcade = (() => {
       history.replaceState(null, "", location.pathname + "?sala=" + codigo);
       mostrar("menu-espera");
       clearInterval(intervalo);
-      intervalo = setInterval(consultar, 600);
+      intervalo = setInterval(consultar, config.intervaloOnline || 600); // los juegos en tiempo real piden más seguido
       consultar();
     }
     function salirOnline(avisarRival) {
