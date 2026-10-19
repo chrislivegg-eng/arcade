@@ -1,0 +1,305 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #070b18;
+  color: #e9f5ff;
+  font-family: system-ui, sans-serif;
+}
+body {
+  background: radial-gradient(ellipse at 50% 40%, #162842, #070b18 70%);
+}
+button,
+a,
+input {
+  font: inherit;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+  color: inherit;
+  border: 1px solid #8cadc440;
+  background: #17263b;
+  border-radius: 12px;
+  min-height: 42px;
+  padding: 10px 15px;
+  font-weight: 750;
+}
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+input:focus-visible {
+  outline: 3px solid #fa5fbc;
+  outline-offset: 3px;
+}
+a {
+  color: #a6c8df;
+  text-decoration: none;
+}
+button:active,
+.controles button.activo {
+  background: #287784;
+  box-shadow: 0 0 20px #50f6db40;
+}
+.cabecera {
+  height: 60px;
+  padding: 8px max(16px, env(safe-area-inset-right)) 8px
+    max(16px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #6cbaba22;
+  gap: 10px;
+}
+.cabecera > a {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.cabecera > b {
+  font-size: 16px;
+  letter-spacing: 3px;
+}
+.cabecera span {
+  color: #6bf4db;
+}
+.cabecera div {
+  display: flex;
+  gap: 6px;
+}
+.cabecera button {
+  font-size: 19px;
+  padding: 7px 12px;
+  min-width: 40px;
+}
+.juego {
+  height: calc(100dvh - 60px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 12px max(8px, env(safe-area-inset-bottom));
+  gap: 6px;
+}
+.marcador {
+  width: min(100%, 660px);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 4px 2px;
+  font-variant-numeric: tabular-nums;
+}
+.marcador div {
+  display: flex;
+  flex-direction: column;
+}
+.marcador small {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #96b3c9;
+}
+.marcador strong {
+  font-size: 23px;
+  color: #eafff9;
+}
+.marcador div:first-child strong {
+  color: #6bf4db;
+}
+.tablero {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+canvas {
+  display: block;
+  touch-action: none;
+  user-select: none;
+  border-radius: 20px;
+  box-shadow: 0 18px 65px #0008;
+}
+#aviso {
+  font-size: 12px;
+  line-height: 16px;
+  min-height: 16px;
+  margin: 0;
+  text-align: center;
+  color: #c8dbeb;
+}
+.controles {
+  width: min(100%, 620px);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  touch-action: none;
+}
+.controles button {
+  user-select: none;
+  touch-action: none;
+  min-height: 48px;
+  font-size: 12px;
+}
+.controles #lanzar {
+  background: #e1ba69;
+  color: #111625;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.4;
+}
+.controles #lanzar span {
+  font-size: 9px;
+  font-weight: 500;
+}
+dialog {
+  color: #e9f5ff;
+  width: min(92vw, 410px);
+  max-height: 90dvh;
+  overflow: auto;
+  border: 1px solid #76e5cd70;
+  border-radius: 22px;
+  padding: 30px;
+  background: linear-gradient(155deg, #182c40, #080e21);
+  text-align: center;
+  box-shadow: 0 30px 100px #000a;
+}
+dialog::backdrop {
+  background: #020713b8;
+  backdrop-filter: blur(5px);
+}
+dialog h1 {
+  font-size: 52px;
+  line-height: 1;
+  margin: 25px 0 20px;
+  letter-spacing: 3px;
+}
+dialog h1 em {
+  font-style: normal;
+  color: #6bf4db;
+  letter-spacing: 14px;
+}
+dialog p {
+  line-height: 1.6;
+  color: #b2cadc;
+}
+dialog label {
+  display: block;
+  text-align: left;
+  font-size: 12px;
+  color: #b2cadc;
+}
+dialog input {
+  display: block;
+  background: #080e1d;
+  border: 1px solid #ffffff30;
+  border-radius: 9px;
+  padding: 12px;
+  color: #fff;
+  width: 100%;
+  margin: 6px 0 12px;
+}
+dialog button {
+  display: block;
+  width: 100%;
+  margin: 10px 0;
+}
+dialog .primario {
+  background: #6bf4db;
+  color: #06191c;
+}
+dialog a {
+  display: block;
+  font-size: 12px;
+  margin-top: 20px;
+}
+dialog details {
+  font-size: 12px;
+  text-align: left;
+  margin-top: 18px;
+}
+dialog summary {
+  cursor: pointer;
+  color: #bddddf;
+}
+.eyebrow {
+  color: #e1ba69;
+  font-size: 9px;
+  letter-spacing: 2px;
+}
+#resultado {
+  font-size: 45px;
+  color: #6bf4db;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 480px) {
+  .cabecera {
+    height: 54px;
+    padding-inline: 10px;
+  }
+  .cabecera > b {
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+  .cabecera button {
+    min-height: 36px;
+    min-width: 34px;
+    padding: 4px 8px;
+  }
+  .juego {
+    height: calc(100dvh - 54px);
+    gap: 4px;
+    padding-inline: 7px;
+  }
+  .marcador {
+    padding-top: 5px;
+  }
+  .marcador strong {
+    font-size: 19px;
+  }
+  .controles button {
+    font-size: 10px;
+    min-height: 44px;
+    padding: 7px;
+  }
+  .controles {
+    gap: 5px;
+  }
+  #aviso {
+    font-size: 10px;
+  }
+  .controles button span {
+    font-size: 9px;
+  }
+}
+@media (max-height: 550px) {
+  .cabecera {
+    height: 42px;
+  }
+  .juego {
+    height: calc(100dvh - 42px);
+  }
+  .marcador {
+    padding: 2px;
+    max-width: 500px;
+  }
+  .marcador strong {
+    font-size: 16px;
+  }
+  .controles button {
+    min-height: 32px;
+    padding: 3px;
+  }
+  #aviso {
+    display: none;
+  }
+}

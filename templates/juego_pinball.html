@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#070b18" />
+    <title>Pinball Nova · Chris Arcade</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static',filename='pinball.css') }}"
+    />
+  </head>
+  <body>
+    <header class="cabecera">
+      <a href="/secreto" aria-label="Volver al arcade">← ARCADE</a
+      ><b>PINBALL <span>NOVA</span></b>
+      <div>
+        <button id="sonido" aria-label="Silenciar efectos" aria-pressed="true">
+          ♫</button
+        ><button id="pantalla" aria-label="Pantalla completa">⛶</button
+        ><button id="pausa" aria-label="Pausar partida">Ⅱ</button>
+      </div>
+    </header>
+    <main class="juego">
+      <section class="marcador" aria-label="Marcador">
+        <div><small>PUNTOS</small><strong id="puntos">0</strong></div>
+        <div><small>BOLA</small><strong id="vidas">1 / 3</strong></div>
+        <div><small>BONUS</small><strong id="multi">×1</strong></div>
+        <div><small>RÉCORD</small><strong id="record">0</strong></div>
+      </section>
+      <div class="tablero" id="tablero">
+        <canvas
+          id="pinball"
+          width="540"
+          height="900"
+          aria-label="Mesa de pinball. Flechas izquierda y derecha: palancas. Mantén abajo y suelta para lanzar."
+        ></canvas>
+      </div>
+      <p id="aviso" role="status">Mantén LANZAR y suelta para jugar</p>
+      <div class="controles">
+        <button id="izquierda" aria-label="Palanca izquierda">
+          ◀ <span>IZQUIERDA</span></button
+        ><button id="lanzar">LANZAR <span>mantén y suelta</span></button
+        ><button id="derecha" aria-label="Palanca derecha">
+          <span>DERECHA</span> ▶
+        </button>
+      </div>
+    </main>
+    <dialog id="menu">
+      <span class="eyebrow">CHRIS ARCADE / ORIGINAL TABLE</span>
+      <h1>PINBALL<br /><em>NOVA</em></h1>
+      <p>Una bola de acero.<br />Todo un universo de rebotes.</p>
+      <label
+        >Tu nombre<input
+          id="nombre"
+          maxlength="14"
+          autocomplete="nickname"
+          placeholder="Jugador" /></label
+      ><button id="empezar" class="primario">JUGAR · 3 BOLAS</button>
+      <details>
+        <summary>Cómo jugar</summary>
+        <p>
+          PC: ← → o A / D para las palancas. Mantén ↓ o espacio y suelta para
+          lanzar.
+        </p>
+        <p>
+          Celular: mantén la mesa y suelta para lanzar; después toca cada mitad
+          para mover su palanca. También puedes usar los botones inferiores.
+        </p>
+        <p>
+          Enciende los 3 pasillos para subir el multiplicador. Completa NOVA
+          para ganar un jackpot. La primera caída durante los primeros 6
+          segundos se salva. P o Esc pausa.
+        </p>
+      </details>
+      <a href="/secreto">Volver al arcade</a>
+    </dialog>
+    <dialog id="pausado">
+      <span class="eyebrow">TOMA UN RESPIRO</span>
+      <h2>Partida en pausa</h2>
+      <button class="primario" id="continuar">CONTINUAR</button
+      ><button id="abandonar">Terminar partida</button
+      ><a href="/secreto">Volver al arcade</a>
+    </dialog>
+    <dialog id="final">
+      <span class="eyebrow">FIN DE LA PARTIDA</span>
+      <h2>Bien jugado.</h2>
+      <strong id="resultado">0</strong>
+      <p id="guardado" role="status"></p>
+      <button class="primario" id="otra">OTRA PARTIDA</button
+      ><a href="/secreto">Volver al arcade</a>
+    </dialog>
+    <script src="{{ url_for('static',filename='js/perfil.js') }}"></script>
+    <script src="{{ url_for('static',filename='js/pinball-fisica.js') }}"></script>
+    <script src="{{ url_for('static',filename='js/pinball.js') }}"></script>
+  </body>
+</html>
