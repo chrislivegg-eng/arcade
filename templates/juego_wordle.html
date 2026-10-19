@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c14" />
+    <title>Wordle en Español · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      body {
+        background: radial-gradient(ellipse at top, #2b1d45, #120c14 70%);
+      }
+      #zona {
+        position: fixed;
+        top: calc(88px + env(safe-area-inset-top));
+        bottom: calc(8px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 0 6px;
+      }
+      #tablero {
+        --t: min(15vw, 6.6vh, 58px);
+        display: grid;
+        grid-template-rows: repeat(6, var(--t));
+        gap: 6px;
+        margin: auto 0;
+      }
+      .fila {
+        display: grid;
+        grid-template-columns: repeat(5, var(--t));
+        gap: 6px;
+      }
+      .fila.sacudir {
+        animation: sacudir 0.4s;
+      }
+      .casilla {
+        border: 2px solid rgba(255, 255, 255, 0.18);
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-size: calc(var(--t) * 0.55);
+        font-weight: 900;
+        text-transform: uppercase;
+        transition: transform 0.1s;
+      }
+      .casilla.llena {
+        border-color: rgba(255, 255, 255, 0.55);
+        transform: scale(1.05);
+      }
+      .casilla.verde,
+      .casilla.amarilla,
+      .casilla.gris {
+        border-color: transparent;
+        animation: voltear 0.5s both;
+      }
+      .verde {
+        background: #26b86b !important;
+      }
+      .amarilla {
+        background: #e6b422 !important;
+      }
+      .gris {
+        background: #4a4256 !important;
+      }
+      @keyframes voltear {
+        0% {
+          transform: rotateX(0);
+          background: transparent;
+        }
+        49% {
+          transform: rotateX(90deg);
+          background: transparent;
+        }
+        50% {
+          transform: rotateX(90deg);
+        }
+        100% {
+          transform: rotateX(0);
+        }
+      }
+      @keyframes sacudir {
+        20%,
+        60% {
+          transform: translateX(-8px);
+        }
+        40%,
+        80% {
+          transform: translateX(8px);
+        }
+      }
+      #teclado {
+        width: 100%;
+        max-width: 500px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .fila-teclas {
+        display: flex;
+        gap: 4px;
+        justify-content: center;
+      }
+      .tecla {
+        flex: 1;
+        height: min(54px, 7vh);
+        border: none;
+        border-radius: 8px;
+        background: #6d6480;
+        color: #fff;
+        font-family: inherit;
+        font-weight: 900;
+        font-size: 1.05rem;
+        cursor: pointer;
+        padding: 0;
+        touch-action: manipulation;
+      }
+      .tecla.ancha {
+        flex: 1.6;
+        font-size: 0.8rem;
+      }
+      .tecla:active {
+        filter: brightness(1.3);
+      }
+      #rival {
+        position: fixed;
+        top: calc(92px + env(safe-area-inset-top));
+        right: 8px;
+        background: rgba(20, 12, 24, 0.72);
+        border-radius: 12px;
+        padding: 6px;
+        display: grid;
+        gap: 2px;
+        z-index: 4;
+      }
+      #rival .titulo-rival {
+        font-size: 0.6rem;
+        font-weight: 900;
+        text-align: center;
+        opacity: 0.8;
+        max-width: 66px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      #rival .mini {
+        display: grid;
+        grid-template-columns: repeat(5, 10px);
+        gap: 2px;
+      }
+      #rival .mini span {
+        height: 10px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.12);
+      }
+      @media (min-width: 700px) {
+        #rival {
+          right: calc(50% - 330px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zona" class="oculto">
+      <div id="tablero"></div>
+      <div id="teclado"></div>
+    </div>
+    <div id="rival" class="oculto"></div>
+
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, sonar } = Arcade;
+      // Palabras de 5 letras (sin acentos). Se puede escribir cualquier palabra de 5 letras.
+      const PALABRAS = `ABEJA ABRIL ABRIR ACTOR ACERO ADIOS AGUJA AHORA ALDEA ALGAS ALMAS ALTAR ALTOS AMIGO AMIGA ANCHO ANGEL ANIMO ANTES APOYO ARBOL ARENA ARMAS AROMA ARROZ ASADO ATLAS ATRAS AUTOS AVION AYUDA BAILE BAJOS BALON BANCO BANDA BARCO BARRO BESOS BICHO BOTAS BOTON BRAZO BRISA BROMA BRUJA BUENO BURRO BUZON CABRA CAJAS CALDO CALLE CALMA CALOR CAMPO CANAL CANTO CAPAZ CARGO CARNE CARRO CARTA CASAS CAUSA CAZAR CEBRA CEJAS CERDO CERCA CESTA CHICO CHILE CIELO CINCO CINTA CIRCO CLARO CLASE CLAVO COBRE COCHE COMER COPAS CORAL CORTO COSTA CREMA CRUCE CUERO CUEVA CULPA CURVA DANZA DARDO DEBER DECIR DEDOS DIOSA DISCO DOLOR DONDE DUCHA DULCE DUQUE ENERO ENTRE ERROR ESTAR ETAPA EXITO FALDA FALSO FALTA FAVOR FECHA FELIZ FERIA FIBRA FIERA FINAL FIRMA FLACO FLOJO FLOTA FONDO FORMA FRASE FRENO FRESA FRITO FRUTA FUEGO FUERA FUMAR GAFAS GALLO GANAR GANSO GATOS GENIO GENTE GLOBO GOLPE GORDO GORRA GOTAS GRADO GRANO GRASA GRAVE GRITO GRUPO GUAPO GUSTO HABLA HACER HACHA HADAS HECHO HIELO HIGOS HILOS HOGAR HOJAS HONGO HORAS HOTEL HUEVO HUMOR IDEAS IGUAL ISLAS JAMON JARRA JAULA JOVEN JUEGO JUGAR JUNIO JUNTO JUSTO LABIO LADOS LAGOS LANZA LAPIZ LARGO LATAS LECHE LEJOS LENTO LEONA LETRA LIBRO LIMON LINEA LISTO LLAMA LLAVE LLENO LOBOS LOCOS LOCAL LUCHA LUGAR LUNES MADRE MAGIA MAGOS MALLA MANGO MANOS MANTA MARCO MAREA MARZO MASAS MAYOR MEDIA MEDIO MELON MENOS MENTE MESAS METAL METRO MIEDO MILLA MIRAR MISMO MITAD MODAS MOLDE MONOS MONTE MORAL MOSCA MOTOR MUCHO MUELA MUNDO MUSEO NACER NADAR NARIZ NEGRO NIDOS NIEVE NINJA NIVEL NOCHE NORTE NOTAS NOVIO NUBES NUEVO NUNCA OBRAS OLIVO OLLAS ONDAS ORDEN OREJA OTROS PADRE PAGAR PALMA PALOS PANDA PAPEL PARED PARTE PASEO PASTA PASTO PATIO PATOS PAUSA PECES PEDAL PEINE PELEA PELOS PERLA PERRO PESCA PIANO PICOS PIEZA PILAS PINTA PINOS PISAR PISTA PIZZA PLATA PLAYA PLAZA PLENO PLUMA POBRE POCOS PODER POEMA POETA POLLO POLVO PONER POSTE PRADO PRIMO PRISA PUNTO PULPO QUESO RADIO RAMAS RANGO RATON RAYOS RAZON REINA RELOJ RESTO RICOS RITMO ROBOT ROCAS RODAR ROJOS RONDA ROSAS RUEDA RUIDO RUMBO SABER SABOR SACAR SALSA SALTO SALUD SANTO SELVA SERIE SIETE SIGLO SILLA SITIO SOBRE SOLAR SONAR SUAVE SUCIO SUELO SUSTO TABLA TACOS TALLA TANGO TARDE TAREA TARTA TAZAS TECHO TELAS TEMAS TENIS TENER TIGRE TINTA TIRAR TOCAR TODOS TOMAR TONTO TORRE TORTA TRAJE TRAPO TRATO TRECE TRIGO TRUCO TUMBA TURNO UNION VACAS VAGON VALLE VALOR VAPOR VASOS VECES VELAS VENIR VERDE VERSO VIAJE VIDAS VIEJO VIRUS VISTA VOLAR VUELO YEGUA ZORRO ZONAS NIÑOS SUEÑO BAÑOS CAÑON PEÑAS MOÑOS`
+        .split(/\s+/)
+        .filter((p) => [...p].length === 5);
+      const FILAS = 6;
+
+      const J = { activa: false, intentos: [], actual: "", palabra: "", rival: { filas: [], fin: null }, inicio: 0, miFin: null };
+
+      const ui = Arcade.ui({
+        juego: "wordle",
+        titulo: "Wordle",
+        emoji: "🔤",
+        subtitulo: "Adivina la palabra de 5 letras en 6 intentos",
+        modos: ["solo", "bot", "online"],
+        textosModo: { solo: "🏆 Jugar solo (racha)" },
+        dificultad: true,
+        records: true,
+        unidadRecord: "seguidas",
+        reglas: [
+          "Escribe cualquier palabra de 5 letras y toca ENVIAR.",
+          "<b style='color:#26b86b'>Verde</b>: la letra está en su lugar.",
+          "<b style='color:#e6b422'>Amarillo</b>: la letra está en la palabra pero en otro lugar.",
+          "<b style='color:#9a90aa'>Gris</b>: la letra no está.",
+          "En duelo los dos adivinan la MISMA palabra: gana quien use menos intentos (si empatan, el más rápido).",
+          "Jugando solo cuenta tu racha de palabras seguidas.",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          J.activa = false;
+          clearTimeout(J.timerBot);
+          $("zona").classList.add("oculto");
+          $("rival").classList.add("oculto");
+        },
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "fila") {
+          J.rival.filas[d.n] = d.colores;
+          pintarRival();
+        } else if (tipo === "fin") {
+          J.rival.fin = d;
+          revisarFinDuelo();
+        }
+      };
+
+      // ---------- Teclado ----------
+      const TECLAS = ["QWERTYUIOP", "ASDFGHJKLÑ", "⏎ZXCVBNM⌫"];
+      $("teclado").innerHTML = TECLAS.map(
+        (f) =>
+          `<div class="fila-teclas">${[...f]
+            .map((k) =>
+              k === "⏎" ? `<button class="tecla ancha" data-k="ENTER">ENVIAR</button>` : k === "⌫" ? `<button class="tecla ancha" data-k="BORRAR">⌫</button>` : `<button class="tecla" data-k="${k}">${k}</button>`,
+            )
+            .join("")}</div>`,
+      ).join("");
+      $("teclado").addEventListener("click", (e) => {
+        const b = e.target.closest(".tecla");
+        if (b) tecla(b.dataset.k);
+      });
+      document.addEventListener("keydown", (e) => {
+        if (!J.activa || e.ctrlKey || e.metaKey || document.activeElement.tagName === "INPUT") return;
+        if (e.key === "Enter") tecla("ENTER");
+        else if (e.key === "Backspace") tecla("BORRAR");
+        else {
+          const k = e.key.normalize("NFD").replace(/[̀-́̈]/g, "").toUpperCase();
+          if (/^[A-ZÑ]$/.test(e.key.toUpperCase())) tecla(e.key.toUpperCase());
+          else if (/^[A-Z]$/.test(k)) tecla(k);
+        }
+      });
+
+      function tecla(k) {
+        if (!J.activa || J.miFin) return;
+        const fila = J.intentos.length;
+        if (k === "BORRAR") J.actual = [...J.actual].slice(0, -1).join("");
+        else if (k === "ENTER") return enviarIntento();
+        else if ([...J.actual].length < 5) {
+          J.actual += k;
+          sonar("click");
+        }
+        pintarFila(fila);
+      }
+
+      // ---------- Lógica ----------
+      function colores(intento, palabra) {
+        const a = [...intento],
+          p = [...palabra];
+        const res = Array(5).fill("g");
+        const quedan = {};
+        p.forEach((l, i) => {
+          if (a[i] === l) res[i] = "v";
+          else quedan[l] = (quedan[l] || 0) + 1;
+        });
+        a.forEach((l, i) => {
+          if (res[i] !== "v" && quedan[l]) {
+            res[i] = "a";
+            quedan[l]--;
+          }
+        });
+        return res.join("");
+      }
+      const CLASE = { v: "verde", a: "amarilla", g: "gris" };
+
+      function empezar(modo, info) {
+        clearTimeout(J.timerBot);
+        J.modo = modo;
+        J.partida = info.partida;
+        J.nombres = info.nombres;
+        J.dificultad = info.dificultad;
+        const r = Arcade.rng(info.semilla);
+        J.palabra = PALABRAS[Math.floor(r() * PALABRAS.length)];
+        J.intentos = [];
+        J.actual = "";
+        J.miFin = null;
+        J.rival = { filas: [], fin: null };
+        J.inicio = performance.now();
+        J.activa = true;
+        if (modo === "solo" && info.partida === 1) J.racha = 0;
+        $("zona").classList.remove("oculto");
+        $("rival").classList.toggle("oculto", modo === "solo");
+        $("tablero").innerHTML = Array.from({ length: FILAS }, () => `<div class="fila">${'<div class="casilla"></div>'.repeat(5)}</div>`).join("");
+        document.querySelectorAll(".tecla").forEach((t) => (t.className = t.className.replace(/ (verde|amarilla|gris)/, "")));
+        pintarRival();
+        marcador();
+        ui.ayuda("");
+        if (modo === "bot") jugarBot(info.partida);
+      }
+
+      function marcador() {
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: `🔥 ${J.racha || 0}`, detalle: "Racha", activo: true }, null]);
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const mio = { nombre: J.nombres[yo] + " (tú)", valor: `${J.intentos.length}/${FILAS}`, detalle: J.miFin ? (J.miFin.resuelto ? "✅ ¡Resuelto!" : "❌ Sin intentos") : "Intentos", activo: !J.miFin };
+        const rf = J.rival.fin;
+        const suyo = { nombre: J.nombres[1 - yo], valor: `${J.rival.filas.filter(Boolean).length}/${FILAS}`, detalle: rf ? (rf.resuelto ? "✅ ¡Resuelto!" : "❌ Sin intentos") : "Pensando…" };
+        ui.marcador(yo === 0 ? [mio, suyo] : [suyo, mio]);
+      }
+
+      function pintarFila(n) {
+        const fila = $("tablero").children[n];
+        if (!fila) return;
+        const letras = [...J.actual];
+        [...fila.children].forEach((c, i) => {
+          c.textContent = letras[i] || "";
+          c.classList.toggle("llena", !!letras[i]);
+        });
+      }
+
+      function pintarRival() {
+        if (J.modo === "solo") return;
+        const yo = J.modo === "online" ? ui.yo : 0;
+        $("rival").innerHTML =
+          `<div class="titulo-rival">${Arcade.esc(J.nombres[1 - yo] || "Rival")}</div><div class="mini">` +
+          Array.from({ length: FILAS }, (_, f) =>
+            [...(J.rival.filas[f] || "     ")].map((c) => `<span class="${CLASE[c] || ""}"></span>`).join(""),
+          ).join("") +
+          "</div>";
+        marcador();
+      }
+
+      async function enviarIntento() {
+        const fila = J.intentos.length;
+        const el = $("tablero").children[fila];
+        if ([...J.actual].length < 5) {
+          el.classList.remove("sacudir");
+          void el.offsetWidth;
+          el.classList.add("sacudir");
+          ui.avisar("Faltan letras", "#ff3b3b");
+          return;
+        }
+        const intento = J.actual;
+        const c = colores(intento, J.palabra);
+        J.intentos.push(intento);
+        J.actual = "";
+        const partida = J.partida;
+        if (J.modo === "online") ui.enviar("fila", { partida, n: fila, colores: c });
+        [...el.children].forEach((cas, i) => {
+          cas.style.animationDelay = i * 0.18 + "s";
+          cas.classList.add(CLASE[c[i]]);
+        });
+        sonar("ping");
+        // colorea el teclado (verde gana a amarillo, amarillo a gris)
+        const rango = { gris: 0, amarilla: 1, verde: 2 };
+        [...intento].forEach((l, i) => {
+          const t = document.querySelector(`.tecla[data-k="${l}"]`);
+          if (!t) return;
+          const actual = ["verde", "amarilla", "gris"].find((k) => t.classList.contains(k));
+          const nueva = CLASE[c[i]];
+          if (!actual || rango[nueva] > rango[actual]) {
+            if (actual) t.classList.remove(actual);
+            t.classList.add(nueva);
+          }
+        });
+        marcador();
+        await esperar(1100);
+        if (partida !== J.partida || !J.activa) return;
+        const resuelto = c === "vvvvv";
+        if (resuelto || J.intentos.length >= FILAS) terminarMio(resuelto);
+      }
+
+      function terminarMio(resuelto) {
+        J.miFin = { resuelto, intentos: J.intentos.length, ms: Math.round(performance.now() - J.inicio) };
+        marcador();
+        if (J.modo === "solo") return finSolo(resuelto);
+        sonar(resuelto ? "ganar" : "perder");
+        ui.avisar(resuelto ? `¡Lo lograste en ${J.intentos.length}! 🎉` : `Era <b>${J.palabra}</b>`, resuelto ? "#26b86b" : "#ff3b3b");
+        if (J.modo === "online") ui.enviar("fin", { partida: J.partida, ...J.miFin });
+        revisarFinDuelo();
+      }
+
+      function finSolo(resuelto) {
+        J.activa = false;
+        if (resuelto) J.racha = (J.racha || 0) + 1;
+        const racha = J.racha || 0;
+        sonar(resuelto ? "ganar" : "perder");
+        ui.terminar({
+          emoji: resuelto ? "🏆" : "😿",
+          texto: resuelto ? `¡Adivinaste en ${J.intentos.length}!` : `La palabra era ${J.palabra}`,
+          nota: resuelto ? `🔥 Racha: ${racha} seguidas` : `Tu racha fue de ${racha}`,
+          record: racha || null,
+          gano: resuelto,
+          datos: { intentos: resuelto ? J.intentos.length : 0 },
+        });
+        if (!resuelto) J.racha = 0;
+      }
+
+      // Quién ganó: menos intentos; si empatan, el más rápido. No resolverlo = 7 intentos.
+      function revisarFinDuelo() {
+        marcador();
+        if (!J.miFin || !J.rival.fin || !J.activa) return;
+        J.activa = false;
+        clearTimeout(J.timerBot);
+        ui.ayuda("");
+        const val = (f) => (f.resuelto ? f.intentos : 99) * 1e7 + f.ms;
+        const mio = val(J.miFin),
+          suyo = val(J.rival.fin);
+        const yo = J.modo === "online" ? ui.yo : 0;
+        const rival = J.nombres[1 - yo];
+        const nadie = !J.miFin.resuelto && !J.rival.fin.resuelto;
+        const gane = !nadie && mio < suyo;
+        const seg = (f) => (f.resuelto ? `${f.intentos} intentos · ${(f.ms / 1000).toFixed(0)} s` : "no lo resolvió");
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({
+          emoji: nadie ? "🤝" : gane ? "🏆" : "😿",
+          texto: nadie ? `Nadie la adivinó: ${J.palabra}` : gane ? "¡Ganaste el duelo!" : `Ganó ${rival}`,
+          nota: `Palabra: ${J.palabra} · Tú: ${seg(J.miFin)} · ${rival}: ${seg(J.rival.fin)}`,
+          gano: gane,
+          datos: { intentos: J.miFin.resuelto ? J.miFin.intentos : 0 },
+        });
+      }
+
+      // ---------- Bot: adivina de verdad usando las pistas ----------
+      function jugarBot(partida) {
+        const cfg = { facil: { lista: 0.35, espera: [9000, 15000], primera: 0.5 }, normal: { lista: 0.75, espera: [7000, 12000], primera: 0.8 }, pro: { lista: 1, espera: [5000, 9000], primera: 1 } }[J.dificultad];
+        let candidatos = PALABRAS.slice();
+        const pistas = [];
+        const turno = () => {
+          if (partida !== J.partida || !J.activa) return;
+          const n = J.rival.filas.length;
+          // a veces el bot "se distrae" y prueba una palabra que no encaja con las pistas
+          const usaPistas = Math.random() < (n === 0 ? 1 : cfg.lista);
+          const lista = usaPistas && candidatos.length ? candidatos : PALABRAS;
+          let intento = lista[Math.floor(Math.random() * lista.length)];
+          if (n === FILAS - 1 && Math.random() < cfg.primera && candidatos.length) intento = candidatos[Math.floor(Math.random() * candidatos.length)];
+          const c = colores(intento, J.palabra);
+          pistas.push([intento, c]);
+          candidatos = candidatos.filter((p) => pistas.every(([w, col]) => colores(w, p) === col));
+          J.rival.filas.push(c);
+          pintarRival();
+          if (c === "vvvvv" || J.rival.filas.length >= FILAS) {
+            J.rival.fin = { resuelto: c === "vvvvv", intentos: J.rival.filas.length, ms: Math.round(performance.now() - J.inicio) };
+            revisarFinDuelo();
+            return;
+          }
+          J.timerBot = setTimeout(turno, Arcade.azar(...cfg.espera));
+        };
+        J.timerBot = setTimeout(turno, Arcade.azar(...cfg.espera));
+      }
+    </script>
+  </body>
+</html>

@@ -409,6 +409,9 @@ const Arcade = (() => {
 
   function ui(config) {
     const modos = config.modos || ["bot", "online", "local"];
+    // dificultad: true, o { etiqueta, nombres: {facil, normal, pro}, siempre } para juegos sin bot
+    const dif = typeof config.dificultad === "object" ? config.dificultad : {};
+    const nombresDif = Object.assign({ facil: "Fácil", normal: "Normal", pro: "Pro" }, dif.nombres);
     const html = `
       <div id="hud" class="oculto">
         <div class="marcador">
@@ -434,12 +437,12 @@ const Arcade = (() => {
           <div class="etiqueta">Tu nombre</div>
           <input id="nombre" class="campo" maxlength="14" placeholder="Tu nombre" />
           ${
-            config.dificultad && modos.includes("bot")
-              ? `<div class="etiqueta">🤖 Dificultad del bot</div>
+            config.dificultad && (modos.includes("bot") || dif.siempre)
+              ? `<div class="etiqueta">${dif.etiqueta || "🤖 Dificultad del bot"}</div>
                  <div class="chips" id="chips-dificultad">
-                   <button class="chip" data-d="facil">Fácil</button>
-                   <button class="chip activo" data-d="normal">Normal</button>
-                   <button class="chip" data-d="pro">Pro</button>
+                   <button class="chip" data-d="facil">${nombresDif.facil}</button>
+                   <button class="chip activo" data-d="normal">${nombresDif.normal}</button>
+                   <button class="chip" data-d="pro">${nombresDif.pro}</button>
                  </div>`
               : ""
           }
@@ -575,7 +578,7 @@ const Arcade = (() => {
           if (otro === null) return;
           empezar("local", [miNombre(), (otro.trim() || "Jugador 2").slice(0, 14)]);
         } else if (modo === "bot") {
-          const nivel = { facil: "Fácil", normal: "Normal", pro: "Pro" }[estado.dificultad];
+          const nivel = nombresDif[estado.dificultad];
           empezar("bot", [miNombre(), config.dificultad ? `Bot ${nivel}` : "Bot"]);
         } else {
           empezar(modo, [miNombre(), ""]);
@@ -758,7 +761,7 @@ const Arcade = (() => {
       $("ayuda").style.opacity = texto ? 1 : 0;
     }
 
-    async function terminar({ emoji = "🏆", texto, nota = "", record = null, gano = null }) {
+    async function terminar({ emoji = "🏆", texto, nota = "", record = null, gano = null, datos = {} }) {
       $("fin-emoji").textContent = emoji;
       $("fin-texto").textContent = texto;
       $("fin-nota").textContent = nota;
@@ -776,7 +779,7 @@ const Arcade = (() => {
       }
       // monedas y logros (si el juego no dice si ganaste, se adivina por el trofeo)
       if (gano == null) gano = estado.modo !== "solo" && estado.modo !== "local" && ["🏆", "🥇"].includes(emoji);
-      window.Perfil && Perfil.evento(config.juego, "fin", { gano, modo: estado.modo, dificultad: estado.dificultad, record_nuevo: recordNuevo });
+      window.Perfil && Perfil.evento(config.juego, "fin", { gano, modo: estado.modo, dificultad: estado.dificultad, record_nuevo: recordNuevo, ...datos });
     }
 
     function enviar(tipo, datos) {

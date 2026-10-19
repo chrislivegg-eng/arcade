@@ -38,3 +38,8 @@ perfil.py
 static/js/perfil.js
 templates/perfil.html
 templates/records.html
+templates/juego_wordle.html
+templates/juego_2048.html
+templates/juego_combina3.html
+templates/juego_sudoku.html
+templates/juego_buscaminas.html

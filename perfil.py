@@ -276,7 +276,7 @@ TABLAS = [
     ("record_arco.txt", "🎯 Tiro con arco", "pts", False),
     ("record_2048.txt", "🔢 2048", "pts", False),
     ("record_combina3.txt", "🍬 Combina 3", "pts", False),
-    ("record_wordle.txt", "🔤 Wordle", "victorias", False),
+    ("record_wordle.txt", "🔤 Wordle", "seguidas", False),
     ("record_sudoku.txt", "🧩 Sudoku", "s", True),
     ("record_buscaminas.txt", "💣 Buscaminas", "s", True),
     ("puntos.txt", "🎀 Kitty Saltarina", "pts", False),
