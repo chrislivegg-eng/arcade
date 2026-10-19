@@ -90,6 +90,32 @@
     return datos;
   }
 
+  function pintarAvatar(el, d) {
+    el.textContent = d.avatar;
+    if (d.avatar_url && /^\/api\/perfil\/icono\/cuenta:[a-f0-9]{24}\?v=[a-f0-9]{16}$/.test(d.avatar_url)) {
+      const img = document.createElement('img');
+      img.src = d.avatar_url; img.alt = 'Avatar de ' + d.nombre;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
+      el.replaceChildren(img);
+    }
+  }
+
+  async function subirIcono(archivo) {
+    if (!['image/png','image/jpeg','image/webp'].includes(archivo.type) || archivo.size > 5*1024*1024)
+      throw new Error('Usa una imagen PNG, JPG o WebP de hasta 5 MB');
+    const bitmap = await createImageBitmap(archivo);
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 256;
+    const lado = Math.min(bitmap.width, bitmap.height);
+    canvas.getContext('2d').drawImage(bitmap,(bitmap.width-lado)/2,(bitmap.height-lado)/2,lado,lado,0,0,256,256);
+    bitmap.close();
+    const r = await fetch('/api/perfil/icono',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pid:PID,imagen:canvas.toDataURL('image/png')})});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'No se pudo subir el icono');
+    datos = j; guardar('perfil_cache',JSON.stringify(datos)); actualizarInsignias();
+    return datos;
+  }
+
   const partidas = new Map();
   const nuevoId = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36);
   function iniciar(juego, config) {
@@ -145,6 +171,7 @@
     const div = document.createElement("div");
     div.textContent = d.nombre;
     el.innerHTML = `<a class="perfil-insignia" href="/perfil" title="Mi perfil"><span class="cara ${claseMarco(d.marco)}" style="--marco:${d.marco}">${d.avatar}</span><span>${div.innerHTML}</span><span class="monedas">🪙 ${d.monedas_infinitas ? "∞" : d.monedas}</span></a>`;
+    pintarAvatar(el.querySelector(".cara"), d);
   }
   function insignia(el) {
     if (!el) return;
@@ -157,6 +184,8 @@
 
   window.Perfil = {
     pid: PID,
+    pintarAvatar,
+    subirIcono,
     cargar,
     editar,
     evento,

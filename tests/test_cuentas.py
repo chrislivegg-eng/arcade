@@ -126,6 +126,27 @@ class CuentasTest(unittest.TestCase):
             self.assertEqual(self.a.post('/api/records/wordle',json={'nombre':'Sara','puntos':10}).status_code,200)
             self.assertEqual(leer_tabla(str(self.root/'record_prueba.txt')),{'chris':10})
 
+    def test_custom_icon_admin_only_validation_and_sync(self):
+        import base64, struct, zlib
+        def chunk(t,d):
+            return struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d))
+        png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',256,256,8,6,0,0,0))+chunk(b'IDAT',zlib.compress((b'\0'+b'\xff\0\0\xff'*256)*256))+chunk(b'IEND',b'')
+        imagen='data:image/png;base64,'+base64.b64encode(png).decode()
+        self.assertEqual(self.b.post('/api/perfil/icono',json={'pid':'b','imagen':imagen}).status_code,403)
+        self.registro(self.b,usuario='Normal',pid='b')
+        self.assertEqual(self.b.post('/api/perfil/icono',json={'pid':'b','imagen':imagen}).status_code,403)
+        self.admin()
+        for invalida in ['data:image/svg+xml;base64,AAAA','data:image/png;base64,AAAA',imagen[:-8], 'x'*410001]:
+            self.assertIn(self.a.post('/api/perfil/icono',json={'pid':'equipo-a','imagen':invalida}).status_code,[400,413])
+        r=self.a.post('/api/perfil/icono',json={'pid':'equipo-a','imagen':imagen})
+        self.assertEqual(r.status_code,200,r.json)
+        url=r.json['avatar_url']
+        self.assertEqual(self.b.get(url).data,png)
+        self.assertEqual(self.b.get(url).headers['X-Content-Type-Options'],'nosniff')
+        self.b.post('/api/cuenta/entrar',json={'usuario':'chris','password':'clave-segura-123','pid':'b'})
+        self.assertEqual(self.b.get('/api/perfil?pid=b').json['avatar_url'],url)
+        self.assertEqual(self.a.post('/api/perfil',json={'pid':'equipo-a','avatar':'🐼'}).json['avatar_url'],None)
+
     def test_installer_is_idempotent_and_preserves_inventory(self):
         source=Path(__file__).resolve().parents[1].joinpath('app.py').read_text(encoding='utf-8')
         self.assertEqual(preparar_app(source),source)
