@@ -53,3 +53,7 @@ templates/juego_ajedrez.html
 templates/juego_damas.html
 templates/juego_serpientes.html
 templates/juego_parchis.html
+templates/juego_corredor.html
+templates/juego_ladrillos.html
+templates/juego_box.html
+templates/juego_arco.html

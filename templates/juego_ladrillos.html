@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0820" />
+    <title>Rompe-ladrillos 3D · Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, sonar } = Arcade;
+      const ANCHO = 6, // la cancha va de -6 a 6 en x
+        FONDO = -11, // pared del fondo
+        Z_RAQUETA = 8,
+        RADIO = 0.24,
+        COLS = 10,
+        LAD_W = 1.12,
+        LAD_D = 0.52;
+
+      // =========================================================
+      //  ESCENA (neón)
+      // =========================================================
+      const M = Arcade.mundo({ fondo: 0x0b0820, fov: 55, exposicion: 1.1, colorAmbiente: 0x2a1f55 });
+      const { escena, camara } = M;
+      const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color: lin(color), roughness: 0.35, metalness: 0.1, ...extra });
+      escena.add(new THREE.HemisphereLight(0xb0a8ff, 0x201040, 0.6));
+      const luz = new THREE.DirectionalLight(0xffffff, 0.9);
+      luz.position.set(3, 14, 10);
+      luz.castShadow = true;
+      luz.shadow.mapSize.set(1024, 1024);
+      Object.assign(luz.shadow.camera, { left: -9, right: 9, top: 14, bottom: -14, near: 1, far: 40 });
+      escena.add(luz);
+      const caja = (w, h, d, m, x = 0, y = 0, z = 0) => {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+        b.position.set(x, y, z);
+        b.castShadow = b.receiveShadow = true;
+        return b;
+      };
+      // piso con cuadrícula
+      const texPiso = M.textura(512, 512, (g, w, h) => {
+        g.fillStyle = "#140e33";
+        g.fillRect(0, 0, w, h);
+        g.strokeStyle = "rgba(120,100,255,.35)";
+        g.lineWidth = 2;
+        for (let i = 0; i <= w; i += 32) {
+          g.beginPath();
+          g.moveTo(i, 0);
+          g.lineTo(i, h);
+          g.stroke();
+          g.beginPath();
+          g.moveTo(0, i);
+          g.lineTo(w, i);
+          g.stroke();
+        }
+      });
+      texPiso.wrapS = texPiso.wrapT = THREE.RepeatWrapping;
+      texPiso.repeat.set(3, 5);
+      const piso = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO * 2, 22), new THREE.MeshStandardMaterial({ map: texPiso, roughness: 0.6, metalness: 0.2 }));
+      piso.rotation.x = -Math.PI / 2;
+      piso.position.z = -0.5;
+      piso.receiveShadow = true;
+      escena.add(piso);
+      const matPared = mat(0x6c5ce7, { emissive: lin(0x3a2aa0), emissiveIntensity: 0.9 });
+      escena.add(caja(0.4, 0.8, 22, matPared, -ANCHO - 0.2, 0.4, -0.5));
+      escena.add(caja(0.4, 0.8, 22, matPared, ANCHO + 0.2, 0.4, -0.5));
+      escena.add(caja(ANCHO * 2 + 0.8, 0.8, 0.4, matPared, 0, 0.4, FONDO - 0.2));
+      // zona de "muerte" brillosa
+      const linea = caja(ANCHO * 2, 0.02, 0.08, mat(0xff3b6b, { emissive: lin(0xff3b6b), emissiveIntensity: 1.5 }), 0, 0.01, Z_RAQUETA + 1.2);
+      escena.add(linea);
+
+      // raqueta
+      const raqueta = new THREE.Group();
+      const cuerpoRaqueta = caja(1, 0.35, 0.45, mat(0xe8e8f0, { metalness: 0.7, roughness: 0.25 }));
+      raqueta.add(cuerpoRaqueta);
+      const puntas = [-1, 1].map((l) => {
+        const p = caja(0.3, 0.38, 0.48, mat(0xff4f8b, { emissive: lin(0xff4f8b), emissiveIntensity: 0.8 }));
+        raqueta.add(p);
+        return p;
+      });
+      raqueta.position.set(0, 0.25, Z_RAQUETA);
+      escena.add(raqueta);
+      function anchoRaqueta(w) {
+        R.anchoR = w;
+        cuerpoRaqueta.scale.x = w - 0.5;
+        puntas[0].position.x = -(w / 2 - 0.15);
+        puntas[1].position.x = w / 2 - 0.15;
+      }
+
+      const geoBola = new THREE.SphereGeometry(RADIO, 20, 16);
+      const matBola = mat(0xffffff, { emissive: lin(0x9ad8ff), emissiveIntensity: 0.9, metalness: 0.3 });
+
+      // distancia para que se vean los 12 m de ancho en cualquier pantalla
+      function posCamara(x) {
+        const aspecto = window.innerWidth / window.innerHeight;
+        camara.fov = aspecto < 0.8 ? 68 : 55;
+        camara.updateProjectionMatrix();
+        const mitad = Math.tan(THREE.MathUtils.degToRad(camara.fov / 2)) * aspecto;
+        const d = Math.max(17, (ANCHO + 0.9) / mitad + 1.5);
+        const dir = new THREE.Vector3(0, 1, 0.6).normalize();
+        return new THREE.Vector3(x, 0, -1.5).addScaledVector(dir, d);
+      }
+
+      // =========================================================
+      //  NIVELES (cada letra es un ladrillo; '.' = vacío; 2 = duro; # = indestructible)
+      // =========================================================
+      const NIVELES = [
+        ["..........", "aaaaaaaaaa", "bbbbbbbbbb", "cccccccccc", "dddddddddd", "eeeeeeeeee"],
+        ["....aa....", "...bbbb...", "..cccccc..", ".dddddddd.", "eeeeeeeeee", "2222222222"],
+        ["a.b.c.d.e.", ".a.b.c.d.e", "a.b.c.d.e.", ".a.b.c.d.e", "2.2.2.2.2.", ".2.2.2.2.2"],
+        ["2222222222", "2aaaaaaaa2", "2b######b2", "2cccccccc2", "2dddddddd2", "2222222222"],
+        ["e........e", "de......ed", "cde....edc", "bcde..edcb", "abcde2edcb", "2222##2222"],
+        ["aaaa##aaaa", "b2bb##bb2b", "cccc..cccc", "dd2dddd2dd", "eeeeeeeeee", "##..22..##"],
+      ];
+      const COLORES = { a: 0xff4f6d, b: 0xffa94f, c: 0xffe14f, d: 0x4fdc8a, e: 0x4fb3ff, 2: 0xb0b8c8, "#": 0x6b6b80 };
+      const PODERES = [
+        { id: "grande", icono: "↔️", color: 0x26de81 },
+        { id: "multi", icono: "⚪", color: 0x4fb3ff },
+        { id: "lenta", icono: "🐢", color: 0xffd84f },
+        { id: "fuego", icono: "🔥", color: 0xff6b3b },
+        { id: "vida", icono: "❤️", color: 0xff4f8b },
+      ];
+      const TEXTO_PODER = { grande: "¡Raqueta grande!", multi: "¡Multi-bola!", lenta: "¡Bola lenta!", fuego: "¡Bola de fuego!", vida: "¡Vida extra!" };
+      const texturasPoder = {};
+      PODERES.forEach((p) => {
+        texturasPoder[p.id] = M.textura(128, 64, (g, w, h) => {
+          g.fillStyle = "#" + p.color.toString(16).padStart(6, "0");
+          g.fillRect(0, 0, w, h);
+          g.font = "40px sans-serif";
+          g.textAlign = "center";
+          g.textBaseline = "middle";
+          g.fillText(p.icono, w / 2, h / 2 + 2);
+        });
+      });
+
+      // =========================================================
+      //  ESTADO
+      // =========================================================
+      const R = { ladrillos: [], bolas: [], poderes: [], chispas: [], x: 0, anchoR: 2.4, nivel: 0, vidas: 3, puntos: 0, pegada: true, vel: 11, fuego: 0, lenta: 0, grande: 0, vivo: false };
+
+      function limpiar() {
+        R.ladrillos.forEach((l) => escena.remove(l.malla));
+        R.bolas.forEach((b) => escena.remove(b.malla));
+        R.poderes.forEach((p) => escena.remove(p.malla));
+        R.ladrillos = [];
+        R.bolas = [];
+        R.poderes = [];
+      }
+
+      function cargarNivel(n) {
+        R.ladrillos.forEach((l) => escena.remove(l.malla));
+        R.ladrillos = [];
+        const plano = NIVELES[n % NIVELES.length];
+        const vuelta = Math.floor(n / NIVELES.length);
+        plano.forEach((fila, r) =>
+          [...fila].forEach((ch, c) => {
+            if (ch === ".") return;
+            const x = -ANCHO + LAD_W / 2 + c * (LAD_W + 0.08) + 0.04;
+            const z = FONDO + 1.4 + r * (LAD_D + 0.12);
+            const tipo = ch === "#" ? "fijo" : ch === "2" || (vuelta > 0 && r < 2) ? "duro" : "normal";
+            const color = COLORES[ch] || 0xffffff;
+            const m = caja(LAD_W, 0.45, LAD_D, mat(color, { emissive: lin(color), emissiveIntensity: tipo === "normal" ? 0.35 : 0.1, metalness: tipo === "normal" ? 0.1 : 0.8, roughness: tipo === "normal" ? 0.4 : 0.2 }), x, 0.25, z);
+            escena.add(m);
+            R.ladrillos.push({ malla: m, x, z, golpes: tipo === "duro" ? 2 : tipo === "fijo" ? Infinity : 1, tipo, color });
+          }),
+        );
+      }
+
+      function nuevaBola(x, z, vx, vz) {
+        const m = new THREE.Mesh(geoBola, matBola);
+        m.castShadow = true;
+        escena.add(m);
+        const b = { malla: m, x, z, vx, vz };
+        R.bolas.push(b);
+        return b;
+      }
+      function bolaPegada() {
+        R.bolas.forEach((b) => escena.remove(b.malla));
+        R.bolas = [];
+        R.pegada = true;
+        nuevaBola(R.x, Z_RAQUETA - 0.5, 0, 0);
+      }
+      function lanzar() {
+        if (!R.pegada || !R.vivo) return;
+        R.pegada = false;
+        const b = R.bolas[0];
+        const ang = azar(-0.35, 0.35);
+        b.vx = Math.sin(ang) * R.vel;
+        b.vz = -Math.cos(ang) * R.vel;
+        sonar("rebote", 0.5);
+        ui.ayuda("");
+      }
+
+      // =========================================================
+      //  CONTROLES
+      // =========================================================
+      let tocando = false;
+      function xDesdePantalla(px) {
+        // se proyecta el dedo sobre el plano de juego
+        const rayo = M.pantallaARayo(px, window.innerHeight * 0.75);
+        const p = new THREE.Vector3();
+        rayo.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.25), p);
+        return p.x;
+      }
+      M.lienzo.addEventListener("pointerdown", (e) => {
+        tocando = { x0: e.clientX, raq0: R.x, movio: false };
+      });
+      M.lienzo.addEventListener("pointermove", (e) => {
+        if (!tocando || !R.vivo) return;
+        const dx = xDesdePantalla(e.clientX) - xDesdePantalla(tocando.x0);
+        if (Math.abs(e.clientX - tocando.x0) > 6) tocando.movio = true;
+        R.x = limitar(tocando.raq0 + dx * 1.15, -ANCHO + R.anchoR / 2, ANCHO - R.anchoR / 2);
+      });
+      M.lienzo.addEventListener("pointerup", () => {
+        if (tocando && R.pegada) lanzar();
+        tocando = null;
+      });
+      const teclas = {};
+      document.addEventListener("keydown", (e) => {
+        teclas[e.key] = true;
+        if (e.key === " " || e.key === "ArrowUp") lanzar();
+      });
+      document.addEventListener("keyup", (e) => (teclas[e.key] = false));
+
+      // =========================================================
+      //  FÍSICA
+      // =========================================================
+      function romper(l, b) {
+        if (l.golpes === Infinity) {
+          sonar("rebote", 0.4);
+          return;
+        }
+        l.golpes--;
+        if (l.golpes > 0) {
+          l.malla.material.emissiveIntensity = 0.6;
+          l.malla.material.color.set(lin(0xe8eef8));
+          sonar("ping", 0.5);
+          R.puntos += 5;
+          return;
+        }
+        escena.remove(l.malla);
+        R.ladrillos.splice(R.ladrillos.indexOf(l), 1);
+        R.puntos += l.tipo === "duro" ? 30 : 10;
+        sonar("pinos", 0.25);
+        chispas(l.x, l.z, l.color);
+        // poder sorpresa
+        if (Math.random() < 0.16) {
+          const p = PODERES[Math.floor(Math.random() * PODERES.length)];
+          const m = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.9, 16), new THREE.MeshStandardMaterial({ map: texturasPoder[p.id], emissive: lin(p.color), emissiveIntensity: 0.4 }));
+          m.rotation.z = Math.PI / 2;
+          m.position.set(l.x, 0.35, l.z);
+          escena.add(m);
+          R.poderes.push({ malla: m, ...p, x: l.x, z: l.z });
+        }
+        marcador();
+      }
+      function chispas(x, z, color) {
+        for (let i = 0; i < 8; i++) {
+          const m = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), new THREE.MeshBasicMaterial({ color: lin(color) }));
+          m.position.set(x, 0.3, z);
+          escena.add(m);
+          R.chispas.push({ malla: m, v: new THREE.Vector3(azar(-4, 4), azar(2, 6), azar(-4, 4)), vida: 0.6 });
+        }
+      }
+
+      function activarPoder(p) {
+        sonar("perfecto", 1.2);
+        ui.avisar(`${p.icono} ${TEXTO_PODER[p.id]}`, "#" + p.color.toString(16).padStart(6, "0"));
+        if (p.id === "grande") {
+          R.grande = 12;
+          anchoRaqueta(3.6);
+        } else if (p.id === "multi") {
+          R.bolas.slice(0, 3).forEach((b) => {
+            const v = Math.hypot(b.vx, b.vz) || R.vel;
+            [-0.5, 0.5].forEach((a) => {
+              const ang = Math.atan2(b.vx, -b.vz) + a;
+              nuevaBola(b.x, b.z, Math.sin(ang) * v, -Math.cos(ang) * v);
+            });
+          });
+        } else if (p.id === "lenta") R.lenta = 8;
+        else if (p.id === "fuego") {
+          R.fuego = 7;
+          matBola.emissive.set(lin(0xff5a1f));
+        } else if (p.id === "vida") R.vidas++;
+        marcador();
+      }
+
+      function pasoBola(b, dt) {
+        const factor = R.lenta > 0 ? 0.62 : 1;
+        b.x += b.vx * dt * factor;
+        b.z += b.vz * dt * factor;
+        // paredes
+        if (b.x < -ANCHO + RADIO) (b.x = -ANCHO + RADIO), (b.vx = Math.abs(b.vx)), sonar("click");
+        if (b.x > ANCHO - RADIO) (b.x = ANCHO - RADIO), (b.vx = -Math.abs(b.vx)), sonar("click");
+        if (b.z < FONDO + RADIO) (b.z = FONDO + RADIO), (b.vz = Math.abs(b.vz)), sonar("click");
+        // raqueta
+        if (b.vz > 0 && b.z > Z_RAQUETA - 0.25 - RADIO && b.z < Z_RAQUETA + 0.3 && Math.abs(b.x - R.x) < R.anchoR / 2 + RADIO) {
+          const pega = limitar((b.x - R.x) / (R.anchoR / 2), -1, 1);
+          const ang = pega * 1.05;
+          const v = Math.min(19, Math.hypot(b.vx, b.vz) * 1.012);
+          b.vx = Math.sin(ang) * v;
+          b.vz = -Math.cos(ang) * v;
+          b.z = Z_RAQUETA - 0.25 - RADIO;
+          sonar("rebote", 0.6);
+          raqueta.scale.y = 0.7;
+        }
+        // ladrillos
+        for (const l of R.ladrillos) {
+          const dx = b.x - l.x,
+            dz = b.z - l.z;
+          const px = LAD_W / 2 + RADIO - Math.abs(dx),
+            pz = LAD_D / 2 + RADIO - Math.abs(dz);
+          if (px <= 0 || pz <= 0) continue;
+          const fuego = R.fuego > 0 && l.golpes !== Infinity;
+          if (!fuego) {
+            if (px < pz) (b.vx = Math.sign(dx) * Math.abs(b.vx)), (b.x += Math.sign(dx) * px);
+            else (b.vz = Math.sign(dz) * Math.abs(b.vz)), (b.z += Math.sign(dz) * pz);
+          }
+          if (fuego) l.golpes = 1;
+          romper(l, b);
+          if (!fuego) break;
+        }
+        b.malla.position.set(b.x, 0.3, b.z);
+        // evita que quede casi horizontal (se atoraría rebotando de lado a lado)
+        if (Math.abs(b.vz) < 2.5) b.vz = Math.sign(b.vz || -1) * 2.5;
+        return b.z < Z_RAQUETA + 1.4;
+      }
+
+      M.alCuadro((dt, ahora) => {
+        // chispas
+        for (let i = R.chispas.length - 1; i >= 0; i--) {
+          const c = R.chispas[i];
+          c.vida -= dt;
+          c.v.y -= 15 * dt;
+          c.malla.position.addScaledVector(c.v, dt);
+          c.malla.scale.setScalar(Math.max(0.01, c.vida / 0.6));
+          if (c.vida <= 0) escena.remove(c.malla), R.chispas.splice(i, 1);
+        }
+        if (!R.vivo) {
+          if (!J.modo) {
+            camara.position.set(Math.sin(ahora / 3000) * 3, 13, 15);
+            camara.lookAt(0, 0, -2);
+          }
+          return;
+        }
+        if (teclas.ArrowLeft || teclas.a) R.x -= 13 * dt;
+        if (teclas.ArrowRight || teclas.d) R.x += 13 * dt;
+        R.x = limitar(R.x, -ANCHO + R.anchoR / 2, ANCHO - R.anchoR / 2);
+        raqueta.position.x += (R.x - raqueta.position.x) * Math.min(1, dt * 30);
+        raqueta.scale.y += (1 - raqueta.scale.y) * Math.min(1, dt * 10);
+        ["grande", "lenta", "fuego"].forEach((k) => {
+          if (R[k] > 0) {
+            R[k] -= dt;
+            if (R[k] <= 0) {
+              if (k === "grande") anchoRaqueta(2.4);
+              if (k === "fuego") matBola.emissive.set(lin(0x9ad8ff));
+            }
+          }
+        });
+        if (R.pegada && R.bolas[0]) {
+          R.bolas[0].x = raqueta.position.x;
+          R.bolas[0].malla.position.set(R.bolas[0].x, 0.3, Z_RAQUETA - 0.5);
+        } else {
+          const pasos = 4;
+          for (let i = R.bolas.length - 1; i >= 0; i--) {
+            let viva = true;
+            for (let k = 0; k < pasos && viva; k++) viva = pasoBola(R.bolas[i], dt / pasos);
+            if (!viva) {
+              escena.remove(R.bolas[i].malla);
+              R.bolas.splice(i, 1);
+            }
+          }
+          if (!R.bolas.length) return perderVida();
+        }
+        // poderes que caen
+        for (let i = R.poderes.length - 1; i >= 0; i--) {
+          const p = R.poderes[i];
+          p.z += 4.5 * dt;
+          p.malla.position.z = p.z;
+          p.malla.rotation.x += dt * 3;
+          if (p.z > Z_RAQUETA - 0.4 && p.z < Z_RAQUETA + 0.4 && Math.abs(p.x - raqueta.position.x) < R.anchoR / 2 + 0.3) {
+            escena.remove(p.malla);
+            R.poderes.splice(i, 1);
+            activarPoder(p);
+          } else if (p.z > Z_RAQUETA + 2) {
+            escena.remove(p.malla);
+            R.poderes.splice(i, 1);
+          }
+        }
+        if (!R.ladrillos.some((l) => l.golpes !== Infinity)) return siguienteNivel();
+        // cámara detrás de la raqueta (se aleja lo necesario para que quepa toda la cancha)
+        camara.position.lerp(posCamara(raqueta.position.x * 0.2), Math.min(1, dt * 3));
+        camara.lookAt(raqueta.position.x * 0.12, 0, -1.5);
+        if (J.modo === "online" && ahora - J.ultimoEnvio > 1200) {
+          J.ultimoEnvio = ahora;
+          ui.enviar("puntos", { partida: J.partida, puntos: R.puntos });
+        }
+      });
+
+      async function perderVida() {
+        R.vidas--;
+        R.vivo = false;
+        sonar("perder");
+        if (navigator.vibrate) navigator.vibrate(120);
+        R.poderes.forEach((p) => escena.remove(p.malla));
+        R.poderes = [];
+        anchoRaqueta(2.4);
+        R.grande = R.lenta = R.fuego = 0;
+        matBola.emissive.set(lin(0x9ad8ff));
+        marcador();
+        if (R.vidas <= 0) {
+          ui.avisar("💔 ¡Sin vidas!", "#ff3b3b");
+          await esperar(1200);
+          return terminarCorrida();
+        }
+        ui.avisar(`💔 Te quedan ${R.vidas}`, "#ff3b3b");
+        await esperar(900);
+        if (!J.modo) return;
+        bolaPegada();
+        R.vivo = true;
+        ui.ayuda("👆 Toca para lanzar");
+      }
+
+      async function siguienteNivel() {
+        R.vivo = false;
+        R.nivel++;
+        R.puntos += 100;
+        sonar("ganar");
+        ui.avisar(`🎉 ¡Nivel ${R.nivel} superado!<small>+100</small>`, "#26de81");
+        await esperar(1500);
+        if (!J.modo) return;
+        R.vel = Math.min(16, 11 + R.nivel * 0.8);
+        cargarNivel(R.nivel);
+        bolaPegada();
+        marcador();
+        R.vivo = true;
+        ui.ayuda("👆 Toca para lanzar");
+      }
+
+      // =========================================================
+      //  PARTIDA
+      // =========================================================
+      const J = { modo: null, nombres: [], resultados: [null, null], turno: 0, rival: 0, ultimoEnvio: 0 };
+      const ui = Arcade.ui({
+        juego: "ladrillos",
+        titulo: "Rompe-ladrillos 3D",
+        emoji: "🧱",
+        subtitulo: "Rompe todos los ladrillos con poderes y niveles",
+        modos: ["solo", "online", "local"],
+        textosModo: { online: "🌐 Reto online (mismos niveles)", local: "👥 2 jugadores (por turnos)" },
+        records: true,
+        unidadRecord: "pts",
+        reglas: [
+          "Arrastra el dedo a los lados para mover tu raqueta. Toca para lanzar la bola.",
+          "Rompe todos los ladrillos para pasar de nivel. Los grises aguantan 2 golpes y los oscuros no se rompen.",
+          "Atrapa los poderes que caen: ↔️ raqueta grande · ⚪ multi-bola · 🐢 bola lenta · 🔥 bola de fuego · ❤️ vida extra.",
+          "Tienes 3 vidas. En duelo gana quien haga más puntos.",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          R.vivo = false;
+          J.modo = null;
+        },
+      });
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "puntos") J.rival = d.puntos;
+        if (tipo === "fin") {
+          J.rival = d.puntos;
+          J.rivalTermino = true;
+          J.alTerminarRival && J.alTerminarRival();
+        }
+        marcador();
+      };
+
+      function marcador() {
+        const det = `Nivel ${R.nivel + 1} · ${"❤️".repeat(Math.max(0, R.vidas))}`;
+        if (J.modo === "solo") return ui.marcador([{ nombre: J.nombres[0], valor: R.puntos, detalle: det, activo: true }, null]);
+        if (J.modo === "online") {
+          const yo = ui.yo;
+          const v = yo === 0 ? [R.puntos, J.rival] : [J.rival, R.puntos];
+          return ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (i === yo ? " (tú)" : ""), valor: v[i], detalle: i === yo ? det : J.rivalTermino ? "terminó" : "🌐 jugando", activo: i === yo })));
+        }
+        ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i], valor: i === J.turno ? R.puntos : J.resultados[i] == null ? "—" : J.resultados[i], detalle: i === J.turno ? det : J.resultados[i] == null ? "espera su turno" : "terminó", activo: i === J.turno })));
+      }
+
+      function empezar(modo, info) {
+        Object.assign(J, { modo, nombres: info.nombres, partida: info.partida, resultados: [null, null], turno: 0, rival: 0, rivalTermino: false, alTerminarRival: null });
+        nuevaCorrida();
+      }
+      function nuevaCorrida() {
+        limpiar();
+        Object.assign(R, { nivel: 0, vidas: 3, puntos: 0, vel: 11, fuego: 0, lenta: 0, grande: 0, x: 0 });
+        anchoRaqueta(2.4);
+        matBola.emissive.set(lin(0x9ad8ff));
+        cargarNivel(0);
+        bolaPegada();
+        R.vivo = true;
+        marcador();
+        if (J.modo === "local") ui.avisar(`Turno de ${J.nombres[J.turno]}`, J.turno ? "#4fb3ff" : "#ff4f8b");
+        ui.ayuda("👆 Arrastra para mover · toca para lanzar");
+      }
+
+      async function terminarCorrida() {
+        if (!J.modo) return;
+        const pts = R.puntos;
+        const nota = `Llegaste al nivel ${R.nivel + 1}`;
+        if (J.modo === "solo") {
+          sonar("ganar");
+          return ui.terminar({ emoji: "🧱", texto: `¡${pts} puntos!`, nota, record: pts });
+        }
+        if (J.modo === "local") {
+          J.resultados[J.turno] = pts;
+          if (J.turno === 0) {
+            J.turno = 1;
+            return nuevaCorrida();
+          }
+          const [a, b] = J.resultados;
+          return ui.terminar({ emoji: a === b ? "🤝" : "🏆", texto: a === b ? "¡Empate!" : `¡Ganó ${J.nombres[a > b ? 0 : 1]}!`, nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}` });
+        }
+        ui.enviar("fin", { partida: J.partida, puntos: pts });
+        if (!J.rivalTermino) {
+          ui.avisar("Esperando a tu rival…", "#4fb3ff");
+          await Promise.race([new Promise((r) => (J.alTerminarRival = r)), esperar(180000)]);
+        }
+        const yo = ui.yo;
+        const gane = pts > J.rival,
+          empate = pts === J.rival;
+        sonar(gane ? "ganar" : "perder");
+        ui.terminar({ emoji: empate ? "🤝" : gane ? "🏆" : "😿", texto: empate ? "¡Empate!" : gane ? "¡Ganaste el reto!" : `Ganó ${J.nombres[1 - yo]}`, nota: `Tú: ${pts} · ${J.nombres[1 - yo]}: ${J.rival}`, record: pts });
+      }
+
+      cargarNivel(0);
+      anchoRaqueta(2.4);
+      bolaPegada();
+    </script>
+  </body>
+</html>

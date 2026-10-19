@@ -43,6 +43,10 @@ JUEGOS = {
     'damas': 'juego_damas.html',
     'serpientes': 'juego_serpientes.html',
     'parchis': 'juego_parchis.html',
+    'corredor': 'juego_corredor.html',
+    'ladrillos': 'juego_ladrillos.html',
+    'box': 'juego_box.html',
+    'arco': 'juego_arco.html',
 }
 # En estos juegos el récord es "menos es mejor" (golpes, milisegundos)
 RECORD_MENOR = {'mini_golf', 'reflejos', 'karts', 'sudoku', 'buscaminas'}
