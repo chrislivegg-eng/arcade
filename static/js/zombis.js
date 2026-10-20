@@ -975,6 +975,24 @@ async function perder() {
     return;
   }
   $("armeria-z").close();
+  if (
+    await ui.ofrecerRevivir({
+      texto: "Conoce otro juego del arcade y vuelve con 55% de vida.",
+    })
+  ) {
+    if (J.sesion !== sesion) return;
+    J.jugando = true;
+    J.vida = 55;
+    J.balas = CARGADOR;
+    J.recargando = false;
+    J.tareas = [];
+    zombis.filter((z) => !z.muerto).forEach((z) => (z.z = Math.min(z.z, -12)));
+    actualizarVida();
+    actualizarBalas();
+    $("estado-jugador").classList.remove("oculto");
+    ui.avisar("❤️ ¡Regresaste a la barricada!", "#26de81");
+    return;
+  }
   sonar("perder");
   ui.avisar("💀 ¡Te alcanzaron!", "#ff3b3b");
   await esperar(1800);

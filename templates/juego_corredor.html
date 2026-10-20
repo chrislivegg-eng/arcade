@@ -116,7 +116,11 @@
       const rieles = new THREE.Group();
       const matRiel = mat(0xb0b4bc, { metalness: 0.8, roughness: 0.3 });
       const matDurmiente = mat(0x6b4a33);
-      const durmientes = new THREE.InstancedMesh(new THREE.BoxGeometry(1.6,.06,.25),matDurmiente,600);
+      const durmientes = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(1.6, 0.06, 0.25),
+        matDurmiente,
+        600,
+      );
       durmientes.castShadow = durmientes.receiveShadow = true;
       const matrizDurmiente = new THREE.Matrix4();
       let nDurmiente = 0;
@@ -125,7 +129,10 @@
           rieles.add(caja(0.1, 0.12, 240, matRiel, l * CARRIL + o, 0.08, 0)),
         );
         for (let z = -120; z < 120; z += 1.2)
-          durmientes.setMatrixAt(nDurmiente++, matrizDurmiente.makeTranslation(l*CARRIL,.03,z));
+          durmientes.setMatrixAt(
+            nDurmiente++,
+            matrizDurmiente.makeTranslation(l * CARRIL, 0.03, z),
+          );
       });
       durmientes.instanceMatrix.needsUpdate = true;
       rieles.add(durmientes);
@@ -737,6 +744,24 @@
         const pts = puntaje();
         const nota = `${J.distancia} m · 🪙 ${P.monedas}`;
         if (J.modo === "solo") {
+          if (
+            await ui.ofrecerRevivir({
+              texto: "Mira una novedad y continúa desde donde chocaste.",
+            })
+          ) {
+            if (sesionTarea !== (J.sesion || 0) || J.modo !== "solo") return;
+            P.z -= 4;
+            P.y = 0;
+            P.vy = 0;
+            P.agachado = 0;
+            corredor.userData.cuerpo.rotation.set(0, 0, 0);
+            corredor.userData.cuerpo.scale.set(1, 1, 1);
+            corredor.rotation.set(0, Math.PI, 0);
+            corredor.position.set(P.x, 0, P.z);
+            P.vivo = true;
+            ui.avisar("❤️ ¡Sigue corriendo!", "#26de81");
+            return;
+          }
           sonar("ganar");
           return ui.terminar({
             emoji: "🛹",

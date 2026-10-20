@@ -8,6 +8,7 @@ static/js/fiesta.js
 static/js/three.min.js
 static/js/cannon.min.js
 static/js/arcade3d.js
+static/js/scripts.js
 templates/fiesta_base.html
 templates/impostor.html
 templates/mas_probable.html
