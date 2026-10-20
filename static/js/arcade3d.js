@@ -574,6 +574,7 @@ const Arcade = (() => {
         dificultad: estado.dificultad,
         online: estado.online,
         partida: estado.partida,
+        perfil: estado.perfil,
         semilla: estado.online ? estado.online.semilla + estado.partida * 7919 : Math.floor(Math.random() * 1e9),
       });
     }

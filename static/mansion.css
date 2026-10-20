@@ -1,0 +1,328 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #080c10;
+  color: #e7e0d3;
+  font-family: Georgia, serif;
+}
+button,
+input,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+a,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+  color: #e7dfcb;
+  background: #192225dd;
+  border: 1px solid #65746b;
+  padding: 12px 18px;
+  border-radius: 4px;
+}
+button:hover {
+  background: #34403d;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #d9b975;
+  outline-offset: 3px;
+}
+a {
+  color: #d1c6af;
+  text-decoration: none;
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.vineta {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  box-shadow: inset 0 0 15vw #0009;
+  background: linear-gradient(
+    0deg,
+    #05080b55,
+    transparent 25%,
+    transparent 80%,
+    #05080b44
+  );
+}
+[hidden] {
+  display: none !important;
+}
+.pantalla {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 5vw;
+  background: linear-gradient(90deg, #070d12f5, #070d12b0 50%, #070d1233);
+  z-index: 20;
+  overflow: auto;
+}
+.panel {
+  width: min(540px, 100%);
+  padding: 20px 0;
+}
+.panel small {
+  display: block;
+  color: #b09d77;
+  letter-spacing: 0.2em;
+  font:
+    11px Arial,
+    sans-serif;
+  margin: 35px 0 18px;
+}
+.panel h1 {
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  font-size: clamp(35px, 5.8vw, 78px);
+  margin: 12px 0;
+}
+.panel h2 {
+  font-weight: 400;
+  font-size: clamp(24px, 3vw, 36px);
+  margin: 10px 0 22px;
+  color: #c5b594;
+}
+.panel p {
+  line-height: 1.8;
+  color: #b2b8b5;
+}
+.panel label {
+  font: 10px Arial;
+  letter-spacing: 0.18em;
+  display: block;
+  margin: 25px 0 10px;
+}
+.panel input {
+  display: block;
+  width: 100%;
+  background: #0f191bbb;
+  color: white;
+  border: 1px solid #576660;
+  padding: 13px;
+}
+.panel button {
+  display: block;
+  width: 100%;
+  margin: 12px 0;
+}
+.panel a {
+  display: inline-block;
+  margin: 10px 18px 10px 0;
+  font: 12px Arial;
+  letter-spacing: 0.1em;
+}
+.principal {
+  background: #c6b48a !important;
+  color: #151b1a;
+  font-weight: bold;
+  border-color: #e7d8ac;
+  padding: 17px;
+}
+.panel .nota {
+  font: 12px/1.7 Arial;
+  color: #97a49f;
+}
+#calidad {
+  margin: 15px 0;
+}
+#error {
+  color: #e8b29c;
+}
+header {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top));
+  left: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font: 11px Arial;
+  letter-spacing: 0.2em;
+}
+header b {
+  font-weight: 400;
+  color: #d5caa9;
+}
+.objetivo {
+  position: absolute;
+  top: 85px;
+  left: 26px;
+  display: grid;
+  gap: 10px;
+  text-shadow: 0 2px 4px #000;
+}
+.objetivo small {
+  font: 10px Arial;
+  letter-spacing: 0.22em;
+  color: #c1b086;
+}
+.objetivo strong {
+  font-size: 20px;
+  font-weight: 400;
+}
+.objetivo span {
+  font: 12px Arial;
+  color: #afc1b8;
+}
+.mira {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-size: 26px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+#interaccion {
+  position: absolute;
+  bottom: 125px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 70%;
+  text-align: center;
+}
+#objeto {
+  text-shadow: 0 2px 4px #000;
+}
+.inferior {
+  position: absolute;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font: 12px Arial;
+}
+#peligro {
+  flex: 1;
+  color: #b9c7bd;
+}
+.inferior button {
+  font: 12px Arial;
+}
+#aviso {
+  position: absolute;
+  top: 32%;
+  left: 15%;
+  right: 15%;
+  text-align: center;
+  font-size: 20px;
+  text-shadow: 0 2px 6px #000;
+  pointer-events: none;
+  color: #e5cfac;
+}
+#joystick {
+  display: none;
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 1px solid #c5d2c555;
+  background: #0b171b77;
+  touch-action: none;
+}
+#joystick i {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  left: 29px;
+  top: 29px;
+  background: #b9c9bb66;
+  border: 1px solid #e1ddbf;
+  border-radius: 50%;
+  pointer-events: none;
+}
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+#hud button,
+#hud a,
+#joystick {
+  pointer-events: auto;
+}
+body.cache .vineta {
+  box-shadow: inset 0 0 25vw 13vw #000d;
+}
+body.danger .vineta {
+  box-shadow: inset 0 0 12vw #5d171780;
+}
+@media (pointer: coarse), (max-width: 700px) {
+  #joystick {
+    display: block;
+    bottom: 105px;
+    left: 24px;
+  }
+  .pantalla {
+    padding: 22px;
+    background: #080e14d9;
+  }
+  .panel small {
+    margin-top: 16px;
+  }
+  .panel h1 {
+    font-size: 39px;
+  }
+  .panel h2 {
+    font-size: 25px;
+  }
+  .panel p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .objetivo {
+    top: 75px;
+    left: 20px;
+  }
+  .objetivo strong {
+    font-size: 16px;
+  }
+  .inferior {
+    left: 16px;
+    right: 16px;
+    gap: 8px;
+    flex-wrap: wrap;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  #peligro {
+    min-width: 130px;
+  }
+  #interaccion {
+    bottom: 215px;
+    font-size: 14px;
+  }
+  header {
+    left: 20px;
+    right: 20px;
+  }
+  #aviso {
+    top: 40%;
+    font-size: 17px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto;
+    transition: none !important;
+  }
+}
