@@ -189,7 +189,11 @@ body {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: radial-gradient(ellipse at center, rgba(18, 12, 20, 0.5), rgba(18, 12, 20, 0.9));
+  background: radial-gradient(
+    ellipse at center,
+    rgba(18, 12, 20, 0.5),
+    rgba(18, 12, 20, 0.9)
+  );
   overflow-y: auto;
   z-index: 10;
 }
@@ -381,6 +385,87 @@ details summary {
   cursor: pointer;
 }
 
+.promo-arcade {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  color: #fff;
+  text-decoration: none;
+  border: 1px solid rgba(255, 216, 79, 0.5);
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(80, 48, 100, 0.94),
+    rgba(28, 56, 88, 0.94)
+  );
+  box-shadow: inset 0 0 25px rgba(255, 216, 79, 0.08);
+}
+.promo-arcade small {
+  grid-column: 1 / -1;
+  color: #ffd84f;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+.promo-emoji {
+  font-size: 2.1rem;
+}
+.promo-arcade span {
+  min-width: 0;
+}
+.promo-arcade b,
+.promo-arcade em {
+  display: block;
+}
+.promo-arcade b {
+  font-size: 1rem;
+}
+.promo-arcade em {
+  margin-top: 2px;
+  opacity: 0.75;
+  font-size: 0.72rem;
+  font-style: normal;
+  line-height: 1.25;
+}
+.promo-arcade strong {
+  color: #ffd84f;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.promo-revivir {
+  grid-template-columns: auto 1fr;
+}
+.tarjeta-revivir {
+  max-width: 430px;
+}
+.tarjeta-revivir .nota {
+  font-size: 0.7rem;
+}
+.boton:disabled {
+  cursor: wait;
+  opacity: 0.55;
+  transform: none;
+}
+
 /* Ajuste compartido de calidad gráfica */
-.calidad-3d{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 4px;font-size:.85rem;color:#ddd3e8;font-weight:800}
-.calidad-3d select{font:inherit;padding:7px 10px;border:1px solid #ffffff40;border-radius:10px;background:#2b2238;color:#f5efff;max-width:65%}
+.calidad-3d {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 14px 0 4px;
+  font-size: 0.85rem;
+  color: #ddd3e8;
+  font-weight: 800;
+}
+.calidad-3d select {
+  font: inherit;
+  padding: 7px 10px;
+  border: 1px solid #ffffff40;
+  border-radius: 10px;
+  background: #2b2238;
+  color: #f5efff;
+  max-width: 65%;
+}

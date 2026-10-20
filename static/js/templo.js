@@ -1160,6 +1160,10 @@
     } catch (_) {}
     $("hud").hidden = true;
     $("final").hidden = false;
+    window.Perfil?.anuncioFinal(
+      $("final").querySelector(".final-contenido, .panel, div") || $("final"),
+      "templo",
+    );
     $("resultado").textContent = tiempo(estado.segundos);
     $("guardado-final").textContent = "Guardando tu expedición…";
     tono("ganar");

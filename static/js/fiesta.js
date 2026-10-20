@@ -5,7 +5,16 @@
 // Cada juego llama Fiesta.iniciar({ juego, pintar }) y pinta su parte en #zona-juego.
 
 const Fiesta = (() => {
-  const COLORES = ["#ff6b9d", "#6c5ce7", "#20bf6b", "#fa8231", "#3867d6", "#eb3b5a", "#8854d0", "#0fb9b1"];
+  const COLORES = [
+    "#ff6b9d",
+    "#6c5ce7",
+    "#20bf6b",
+    "#fa8231",
+    "#3867d6",
+    "#eb3b5a",
+    "#8854d0",
+    "#0fb9b1",
+  ];
   let config = {};
   let codigo = "";
   let estado = null;
@@ -73,7 +82,9 @@ const Fiesta = (() => {
   }
 
   function leerNombre() {
-    const nombre = window.Perfil?.datos?.cuenta ? Perfil.datos.nombre : $("nombre").value.trim();
+    const nombre = window.Perfil?.datos?.cuenta
+      ? Perfil.datos.nombre
+      : $("nombre").value.trim();
     if (!nombre) {
       mostrarError("Escribe tu nombre primero ✏️");
       $("nombre").focus();
@@ -89,7 +100,11 @@ const Fiesta = (() => {
     const nombre = leerNombre();
     if (!nombre) return;
     try {
-      const r = await api("/api/fiesta/crear", { juego: config.juego, pid: PID, nombre });
+      const r = await api("/api/fiesta/crear", {
+        juego: config.juego,
+        pid: PID,
+        nombre,
+      });
       entrar(r.codigo);
     } catch (e) {
       mostrarError(e.message);
@@ -105,7 +120,12 @@ const Fiesta = (() => {
       return;
     }
     try {
-      const r = await api("/api/fiesta/unirse", { juego: config.juego, codigo: cod, pid: PID, nombre });
+      const r = await api("/api/fiesta/unirse", {
+        juego: config.juego,
+        codigo: cod,
+        pid: PID,
+        nombre,
+      });
       entrar(r.codigo);
     } catch (e) {
       mostrarError(e.message);
@@ -145,7 +165,9 @@ const Fiesta = (() => {
     if (!codigo) return;
     try {
       const extra = config.extraEstado ? config.extraEstado() : "";
-      const nuevo = await api(`/api/fiesta/estado/${codigo}?pid=${encodeURIComponent(PID)}${extra}`);
+      const nuevo = await api(
+        `/api/fiesta/estado/${codigo}?pid=${encodeURIComponent(PID)}${extra}`,
+      );
       if (nuevo.ahora) {
         desfaseReloj = nuevo.ahora * 1000 - Date.now();
         delete nuevo.ahora; // así la "firma" no cambia cada segundo
@@ -165,14 +187,22 @@ const Fiesta = (() => {
   // al terminar una ronda o el juego: monedas y logros en el perfil
   let ultimoAvisoPerfil = "";
   function avisarPerfil() {
-    if (!window.Perfil || (estado.fase !== "final" && estado.fase !== "resultado")) return;
+    if (
+      !window.Perfil ||
+      (estado.fase !== "final" && estado.fase !== "resultado")
+    )
+      return;
+    Perfil.anuncioFinal($("zona-juego"), config.juego);
     const clave = `${codigo}:${estado.ronda}`;
     if (clave === ultimoAvisoPerfil) return;
     ultimoAvisoPerfil = clave;
     const mayor = Math.max(...estado.jugadores.map((j) => j.puntos));
     const mio = (estado.jugadores.find((j) => j.id === PID) || {}).puntos || 0;
     // si el juego dice quién ganó la ronda (UNO), se usa eso
-    const gano = estado.ganador_ronda != null ? estado.ganador_ronda === PID : mio > 0 && mio === mayor;
+    const gano =
+      estado.ganador_ronda != null
+        ? estado.ganador_ronda === PID
+        : mio > 0 && mio === mayor;
     Perfil.evento(config.juego, "fin", { codigo, ronda: estado.ronda }, null);
   }
 
@@ -181,7 +211,8 @@ const Fiesta = (() => {
     const mostrarPuntos = estado.ronda > 0;
     caja.innerHTML = estado.jugadores
       .map((j) => {
-        const listo = estado.fase === "votando" && estado.votaron.includes(j.id);
+        const listo =
+          estado.fase === "votando" && estado.votaron.includes(j.id);
         const quitar =
           estado.soy_host && j.id !== PID
             ? `<button class="quitar" title="Sacar" onclick="Fiesta.expulsar('${j.id}')">✕</button>`
@@ -207,18 +238,30 @@ const Fiesta = (() => {
     const texto = `¡Únete a mi sala de ${config.titulo}! Código: ${codigo}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: config.titulo, text: texto, url: linkSala() });
+        await navigator.share({
+          title: config.titulo,
+          text: texto,
+          url: linkSala(),
+        });
         return;
       } catch (e) {
         if (e.name === "AbortError") return;
       }
     }
-    window.open("https://wa.me/?text=" + encodeURIComponent(texto + " " + linkSala()), "_blank");
+    window.open(
+      "https://wa.me/?text=" + encodeURIComponent(texto + " " + linkSala()),
+      "_blank",
+    );
   }
 
   async function accion(nombre, extra, silencioso) {
     try {
-      const r = await api("/api/fiesta/accion", { codigo, pid: PID, accion: nombre, ...(extra || {}) });
+      const r = await api("/api/fiesta/accion", {
+        codigo,
+        pid: PID,
+        accion: nombre,
+        ...(extra || {}),
+      });
       if (r && r.error) throw new Error(r.error);
       if (!silencioso) {
         ultimaFirma = "";
@@ -271,12 +314,15 @@ const Fiesta = (() => {
 
   function salir() {
     if (!confirm("¿Seguro que quieres salir de la sala?")) return;
-    api("/api/fiesta/accion", { codigo, pid: PID, accion: "salir" }).catch(() => {});
+    api("/api/fiesta/accion", { codigo, pid: PID, accion: "salir" }).catch(
+      () => {},
+    );
     salirAlInicio();
   }
 
   function expulsar(objetivo) {
-    if (confirm(`¿Sacar a ${nombreDe(objetivo)} de la sala?`)) accion("expulsar", { objetivo });
+    if (confirm(`¿Sacar a ${nombreDe(objetivo)} de la sala?`))
+      accion("expulsar", { objetivo });
   }
 
   // Botones para votar por los jugadores (sirve para los dos juegos)
@@ -284,7 +330,9 @@ const Fiesta = (() => {
     const opciones = estado.jugadores
       .filter((j) => !(excluirme && j.id === PID))
       .map(
-        (j) => `<button class="opcion-voto ${estado.mi_voto === j.id ? "elegido" : ""}"
+        (
+          j,
+        ) => `<button class="opcion-voto ${estado.mi_voto === j.id ? "elegido" : ""}"
             ${estado.ya_vote ? "disabled" : ""}
             onclick="Fiesta.accion('votar', {voto: '${j.id}'})">${esc(j.nombre)}</button>`,
       )
@@ -295,12 +343,20 @@ const Fiesta = (() => {
   function iniciar(opciones) {
     config = opciones;
     $("nombre").value = nombreGuardado();
-    window.Perfil?.cargar().then(d=>{if(d?.cuenta){$("nombre").value=d.nombre;$("nombre").readOnly=true;}});
+    window.Perfil?.cargar().then((d) => {
+      if (d?.cuenta) {
+        $("nombre").value = d.nombre;
+        $("nombre").readOnly = true;
+      }
+    });
     $("btn-crear").onclick = crear;
     $("btn-unirse").onclick = unirse;
     $("btn-compartir").onclick = compartir;
     $("btn-salir").onclick = salir;
-    $("codigo").addEventListener("keydown", (e) => e.key === "Enter" && unirse());
+    $("codigo").addEventListener(
+      "keydown",
+      (e) => e.key === "Enter" && unirse(),
+    );
 
     const params = new URLSearchParams(location.search);
     let cod = (params.get("sala") || "").toUpperCase();

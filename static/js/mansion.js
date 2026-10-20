@@ -553,7 +553,11 @@
   escena.add(fill);
   const acabados = new Set();
   escena.traverse((o) => {
-    if (o.isMesh && o.material.isMeshStandardMaterial && !acabados.has(o.material)) {
+    if (
+      o.isMesh &&
+      o.material.isMeshStandardMaterial &&
+      !acabados.has(o.material)
+    ) {
       acabados.add(o.material);
       o.material.color.convertSRGBToLinear();
       o.material.envMapIntensity = 0.45;
@@ -772,6 +776,10 @@
     resetInput();
     $("hud").hidden = true;
     $("final").hidden = false;
+    window.Perfil?.anuncioFinal(
+      $("final").querySelector(".panel") || $("final"),
+      "mansion",
+    );
     document.body.classList.remove("cache", "danger");
     $("titulo-final").textContent = win
       ? "Volviste a ver el amanecer."

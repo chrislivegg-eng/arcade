@@ -46,6 +46,8 @@
     .perfil-insignia .monedas{color:#e8930c}
     .marco-arcoiris{border-color:transparent!important;background:linear-gradient(#fff,#fff) padding-box,linear-gradient(90deg,#ff4f8b,#ffd84f,#26de81,#4fb3ff,#a29bfe) border-box!important}
     .marco-oro{border-color:#ffd700!important;box-shadow:0 0 10px #ffd700}
+    .perfil-promo{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;width:100%;margin:14px 0;padding:12px;border:1px solid #ffd84f80;border-radius:16px;background:linear-gradient(135deg,#503064ee,#1c3858ee);color:#fff!important;text-decoration:none!important;font-family:Nunito,Arial,sans-serif;text-align:left;box-sizing:border-box}
+    .perfil-promo small{grid-column:1/-1;color:#ffd84f;font-size:.62rem;font-weight:900;letter-spacing:.12em}.perfil-promo .emoji{font-size:2rem}.perfil-promo b,.perfil-promo em{display:block}.perfil-promo em{margin-top:2px;font-size:.72rem;font-style:normal;line-height:1.25;opacity:.78}.perfil-promo strong{color:#ffd84f;font-size:.72rem;white-space:nowrap}
   `;
   document.head.appendChild(css);
   let caja = null;
@@ -69,18 +71,25 @@
 
   async function cargar() {
     try {
-      const r = await fetch(`/api/perfil?pid=${encodeURIComponent(PID)}&nombre=${encodeURIComponent(leer("nombreUsuario") || "")}`);
+      const r = await fetch(
+        `/api/perfil?pid=${encodeURIComponent(PID)}&nombre=${encodeURIComponent(leer("nombreUsuario") || "")}`,
+      );
       if (!r.ok) return datos;
       datos = await r.json();
       guardar("perfil_cache", JSON.stringify(datos));
-      if (datos.nombre && datos.nombre !== "Jugador") guardar("nombreUsuario", datos.nombre);
+      if (datos.nombre && datos.nombre !== "Jugador")
+        guardar("nombreUsuario", datos.nombre);
       actualizarInsignias();
     } catch (e) {}
     return datos;
   }
 
   async function editar(cambios) {
-    const r = await fetch("/api/perfil", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pid: PID, ...cambios }) });
+    const r = await fetch("/api/perfil", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pid: PID, ...cambios }),
+    });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || "No se pudo guardar");
     datos = j;
@@ -92,38 +101,76 @@
 
   function pintarAvatar(el, d) {
     el.textContent = d.avatar;
-    if (d.avatar_url && /^\/api\/perfil\/icono\/cuenta:[a-f0-9]{24}\?v=[a-f0-9]{16}$/.test(d.avatar_url)) {
-      const img = document.createElement('img');
-      img.src = d.avatar_url; img.alt = 'Avatar de ' + d.nombre;
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
+    if (
+      d.avatar_url &&
+      /^\/api\/perfil\/icono\/cuenta:[a-f0-9]{24}\?v=[a-f0-9]{16}$/.test(
+        d.avatar_url,
+      )
+    ) {
+      const img = document.createElement("img");
+      img.src = d.avatar_url;
+      img.alt = "Avatar de " + d.nombre;
+      img.style.cssText =
+        "width:100%;height:100%;object-fit:cover;border-radius:50%";
       el.replaceChildren(img);
     }
   }
 
   async function subirIcono(archivo) {
-    if (!['image/png','image/jpeg','image/webp'].includes(archivo.type) || archivo.size > 5*1024*1024)
-      throw new Error('Usa una imagen PNG, JPG o WebP de hasta 5 MB');
+    if (
+      !["image/png", "image/jpeg", "image/webp"].includes(archivo.type) ||
+      archivo.size > 5 * 1024 * 1024
+    )
+      throw new Error("Usa una imagen PNG, JPG o WebP de hasta 5 MB");
     const bitmap = await createImageBitmap(archivo);
-    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 256;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 256;
     const lado = Math.min(bitmap.width, bitmap.height);
-    canvas.getContext('2d').drawImage(bitmap,(bitmap.width-lado)/2,(bitmap.height-lado)/2,lado,lado,0,0,256,256);
+    canvas
+      .getContext("2d")
+      .drawImage(
+        bitmap,
+        (bitmap.width - lado) / 2,
+        (bitmap.height - lado) / 2,
+        lado,
+        lado,
+        0,
+        0,
+        256,
+        256,
+      );
     bitmap.close();
-    const r = await fetch('/api/perfil/icono',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({pid:PID,imagen:canvas.toDataURL('image/png')})});
+    const r = await fetch("/api/perfil/icono", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pid: PID, imagen: canvas.toDataURL("image/png") }),
+    });
     const j = await r.json();
-    if (!r.ok) throw new Error(j.error || 'No se pudo subir el icono');
-    datos = j; guardar('perfil_cache',JSON.stringify(datos)); actualizarInsignias();
+    if (!r.ok) throw new Error(j.error || "No se pudo subir el icono");
+    datos = j;
+    guardar("perfil_cache", JSON.stringify(datos));
+    actualizarInsignias();
     return datos;
   }
 
   const partidas = new Map();
-  const nuevoId = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const nuevoId = () =>
+    globalThis.crypto?.randomUUID?.() ||
+    Math.random().toString(36).slice(2) + Date.now().toString(36);
   function iniciar(juego, config) {
     const contexto = { cola: Promise.resolve() };
-    contexto.lista = fetch('/api/perfil/iniciar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pid: PID, nombre: leer('nombreUsuario') || '', juego, ...config }),
-    }).then(async (r) => r.ok ? (await r.json()).partida : null).catch(() => null);
+    contexto.lista = fetch("/api/perfil/iniciar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pid: PID,
+        nombre: leer("nombreUsuario") || "",
+        juego,
+        ...config,
+      }),
+    })
+      .then(async (r) => (r.ok ? (await r.json()).partida : null))
+      .catch(() => null);
     partidas.set(juego, contexto);
     return contexto;
   }
@@ -144,19 +191,43 @@
       const r = await fetch("/api/perfil/evento", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pid: PID, juego, tipo, partida, evento: id,
-          codigo: extra.codigo, ronda: extra.ronda, nombre: leer("nombreUsuario") || "", datos: extra }),
+        body: JSON.stringify({
+          pid: PID,
+          juego,
+          tipo,
+          partida,
+          evento: id,
+          codigo: extra.codigo,
+          ronda: extra.ronda,
+          nombre: leer("nombreUsuario") || "",
+          datos: extra,
+        }),
       });
       if (!r.ok) return;
       const j = await r.json();
       if (datos) {
         datos.monedas = j.monedas;
-        (j.logros || []).forEach((l) => { datos.logros[l.id] = Date.now() / 1000; });
+        (j.logros || []).forEach((l) => {
+          datos.logros[l.id] = Date.now() / 1000;
+        });
         guardar("perfil_cache", JSON.stringify(datos));
       }
-      if (j.ganadas > 0 && tipo === "fin") avisar(`<span class="icono">🪙</span> +${j.ganadas} monedas`, "monedas", 2600);
+      if (j.ganadas > 0 && tipo === "fin")
+        avisar(
+          `<span class="icono">🪙</span> +${j.ganadas} monedas`,
+          "monedas",
+          2600,
+        );
       (j.logros || []).forEach((l, i) =>
-        setTimeout(() => avisar(`<span class="icono">${l.icono}</span><span>🏅 ¡Logro desbloqueado!<small>${l.nombre} · ${l.descripcion}${l.premio ? ` · +${l.premio} 🪙` : ""}</small></span>`, "", 4200), 400 + i * 900),
+        setTimeout(
+          () =>
+            avisar(
+              `<span class="icono">${l.icono}</span><span>🏅 ¡Logro desbloqueado!<small>${l.nombre} · ${l.descripcion}${l.premio ? ` · +${l.premio} 🪙` : ""}</small></span>`,
+              "",
+              4200,
+            ),
+          400 + i * 900,
+        ),
       );
       actualizarInsignias();
     } catch (e) {}
@@ -167,7 +238,12 @@
     return m === "arcoiris" ? "marco-arcoiris" : m === "oro" ? "marco-oro" : "";
   }
   function pintarInsignia(el) {
-    const d = datos || { nombre: leer("nombreUsuario") || "Jugador", avatar: "😺", marco: "#ff4f8b", monedas: 0 };
+    const d = datos || {
+      nombre: leer("nombreUsuario") || "Jugador",
+      avatar: "😺",
+      marco: "#ff4f8b",
+      monedas: 0,
+    };
     const div = document.createElement("div");
     div.textContent = d.nombre;
     el.innerHTML = `<a class="perfil-insignia" href="/perfil" title="Mi perfil"><span class="cara ${claseMarco(d.marco)}" style="--marco:${d.marco}">${d.avatar}</span><span>${div.innerHTML}</span><span class="monedas">🪙 ${d.monedas_infinitas ? "∞" : d.monedas}</span></a>`;
@@ -182,6 +258,78 @@
     insignias.forEach(pintarInsignia);
   }
 
+  const promos = [
+    [
+      "mansion",
+      "👻",
+      "Nocturna",
+      "Escapa de la mansión de los susurros.",
+      "/juego/mansion",
+    ],
+    [
+      "pinball",
+      "🪩",
+      "Pinball Nova",
+      "Combos, multibola y récords espaciales.",
+      "/juego/pinball",
+    ],
+    ["uno", "🃏", "UNO 3D", "Cartas 3D con amigos o contra bots.", "/uno"],
+    [
+      "templo",
+      "🏛️",
+      "Umbra",
+      "Descifra el misterio del templo perdido.",
+      "/juego/templo",
+    ],
+    [
+      "loteria",
+      "🎯",
+      "Lotería Mexicana",
+      "Hasta tres cartas y frases divertidas.",
+      "/loteria",
+    ],
+    [
+      "zombis",
+      "🧟",
+      "Última guardia",
+      "Gana monedas y mejora tu arsenal.",
+      "/juego/zombis",
+    ],
+  ];
+  function anuncioFinal(contenedor, juego = "") {
+    if (!contenedor) return null;
+    contenedor
+      .querySelectorAll(":scope > .perfil-promo")
+      .forEach((el) => el.remove());
+    const disponibles = promos.filter((p) => p[0] !== juego);
+    const indice = Number(leer("promo_final") || 0) % disponibles.length;
+    guardar("promo_final", String(indice + 1));
+    const p = disponibles[indice] || promos[0];
+    const a = document.createElement("a");
+    a.className = "perfil-promo";
+    a.href = p[4];
+    const etiqueta = document.createElement("small");
+    etiqueta.textContent = "ANUNCIO · NUEVO JUEGO";
+    const emoji = document.createElement("span");
+    emoji.className = "emoji";
+    emoji.textContent = p[1];
+    const texto = document.createElement("span");
+    const titulo = document.createElement("b");
+    titulo.textContent = p[2];
+    const detalle = document.createElement("em");
+    detalle.textContent = p[3];
+    texto.append(titulo, detalle);
+    const jugar = document.createElement("strong");
+    jugar.textContent = "JUGAR →";
+    a.append(etiqueta, emoji, texto, jugar);
+    const acciones = [...contenedor.querySelectorAll("button,a")].find(
+      (el) => !el.classList.contains("perfil-promo"),
+    );
+    if (acciones) contenedor.insertBefore(a, acciones);
+    else contenedor.appendChild(a);
+    return a;
+  }
+
   window.Perfil = {
     pid: PID,
     pintarAvatar,
@@ -193,6 +341,7 @@
     insignia,
     avisar,
     claseMarco,
+    anuncioFinal,
     get datos() {
       return datos;
     },

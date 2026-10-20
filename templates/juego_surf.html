@@ -96,9 +96,11 @@
             b = a + SEG_S + 1;
           indices.push(a, b, a + 1, b, b + 1, a + 1);
         }
-      const uvOla=[];
-      for(let i=0;i<=SEG_X;i++)for(let j=0;j<=SEG_S;j++)uvOla.push(i/SEG_X*20,j/SEG_S);
-      geoOla.setAttribute("uv",new THREE.Float32BufferAttribute(uvOla,2));
+      const uvOla = [];
+      for (let i = 0; i <= SEG_X; i++)
+        for (let j = 0; j <= SEG_S; j++)
+          uvOla.push((i / SEG_X) * 20, j / SEG_S);
+      geoOla.setAttribute("uv", new THREE.Float32BufferAttribute(uvOla, 2));
       geoOla.setIndex(indices);
       geoOla.setAttribute("position", new THREE.BufferAttribute(vert, 3));
       geoOla.setAttribute("color", new THREE.BufferAttribute(colores, 3));
@@ -114,7 +116,7 @@
       );
       ola.frustumCulled = false; // la forma cambia en cada cuadro
       escena.add(ola);
-      acabado3D.superficie(ola, "agua", { repetir: 3, relieve: .01 });
+      acabado3D.superficie(ola, "agua", { repetir: 3, relieve: 0.01 });
       function moldearOla(t, x0) {
         let k = 0;
         for (let i = 0; i <= SEG_X; i++) {
@@ -516,6 +518,24 @@
         if (sesionTarea !== (J.sesion || 0)) return;
         if (!J.modo) return;
         if (J.modo === "solo") {
+          if (
+            await ui.ofrecerRevivir({
+              texto: "Mira una novedad y recibe 12 segundos y una caída más.",
+            })
+          ) {
+            if (sesionTarea !== (J.sesion || 0) || J.modo !== "solo") return;
+            J.tiempo = Math.max(0, J.tiempo - 12);
+            J.caidas = Math.min(J.caidas, CAIDAS_MAX - 1);
+            J.espuma = S.x - 16;
+            J.terminando = false;
+            J.activa = true;
+            S.caido = 0;
+            S.s = S.meta = 0.3;
+            S.v = Math.max(11, S.v);
+            ui.avisar("❤️ ¡Otra ola!", "#26de81");
+            marcador();
+            return;
+          }
           sonar("ganar");
           return ui.terminar({
             emoji: "🏄",

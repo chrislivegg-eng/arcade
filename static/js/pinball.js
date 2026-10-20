@@ -486,6 +486,7 @@
       ? "Guardando puntuación…"
       : "Partida terminada antes de gastar las tres bolas. No se guardó el resultado.";
     $("final").showModal();
+    window.Perfil?.anuncioFinal($("final"), "pinball");
     if (!completa) return;
     record = Math.max(record, puntos);
     try {

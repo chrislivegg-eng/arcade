@@ -370,7 +370,8 @@
         P.vivo = false;
         $("abrir").classList.add("oculto");
         const d = Math.hypot(P.x - diana.position.x, P.z - diana.position.z);
-        if (!P.abierto || P.alturaApertura < ABRIR_MIN) {
+        P.accidente = !P.abierto || P.alturaApertura < ABRIR_MIN;
+        if (P.accidente) {
           sonar("choque");
           ui.avisar(
             !P.abierto
@@ -504,6 +505,7 @@
           ox: 0,
           oz: 0,
           alturaApertura: null,
+          accidente: false,
         });
         vela.visible = false;
         camara.position.set(0, ALTURA + 20, 10);
@@ -523,6 +525,30 @@
         if (!J.modo) return;
         const pts = P.puntos;
         if (J.modo === "solo") {
+          if (
+            P.accidente &&
+            (await ui.ofrecerRevivir({
+              texto:
+                "Mira una novedad y recibe otra oportunidad para aterrizar.",
+            }))
+          ) {
+            if (sesionTarea !== (J.sesion || 0) || J.modo !== "solo") return;
+            Object.assign(P, {
+              x: 0,
+              y: ABRIR_MAX + 160,
+              z: 0,
+              vx: 0,
+              vz: 0,
+              abierto: false,
+              vivo: true,
+              alturaApertura: null,
+              accidente: false,
+            });
+            vela.visible = false;
+            ui.avisar("❤️ ¡Aterriza con cuidado!", "#26de81");
+            marcador();
+            return;
+          }
           sonar("ganar");
           return ui.terminar({
             emoji: "🪂",

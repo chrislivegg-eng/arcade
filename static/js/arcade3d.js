@@ -6,14 +6,16 @@
 //   Arcade.deslizar() → leer gestos de deslizar el dedo / mouse
 
 // Carga el perfil (avatar, monedas y logros) en todos los juegos
-const perfilListo = window.Perfil ? Promise.resolve(window.Perfil) : new Promise((resolver) => {
-  const s = document.createElement("script");
-  s.id = "script-perfil";
-  s.src = "/static/js/perfil.js";
-  s.onload = () => resolver(window.Perfil);
-  s.onerror = () => resolver(null);
-  document.head.appendChild(s);
-});
+const perfilListo = window.Perfil
+  ? Promise.resolve(window.Perfil)
+  : new Promise((resolver) => {
+      const s = document.createElement("script");
+      s.id = "script-perfil";
+      s.src = "/static/js/perfil.js";
+      s.onload = () => resolver(window.Perfil);
+      s.onerror = () => resolver(null);
+      document.head.appendChild(s);
+    });
 
 const Arcade = (() => {
   const $ = (id) => document.getElementById(id);
@@ -54,7 +56,10 @@ const Arcade = (() => {
       lienzo.id = "lienzo";
       document.body.prepend(lienzo);
     }
-    const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true });
+    const renderer = new THREE.WebGLRenderer({
+      canvas: lienzo,
+      antialias: true,
+    });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = opciones.sombras !== false;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -65,26 +70,40 @@ const Arcade = (() => {
     const escena = new THREE.Scene();
     const fondo = opciones.fondo == null ? 0x120c14 : opciones.fondo;
     escena.background = new THREE.Color(fondo);
-    if (opciones.niebla) escena.fog = new THREE.Fog(fondo, opciones.niebla[0], opciones.niebla[1]);
+    if (opciones.niebla)
+      escena.fog = new THREE.Fog(fondo, opciones.niebla[0], opciones.niebla[1]);
 
-    const camara = new THREE.PerspectiveCamera(opciones.fov || 50, 1, 0.05, opciones.lejos || 200);
+    const camara = new THREE.PerspectiveCamera(
+      opciones.fov || 50,
+      1,
+      0.05,
+      opciones.lejos || 200,
+    );
 
     // reflejos de ambiente para que el metal y el plástico brillen
     const reflejos = new THREE.Scene();
     reflejos.add(
       new THREE.Mesh(
         new THREE.BoxGeometry(20, 20, 20),
-        new THREE.MeshBasicMaterial({ color: opciones.colorAmbiente || 0x2a2230, side: THREE.BackSide }),
+        new THREE.MeshBasicMaterial({
+          color: opciones.colorAmbiente || 0x2a2230,
+          side: THREE.BackSide,
+        }),
       ),
     );
-    (opciones.lamparas || [
-      [0, 8, 3, 0xfff0d8, 4],
-      [-8, 2, 5, 0xff4f8b, 1.1],
-      [8, 2, 5, 0x4fb3ff, 1.1],
-    ]).forEach(([x, y, z, color, fuerza]) => {
+    (
+      opciones.lamparas || [
+        [0, 8, 3, 0xfff0d8, 4],
+        [-8, 2, 5, 0xff4f8b, 1.1],
+        [8, 2, 5, 0x4fb3ff, 1.1],
+      ]
+    ).forEach(([x, y, z, color, fuerza]) => {
       const l = new THREE.Mesh(
         new THREE.PlaneGeometry(6, 3),
-        new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(fuerza), side: THREE.DoubleSide }),
+        new THREE.MeshBasicMaterial({
+          color: new THREE.Color(color).multiplyScalar(fuerza),
+          side: THREE.DoubleSide,
+        }),
       );
       l.position.set(x, y, z);
       l.lookAt(0, 0, 0);
@@ -93,7 +112,12 @@ const Arcade = (() => {
     const generadorAmbiente = new THREE.PMREMGenerator(renderer);
     escena.environment = generadorAmbiente.fromScene(reflejos, 0.04).texture;
     generadorAmbiente.dispose();
-    reflejos.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+    reflejos.traverse((o) => {
+      if (o.isMesh) {
+        o.geometry.dispose();
+        o.material.dispose();
+      }
+    });
 
     const alCambiarTamano = [];
     function ajustar() {
@@ -128,7 +152,8 @@ const Arcade = (() => {
       requestAnimationFrame(cuadro);
       const dt = Math.min(0.05, (ahora - anterior) / 1000);
       anterior = ahora;
-      for (let i = animaciones.length - 1; i >= 0; i--) if (!animaciones[i](ahora)) animaciones.splice(i, 1);
+      for (let i = animaciones.length - 1; i >= 0; i--)
+        if (!animaciones[i](ahora)) animaciones.splice(i, 1);
       porCuadro.forEach((f) => f(dt, ahora));
       renderer.render(escena, camara);
     }
@@ -157,12 +182,21 @@ const Arcade = (() => {
       },
       pantallaARayo: (px, py) => {
         const r = new THREE.Raycaster();
-        r.setFromCamera(new THREE.Vector2((px / window.innerWidth) * 2 - 1, -(py / window.innerHeight) * 2 + 1), camara);
+        r.setFromCamera(
+          new THREE.Vector2(
+            (px / window.innerWidth) * 2 - 1,
+            -(py / window.innerHeight) * 2 + 1,
+          ),
+          camara,
+        );
         return r;
       },
       aPantalla: (v) => {
         const p = v.clone().project(camara);
-        return { x: ((p.x + 1) / 2) * window.innerWidth, y: ((1 - p.y) / 2) * window.innerHeight };
+        return {
+          x: ((p.x + 1) / 2) * window.innerWidth,
+          y: ((1 - p.y) / 2) * window.innerHeight,
+        };
       },
     };
   }
@@ -171,14 +205,21 @@ const Arcade = (() => {
   const lin = (hex) => new THREE.Color(hex).convertSRGBToLinear();
 
   function materialPBR(opciones) {
-    return window.Graficos3D ? Graficos3D.material(opciones) : new THREE.MeshStandardMaterial(opciones);
+    return window.Graficos3D
+      ? Graficos3D.material(opciones)
+      : new THREE.MeshStandardMaterial(opciones);
   }
   function material(color, extra = {}) {
     return materialPBR({ color: lin(color), roughness: 0.6, ...extra });
   }
 
   // Textura de madera (pisos, mesas, paredes)
-  function dibujarMadera(g, w, h, { tono = 30, sat = 45, luz = 55, tablas = 6, vertical = true } = {}) {
+  function dibujarMadera(
+    g,
+    w,
+    h,
+    { tono = 30, sat = 45, luz = 55, tablas = 6, vertical = true } = {},
+  ) {
     for (let i = 0; i < tablas; i++) {
       const pos = (i * (vertical ? w : h)) / tablas;
       const tam = (vertical ? w : h) / tablas;
@@ -218,12 +259,24 @@ const Arcade = (() => {
   }
   document.addEventListener("pointerdown", activarAudio, { capture: true });
 
-  function ruido(dur, frecuencia, volumen, q = 1, tipo = "bandpass", retraso = 0) {
+  function ruido(
+    dur,
+    frecuencia,
+    volumen,
+    q = 1,
+    tipo = "bandpass",
+    retraso = 0,
+  ) {
     if (!ctxAudio) return;
     const ahora = ctxAudio.currentTime + retraso;
-    const buffer = ctxAudio.createBuffer(1, Math.max(1, ctxAudio.sampleRate * dur), ctxAudio.sampleRate);
+    const buffer = ctxAudio.createBuffer(
+      1,
+      Math.max(1, ctxAudio.sampleRate * dur),
+      ctxAudio.sampleRate,
+    );
     const d = buffer.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.5);
+    for (let i = 0; i < d.length; i++)
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.5);
     const fuente = ctxAudio.createBufferSource();
     fuente.buffer = buffer;
     const filtro = ctxAudio.createBiquadFilter();
@@ -235,14 +288,24 @@ const Arcade = (() => {
     fuente.connect(filtro).connect(g).connect(ctxAudio.destination);
     fuente.start(ahora);
   }
-  function tono(frecuencia, dur, volumen, forma = "sine", final = 0.5, retraso = 0) {
+  function tono(
+    frecuencia,
+    dur,
+    volumen,
+    forma = "sine",
+    final = 0.5,
+    retraso = 0,
+  ) {
     if (!ctxAudio) return;
     const ahora = ctxAudio.currentTime + retraso;
     const osc = ctxAudio.createOscillator();
     const g = ctxAudio.createGain();
     osc.type = forma;
     osc.frequency.setValueAtTime(frecuencia, ahora);
-    osc.frequency.exponentialRampToValueAtTime(Math.max(20, frecuencia * final), ahora + dur);
+    osc.frequency.exponentialRampToValueAtTime(
+      Math.max(20, frecuencia * final),
+      ahora + dur,
+    );
     g.gain.setValueAtTime(volumen, ahora);
     g.gain.exponentialRampToValueAtTime(0.001, ahora + dur);
     osc.connect(g).connect(ctxAudio.destination);
@@ -258,7 +321,13 @@ const Arcade = (() => {
         ruido(0.05, 700, 0.5 * f, 1.2);
         return tono(140, 0.12, 0.4 * f);
       case "ping":
-        return tono(1800 + Math.random() * 400, 0.08, 0.25 * f, "triangle", 0.7);
+        return tono(
+          1800 + Math.random() * 400,
+          0.08,
+          0.25 * f,
+          "triangle",
+          0.7,
+        );
       case "golpe":
         ruido(0.08, 500, 0.8 * f, 1);
         return tono(90, 0.18, 0.6 * f);
@@ -266,7 +335,15 @@ const Arcade = (() => {
         ruido(0.06, 900, 0.9 * f, 1.5);
         return tono(110, 0.14, 0.7 * f);
       case "pinos":
-        for (let i = 0; i < 6; i++) ruido(0.08, azar(900, 2400), 0.35 * f, 3, "bandpass", i * azar(0.01, 0.04));
+        for (let i = 0; i < 6; i++)
+          ruido(
+            0.08,
+            azar(900, 2400),
+            0.35 * f,
+            3,
+            "bandpass",
+            i * azar(0.01, 0.04),
+          );
         return;
       case "rodar":
         return ruido(0.9, 180, 0.35 * f, 0.7, "lowpass");
@@ -282,15 +359,20 @@ const Arcade = (() => {
         tono(2400, 0.35, 0.18, "square", 1.02);
         return tono(2550, 0.35, 0.12, "square", 1.02);
       case "publico":
-        for (let i = 0; i < 8; i++) ruido(1.4, azar(400, 1400), 0.12, 0.8, "bandpass", i * 0.05);
+        for (let i = 0; i < 8; i++)
+          ruido(1.4, azar(400, 1400), 0.12, 0.8, "bandpass", i * 0.05);
         return;
       case "abucheo":
         return ruido(1.2, 300, 0.25, 0.7, "lowpass");
       case "ganar":
-        [523, 659, 784, 1046].forEach((n, i) => tono(n, 0.25, 0.2, "triangle", 1, i * 0.12));
+        [523, 659, 784, 1046].forEach((n, i) =>
+          tono(n, 0.25, 0.2, "triangle", 1, i * 0.12),
+        );
         return;
       case "perder":
-        [392, 330, 262].forEach((n, i) => tono(n, 0.3, 0.2, "triangle", 0.95, i * 0.16));
+        [392, 330, 262].forEach((n, i) =>
+          tono(n, 0.3, 0.2, "triangle", 0.95, i * 0.16),
+        );
         return;
       case "click":
         return tono(1200, 0.04, 0.15, "square", 0.8);
@@ -319,11 +401,13 @@ const Arcade = (() => {
     });
     elemento.addEventListener("pointermove", (e) => {
       if (!puntos) {
-        manejadores.flotar && manejadores.flotar({ x: e.clientX, y: e.clientY }, e);
+        manejadores.flotar &&
+          manejadores.flotar({ x: e.clientX, y: e.clientY }, e);
         return;
       }
       puntos.push({ x: e.clientX, y: e.clientY, t: performance.now() });
-      manejadores.mover && manejadores.mover(puntos[puntos.length - 1], puntos, e);
+      manejadores.mover &&
+        manejadores.mover(puntos[puntos.length - 1], puntos, e);
     });
     const terminar = (e, cancelado) => {
       if (!puntos) return;
@@ -413,13 +497,65 @@ const Arcade = (() => {
     local: "👥 2 jugadores en este aparato",
     solo: "🏆 Jugar solo (récord)",
   };
-  const CLASES_MODO = { bot: "", online: "azul", local: "claro", solo: "dorado" };
+  const CLASES_MODO = {
+    bot: "",
+    online: "azul",
+    local: "claro",
+    solo: "dorado",
+  };
+  const PROMOS_ARCADE = [
+    {
+      juego: "mansion",
+      emoji: "👻",
+      titulo: "Nocturna",
+      texto: "Explora la mansión, encuentra tres llaves y escapa.",
+      href: "/juego/mansion",
+    },
+    {
+      juego: "pinball",
+      emoji: "🪩",
+      titulo: "Pinball Nova",
+      texto: "Luces, combos, multibola y récords de otro planeta.",
+      href: "/juego/pinball",
+    },
+    {
+      juego: "uno",
+      emoji: "🃏",
+      titulo: "UNO 3D",
+      texto: "Cartas 3D y partidas con hasta diez amigos.",
+      href: "/uno",
+    },
+    {
+      juego: "templo",
+      emoji: "🏛️",
+      titulo: "Umbra",
+      texto: "Resuelve los misterios del templo perdido.",
+      href: "/juego/templo",
+    },
+    {
+      juego: "loteria",
+      emoji: "🎯",
+      titulo: "Lotería Mexicana",
+      texto: "Hasta tres cartas, colores y frases para reírse.",
+      href: "/loteria",
+    },
+    {
+      juego: "zombis",
+      emoji: "🧟",
+      titulo: "Última guardia",
+      texto: "Gana monedas por baja y mejora tu arsenal.",
+      href: "/juego/zombis",
+    },
+  ];
 
   function ui(config) {
     const modos = config.modos || ["bot", "online", "local"];
     // dificultad: true, o { etiqueta, nombres: {facil, normal, pro}, siempre } para juegos sin bot
     const dif = typeof config.dificultad === "object" ? config.dificultad : {};
-    const nombresDif = Object.assign({ facil: "Fácil", normal: "Normal", pro: "Pro" }, dif.nombres);
+    const nombresDif = Object.assign(
+      { facil: "Fácil", normal: "Normal", pro: "Pro" },
+      dif.nombres,
+    );
     const html = `
       <div id="hud" class="oculto">
         <div class="marcador">
@@ -506,8 +642,28 @@ const Arcade = (() => {
           <div class="ganador" id="fin-texto"></div>
           <p class="nota" id="fin-nota"></p>
           <div class="nuevo-record oculto" id="fin-record">⭐ ¡Nuevo récord personal! ⭐</div>
+          <a id="fin-promo" class="promo-arcade" href="/secreto">
+            <small>ANUNCIO · NUEVO JUEGO</small>
+            <span class="promo-emoji"></span>
+            <span><b class="promo-titulo"></b><em class="promo-texto"></em></span>
+            <strong>JUGAR →</strong>
+          </a>
           <button class="boton" id="btn-revancha">🔁 Otra vez</button>
           <button class="boton claro" id="btn-fin-menu">🏠 Menú</button>
+        </div>
+      </div>
+
+      <div id="menu-revivir" class="capa oculto">
+        <div class="tarjeta tarjeta-revivir">
+          <div class="titulo"><div class="emoji">❤️</div><h1>¿Una oportunidad más?</h1><p id="revivir-texto">Mira esta novedad del arcade y revive una vez.</p></div>
+          <div class="promo-arcade promo-revivir" aria-label="Anuncio interno del arcade">
+            <small>ANUNCIO · PRUEBA DESPUÉS</small>
+            <span class="promo-emoji"></span>
+            <span><b class="promo-titulo"></b><em class="promo-texto"></em></span>
+          </div>
+          <button class="boton verde" id="btn-revivir" disabled>Preparando…</button>
+          <button class="boton claro" id="btn-no-revivir">No, terminar partida</button>
+          <p class="nota">Promoción interna. No usa anuncios externos ni realiza compras.</p>
         </div>
       </div>`;
     document.body.insertAdjacentHTML("beforeend", html);
@@ -518,12 +674,19 @@ const Arcade = (() => {
       dificultad: "normal",
       partida: 0,
       online: null, // { codigo, yo, semilla, nombres }
+      revivirUsado: false,
     };
     let intervalo = null;
     let ultimoSeq = 0;
     let consultando = false;
 
-    const capas = ["menu", "menu-online", "menu-espera", "menu-fin"];
+    const capas = [
+      "menu",
+      "menu-online",
+      "menu-espera",
+      "menu-fin",
+      "menu-revivir",
+    ];
     function mostrar(id) {
       capas.forEach((c) => $(c).classList.toggle("oculto", c !== id));
       $("hud").classList.toggle("oculto", !!id && id !== "menu-fin");
@@ -538,14 +701,30 @@ const Arcade = (() => {
       clearInterval(esperarPerfil);
       Perfil.insignia($("insignia-perfil"));
       Perfil.cargar().then((d) => {
-        if(d?.cuenta) $("nombre").readOnly = $("nombre-online").readOnly = true;
-        if (d && d.nombre && d.nombre !== "Jugador" && (d.cuenta || !$("nombre").value)) $("nombre").value = $("nombre-online").value = d.nombre;
+        if (d?.cuenta)
+          $("nombre").readOnly = $("nombre-online").readOnly = true;
+        if (
+          d &&
+          d.nombre &&
+          d.nombre !== "Jugador" &&
+          (d.cuenta || !$("nombre").value)
+        )
+          $("nombre").value = $("nombre-online").value = d.nombre;
       });
     }, 100);
-    $("nombre").addEventListener("input", () => ($("nombre-online").value = $("nombre").value));
-    $("nombre-online").addEventListener("input", () => ($("nombre").value = $("nombre-online").value));
+    $("nombre").addEventListener(
+      "input",
+      () => ($("nombre-online").value = $("nombre").value),
+    );
+    $("nombre-online").addEventListener(
+      "input",
+      () => ($("nombre").value = $("nombre-online").value),
+    );
     function miNombre() {
-      const n = (window.Perfil?.datos?.cuenta ? Perfil.datos.nombre : $("nombre").value.trim()) || "Jugador";
+      const n =
+        (window.Perfil?.datos?.cuenta
+          ? Perfil.datos.nombre
+          : $("nombre").value.trim()) || "Jugador";
       try {
         localStorage.setItem("nombreUsuario", n);
       } catch (e) {}
@@ -555,7 +734,9 @@ const Arcade = (() => {
     document.querySelectorAll("#chips-dificultad .chip").forEach((chip) => {
       chip.onclick = () => {
         estado.dificultad = chip.dataset.d;
-        document.querySelectorAll("#chips-dificultad .chip").forEach((c) => c.classList.toggle("activo", c === chip));
+        document
+          .querySelectorAll("#chips-dificultad .chip")
+          .forEach((c) => c.classList.toggle("activo", c === chip));
       };
     });
 
@@ -563,11 +744,15 @@ const Arcade = (() => {
       estado.modo = modo;
       estado.nombres = nombres;
       estado.partida++;
-      estado.perfil = perfilListo.then((p) => p?.iniciar(config.juego, { modo, dificultad: estado.dificultad }));
+      estado.perfil = perfilListo.then((p) =>
+        p?.iniciar(config.juego, { modo, dificultad: estado.dificultad }),
+      );
       estado.finalizada = false;
+      estado.revivirUsado = false;
       mostrar(null);
       $("badge-centro").classList.toggle("oculto", modo !== "online");
-      if (modo === "online") $("badge-centro").textContent = "SALA " + estado.online.codigo;
+      if (modo === "online")
+        $("badge-centro").textContent = "SALA " + estado.online.codigo;
       $("ayuda").style.opacity = 1;
       config.alEmpezar(modo, {
         nombres,
@@ -575,7 +760,9 @@ const Arcade = (() => {
         online: estado.online,
         partida: estado.partida,
         perfil: estado.perfil,
-        semilla: estado.online ? estado.online.semilla + estado.partida * 7919 : Math.floor(Math.random() * 1e9),
+        semilla: estado.online
+          ? estado.online.semilla + estado.partida * 7919
+          : Math.floor(Math.random() * 1e9),
       });
     }
 
@@ -589,10 +776,16 @@ const Arcade = (() => {
         } else if (modo === "local") {
           const otro = prompt("¿Cómo se llama el otro jugador?", "Jugador 2");
           if (otro === null) return;
-          empezar("local", [miNombre(), (otro.trim() || "Jugador 2").slice(0, 14)]);
+          empezar("local", [
+            miNombre(),
+            (otro.trim() || "Jugador 2").slice(0, 14),
+          ]);
         } else if (modo === "bot") {
           const nivel = nombresDif[estado.dificultad];
-          empezar("bot", [miNombre(), config.dificultad && !dif.siempre ? `Bot ${nivel}` : "Bot"]); // si la dificultad es el tamaño del tablero, el bot no lleva número
+          empezar("bot", [
+            miNombre(),
+            config.dificultad && !dif.siempre ? `Bot ${nivel}` : "Bot",
+          ]); // si la dificultad es el tamaño del tablero, el bot no lleva número
         } else {
           empezar(modo, [miNombre(), ""]);
         }
@@ -614,7 +807,11 @@ const Arcade = (() => {
     }
     function salirOnline(avisarRival) {
       clearInterval(intervalo);
-      if (avisarRival && estado.online) api("/api/duelo/salir", { codigo: estado.online.codigo, pid: PID }).catch(() => {});
+      if (avisarRival && estado.online)
+        api("/api/duelo/salir", {
+          codigo: estado.online.codigo,
+          pid: PID,
+        }).catch(() => {});
       estado.online = null;
       history.replaceState(null, "", location.pathname);
     }
@@ -632,7 +829,9 @@ const Arcade = (() => {
       const salaConsultada = estado.online;
       let e;
       try {
-        e = await api(`/api/duelo/estado/${estado.online.codigo}?pid=${encodeURIComponent(PID)}&desde=${ultimoSeq}`);
+        e = await api(
+          `/api/duelo/estado/${estado.online.codigo}?pid=${encodeURIComponent(PID)}&desde=${ultimoSeq}`,
+        );
       } catch (err) {
         if (estado.online !== salaConsultada) return;
         if (/no existe|No estás/.test(err.message)) {
@@ -644,7 +843,11 @@ const Arcade = (() => {
         return;
       }
       if (estado.online !== salaConsultada) return;
-      Object.assign(estado.online, { yo: e.yo, semilla: e.semilla, nombres: e.nombres });
+      Object.assign(estado.online, {
+        yo: e.yo,
+        semilla: e.semilla,
+        nombres: e.nombres,
+      });
       if (e.listo && estado.modo !== "online") {
         empezar("online", e.nombres);
       }
@@ -674,7 +877,11 @@ const Arcade = (() => {
     }
     $("btn-crear").onclick = async () => {
       try {
-        const r = await api("/api/duelo/crear", { juego: config.juego, pid: PID, nombre: miNombre() });
+        const r = await api("/api/duelo/crear", {
+          juego: config.juego,
+          pid: PID,
+          nombre: miNombre(),
+        });
         entrarSala(r.codigo);
       } catch (e) {
         $("error-online").textContent = e.message;
@@ -682,33 +889,50 @@ const Arcade = (() => {
     };
     const unirse = async () => {
       const codigo = $("codigo").value.trim().toUpperCase();
-      if (codigo.length !== 4) return ($("error-online").textContent = "El código tiene 4 letras");
+      if (codigo.length !== 4)
+        return ($("error-online").textContent = "El código tiene 4 letras");
       try {
-        const r = await api("/api/duelo/unirse", { juego: config.juego, codigo, pid: PID, nombre: miNombre() });
+        const r = await api("/api/duelo/unirse", {
+          juego: config.juego,
+          codigo,
+          pid: PID,
+          nombre: miNombre(),
+        });
         entrarSala(r.codigo);
       } catch (e) {
         $("error-online").textContent = e.message;
       }
     };
     $("btn-unirse").onclick = unirse;
-    $("codigo").addEventListener("keydown", (e) => e.key === "Enter" && unirse());
+    $("codigo").addEventListener(
+      "keydown",
+      (e) => e.key === "Enter" && unirse(),
+    );
     $("btn-volver-online").onclick = () => mostrar("menu");
     $("btn-cancelar").onclick = () => {
       salirOnline(true);
       mostrar("menu-online");
     };
     $("btn-compartir").onclick = async () => {
-      const link = location.origin + location.pathname + "?sala=" + estado.online.codigo;
+      const link =
+        location.origin + location.pathname + "?sala=" + estado.online.codigo;
       const texto = `¡Te reto a ${config.titulo}! ${config.emoji} Código: ${estado.online.codigo}`;
       if (navigator.share) {
         try {
-          await navigator.share({ title: config.titulo, text: texto, url: link });
+          await navigator.share({
+            title: config.titulo,
+            text: texto,
+            url: link,
+          });
           return;
         } catch (e) {
           if (e.name === "AbortError") return;
         }
       }
-      window.open("https://wa.me/?text=" + encodeURIComponent(texto + " " + link), "_blank");
+      window.open(
+        "https://wa.me/?text=" + encodeURIComponent(texto + " " + link),
+        "_blank",
+      );
     };
 
     // ---------- Menú en juego / fin ----------
@@ -731,13 +955,78 @@ const Arcade = (() => {
       empezar(estado.modo, estado.nombres);
     };
 
+    let resolverRevivir = null;
+    let relojRevivir = null;
+    function elegirPromo() {
+      const disponibles = PROMOS_ARCADE.filter((p) => p.juego !== config.juego);
+      let indice = 0;
+      try {
+        indice =
+          Number(localStorage.getItem("promo_arcade") || 0) %
+          disponibles.length;
+        localStorage.setItem("promo_arcade", String(indice + 1));
+      } catch (e) {}
+      return disponibles[indice] || PROMOS_ARCADE[0];
+    }
+    function pintarPromo(contenedor, promo) {
+      contenedor.querySelector(".promo-emoji").textContent = promo.emoji;
+      contenedor.querySelector(".promo-titulo").textContent = promo.titulo;
+      contenedor.querySelector(".promo-texto").textContent = promo.texto;
+      if (contenedor.tagName === "A") contenedor.href = promo.href;
+    }
+    function cerrarRevivir(resultado) {
+      clearInterval(relojRevivir);
+      relojRevivir = null;
+      const resolver = resolverRevivir;
+      resolverRevivir = null;
+      if (resolver) resolver(resultado);
+    }
+    function ofrecerRevivir({
+      texto = "Mira esta novedad del arcade y revive una vez.",
+      segundos = 4,
+    } = {}) {
+      if (estado.modo !== "solo" || estado.revivirUsado || estado.finalizada)
+        return Promise.resolve(false);
+      estado.revivirUsado = true;
+      const promo = elegirPromo();
+      pintarPromo($("menu-revivir").querySelector(".promo-arcade"), promo);
+      $("revivir-texto").textContent = texto;
+      const boton = $("btn-revivir");
+      boton.disabled = true;
+      let faltan = Math.max(1, Math.round(segundos));
+      boton.textContent = `Revive en ${faltan}…`;
+      mostrar("menu-revivir");
+      clearInterval(relojRevivir);
+      relojRevivir = setInterval(() => {
+        faltan--;
+        if (faltan > 0) return (boton.textContent = `Revive en ${faltan}…`);
+        clearInterval(relojRevivir);
+        relojRevivir = null;
+        boton.disabled = false;
+        boton.textContent = "❤️ Revivir ahora";
+      }, 1000);
+      return new Promise((resolver) => (resolverRevivir = resolver));
+    }
+    $("btn-revivir").onclick = () => {
+      if ($("btn-revivir").disabled) return;
+      cerrarRevivir(true);
+      mostrar(null);
+    };
+    $("btn-no-revivir").onclick = () => {
+      cerrarRevivir(false);
+      mostrar(null);
+    };
+
     // ---------- Récords ----------
     async function cargarRecords() {
       try {
         const lista = await api(`/api/records/${config.juego}`);
         $("tabla-records").innerHTML = lista.length
           ? lista
-              .map((r, i) => `<div><span>${["🥇", "🥈", "🥉"][i] || i + 1 + "."} ${esc(r.nombre)}</span><span>${r.puntos} ${config.unidadRecord || ""}</span></div>`)
+              .map(
+                (r, i) =>
+                  `<div><span>${["🥇", "🥈", "🥉"][i] || i + 1 + "."} ${esc(r.nombre)}</span><span>${r.puntos} ${config.unidadRecord || ""}</span></div>`,
+              )
               .join("")
           : "<div>Nadie ha jugado todavía ✨</div>";
       } catch (e) {
@@ -761,7 +1050,10 @@ const Arcade = (() => {
         const el = $("panel-" + i);
         el.classList.toggle("oculto", !p);
         if (!p) return;
-        el.style.setProperty("--color", p.color || (i === 0 ? "#ff4f8b" : "#4fb3ff"));
+        el.style.setProperty(
+          "--color",
+          p.color || (i === 0 ? "#ff4f8b" : "#4fb3ff"),
+        );
         el.querySelector(".nombre").textContent = p.nombre;
         el.querySelector(".valor").textContent = p.valor;
         el.querySelector(".detalle").textContent = p.detalle || "";
@@ -774,35 +1066,63 @@ const Arcade = (() => {
       $("ayuda").style.opacity = texto ? 1 : 0;
     }
 
-    async function terminar({ emoji = "🏆", texto, nota = "", record = null, gano = null, datos = {} }) {
+    async function terminar({
+      emoji = "🏆",
+      texto,
+      nota = "",
+      record = null,
+      gano = null,
+      datos = {},
+    }) {
       if (estado.finalizada) return;
       estado.finalizada = true;
-      const partida = estado.partida, modo = estado.modo, dificultad = estado.dificultad;
+      const partida = estado.partida,
+        modo = estado.modo,
+        dificultad = estado.dificultad;
       const contexto = estado.perfil;
       const nombre = estado.nombres[estado.online ? estado.online.yo : 0];
       $("fin-emoji").textContent = emoji;
       $("fin-texto").textContent = texto;
       $("fin-nota").textContent = nota;
       $("fin-record").classList.add("oculto");
-      $("btn-revancha").textContent = estado.modo === "online" ? "🔁 Revancha" : "🔁 Otra vez";
+      $("btn-revancha").textContent =
+        estado.modo === "online" ? "🔁 Revancha" : "🔁 Otra vez";
+      pintarPromo($("fin-promo"), elegirPromo());
       mostrar("menu-fin");
       let recordNuevo = false;
       if (record != null && config.records) {
         try {
-          const r = await api(`/api/records/${config.juego}`, { nombre, puntos: record });
+          const r = await api(`/api/records/${config.juego}`, {
+            nombre,
+            puntos: record,
+          });
           recordNuevo = !!r.nuevo_record;
-          if (r.nuevo_record && estado.partida === partida) $("fin-record").classList.remove("oculto");
+          if (r.nuevo_record && estado.partida === partida)
+            $("fin-record").classList.remove("oculto");
         } catch (e) {}
       }
       // monedas y logros (si el juego no dice si ganaste, se adivina por el trofeo)
-      if (gano == null) gano = modo !== "solo" && modo !== "local" && ["🏆", "🥇"].includes(emoji);
+      if (gano == null)
+        gano =
+          modo !== "solo" && modo !== "local" && ["🏆", "🥇"].includes(emoji);
       const perfil = await contexto;
-      if (perfil && window.Perfil) Perfil.evento(config.juego, "fin", { ...datos, gano, modo, dificultad, record_nuevo: recordNuevo }, perfil);
+      if (perfil && window.Perfil)
+        Perfil.evento(
+          config.juego,
+          "fin",
+          { ...datos, gano, modo, dificultad, record_nuevo: recordNuevo },
+          perfil,
+        );
     }
 
     function enviar(tipo, datos) {
       if (!estado.online) return Promise.resolve();
-      return api("/api/duelo/evento", { codigo: estado.online.codigo, pid: PID, tipo, datos }).catch(() => {});
+      return api("/api/duelo/evento", {
+        codigo: estado.online.codigo,
+        pid: PID,
+        tipo,
+        datos,
+      }).catch(() => {});
     }
 
     // Link de invitación
@@ -822,6 +1142,7 @@ const Arcade = (() => {
       marcador,
       ayuda,
       terminar,
+      ofrecerRevivir,
       enviar,
       alEvento: null,
       get modo() {
@@ -836,7 +1157,8 @@ const Arcade = (() => {
       get partida() {
         return estado.partida;
       },
-      enJuego: () => !!estado.modo && $("menu-fin").classList.contains("oculto"),
+      enJuego: () =>
+        !!estado.modo && $("menu-fin").classList.contains("oculto"),
     };
     return api_publica;
   }
@@ -845,10 +1167,14 @@ const Arcade = (() => {
   // Las coroutines comprueban además el identificador después de cada espera.
   function ciclo(estado, mundo) {
     const actual = () => estado.sesion || 0;
-    const cancelar = () => { estado.sesion = actual() + 1; };
+    const cancelar = () => {
+      estado.sesion = actual() + 1;
+    };
     function despues(fn, ms) {
       const sesion = actual();
-      return setTimeout(() => { if (actual() === sesion) fn(); }, ms);
+      return setTimeout(() => {
+        if (actual() === sesion) fn();
+      }, ms);
     }
     function cada(fn, ms) {
       const sesion = actual();
@@ -860,7 +1186,9 @@ const Arcade = (() => {
     }
     function animar(ms, fn) {
       const sesion = actual();
-      return mundo.animar(ms, (t) => { if (actual() === sesion) fn(t); });
+      return mundo.animar(ms, (t) => {
+        if (actual() === sesion) fn(t);
+      });
     }
     return { cancelar, despues, cada, animar };
   }
