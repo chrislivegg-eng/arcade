@@ -6,14 +6,26 @@
 {% block estilos %}
 <style>
   .mesa-pk {
-    background: radial-gradient(ellipse at center, #1f8a4c, #0f4d2a);
-    border-radius: 40px;
-    padding: 14px 10px;
+    position:relative;
+    isolation:isolate;
+    overflow:hidden;
+    min-height:450px;
+    background:radial-gradient(ellipse at center,#239060 0%,#115136 52%,#08271d 100%);
+    border-radius:46% 46% 42% 42% / 24% 24% 20% 20%;
+    border:13px solid #4d2f20;
+    outline:2px solid #d3a268;
+    padding:24px 15px 18px;
     color: #fff;
     box-shadow:
-      inset 0 0 40px rgba(0, 0, 0, 0.35),
-      0 0 0 8px #6b3e26;
+      inset 0 0 75px #001c11,
+      inset 0 1px 0 #fff5,
+      0 22px 42px #130b08aa;
     text-align: center;
+    perspective:1000px;
+  }
+  .mesa-pk::before{content:"TEXAS HOLD'EM · CHRIS ARCADE";position:absolute;inset:18px;z-index:-1;border:1px solid #dcffbe42;border-radius:inherit;display:grid;place-items:center;color:#dfffc74d;font-size:.68rem;font-weight:900;letter-spacing:.24em;transform:rotateX(58deg) scale(1.03)}
+  .mesa-pk::after{content:"";position:absolute;inset:-18px;z-index:-2;background:radial-gradient(ellipse,transparent 44%,#000a 86%)}
+  .mesa-pk > *{position:relative;z-index:1}
   }
   .naipe {
     display: inline-flex;
@@ -26,11 +38,14 @@
     color: #222;
     font-weight: 900;
     padding: 3px 5px;
-    margin: 2px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
-    animation: repartir 0.3s ease-out;
+    margin: 2px 0 2px -5px;
+    box-shadow:2px 7px 0 #aaa,0 12px 16px #0006;
+    animation: repartir .4s cubic-bezier(.2,.8,.2,1);
     vertical-align: middle;
+    transform:perspective(430px) rotateX(8deg) rotateZ(-2deg);
   }
+  .naipe:nth-child(even){transform:perspective(430px) rotateX(8deg) rotateZ(2deg) translateY(-3px)}
+  .naipe:hover{transform:perspective(430px) translateY(-13px) scale(1.08);z-index:4}
   .naipe .palo {
     align-self: flex-end;
     font-size: 1.2rem;
@@ -62,28 +77,43 @@
     }
   }
   .bote {
+    display:inline-block;
     font-size: 1.3rem;
     font-weight: 900;
-    margin: 6px 0;
+    margin: 9px 0;
+    padding:5px 16px;
+    border-radius:30px;
+    background:linear-gradient(135deg,#f9c74f,#e27926);
+    color:#2a1605;
+    box-shadow:0 5px 0 #8f431d,0 10px 18px #0007;
+    transform:perspective(250px) rotateX(10deg);
   }
   .asientos {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
-    gap: 6px;
-    margin-top: 10px;
+    display:grid;
+    grid-template-columns:repeat(4,minmax(105px,1fr));
+    gap:9px;
+    margin-top:16px;
   }
   .asiento {
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 14px;
-    padding: 6px;
+    position:relative;
+    min-height:74px;
+    background:linear-gradient(155deg,#193a45ef,#07171fee);
+    border-radius:16px 16px 27px 27px;
+    padding:18px 6px 7px;
     font-size: 0.8rem;
     font-weight: 800;
-    border: 2px solid transparent;
+    border:1px solid #a7f7ff55;
+    box-shadow:0 9px 17px #0008,inset 0 1px #fff3;
+    transform:perspective(600px) rotateX(8deg);
+  }
+  .asiento::before{content:"VISTA";position:absolute;left:8px;top:5px;font-size:.5rem;letter-spacing:.13em;color:#abf9ff;font-weight:900;opacity:.75}
+  .asiento:nth-child(2n){transform:perspective(600px) rotateX(8deg) rotateZ(1.5deg)}
   }
   .asiento.turno {
     border-color: #ffd84f;
     box-shadow: 0 0 12px #ffd84f;
   }
+  .asiento.turno::after{content:"● TURNO";position:absolute;right:7px;top:5px;color:#ffe36c;font-size:.5rem;letter-spacing:.05em}
   .asiento.fuera {
     opacity: 0.45;
   }
@@ -91,7 +121,12 @@
     color: #ffd84f;
   }
   .mi-mano {
-    margin-top: 10px;
+    margin:14px auto 0;
+    padding:9px 12px;
+    max-width:240px;
+    border-radius:20px;
+    background:linear-gradient(180deg,#071a1688,#0b3326bb);
+    box-shadow:0 8px 20px #0006;
   }
   .acciones-pk {
     display: grid;
@@ -106,6 +141,7 @@
   .subir input {
     flex: 1;
   }
+  @media(max-width:650px){.mesa-pk{min-height:410px;border-width:7px;border-radius:32px;padding:17px 7px 12px}.asientos{grid-template-columns:repeat(2,minmax(105px,1fr));gap:7px;margin-top:10px}.asiento{min-height:67px}.naipe{width:39px;height:58px}.naipe.grande{width:54px;height:78px}.naipe.chica{width:27px;height:40px}}
 </style>
 {% endblock %}
 
