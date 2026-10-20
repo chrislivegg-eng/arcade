@@ -46,8 +46,8 @@
     .perfil-insignia .monedas{color:#e8930c}
     .marco-arcoiris{border-color:transparent!important;background:linear-gradient(#fff,#fff) padding-box,linear-gradient(90deg,#ff4f8b,#ffd84f,#26de81,#4fb3ff,#a29bfe) border-box!important}
     .marco-oro{border-color:#ffd700!important;box-shadow:0 0 10px #ffd700}
-    .perfil-promo{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;width:100%;margin:14px 0;padding:12px;border:1px solid #ffd84f80;border-radius:16px;background:linear-gradient(135deg,#503064ee,#1c3858ee);color:#fff!important;text-decoration:none!important;font-family:Nunito,Arial,sans-serif;text-align:left;box-sizing:border-box}
-    .perfil-promo small{grid-column:1/-1;color:#ffd84f;font-size:.62rem;font-weight:900;letter-spacing:.12em}.perfil-promo .emoji{font-size:2rem}.perfil-promo b,.perfil-promo em{display:block}.perfil-promo em{margin-top:2px;font-size:.72rem;font-style:normal;line-height:1.25;opacity:.78}.perfil-promo strong{color:#ffd84f;font-size:.72rem;white-space:nowrap}
+    .perfil-promo{display:grid;grid-template-columns:1fr;gap:9px;width:100%;margin:14px 0;padding:12px;border:1px solid #ffd84f80;border-radius:16px;background:linear-gradient(135deg,#503064ee,#1c3858ee);color:#fff!important;text-decoration:none!important;font-family:Nunito,Arial,sans-serif;text-align:left;box-sizing:border-box}
+    .perfil-promo small{color:#ffd84f;font-size:.62rem;font-weight:900;letter-spacing:.12em}.perfil-promo video{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:11px;background:#050817;box-shadow:0 8px 24px #0006}.perfil-promo .detalle{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}.perfil-promo .emoji{font-size:2rem}.perfil-promo b,.perfil-promo em{display:block}.perfil-promo em{margin-top:2px;font-size:.72rem;font-style:normal;line-height:1.25;opacity:.78}.perfil-promo strong{color:#ffd84f;font-size:.72rem;white-space:nowrap}
   `;
   document.head.appendChild(css);
   let caja = null;
@@ -296,6 +296,8 @@
       "/juego/zombis",
     ],
   ];
+  const VIDEO_PROMO = "/static/video/anuncio-novedades-v1.mp4";
+  const POSTER_PROMO = "/static/video/anuncio-novedades-v1.jpg";
   function anuncioFinal(contenedor, juego = "") {
     if (!contenedor) return null;
     contenedor
@@ -309,7 +311,17 @@
     a.className = "perfil-promo";
     a.href = p[4];
     const etiqueta = document.createElement("small");
-    etiqueta.textContent = "ANUNCIO · NUEVO JUEGO";
+    etiqueta.textContent = "VIDEO · NUEVOS JUEGOS";
+    const video = document.createElement("video");
+    video.className = "promo-video";
+    video.src = VIDEO_PROMO;
+    video.poster = POSTER_PROMO;
+    video.muted = true;
+    video.autoplay = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.setAttribute("aria-label", "Video de novedades del arcade");
     const emoji = document.createElement("span");
     emoji.className = "emoji";
     emoji.textContent = p[1];
@@ -321,12 +333,18 @@
     texto.append(titulo, detalle);
     const jugar = document.createElement("strong");
     jugar.textContent = "JUGAR →";
-    a.append(etiqueta, emoji, texto, jugar);
-    const acciones = [...contenedor.querySelectorAll("button,a")].find(
-      (el) => !el.classList.contains("perfil-promo"),
+    const detallePromo = document.createElement("span");
+    detallePromo.className = "detalle";
+    detallePromo.append(emoji, texto, jugar);
+    a.append(etiqueta, video, detallePromo);
+    const acciones = [...contenedor.children].find(
+      (el) =>
+        !el.classList.contains("perfil-promo") &&
+        (el.matches("button,a") || el.querySelector("button,a")),
     );
     if (acciones) contenedor.insertBefore(a, acciones);
     else contenedor.appendChild(a);
+    video.play().catch(() => {});
     return a;
   }
 

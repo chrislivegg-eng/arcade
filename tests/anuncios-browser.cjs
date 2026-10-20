@@ -27,6 +27,10 @@ const base = process.env.ARCADE_URL || "http://127.0.0.1:5056";
     await p.locator("#menu-revivir").waitFor({ state: "visible" });
     assert(await p.locator("#btn-revivir").isDisabled());
     assert((await p.locator("#menu-revivir .promo-titulo").textContent()).trim());
+    await p.waitForFunction(() => {
+      const video = document.querySelector("#menu-revivir video");
+      return video && video.readyState >= 2 && !video.paused && video.currentTime > 0;
+    });
     await p.locator("#btn-revivir").waitFor({ state: "visible" });
     await p.waitForFunction(() => !document.querySelector("#btn-revivir").disabled);
     await p.locator("#btn-revivir").click();
@@ -40,6 +44,16 @@ const base = process.env.ARCADE_URL || "http://127.0.0.1:5056";
     await z.evaluate(() => void perder());
     await z.locator("#menu-revivir").waitFor({ state: "visible" });
     assert.equal(await z.locator("#btn-revivir").isDisabled(), true);
+    await z.waitForFunction(() => document.querySelector("#menu-revivir video").currentTime > 0.25);
+    const pausa = await z.evaluate(() => {
+      const video = document.querySelector("#menu-revivir video");
+      video.pause();
+      return video.currentTime;
+    });
+    await z.waitForTimeout(650);
+    assert(Math.abs((await z.locator("#menu-revivir video").evaluate((v) => v.currentTime)) - pausa) < 0.1);
+    assert.equal(await z.locator("#btn-revivir").isDisabled(), true);
+    await z.locator("#menu-revivir video").evaluate((v) => v.play());
     await z.waitForTimeout(1100);
     assert((await z.locator("#btn-revivir").textContent()).includes("3"));
     await acceptRevive(z);
@@ -48,6 +62,8 @@ const base = process.env.ARCADE_URL || "http://127.0.0.1:5056";
     await z.locator("#menu-fin").waitFor({ state: "visible" });
     assert.equal(await z.locator("#menu-revivir").isVisible(), false);
     assert.equal(await z.locator("#fin-promo").isVisible(), true);
+    assert.equal(await z.locator("#fin-promo video").isVisible(), true);
+    await z.waitForFunction(() => document.querySelector("#fin-promo video").currentTime > 0);
     assert(!new URL(await z.locator("#fin-promo").getAttribute("href"), base).pathname.includes("zombis"));
     assert.equal(await z.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await z.close();
@@ -85,7 +101,14 @@ const base = process.env.ARCADE_URL || "http://127.0.0.1:5056";
     await pinball.evaluate(() => Perfil.anuncioFinal(document.querySelector("#final"), "pinball"));
     assert.equal(await pinball.locator("#final .perfil-promo").count(), 1);
     assert(!new URL(await pinball.locator("#final .perfil-promo").getAttribute("href"), base).pathname.includes("pinball"));
+    await pinball.waitForFunction(() => document.querySelector("#final .perfil-promo video").currentTime > 0);
     await pinball.close();
+
+    const naval = await page("/juego_naval");
+    await naval.evaluate(() => Perfil.anuncioFinal(document.querySelector("#resultado form"), "naval"));
+    assert.equal(await naval.locator("#resultado .perfil-promo video").count(), 1);
+    await naval.waitForFunction(() => document.querySelector("#resultado .perfil-promo video").currentTime > 0);
+    await naval.close();
 
     const clasico = await page("/juego_salto");
     await clasico.evaluate(() => mostrarAnuncioArcade());
@@ -95,7 +118,7 @@ const base = process.env.ARCADE_URL || "http://127.0.0.1:5056";
     await clasico.close();
 
     assert.deepEqual(errors, []);
-    console.log("Promos finales y cinco reanimaciones: PC/móvil OK");
+    console.log("Videos finales y cinco reanimaciones: PC/móvil OK");
   } finally {
     await browser.close();
   }
