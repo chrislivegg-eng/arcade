@@ -547,6 +547,8 @@ const Arcade = (() => {
       href: "/juego/zombis",
     },
   ];
+  const VIDEO_PROMO = "/static/video/anuncio-novedades-v1.mp4";
+  const POSTER_PROMO = "/static/video/anuncio-novedades-v1.jpg";
 
   function ui(config) {
     const modos = config.modos || ["bot", "online", "local"];
@@ -643,10 +645,9 @@ const Arcade = (() => {
           <p class="nota" id="fin-nota"></p>
           <div class="nuevo-record oculto" id="fin-record">⭐ ¡Nuevo récord personal! ⭐</div>
           <a id="fin-promo" class="promo-arcade" href="/secreto">
-            <small>ANUNCIO · NUEVO JUEGO</small>
-            <span class="promo-emoji"></span>
-            <span><b class="promo-titulo"></b><em class="promo-texto"></em></span>
-            <strong>JUGAR →</strong>
+            <small>VIDEO · NUEVOS JUEGOS</small>
+            <video class="promo-video" muted playsinline loop preload="auto" aria-label="Video de novedades del arcade"></video>
+            <span class="promo-detalle"><span class="promo-emoji"></span><span><b class="promo-titulo"></b><em class="promo-texto"></em></span><strong>JUGAR →</strong></span>
           </a>
           <button class="boton" id="btn-revancha">🔁 Otra vez</button>
           <button class="boton claro" id="btn-fin-menu">🏠 Menú</button>
@@ -657,9 +658,9 @@ const Arcade = (() => {
         <div class="tarjeta tarjeta-revivir">
           <div class="titulo"><div class="emoji">❤️</div><h1>¿Una oportunidad más?</h1><p id="revivir-texto">Mira esta novedad del arcade y revive una vez.</p></div>
           <div class="promo-arcade promo-revivir" aria-label="Anuncio interno del arcade">
-            <small>ANUNCIO · PRUEBA DESPUÉS</small>
-            <span class="promo-emoji"></span>
-            <span><b class="promo-titulo"></b><em class="promo-texto"></em></span>
+            <small>VIDEO · PRUEBA DESPUÉS</small>
+            <video class="promo-video" muted playsinline loop preload="auto" aria-label="Video para revivir"></video>
+            <span class="promo-detalle"><span class="promo-emoji"></span><span><b class="promo-titulo"></b><em class="promo-texto"></em></span></span>
           </div>
           <button class="boton verde" id="btn-revivir" disabled>Preparando…</button>
           <button class="boton claro" id="btn-no-revivir">No, terminar partida</button>
@@ -973,10 +974,17 @@ const Arcade = (() => {
       contenedor.querySelector(".promo-titulo").textContent = promo.titulo;
       contenedor.querySelector(".promo-texto").textContent = promo.texto;
       if (contenedor.tagName === "A") contenedor.href = promo.href;
+      const video = contenedor.querySelector(".promo-video");
+      video.poster = POSTER_PROMO;
+      if (!video.src.endsWith(VIDEO_PROMO)) video.src = VIDEO_PROMO;
+      video.currentTime = 0;
+      video.play().catch(() => {});
+      return video;
     }
     function cerrarRevivir(resultado) {
       clearInterval(relojRevivir);
       relojRevivir = null;
+      $("menu-revivir").querySelector(".promo-video")?.pause();
       const resolver = resolverRevivir;
       resolverRevivir = null;
       if (resolver) resolver(resultado);
@@ -989,22 +997,26 @@ const Arcade = (() => {
         return Promise.resolve(false);
       estado.revivirUsado = true;
       const promo = elegirPromo();
-      pintarPromo($("menu-revivir").querySelector(".promo-arcade"), promo);
+      const video = pintarPromo(
+        $("menu-revivir").querySelector(".promo-arcade"),
+        promo,
+      );
       $("revivir-texto").textContent = texto;
       const boton = $("btn-revivir");
       boton.disabled = true;
-      let faltan = Math.max(1, Math.round(segundos));
+      const espera = Math.max(1, Number(segundos) || 4);
+      let faltan = Math.ceil(espera);
       boton.textContent = `Revive en ${faltan}…`;
       mostrar("menu-revivir");
       clearInterval(relojRevivir);
       relojRevivir = setInterval(() => {
-        faltan--;
+        faltan = Math.max(0, Math.ceil(espera - video.currentTime));
         if (faltan > 0) return (boton.textContent = `Revive en ${faltan}…`);
         clearInterval(relojRevivir);
         relojRevivir = null;
         boton.disabled = false;
         boton.textContent = "❤️ Revivir ahora";
-      }, 1000);
+      }, 150);
       return new Promise((resolver) => (resolverRevivir = resolver));
     }
     $("btn-revivir").onclick = () => {

@@ -1013,6 +1013,10 @@
       : "El rival encontró tus tres barcos. Una nueva estrategia te espera.";
     $("resultado-icono").textContent = won ? "✦" : "◈";
     $("guardar-record").hidden = !won;
+    window.Perfil?.anuncioFinal(
+      $("resultado").querySelector("form"),
+      "naval",
+    );
     try {
       $("nombre-record").value = localStorage.getItem("nombreUsuario") || "";
     } catch (_) {}

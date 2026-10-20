@@ -387,8 +387,7 @@ details summary {
 
 .promo-arcade {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
+  grid-template-columns: 1fr;
   gap: 10px;
   padding: 12px;
   color: #fff;
@@ -403,11 +402,25 @@ details summary {
   box-shadow: inset 0 0 25px rgba(255, 216, 79, 0.08);
 }
 .promo-arcade small {
-  grid-column: 1 / -1;
   color: #ffd84f;
   font-size: 0.62rem;
   font-weight: 900;
   letter-spacing: 0.12em;
+}
+.promo-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 11px;
+  background: #050817;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.promo-detalle {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
 }
 .promo-emoji {
   font-size: 2.1rem;
@@ -435,6 +448,9 @@ details summary {
   white-space: nowrap;
 }
 .promo-revivir {
+  grid-template-columns: 1fr;
+}
+.promo-revivir .promo-detalle {
   grid-template-columns: auto 1fr;
 }
 .tarjeta-revivir {
