@@ -69,6 +69,9 @@ JUEGOS = {
     'templo': 'juego_templo.html',
     'pinball': 'juego_pinball.html',
     'mansion': 'juego_mansion.html',
+    'agar': 'juego_io.html',
+    'slither': 'juego_io.html',
+    'black_hole': 'juego_io.html',
 }
 # En estos juegos el récord es "menos es mejor" (golpes, milisegundos)
 RECORD_MENOR = {'mini_golf', 'reflejos', 'karts', 'sudoku', 'buscaminas', 'sopa', 'flow', 'parejas', 'nonograma', 'templo', 'mansion'}
