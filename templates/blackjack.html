@@ -6,16 +6,34 @@
 {% block estilos %}
 <style>
   .mesa-bj {
-    background: radial-gradient(ellipse at top, #1f8a4c, #0f4d2a);
-    border-radius: 26px;
-    padding: 14px 10px;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: 370px;
+    background: radial-gradient(ellipse at 50% 42%, #36a96a 0%, #12613c 47%, #08291f 100%);
+    border-radius: 46% 46% 38% 38% / 28% 28% 16% 16%;
+    border: 12px solid #50301e;
+    outline: 2px solid #d7a15f;
+    padding: 24px 16px 18px;
     color: #fff;
-    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 0 65px #00190f, inset 0 1px 0 #ffffff55, 0 20px 38px #130b08aa;
+    perspective: 900px;
+  }
+  .mesa-bj::before {
+    content: "BLACKJACK · CHRIS ARCADE";
+    position: absolute; inset: 16px; z-index: -1;
+    border: 1px solid #c8ffbc44; border-radius: inherit;
+    display: grid; place-items: center;
+    color: #dcffc855; font-weight: 900; letter-spacing: .28em; font-size: .7rem;
+    transform: rotateX(56deg) scale(1.02);
+  }
+  .mesa-bj::after { content:""; position:absolute; inset:-20px; z-index:-2; background:radial-gradient(ellipse,transparent 48%,#0009 85%); }
+  .mesa-bj > * { position: relative; z-index: 1; }
   }
   .fila-cartas {
     display: flex;
     justify-content: center;
-    gap: 6px;
+    gap: 0;
     flex-wrap: wrap;
     min-height: 74px;
   }
@@ -30,9 +48,14 @@
     flex-direction: column;
     justify-content: space-between;
     padding: 4px 5px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
-    animation: repartir 0.3s ease-out;
+    box-shadow: 2px 7px 0 #a5a5a5, 0 12px 16px rgba(0, 0, 0, 0.35);
+    animation: repartir 0.4s cubic-bezier(.2,.8,.2,1);
     font-size: 1rem;
+    transform: perspective(420px) rotateX(6deg) rotateZ(-3deg);
+    margin-left: -6px;
+  }
+  .naipe:nth-child(even) { transform: perspective(420px) rotateX(6deg) rotateZ(3deg) translateY(-3px); }
+  .naipe:hover { transform: perspective(420px) rotateX(0) translateY(-12px) scale(1.08); z-index: 4; }
   }
   .naipe .palo {
     align-self: flex-end;
@@ -53,7 +76,12 @@
   }
   .casa {
     text-align: center;
-    margin-bottom: 10px;
+    margin: 0 auto 12px;
+    max-width: 450px;
+    padding: 9px 12px;
+    border-radius: 20px;
+    background: linear-gradient(180deg,#071a1688,#0c3326aa);
+    box-shadow: 0 8px 20px #0005;
   }
   .valor {
     display: inline-block;
@@ -64,23 +92,35 @@
     margin-top: 4px;
   }
   .jugadores-bj {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: 10px;
+    flex-wrap: wrap;
   }
   .asiento {
-    background: rgba(0, 0, 0, 0.22);
-    border-radius: 16px;
-    padding: 8px;
+    position: relative;
+    min-width: 120px;
+    flex: 1 1 130px;
+    max-width: 190px;
+    background: linear-gradient(155deg,#173742eF,#07171fee);
+    border-radius: 18px 18px 28px 28px;
+    padding: 20px 8px 9px;
     text-align: center;
-    border: 2px solid transparent;
+    border: 1px solid #a8f8ff55;
+    box-shadow: 0 9px 17px #0008, inset 0 1px #fff3;
+    transform: perspective(600px) rotateX(7deg);
+  }
+  .asiento::before { content: "VISTA"; position:absolute; left:10px; top:6px; color:#a9f8ff; font-size:.52rem; letter-spacing:.14em; font-weight:900; opacity:.75; }
+  .asiento:nth-child(2n) { transform: perspective(600px) rotateX(7deg) rotateZ(1.5deg); }
   }
   .asiento.turno {
     border-color: #ffd84f;
     box-shadow: 0 0 14px #ffd84f;
   }
   .asiento.yo {
-    background: rgba(255, 255, 255, 0.15);
+    background: linear-gradient(155deg,#216377f5,#0b2634f5);
+    border-color: #83f8ff;
   }
   .asiento .naipe {
     width: 36px;
@@ -94,6 +134,7 @@
     font-weight: 900;
     font-size: 0.85rem;
   }
+  .asiento .fila-cartas { filter: drop-shadow(0 8px 5px #0008); }
   .acciones-bj {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -113,7 +154,11 @@
     font-size: 1rem;
     color: #fff;
     cursor: pointer;
+    box-shadow: 0 7px 0 #0006, inset 0 0 0 3px #0004;
+    transform: perspective(250px) rotateX(14deg);
   }
+  .ficha-ap:active { transform: perspective(250px) rotateX(4deg) translateY(5px); box-shadow:0 2px 0 #0006; }
+  @media(max-width:600px){.mesa-bj{border-width:7px;border-radius:32px;min-height:330px;padding:17px 8px 12px}.asiento{min-width:104px;flex-basis:104px;padding-top:18px}.naipe{width:42px;height:62px}.asiento .naipe{width:32px;height:47px}}
 </style>
 {% endblock %}
 
