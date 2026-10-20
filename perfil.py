@@ -26,6 +26,8 @@ from cuentas import cuentas_bp, cuenta_actual, identidad_perfil, es_admin, ids_a
 
 perfil_bp = Blueprint('perfil', __name__)
 perfil_bp.register_blueprint(cuentas_bp)
+from zombis_progreso import zombis_bp
+perfil_bp.register_blueprint(zombis_bp)
 
 ARCHIVO_PERFILES = "perfiles.json"
 candado = threading.Lock()
@@ -48,6 +50,7 @@ COLORES_MARCO = [
 # id: (icono, nombre, descripción, monedas de premio)
 LOGROS = {
     "templo": ("🏛️", "Guardián de Umbra", "Despierta el corazón del templo perdido", 150),
+    "mansion": ("👻", "Sobreviví a Nocturna", "Escapa de la mansión con sus tres llaves", 120),
     "primer_juego": ("🎮", "¡A jugar!", "Termina tu primera partida", 20),
     "explorador": ("🧭", "Explorador", "Juega 10 juegos distintos", 100),
     "todologo": ("🌎", "Todólogo", "Juega 25 juegos distintos", 300),
@@ -174,6 +177,8 @@ def procesar_evento(p, juego, tipo, datos):
                     _dar_logro(p, "penales_pro", nuevos)
             if juego == "templo":
                 _dar_logro(p, "templo", nuevos)
+            if juego == "mansion":
+                _dar_logro(p, "mansion", nuevos)
             if juego == "karts":
                 _dar_logro(p, "karts_1", nuevos)
             if juego == "buscaminas":
@@ -488,6 +493,7 @@ def evento_perfil():
 TABLAS = [
     ("record_pinball.txt", "🪩 Pinball Nova", "pts", False),
     ("record_templo.txt", "🏛️ Umbra · Templo perdido", "s", True),
+    ("record_mansion.txt", "👻 Nocturna · Mansión", "s", True),
     ("record_basquet.txt", "🏀 Básquet 3D", "pts", False),
     ("record_boliche.txt", "🎳 Boliche 3D", "pts", False),
     ("record_beer_pong.txt", "🥤 Vaso Pong", "vasos", False),

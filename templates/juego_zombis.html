@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#05070d" />
     <title>Zombis · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
     <style>
       #estado-jugador {
         position: fixed;
@@ -67,6 +76,89 @@
         box-shadow: inset 0 0 140px rgba(255, 0, 0, 0.7);
         transition: none;
       }
+      #estado-jugador {
+        flex-wrap: wrap;
+        background: #080e19bb;
+        padding: 12px;
+        border: 1px solid #54736b;
+        border-radius: 12px;
+      }
+      #estado-jugador button {
+        pointer-events: auto;
+        background: #273f38;
+        color: white;
+        border: 1px solid #7eac93;
+        border-radius: 8px;
+        padding: 10px;
+        font: inherit;
+      }
+      #premio-z {
+        width: 100%;
+        color: #b9f6ca;
+        min-height: 1em;
+      }
+      #monedas-z {
+        color: #f6d88e;
+      }
+      #armeria-z {
+        color: #e8f6ee;
+        background: #0e191f;
+        border: 1px solid #73a58b;
+        border-radius: 20px;
+        padding: 26px;
+        width: min(480px, 85vw);
+        max-height: 85dvh;
+        overflow: auto;
+        font-family: Nunito, sans-serif;
+      }
+      #armeria-z::backdrop {
+        background: #000b;
+        backdrop-filter: blur(8px);
+      }
+      #armeria-z h2 {
+        letter-spacing: 0.15em;
+      }
+      #armeria-z button {
+        display: block;
+        width: 100%;
+        padding: 14px;
+        margin: 8px 0;
+        background: #294a3d;
+        color: #fff;
+        border: 1px solid #659d7c;
+        border-radius: 10px;
+        font: inherit;
+        cursor: pointer;
+      }
+      #armeria-z button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      #armeria-z a {
+        display: block;
+        color: #c2d4d9;
+        text-align: center;
+        margin-top: 20px;
+      }
+      #mensaje-z {
+        min-height: 3em;
+        color: #d5cba9;
+      }
+      #saldo-z {
+        color: #e9ce8f;
+      }
+      @media (max-width: 500px) {
+        #estado-jugador {
+          gap: 6px;
+          padding: 8px;
+        }
+        #balas {
+          font-size: 1rem;
+        }
+        .barra-vida {
+          min-width: 70px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -74,546 +166,24 @@
     <div id="danio"></div>
     <div id="mira-zombi"></div>
     <div id="estado-jugador" class="oculto">
-      <span>❤️</span>
+      <span>❤️</span><span id="monedas-z">🪙 —</span>
       <div class="barra-vida"><div id="vida" style="width: 100%"></div></div>
       <div id="balas">🔫 8/8</div>
+      <button id="recarga-z">Recargar R</button><button id="pausa-z">Ⅱ</button
+      ><small id="premio-z"></small>
     </div>
 
+    <dialog id="armeria-z">
+      <h2>ÚLTIMA GUARDIA</h2>
+      <p id="saldo-z">Conectando armería…</p>
+      <div id="mejoras-z"></div>
+      <p id="mensaje-z" role="status"></p>
+      <button id="continuar-z">Comenzar oleada</button
+      ><a href="/secreto">Volver al arcade</a>
+    </dialog>
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
     <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
-    <script>
-      const { $, esperar, azar, limitar, lin, material, sonar } = Arcade;
-
-      const CARGADOR = 8;
-      const LINEA_BARRICADA = -2.2;
-
-      // =========================================================
-      //  ESCENA (calle de noche)
-      // =========================================================
-      const M = Arcade.mundo({
-        fondo: 0x05070d,
-        niebla: [22, 70],
-        fov: 60,
-        exposicion: 1.45,
-        colorAmbiente: 0x101828,
-        lamparas: [
-          [0, 10, -20, 0x9fb8ff, 1.5],
-          [-8, 3, 4, 0xffb060, 1],
-          [8, 3, 4, 0xffb060, 1],
-        ],
-      });
-      const { escena, camara } = M;
-      const acabado3D = Graficos3D.configurar(M, "interior");
-      escena.add(new THREE.HemisphereLight(0x8094c8, 0x1a1a24, 0.95));
-      const luna = new THREE.DirectionalLight(0xc6d6ff, 1.25);
-      luna.position.set(-8, 20, -25);
-      luna.castShadow = true;
-      luna.shadow.mapSize.set(1024, 1024);
-      Object.assign(luna.shadow.camera, { left: -20, right: 20, top: 25, bottom: -25, near: 1, far: 70 });
-      escena.add(luna, luna.target);
-      luna.target.position.set(0, 0, -15);
-      const disco = new THREE.Mesh(new THREE.CircleGeometry(2.2, 32), new THREE.MeshBasicMaterial({ color: 0xe8eeff, fog: false }));
-      disco.position.set(-22, 30, -90);
-      escena.add(disco);
-
-      const texturaCalle = M.textura(256, 512, (g, w, h) => {
-        g.fillStyle = "#24262e";
-        g.fillRect(0, 0, w, h);
-        for (let i = 0; i < 5000; i++) {
-          g.fillStyle = `rgba(${Math.random() < 0.5 ? "0,0,0" : "255,255,255"},0.07)`;
-          g.fillRect(Math.random() * w, Math.random() * h, 2, 2);
-        }
-        g.fillStyle = "rgba(255,210,80,0.7)";
-        for (let y = 0; y < h; y += 64) g.fillRect(w / 2 - 4, y, 8, 34);
-      });
-      texturaCalle.wrapT = THREE.RepeatWrapping;
-      texturaCalle.repeat.set(1, 6);
-      const calle = new THREE.Mesh(new THREE.PlaneGeometry(14, 80), material(0xffffff, { map: texturaCalle, roughness: 0.9 }));
-      calle.rotation.x = -Math.PI / 2;
-      calle.position.z = -30;
-      calle.receiveShadow = true;
-      escena.add(calle);
-      const tierra = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), material(0x1d2a18, { roughness: 1 }));
-      tierra.rotation.x = -Math.PI / 2;
-      tierra.position.y = -0.02;
-      tierra.receiveShadow = true;
-      escena.add(tierra);
-
-      // casas abandonadas a los lados
-      const rnd = Arcade.rng(11);
-      for (let k = 0; k < 16; k++) {
-        const lado = k % 2 ? 1 : -1;
-        const alto = 3 + rnd() * 4;
-        const casa = new THREE.Mesh(new THREE.BoxGeometry(5, alto, 6), material([0x3a3040, 0x2f3a3a, 0x40362a][k % 3], { roughness: 0.9 }));
-        casa.position.set(lado * (10 + rnd() * 2), alto / 2, -6 - Math.floor(k / 2) * 9);
-        casa.castShadow = casa.receiveShadow = true;
-        escena.add(casa);
-        // ventanas con luz (algunas)
-        if (rnd() < 0.5) {
-          const ventana = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.8), new THREE.MeshBasicMaterial({ color: rnd() < 0.5 ? 0xffb060 : 0x6080ff }));
-          ventana.position.set(casa.position.x - lado * 2.51, alto * 0.6, casa.position.z);
-          ventana.rotation.y = lado > 0 ? -Math.PI / 2 : Math.PI / 2;
-          escena.add(ventana);
-        }
-      }
-      // faroles que parpadean
-      const faroles = [-1, 1].map((lado, i) => {
-        const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 4.5, 8), material(0x222222, { metalness: 0.6 }));
-        poste.position.set(lado * 6.5, 2.25, -12 - i * 14);
-        escena.add(poste);
-        const luz = new THREE.PointLight(0xffb060, 1.4, 16, 2);
-        luz.position.set(lado * 5.8, 4.4, -12 - i * 14);
-        escena.add(luz);
-        const foco = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffc070 }));
-        foco.position.copy(luz.position);
-        escena.add(foco);
-        return { luz, foco };
-      });
-      // barricada
-      const matMadera = material(0xffffff, { map: M.textura(256, 64, (g, w, h) => Arcade.dibujarMadera(g, w, h, { tono: 24, sat: 40, luz: 32, tablas: 2, vertical: false })), roughness: 0.8 });
-      for (let k = 0; k < 3; k++) {
-        const tabla = new THREE.Mesh(new THREE.BoxGeometry(12, 0.3, 0.15), matMadera);
-        tabla.position.set(0, 0.35 + k * 0.38, LINEA_BARRICADA + 0.2);
-        tabla.rotation.z = (k - 1) * 0.04;
-        tabla.castShadow = true;
-        escena.add(tabla);
-      }
-      [-5, -1.5, 2, 5].forEach((x) => {
-        const poste = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.4, 0.2), matMadera);
-        poste.position.set(x, 0.7, LINEA_BARRICADA + 0.3);
-        escena.add(poste);
-      });
-
-      camara.position.set(0, 2.9, 4.2);
-      camara.lookAt(0, 0.9, -14);
-
-      // =========================================================
-      //  ZOMBIS (de bloques)
-      // =========================================================
-      const TIPOS = {
-        normal: { vida: 3, vel: 1.35, escala: 1, puntos: 10, piel: 0x6fae5a, ropa: 0x3a5a8a },
-        corredor: { vida: 2, vel: 2.9, escala: 0.9, puntos: 15, piel: 0x8fbf5a, ropa: 0x8a3a3a },
-        gigante: { vida: 12, vel: 0.85, escala: 1.55, puntos: 40, piel: 0x5a8a4a, ropa: 0x3a3a3a },
-      };
-      const zombis = [];
-      function crearZombi(tipo) {
-        const t = TIPOS[tipo];
-        const g = new THREE.Group();
-        const piel = material(t.piel, { roughness: 0.8, emissive: lin(t.piel), emissiveIntensity: 0.18 }),
-          ropa = material(t.ropa, { roughness: 0.9, emissive: lin(t.ropa), emissiveIntensity: 0.12 });
-        const parte = (geo, mat, x, y, z, nombre) => {
-          const m = new THREE.Mesh(geo, mat);
-          m.position.set(x, y, z);
-          m.castShadow = true;
-          m.name = nombre || "";
-          g.add(m);
-          return m;
-        };
-        const cabeza = parte(new THREE.BoxGeometry(0.5, 0.5, 0.5), piel, 0, 1.75, 0, "cabeza");
-        // ojos que brillan
-        [-0.11, 0.11].forEach((x) => {
-          const ojo = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.06, 0.02), new THREE.MeshBasicMaterial({ color: 0xff3030 }));
-          ojo.position.set(x, 0.04, 0.26);
-          ojo.name = "cabeza";
-          cabeza.add(ojo);
-        });
-        parte(new THREE.BoxGeometry(0.6, 0.75, 0.32), ropa, 0, 1.12, 0);
-        const brazos = [-1, 1].map((l) => {
-          const hombro = new THREE.Group();
-          hombro.position.set(l * 0.42, 1.42, 0);
-          const brazo = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.7), piel);
-          brazo.position.z = 0.32;
-          brazo.castShadow = true;
-          hombro.add(brazo);
-          g.add(hombro);
-          return hombro;
-        });
-        const piernas = [-1, 1].map((l) => {
-          const cadera = new THREE.Group();
-          cadera.position.set(l * 0.16, 0.75, 0);
-          const pierna = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.75, 0.26), material(0x2a2a35));
-          pierna.position.y = -0.37;
-          pierna.castShadow = true;
-          cadera.add(pierna);
-          g.add(cadera);
-          return cadera;
-        });
-        // barra de vida
-        const fondo = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.08), new THREE.MeshBasicMaterial({ color: 0x330000, fog: false }));
-        fondo.position.y = 2.25;
-        const relleno = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.08), new THREE.MeshBasicMaterial({ color: 0x26de81, fog: false }));
-        relleno.position.z = 0.001;
-        fondo.add(relleno);
-        g.add(fondo);
-        g.scale.setScalar(t.escala);
-        g.rotation.y = 0;
-        escena.add(g);
-        const z = {
-          tipo,
-          g,
-          brazos,
-          piernas,
-          barra: relleno,
-          vida: t.vida,
-          vidaMax: t.vida,
-          vel: t.vel * azar(0.9, 1.15) * (1 + (J.oleada - 1) * 0.06),
-          puntos: t.puntos,
-          x: azar(-5, 5),
-          z: -40 - azar(0, 5),
-          fase: azar(0, 6),
-          atacando: false,
-          muerto: false,
-        };
-        g.traverse((o) => (o.userData.zombi = z));
-        zombis.push(z);
-        return z;
-      }
-
-      async function matar(z, cabeza) {
-        if (z.muerto || !zombis.includes(z)) return;
-        const sesion = J.sesion;
-        z.muerto = true;
-        J.puntos += z.puntos * (cabeza ? 2 : 1);
-        J.muertos++;
-        marcador();
-        sonar("choque", 0.5);
-        const giro = azar(-1, 1);
-        await M.animar(500, (t) => {
-          z.g.rotation.x = -t * 1.45;
-          z.g.rotation.z = giro * t * 0.4;
-          z.g.position.y = -t * 0.2;
-        });
-        if (J.sesion !== sesion) return;
-        await esperar(700);
-        if (J.sesion !== sesion) return;
-        await M.animar(400, (t) => (z.g.position.y = -0.2 - t * 1.5));
-        if (J.sesion !== sesion) return;
-        escena.remove(z.g);
-        const indice = zombis.indexOf(z);
-        if (indice >= 0) zombis.splice(indice, 1);
-      }
-
-      // chispas verdes al pegar
-      function chispas(punto, color = 0x7dff5a) {
-        const grupo = [];
-        for (let i = 0; i < 10; i++) {
-          const c = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), new THREE.MeshBasicMaterial({ color }));
-          c.position.copy(punto);
-          c.userData.v = new THREE.Vector3(azar(-2, 2), azar(0.5, 3), azar(-1, 2));
-          escena.add(c);
-          grupo.push(c);
-        }
-        M.animar(450, (t) => {
-          grupo.forEach((c) => {
-            c.position.addScaledVector(c.userData.v, 0.016);
-            c.userData.v.y -= 0.15;
-            c.scale.setScalar(1 - t);
-          });
-          if (t >= 1) grupo.forEach((c) => escena.remove(c));
-        });
-      }
-
-      // =========================================================
-      //  CAJAS DE AYUDA (botiquín o bomba)
-      // =========================================================
-      const cajas = [];
-      function crearCaja() {
-        if (!J.jugando) return;
-        const tipo = Math.random() < 0.55 ? "vida" : "bomba";
-        const c = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), material(tipo === "vida" ? 0xffffff : 0x333333, { emissive: lin(tipo === "vida" ? 0xff3b3b : 0xff8a00), emissiveIntensity: 0.35 }));
-        const marca = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5), new THREE.MeshBasicMaterial({ map: M.textura(64, 64, (g) => { g.font = "48px Arial"; g.textAlign = "center"; g.fillText(tipo === "vida" ? "➕" : "💣", 32, 50); }), transparent: true }));
-        marca.position.z = 0.36;
-        c.add(marca);
-        c.position.set(azar(-4, 4), 2.6, azar(-14, -7));
-        c.userData.caja = { tipo, malla: c, vida: 7 };
-        marca.userData.caja = c.userData.caja;
-        escena.add(c);
-        cajas.push(c.userData.caja);
-      }
-
-      // =========================================================
-      //  DISPARAR (tocar)
-      // =========================================================
-      function actualizarBalas() {
-        $("balas").textContent = J.recargando ? "🔄 recargando…" : `🔫 ${J.balas}/${CARGADOR}`;
-      }
-      async function recargar() {
-        if (!J.jugando || J.recargando || J.balas === CARGADOR) return;
-        const sesion = J.sesion;
-        J.recargando = true;
-        actualizarBalas();
-        sonar("click");
-        await esperar(1100);
-        if (!J.jugando || J.sesion !== sesion) return;
-        sonar("click");
-        J.balas = CARGADOR;
-        J.recargando = false;
-        actualizarBalas();
-      }
-      function disparar(px, py) {
-        if (!J.jugando || J.recargando) return;
-        if (J.balas <= 0) return recargar();
-        J.balas--;
-        actualizarBalas();
-        sonar("golpe", 0.9);
-        sonar("swoosh", 0.3);
-        const mira = $("mira-zombi");
-        mira.style.left = px + "px";
-        mira.style.top = py + "px";
-        mira.classList.add("ver");
-        setTimeout(() => mira.classList.remove("ver"), 60);
-        // retroceso de la cámara
-        camara.position.y += 0.04;
-        const rayo = M.pantallaARayo(px, py);
-        const objetos = [];
-        zombis.forEach((z) => !z.muerto && z.g.traverse((o) => o.isMesh && objetos.push(o)));
-        cajas.forEach((c) => objetos.push(c.malla));
-        const golpe = rayo.intersectObjects(objetos, true)[0];
-        if (golpe && golpe.object.userData.caja) {
-          usarCaja(golpe.object.userData.caja);
-        } else if (golpe && golpe.object.userData.zombi) {
-          const z = golpe.object.userData.zombi;
-          const cabeza = golpe.object.name === "cabeza";
-          z.vida -= cabeza ? 2 : 1;
-          chispas(golpe.point);
-          if (cabeza) sonar("ping", 1);
-          z.g.position.z -= 0.25; // lo empuja tantito
-          if (z.vida <= 0) matar(z, cabeza);
-        }
-        if (J.balas === 0) programar(recargar, 200);
-      }
-      function usarCaja(c) {
-        escena.remove(c.malla);
-        cajas.splice(cajas.indexOf(c), 1);
-        if (c.tipo === "vida") {
-          J.vida = Math.min(100, J.vida + 35);
-          ui.avisar("➕ ¡Vida!", "#26de81");
-          sonar("perfecto", 1.4);
-        } else {
-          ui.avisar("💣 ¡BOOM!", "#ff8a00");
-          sonar("choque", 1.3);
-          zombis.filter((z) => !z.muerto && z.z > -30).forEach((z) => {
-            chispas(z.g.position.clone().setY(1.2), 0xff8a00);
-            matar(z, false);
-          });
-        }
-        actualizarVida();
-      }
-
-      // tocar = disparar; deslizar hacia abajo = recargar
-      let toque = null;
-      M.lienzo.addEventListener("pointerdown", (e) => {
-        toque = { x: e.clientX, y: e.clientY, t: performance.now() };
-        disparar(e.clientX, e.clientY);
-      });
-      M.lienzo.addEventListener("pointerup", (e) => {
-        if (toque && e.clientY - toque.y > 80) recargar();
-        toque = null;
-      });
-      window.addEventListener("keydown", (e) => {
-        if (e.key === "r" || e.key === "R") recargar();
-      });
-
-      // =========================================================
-      //  PARTIDA
-      // =========================================================
-      const J = { modo: null, nombres: [], jugando: false, puntos: 0, vida: 100, balas: CARGADOR, recargando: false, oleada: 0, muertos: 0, porSalir: [], partida: 0, rival: 0, rivalTermino: false, sesion: 0 };
-      function programar(accion, demora) {
-        const sesion = J.sesion;
-        return setTimeout(() => { if (J.jugando && J.sesion === sesion) accion(); }, demora);
-      }
-
-      function actualizarVida() {
-        $("vida").style.width = Math.max(0, J.vida) + "%";
-      }
-      function marcador() {
-        if (J.modo === "online") {
-          const yo = ui.yo;
-          const v = yo === 0 ? [J.puntos, J.rival] : [J.rival, J.puntos];
-          ui.marcador([0, 1].map((i) => ({ nombre: J.nombres[i] + (i === yo ? " (tú)" : ""), valor: v[i], detalle: i === yo ? `Oleada ${J.oleada}` : J.rivalTermino ? "💀 cayó" : "🌐 en vivo", activo: i === yo })));
-          if (performance.now() - (J.ultimoEnvio || 0) > 500) {
-            J.ultimoEnvio = performance.now();
-            ui.enviar("puntos", { partida: J.partida, puntos: J.puntos });
-          }
-        } else ui.marcador([{ nombre: J.nombres[0], valor: J.puntos, detalle: `Oleada ${J.oleada} · ${J.muertos} 🧟`, activo: true }, null]);
-      }
-
-      async function siguienteOleada() {
-        J.oleada++;
-        marcador();
-        ui.avisar(`🧟 Oleada ${J.oleada}`, "#7dff5a");
-        sonar("abucheo");
-        const n = 4 + J.oleada * 3;
-        J.porSalir = [];
-        for (let i = 0; i < n; i++) {
-          const r = Math.random();
-          J.porSalir.push(J.oleada >= 3 && r < 0.12 ? "gigante" : J.oleada >= 2 && r < 0.4 ? "corredor" : "normal");
-        }
-        J.siguienteSalida = performance.now() + 1500;
-        J.intervalo = Math.max(450, 1900 - J.oleada * 150);
-        if (J.oleada > 1 && Math.random() < 0.8) programar(crearCaja, 4000);
-      }
-
-      let golpeado = 0;
-      M.alCuadro((dt, ahora) => {
-        const t = ahora / 1000;
-        faroles.forEach((f, i) => {
-          const parpadeo = Math.sin(t * 13 + i * 3) > 0.92 ? 0.2 : 1;
-          f.luz.intensity = 1.4 * parpadeo;
-        });
-        // la cámara respira un poquito
-        const baseY = 2.9 + Math.sin(t * 1.3) * 0.02;
-        camara.position.y += (baseY - camara.position.y) * Math.min(1, dt * 10);
-        camara.position.x = Math.sin(t * 0.7) * 0.04;
-        camara.lookAt(0, 0.9, -14);
-        cajas.forEach((c) => {
-          c.malla.rotation.y += dt * 1.5;
-          c.malla.position.y = 2.6 + Math.sin(t * 2) * 0.15;
-          c.vida -= dt;
-          if (c.vida <= 0) {
-            escena.remove(c.malla);
-            cajas.splice(cajas.indexOf(c), 1);
-          }
-        });
-
-        if (!J.jugando) return;
-        if (J.porSalir.length && ahora > J.siguienteSalida) {
-          crearZombi(J.porSalir.shift());
-          J.siguienteSalida = ahora + J.intervalo * azar(0.6, 1.3);
-        }
-        let atacan = 0;
-        for (const z of zombis) {
-          if (z.muerto) continue;
-          z.fase += dt * z.vel * 3.2;
-          const limite = LINEA_BARRICADA - 0.45 * TIPOS[z.tipo].escala;
-          if (z.z < limite) {
-            z.z = Math.min(limite, z.z + z.vel * dt);
-            z.x += (Math.sin(z.fase * 0.3) * 0.2 - z.x * 0.02) * dt;
-            z.piernas.forEach((p, i) => (p.rotation.x = Math.sin(z.fase + i * Math.PI) * 0.6));
-            z.brazos.forEach((b, i) => (b.rotation.x = -0.15 + Math.sin(z.fase * 0.5 + i) * 0.12));
-          } else {
-            // golpea la barricada
-            atacan++;
-            z.brazos.forEach((b, i) => (b.rotation.x = -0.6 + Math.sin(t * 9 + i * Math.PI) * 0.6));
-            z.piernas.forEach((p) => (p.rotation.x = 0));
-          }
-          z.g.position.x = z.x;
-          z.g.position.z = z.z;
-          z.g.position.y = Math.abs(Math.sin(z.fase)) * 0.05;
-          z.g.rotation.z = Math.sin(z.fase * 0.5) * 0.08;
-          z.barra.scale.x = Math.max(0.001, z.vida / z.vidaMax);
-          z.barra.position.x = -0.35 * (1 - z.barra.scale.x);
-          z.barra.parent.lookAt(camara.position);
-        }
-        if (atacan) {
-          J.vida -= atacan * 7 * dt;
-          actualizarVida();
-          golpeado -= dt;
-          if (golpeado <= 0) {
-            golpeado = 0.8;
-            $("danio").classList.add("pegado");
-            setTimeout(() => $("danio").classList.remove("pegado"), 120);
-            sonar("golpe", 0.4);
-          }
-          if (J.vida <= 0) return perder();
-        }
-        if (!J.porSalir.length && !zombis.some((z) => !z.muerto) && !J.entreOleadas) {
-          J.entreOleadas = true;
-          J.puntos += 25 * J.oleada;
-          marcador();
-          ui.avisar(`✅ ¡Oleada ${J.oleada} superada!<small>+${25 * J.oleada}</small>`, "#26de81");
-          programar(() => {
-            J.entreOleadas = false;
-            if (J.jugando) siguienteOleada();
-          }, 2800);
-        }
-      });
-
-      // =========================================================
-      //  INTERFAZ
-      // =========================================================
-      const ui = Arcade.ui({
-        juego: "zombis",
-        titulo: "Zombis",
-        emoji: "🧟",
-        subtitulo: "Aguanta todas las oleadas que puedas",
-        modos: ["solo", "online"],
-        textosModo: { online: "🌐 Carrera online (quién hace más puntos)" },
-        records: true,
-        unidadRecord: "pts",
-        reglas: [
-          "<b>Toca</b> a los zombis para dispararles. A la cabeza hace doble daño 🎯",
-          "Tienes 8 balas: desliza hacia abajo (o tecla R) para recargar. Si se acaban, recarga solo.",
-          "Si llegan a la barricada te quitan vida ❤️",
-          "Corredores 🏃 son rápidos · los gigantes 🦍 aguantan mucho.",
-          "Dispárale a las cajas que flotan: ➕ te cura · 💣 explota a los zombis cercanos.",
-        ],
-        alEmpezar: empezar,
-        alSalir: limpiar,
-      });
-      ui.alEvento = (tipo, datos) => {
-        if (!datos || datos.partida !== J.partida) return;
-        if (tipo === "puntos" || tipo === "fin") J.rival = datos.puntos;
-        if (tipo === "fin") {
-          J.rivalTermino = true;
-          J.alTerminarRival && J.alTerminarRival();
-        }
-        if (J.modo === "online") marcador();
-      };
-
-      function limpiar() {
-        J.sesion++;
-        if (J.alTerminarRival) { J.alTerminarRival(); J.alTerminarRival = null; }
-        J.jugando = false;
-        J.modo = null;
-        zombis.slice().forEach((z) => escena.remove(z.g));
-        zombis.length = 0;
-        cajas.slice().forEach((c) => escena.remove(c.malla));
-        cajas.length = 0;
-        $("estado-jugador").classList.add("oculto");
-        $("danio").classList.remove("pegado");
-      }
-
-      function empezar(modo, info) {
-        limpiar();
-        Object.assign(J, { modo, nombres: info.nombres, partida: info.partida, puntos: 0, vida: 100, balas: CARGADOR, recargando: false, oleada: 0, muertos: 0, porSalir: [], rival: 0, rivalTermino: false, alTerminarRival: null, entreOleadas: false, jugando: true });
-        $("estado-jugador").classList.remove("oculto");
-        actualizarVida();
-        actualizarBalas();
-        ui.ayuda("👆 Toca a los zombis para dispararles");
-        programar(() => ui.ayuda(""), 4000);
-        siguienteOleada();
-      }
-
-      async function perder() {
-        if (!J.jugando) return;
-        const sesion = J.sesion;
-        J.jugando = false;
-        if (J.muertos) window.Perfil && Perfil.evento("zombis", "zombi", { n: J.muertos });
-        sonar("perder");
-        ui.avisar("💀 ¡Te alcanzaron!", "#ff3b3b");
-        await esperar(1800);
-        if (J.sesion !== sesion) return;
-        $("estado-jugador").classList.add("oculto");
-        if (J.modo === "online") {
-          ui.enviar("fin", { partida: J.partida, puntos: J.puntos });
-          if (!J.rivalTermino) {
-            ui.avisar("Tu rival sigue vivo…", "#4fb3ff");
-            await Promise.race([new Promise((r) => (J.alTerminarRival = r)), esperar(120000)]);
-            if (J.sesion !== sesion) return;
-          }
-          const gane = J.puntos > J.rival,
-            empate = J.puntos === J.rival;
-          return ui.terminar({
-            emoji: empate ? "🤝" : gane ? "🏆" : "🧟",
-            texto: empate ? "¡Empate!" : gane ? "¡Hiciste más puntos!" : `Ganó ${J.nombres[1 - ui.yo]}`,
-            nota: `Tú: ${J.puntos} · Rival: ${J.rival} · llegaste a la oleada ${J.oleada}`,
-            record: J.puntos,
-          });
-        }
-        ui.terminar({ emoji: "🧟", texto: `${J.puntos} puntos`, nota: `Llegaste a la oleada ${J.oleada} y eliminaste ${J.muertos} zombis`, record: J.puntos });
-      }
-    </script>
+    <script src="{{ url_for('static', filename='js/zombis.js') }}"></script>
   </body>
 </html>

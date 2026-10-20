@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#101315" />
+    <title>Nocturna · Mansión de terror</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static',filename='mansion.css') }}"
+    />
+  </head>
+  <body>
+    <canvas id="lienzo" aria-label="Mansión en tres dimensiones"></canvas>
+    <div class="vineta"></div>
+    <section id="portada" class="pantalla">
+      <div class="panel">
+        <a href="/secreto">← ARCADE</a
+        ><small>UNA CASA. TRES LLAVES. ALGUIEN MÁS.</small>
+        <h1>NOCTURNA</h1>
+        <h2>La casa de los susurros</h2>
+        <p>
+          La puerta se cerró detrás de ti.<br />Encuentra las tres llaves y
+          vuelve al vestíbulo.<br />Si escuchas pasos, apaga la luz. O
+          escóndete.
+        </p>
+        <label for="nombre">TU NOMBRE</label
+        ><input
+          id="nombre"
+          maxlength="14"
+          autocomplete="nickname"
+          placeholder="Visitante"
+        /><button id="empezar" class="principal">Entrar a la mansión →</button>
+        <div id="calidad"></div>
+        <p class="nota">
+          WASD: caminar · arrastrar: mirar · E: interactuar<br />F: linterna ·
+          Shift: correr · Esc: pausa<br />En móvil: palanca y arrastrar a la
+          derecha.
+        </p>
+        <p class="nota">
+          Suspenso y persecuciones. Sonido ambiental, sin destellos repentinos.
+        </p>
+        <p id="error" role="alert"></p>
+      </div>
+    </section>
+    <div id="hud" hidden>
+      <header>
+        <a href="/secreto">← ARCADE</a><b>N O C T U R N A</b
+        ><button id="pausar" aria-label="Pausar">Ⅱ</button>
+      </header>
+      <div class="objetivo">
+        <small id="zona">VESTÍBULO</small
+        ><strong id="mision">Encuentra las tres llaves</strong
+        ><span id="llaves">0 / 3 llaves · 3 oportunidades</span>
+      </div>
+      <div class="mira">·</div>
+      <div id="interaccion">
+        <span id="objeto"></span><button id="interactuar">Examinar · E</button>
+      </div>
+      <div class="inferior">
+        <span id="tiempo">00:00</span><span id="peligro">La casa escucha</span
+        ><button id="linterna">Linterna 100% · F</button
+        ><button id="correr">Correr</button>
+      </div>
+      <div id="joystick" aria-label="Arrastra para caminar"><i></i></div>
+      <div id="aviso" role="status"></div>
+    </div>
+    <section id="pausa" class="pantalla" hidden>
+      <div class="panel">
+        <small>LA CASA PUEDE ESPERAR</small>
+        <h2>En pausa</h2>
+        <p>
+          Busca destellos dorados en la biblioteca, el comedor y el cuarto del
+          fondo. Los armarios permiten esconderse. Correr y encender la linterna
+          te hacen más visible.
+        </p>
+        <button id="reanudar" class="principal">Continuar</button
+        ><button id="sonido">Sonido ambiental: activado</button
+        ><button id="reiniciar">Volver a empezar</button
+        ><a href="/secreto">Salir al arcade</a>
+      </div>
+    </section>
+    <section id="final" class="pantalla" hidden>
+      <div class="panel">
+        <small id="etiqueta-final">FIN DE LA VISITA</small>
+        <h2 id="titulo-final"></h2>
+        <p id="resultado"></p>
+        <p id="guardado" role="status"></p>
+        <button id="otra" class="principal">Volver a entrar</button
+        ><a href="/records">Ver récords</a
+        ><a href="/secreto">Volver al arcade</a>
+      </div>
+    </section>
+    <script src="{{ url_for('static',filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static',filename='js/graficos3d.js') }}"></script>
+    <script src="{{ url_for('static',filename='js/arcade3d.js') }}"></script>
+    <script src="{{ url_for('static',filename='js/mansion.js') }}"></script>
+  </body>
+</html>
