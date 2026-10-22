@@ -124,4 +124,3 @@ static/js/zombis.js
 templates/juego_mansion.html
 static/mansion.css
 static/js/mansion.js
-templates/juego_io.html

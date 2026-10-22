@@ -9,6 +9,12 @@
   user-select: none;
   -webkit-user-select: none;
 }
+:root {
+  --neon-cyan: #73e7ff;
+  --neon-pink: #ff4f9a;
+  --panel-ink: rgba(7, 12, 28, 0.82);
+  --edge-light: rgba(154, 236, 255, 0.3);
+}
 html,
 body {
   height: 100%;
@@ -18,6 +24,19 @@ body {
   color: #fff;
   overscroll-behavior: none;
 }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.14;
+  background-image:
+    linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(104,222,255,.12) 1px, transparent 1px);
+  background-size: 100% 4px, 64px 64px;
+  mix-blend-mode: soft-light;
+}
 #lienzo {
   position: fixed;
   inset: 0;
@@ -25,6 +44,7 @@ body {
   height: 100%;
   touch-action: none;
   display: block;
+  filter: saturate(1.07) contrast(1.035);
 }
 .oculto {
   display: none !important;
@@ -44,15 +64,27 @@ body {
 }
 .panel-jugador {
   flex: 1;
-  background: rgba(20, 12, 24, 0.72);
-  backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(19, 24, 48, 0.88), var(--panel-ink));
+  backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(8px);
-  border: 2px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--edge-light);
   border-radius: 18px;
   padding: 8px 12px;
   transition: all 0.25s;
   min-width: 0;
   --color: #ff4f8b;
+}
+.panel-jugador::after {
+  content: "";
+  position: absolute;
+  height: 2px;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  background: linear-gradient(90deg, transparent, var(--color), transparent);
+  opacity: .72;
 }
 .panel-jugador.activo {
   border-color: var(--color);
@@ -104,7 +136,9 @@ body {
   height: 40px;
   border-radius: 50%;
   border: none;
-  background: rgba(20, 12, 24, 0.72);
+  background: linear-gradient(135deg, rgba(35,44,77,.96), rgba(9,13,30,.96));
+  border: 1px solid rgba(142,230,255,.32);
+  box-shadow: 0 8px 22px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.13);
   color: #fff;
   font-size: 1.1rem;
   cursor: pointer;
@@ -189,11 +223,9 @@ body {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(18, 12, 20, 0.5),
-    rgba(18, 12, 20, 0.9)
-  );
+  background:
+    radial-gradient(ellipse at 50% 25%, rgba(59, 110, 180, 0.28), transparent 48%),
+    linear-gradient(135deg, rgba(3,8,22,.72), rgba(14,5,29,.91));
   overflow-y: auto;
   z-index: 10;
 }
@@ -201,16 +233,27 @@ body {
   width: 100%;
   max-width: 400px;
   margin: auto;
-  background: rgba(30, 20, 36, 0.85);
-  backdrop-filter: blur(14px);
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(155deg, rgba(25,34,65,.93), rgba(13,8,30,.94));
+  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(146,228,255,.28);
   border-radius: 28px;
   padding: 22px 20px;
   display: flex;
   flex-direction: column;
   gap: 11px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.58), 0 0 55px rgba(79,170,255,.11), inset 0 1px rgba(255,255,255,.08);
+}
+.tarjeta::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 8px;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 21px;
+  pointer-events: none;
 }
 .titulo {
   text-align: center;
@@ -221,7 +264,7 @@ body {
 .titulo h1 {
   font-size: 2.1rem;
   font-weight: 900;
-  background: linear-gradient(90deg, #ff4f8b, #ffb84f);
+  background: linear-gradient(100deg, #9eefff, #ffffff 42%, #ff78b2 78%, #ffc96e);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -241,8 +284,8 @@ body {
   width: 100%;
   padding: 13px 16px;
   border-radius: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(148,229,255,.26);
+  background: rgba(4, 10, 26, 0.48);
   color: #fff;
   font-family: inherit;
   font-size: 1.05rem;
@@ -252,7 +295,8 @@ body {
   -webkit-user-select: text;
 }
 .campo:focus {
-  border-color: #ff4f8b;
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 0 3px rgba(115,231,255,.12), 0 0 22px rgba(115,231,255,.14);
 }
 .campo.codigo {
   text-align: center;
