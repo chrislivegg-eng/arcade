@@ -187,6 +187,24 @@ header b {
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
+#pulso {
+  position: absolute;
+  right: 25px;
+  top: 83px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #a6b5ae;
+  font: 10px Arial, sans-serif;
+  letter-spacing: .16em;
+  text-shadow: 0 2px 4px #000;
+}
+#pulso i { width: 8px; height: 8px; border-radius: 50%; background: #98aa9e; box-shadow: 0 0 8px #98aa9e88; }
+body.danger #pulso { color: #f2b1a4; }
+body.danger #pulso i { background: #d9504f; box-shadow: 0 0 16px #e34a47; animation: latido .48s ease-in-out infinite alternate; }
+body.hunt .vineta { box-shadow: inset 0 0 17vw 3vw #5c1010a6; }
+body.flicker canvas { filter: brightness(.42) contrast(1.2); }
+@keyframes latido { to { transform: scale(1.7); opacity: .55; } }
 #interaccion {
   position: absolute;
   bottom: 125px;
