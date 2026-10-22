@@ -1,0 +1,1765 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#081226" />
+    <title>Escuadrón Blitz 3D · Chris Arcade</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
+    <style>
+      #hud-escuadron {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 4;
+        font-family: "Nunito", sans-serif;
+        overflow: hidden;
+      }
+      #hud-escuadron.oculto {
+        display: none;
+      }
+      /* Burbuja flotante que sigue al escuadrón en 3D */
+      #burbuja-tropa {
+        position: absolute;
+        left: 50%;
+        top: 62%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #00c6ff, #0062ff);
+        color: #fff;
+        font-weight: 900;
+        font-size: 1.25rem;
+        padding: 5px 16px;
+        border-radius: 999px;
+        border: 3px solid #ffffff;
+        box-shadow:
+          0 6px 20px rgba(0, 110, 255, 0.65),
+          0 0 15px rgba(0, 229, 255, 0.5);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+        transition: transform 0.12s cubic-bezier(0.2, 1.6, 0.4, 1);
+        white-space: nowrap;
+      }
+      #burbuja-tropa.rebote {
+        transform: translate(-50%, -50%) scale(1.32);
+      }
+      #burbuja-arma {
+        font-size: 0.75rem;
+        background: rgba(6, 15, 36, 0.85);
+        color: #ffeaa7;
+        padding: 2px 9px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 234, 167, 0.5);
+        letter-spacing: 0.04em;
+      }
+
+      /* Barra de progreso del sector y jefe */
+      #panel-sector {
+        position: fixed;
+        top: calc(88px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(420px, 88vw);
+        background: rgba(8, 16, 36, 0.82);
+        backdrop-filter: blur(8px);
+        border: 2px solid rgba(0, 210, 255, 0.35);
+        border-radius: 18px;
+        padding: 8px 14px;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+      }
+      .sector-fila {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.82rem;
+        font-weight: 900;
+        color: #bfe9ff;
+        margin-bottom: 5px;
+        letter-spacing: 0.05em;
+      }
+      .sector-barra {
+        height: 10px;
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        overflow: hidden;
+        position: relative;
+      }
+      #sector-progreso {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #00e5ff, #26de81, #ffd32a);
+        border-radius: 999px;
+        transition: width 0.15s linear;
+      }
+
+      /* Barra de vida del Jefe cuando aparece */
+      #panel-jefe {
+        position: fixed;
+        top: calc(146px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(440px, 90vw);
+        background: linear-gradient(135deg, rgba(45, 8, 22, 0.92), rgba(20, 6, 14, 0.92));
+        border: 2px solid #ff3b5a;
+        border-radius: 18px;
+        padding: 9px 15px;
+        box-shadow: 0 0 28px rgba(255, 42, 85, 0.55);
+        transition: opacity 0.25s, transform 0.25s;
+      }
+      #panel-jefe.oculto {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-12px);
+        pointer-events: none;
+      }
+      .jefe-cabecera {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #ffccd5;
+        font-weight: 900;
+        font-size: 0.88rem;
+        margin-bottom: 5px;
+      }
+      .jefe-barra {
+        height: 14px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      #jefe-vida {
+        height: 100%;
+        width: 100%;
+        background: linear-gradient(90deg, #ff1e42, #ff7b00, #ffd000);
+        transition: width 0.1s ease-out;
+      }
+
+      /* Textos flotantes de daño y multiplicadores */
+      .flotante-fx {
+        position: absolute;
+        font-weight: 900;
+        font-size: 1.35rem;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        text-shadow:
+          0 3px 0 rgba(0, 0, 0, 0.75),
+          0 0 12px rgba(0, 0, 0, 0.5);
+        animation: subirFx 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        white-space: nowrap;
+      }
+      @keyframes subirFx {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -20%) scale(0.5);
+        }
+        20% {
+          opacity: 1;
+          transform: translate(-50%, -65%) scale(1.18);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -165%) scale(0.92);
+        }
+      }
+
+      #guia-deslizar {
+        position: fixed;
+        bottom: calc(22px + env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(7, 16, 34, 0.78);
+        border: 1px solid rgba(0, 229, 255, 0.4);
+        color: #dff9ff;
+        padding: 7px 18px;
+        border-radius: 999px;
+        font-weight: 900;
+        font-size: 0.85rem;
+        letter-spacing: 0.03em;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+
+    <div id="hud-escuadron" class="oculto">
+      <div id="panel-sector">
+        <div class="sector-fila">
+          <span id="texto-sector">🛡️ SECTOR 1 · PUENTE TITANIO</span>
+          <span id="texto-monedas">🪙 0</span>
+        </div>
+        <div class="sector-barra">
+          <div id="sector-progreso"></div>
+        </div>
+      </div>
+
+      <div id="panel-jefe" class="oculto">
+        <div class="jefe-cabecera">
+          <span id="jefe-nombre">🤖 MECHA TITÁN MK-I</span>
+          <span id="jefe-hp">1200 HP</span>
+        </div>
+        <div class="jefe-barra">
+          <div id="jefe-vida"></div>
+        </div>
+      </div>
+
+      <div id="burbuja-tropa">
+        <span id="conteo-tropa">👥 1</span>
+        <span id="burbuja-arma">RIFLE MK-1</span>
+      </div>
+
+      <div id="capa-fx"></div>
+      <div id="guia-deslizar">↔️ Arrastra o usa A / D · Disparo automático</div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, sonar } = Arcade;
+
+      // =========================================================
+      //  ARMAMENTO 3D Y NIVELES DE PODER
+      // =========================================================
+      const ARMAS = [
+        {
+          id: "rifle",
+          nombre: "RIFLE MK-1",
+          cadencia: 0.17,
+          danio: 1,
+          velocidad: 46,
+          color: 0x00f2ff,
+          colorHex: "#00f2ff",
+          rafaga: 1,
+          dispersion: 0.02,
+          escalaBala: 1,
+        },
+        {
+          id: "doble",
+          nombre: "DOBLE VECTOR",
+          cadencia: 0.13,
+          danio: 2,
+          velocidad: 50,
+          color: 0xffe600,
+          colorHex: "#ffe600",
+          rafaga: 2,
+          dispersion: 0.045,
+          escalaBala: 1.1,
+        },
+        {
+          id: "minigun",
+          nombre: "MINIGUN ORO",
+          cadencia: 0.085,
+          danio: 3,
+          velocidad: 54,
+          color: 0xff9100,
+          colorHex: "#ff9100",
+          rafaga: 2,
+          dispersion: 0.07,
+          escalaBala: 1.2,
+        },
+        {
+          id: "plasma",
+          nombre: "CAÑÓN PLASMA",
+          cadencia: 0.14,
+          danio: 6,
+          velocidad: 48,
+          color: 0xd946ef,
+          colorHex: "#e879f9",
+          rafaga: 2,
+          dispersion: 0.04,
+          escalaBala: 1.55,
+          perfora: true,
+        },
+        {
+          id: "misiles",
+          nombre: "LANZAMISILES",
+          cadencia: 0.2,
+          danio: 12,
+          velocidad: 44,
+          color: 0xff2a55,
+          colorHex: "#ff4d6d",
+          rafaga: 2,
+          dispersion: 0.05,
+          escalaBala: 1.85,
+          explosivo: true,
+        },
+      ];
+
+      // =========================================================
+      //  ESCENA 3D DE ALTA CALIDAD (PUENTE MILITAR SOBRE EL MAR)
+      // =========================================================
+      const ANCHO_PUENTE = 9.2;
+      const LIMITE_X = 3.9;
+      const MAX_MODELOS_TROPA = 65;
+
+      const M = Arcade.mundo({
+        fondo: 0x0b1933,
+        fov: 52,
+        niebla: [36, 118],
+        exposicion: 1.16,
+        colorAmbiente: 0xa6ceff,
+        lejos: 160,
+      });
+      const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "cielo");
+
+      const mat = (color, extra = {}) =>
+        Arcade.materialPBR({
+          color: lin(color),
+          roughness: 0.45,
+          metalness: 0.15,
+          ...extra,
+        });
+
+      const luzHemi = new THREE.HemisphereLight(0xd8f0ff, 0x1a2a4a, 0.9);
+      escena.add(luzHemi);
+
+      const sol = new THREE.DirectionalLight(0xfff1d6, 1.45);
+      sol.position.set(14, 26, 18);
+      sol.castShadow = true;
+      sol.shadow.mapSize.set(2048, 2048);
+      Object.assign(sol.shadow.camera, {
+        left: -14,
+        right: 14,
+        top: 22,
+        bottom: -22,
+        near: 2,
+        far: 80,
+      });
+      escena.add(sol, sol.target);
+
+      // Océano animado bajo el puente
+      const mar = new THREE.Mesh(
+        new THREE.PlaneGeometry(260, 280),
+        mat(0x093866, { roughness: 0.22, metalness: 0.35 }),
+      );
+      mar.rotation.x = -Math.PI / 2;
+      mar.position.set(0, -4.5, -60);
+      escena.add(mar);
+      acabado3D.superficie(mar, "agua", { repetir: 36 });
+
+      // Textura HD para la calzada del puente táctico
+      const texCalzada = M.textura(512, 512, (g, w, h) => {
+        g.fillStyle = "#1e293b";
+        g.fillRect(0, 0, w, h);
+        // Grano de asfalto
+        for (let i = 0; i < 4000; i++) {
+          const v = 26 + ((Math.random() * 24) | 0);
+          g.fillStyle = `rgb(${v},${v + 6},${v + 16})`;
+          g.fillRect(Math.random() * w, Math.random() * h, 3, 3);
+        }
+        // Bordes de advertencia amarillo/negro
+        for (let y = 0; y < h; y += 32) {
+          g.fillStyle = (y / 32) % 2 === 0 ? "#facc15" : "#0f172a";
+          g.fillRect(0, y, 22, 32);
+          g.fillRect(w - 22, y, 22, 32);
+        }
+        // Líneas de carril luminosas cian
+        g.fillStyle = "rgba(56, 189, 248, 0.35)";
+        g.fillRect(26, 0, 5, h);
+        g.fillRect(w - 31, 0, 5, h);
+        // Línea central discontinua
+        g.fillStyle = "rgba(226, 232, 240, 0.45)";
+        for (let y = 12; y < h; y += 64) {
+          g.fillRect(w / 2 - 4, y, 8, 34);
+        }
+      });
+      texCalzada.wrapS = texCalzada.wrapT = THREE.RepeatWrapping;
+      texCalzada.repeat.set(1, 28);
+
+      const calzada = new THREE.Mesh(
+        new THREE.PlaneGeometry(ANCHO_PUENTE, 240),
+        Arcade.materialPBR({
+          map: texCalzada,
+          roughness: 0.65,
+          metalness: 0.15,
+        }),
+      );
+      calzada.rotation.x = -Math.PI / 2;
+      calzada.position.set(0, 0, -70);
+      calzada.receiveShadow = true;
+      escena.add(calzada);
+      acabado3D.superficie(calzada, "asfalto", { repetir: 18 });
+
+      // Barandales metálicos y postes de iluminación del puente
+      const grupoPuente = new THREE.Group();
+      const matAcero = mat(0x475569, { metalness: 0.75, roughness: 0.28 });
+      const matNeonPoste = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+
+      for (const lado of [-1, 1]) {
+        const barandal = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.38, 0.55, 240, 0.08),
+          matAcero,
+        );
+        barandal.position.set(lado * (ANCHO_PUENTE / 2 + 0.15), 0.28, -70);
+        barandal.castShadow = barandal.receiveShadow = true;
+        grupoPuente.add(barandal);
+      }
+
+      const tramosPuente = [];
+      for (let i = 0; i < 18; i++) {
+        const z = 20 - i * 12;
+        const arco = new THREE.Group();
+        arco.position.z = z;
+        for (const lado of [-1, 1]) {
+          const poste = new THREE.Mesh(
+            Graficos3D.cajaSuave(0.32, 3.8, 0.32, 0.06),
+            matAcero,
+          );
+          poste.position.set(lado * (ANCHO_PUENTE / 2 + 0.22), 1.9, 0);
+          poste.castShadow = true;
+          const luz = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.7, 0.18),
+            matNeonPoste,
+          );
+          luz.position.set(lado * (ANCHO_PUENTE / 2 + 0.08), 3.3, 0);
+          const pilarMar = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.45, 0.6, 5.2, 10),
+            mat(0x334155, { roughness: 0.8 }),
+          );
+          pilarMar.position.set(lado * (ANCHO_PUENTE / 2 - 0.3), -2.6, 0);
+          arco.add(poste, luz, pilarMar);
+        }
+        grupoPuente.add(arco);
+        tramosPuente.push(arco);
+      }
+      escena.add(grupoPuente);
+
+      // =========================================================
+      //  FÁBRICA DE MODELOS 3D (SOLDADOS, ARMAS, PUERTAS, JEFES)
+      // =========================================================
+      const geoCabeza = new THREE.SphereGeometry(0.21, 16, 14);
+      const geoCasco = new THREE.SphereGeometry(
+        0.235,
+        16,
+        12,
+        0,
+        Math.PI * 2,
+        0,
+        Math.PI * 0.62,
+      );
+      const geoVisor = Graficos3D.cajaSuave(0.28, 0.1, 0.16, 0.03);
+      const geoTorso = Graficos3D.cajaSuave(0.36, 0.42, 0.24, 0.07);
+      const geoMochila = Graficos3D.cajaSuave(0.26, 0.3, 0.14, 0.04);
+      const geoExtremidad = Graficos3D.cajaSuave(0.12, 0.3, 0.12, 0.04);
+
+      const matPiel = mat(0xffdcb8, { roughness: 0.55 });
+      const matCascoAliado = mat(0x0284c7, {
+        metalness: 0.35,
+        roughness: 0.2,
+        clearcoat: 0.8,
+      });
+      const matTorsoAliado = mat(0x0ea5e9, {
+        metalness: 0.25,
+        roughness: 0.32,
+      });
+      const matVisorAliado = new THREE.MeshBasicMaterial({ color: 0x67e8f9 });
+
+      const matCascoEnemigo = mat(0x991b1b, {
+        metalness: 0.4,
+        roughness: 0.25,
+        clearcoat: 0.7,
+      });
+      const matTorsoEnemigo = mat(0xdc2626, { roughness: 0.35 });
+      const matVisorEnemigo = new THREE.MeshBasicMaterial({ color: 0xffb703 });
+      const matOscuro = mat(0x1e293b, { metalness: 0.6, roughness: 0.35 });
+      const matOro = mat(0xfbbf24, {
+        metalness: 0.85,
+        roughness: 0.18,
+        clearcoat: 0.6,
+      });
+
+      function construirModeloArma(indiceArma) {
+        const g = new THREE.Group();
+        const cuerpo = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.1, 0.12, 0.42, 0.02),
+          indiceArma === 2 ? matOro : matOscuro,
+        );
+        cuerpo.position.z = -0.15;
+        g.add(cuerpo);
+
+        if (indiceArma === 1) {
+          // Doble cañón
+          const c2 = cuerpo.clone();
+          c2.position.x = 0.12;
+          g.add(c2);
+        } else if (indiceArma === 2) {
+          // Minigun rotatoria dorada
+          const tambor = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.09, 0.09, 0.38, 10),
+            matOro,
+          );
+          tambor.rotation.x = Math.PI / 2;
+          tambor.position.z = -0.26;
+          g.add(tambor);
+        } else if (indiceArma === 3) {
+          // Núcleo de plasma brillante
+          const nucleo = new THREE.Mesh(
+            new THREE.SphereGeometry(0.1, 12, 10),
+            new THREE.MeshBasicMaterial({ color: 0xe879f9 }),
+          );
+          nucleo.position.z = -0.32;
+          g.add(nucleo);
+        } else if (indiceArma === 4) {
+          // Tubo lanzamisiles pesado
+          const tubo = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.11, 0.12, 0.56, 12),
+            mat(0xbe123c, { metalness: 0.7, roughness: 0.25 }),
+          );
+          tubo.rotation.x = Math.PI / 2;
+          tubo.position.set(0, 0.06, -0.2);
+          g.add(tubo);
+        }
+        return g;
+      }
+
+      function crearSoldado3D(esEnemigo = false, escala = 1) {
+        const raiz = new THREE.Group();
+        const cuerpo = new THREE.Group();
+        raiz.add(cuerpo);
+
+        const mCasco = esEnemigo ? matCascoEnemigo : matCascoAliado;
+        const mTorso = esEnemigo ? matTorsoEnemigo : matTorsoAliado;
+        const mVisor = esEnemigo ? matVisorEnemigo : matVisorAliado;
+
+        const torso = new THREE.Mesh(geoTorso, mTorso);
+        torso.position.y = 0.46;
+        torso.castShadow = true;
+
+        const mochila = new THREE.Mesh(geoMochila, matOscuro);
+        mochila.position.set(0, 0.48, 0.16);
+
+        const cabeza = new THREE.Mesh(geoCabeza, matPiel);
+        cabeza.position.y = 0.84;
+        cabeza.castShadow = true;
+
+        const casco = new THREE.Mesh(geoCasco, mCasco);
+        casco.position.y = 0.86;
+        casco.castShadow = true;
+
+        const visor = new THREE.Mesh(geoVisor, mVisor);
+        visor.position.set(0, 0.84, esEnemigo ? 0.16 : -0.16);
+
+        const piernaIzq = new THREE.Mesh(geoExtremidad, matOscuro);
+        piernaIzq.position.set(-0.1, 0.16, 0);
+        const piernaDer = new THREE.Mesh(geoExtremidad, matOscuro);
+        piernaDer.position.set(0.1, 0.16, 0);
+
+        const brazoIzq = new THREE.Mesh(geoExtremidad, mTorso);
+        brazoIzq.position.set(-0.24, 0.48, -0.06);
+        const brazoDer = new THREE.Mesh(geoExtremidad, mTorso);
+        brazoDer.position.set(0.24, 0.48, -0.06);
+
+        const slotArma = new THREE.Group();
+        slotArma.position.set(0.22, 0.46, -0.14);
+        if (!esEnemigo) slotArma.add(construirModeloArma(0));
+
+        cuerpo.add(
+          torso,
+          mochila,
+          cabeza,
+          casco,
+          visor,
+          piernaIzq,
+          piernaDer,
+          brazoIzq,
+          brazoDer,
+          slotArma,
+        );
+        raiz.scale.setScalar(escala);
+        raiz.userData = {
+          cuerpo,
+          piernaIzq,
+          piernaDer,
+          brazoIzq,
+          brazoDer,
+          slotArma,
+          fase: Math.random() * Math.PI * 2,
+          armaActual: 0,
+        };
+        return raiz;
+      }
+
+      function animarSoldado(s, t, dt, disparando = false) {
+        const u = s.userData;
+        const onda = Math.sin(t * 15 + u.fase);
+        u.piernaIzq.rotation.x = onda * 0.65;
+        u.piernaDer.rotation.x = -onda * 0.65;
+        u.cuerpo.position.y = Math.abs(Math.cos(t * 15 + u.fase)) * 0.06;
+        u.brazoIzq.rotation.x = 0.45 + onda * 0.2;
+        u.brazoDer.rotation.x =
+          0.65 + (disparando ? Math.sin(t * 42 + u.fase) * 0.16 : 0);
+      }
+
+      // =========================================================
+      //  PUERTAS HOLOGRÁFICAS 3D QUE MEJORAN AL DISPARARLES
+      // =========================================================
+      function pintarTexturaPuerta(puerta) {
+        const { canvas, ctx, textura } = puerta.userData;
+        const w = canvas.width,
+          h = canvas.height;
+        const esBuena =
+          puerta.userData.operacion === "x" || puerta.userData.valor >= 0;
+
+        ctx.clearRect(0, 0, w, h);
+
+        // Fondo de cristal energético
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        if (esBuena) {
+          grad.addColorStop(0, "rgba(0, 242, 255, 0.88)");
+          grad.addColorStop(0.5, "rgba(2, 132, 199, 0.72)");
+          grad.addColorStop(1, "rgba(12, 74, 110, 0.88)");
+        } else {
+          grad.addColorStop(0, "rgba(255, 42, 85, 0.88)");
+          grad.addColorStop(0.5, "rgba(190, 18, 60, 0.72)");
+          grad.addColorStop(1, "rgba(76, 5, 25, 0.88)");
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+
+        // Líneas de escaneo holográfico
+        ctx.fillStyle = "rgba(255, 255, 255, 0.09)";
+        for (let y = 0; y < h; y += 14) {
+          ctx.fillRect(0, y, w, 5);
+        }
+
+        // Borde brillante
+        ctx.strokeStyle = esBuena ? "#a5f3fc" : "#fecdd3";
+        ctx.lineWidth = 12;
+        ctx.strokeRect(6, 6, w - 12, h - 12);
+
+        // Etiqueta superior
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "900 28px Nunito, Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(
+          puerta.userData.operacion === "x"
+            ? "⚡ MULTIPLICA"
+            : esBuena
+              ? "🛡️ REFUERZOS"
+              : "🎯 ¡DISPÁRAME!",
+          w / 2,
+          52,
+        );
+
+        // Texto numérico gigante
+        const textoValor =
+          puerta.userData.operacion === "x"
+            ? `x${puerta.userData.valor}`
+            : puerta.userData.valor >= 0
+              ? `+${puerta.userData.valor}`
+              : `${puerta.userData.valor}`;
+
+        ctx.save();
+        ctx.font = "900 112px Nunito, Arial, sans-serif";
+        ctx.lineWidth = 14;
+        ctx.strokeStyle = "rgba(5, 10, 24, 0.85)";
+        ctx.strokeText(textoValor, w / 2, h / 2 + 34);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(textoValor, w / 2, h / 2 + 34);
+        ctx.restore();
+
+        // Pie de puerta indicando que mejora con disparos
+        if (puerta.userData.operacion !== "x") {
+          ctx.fillStyle = esBuena ? "#bae6fd" : "#ffe4e6";
+          ctx.font = "800 22px Nunito, Arial, sans-serif";
+          ctx.fillText("🔫 +1 POR DISPARO", w / 2, h - 22);
+        }
+
+        textura.needsUpdate = true;
+        puerta.userData.marco.material.color.setHex(
+          esBuena ? 0x00e5ff : 0xff2a55,
+        );
+      }
+
+      function crearPuerta3D(x, z, operacion, valorInicial) {
+        const grupo = new THREE.Group();
+        grupo.position.set(x, 0, z);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext("2d");
+        const textura = new THREE.CanvasTexture(canvas);
+        textura.encoding = THREE.sRGBEncoding;
+
+        const ancho = 3.85,
+          alto = 2.65;
+        const panel = new THREE.Mesh(
+          new THREE.PlaneGeometry(ancho, alto),
+          new THREE.MeshBasicMaterial({
+            map: textura,
+            transparent: true,
+            side: THREE.DoubleSide,
+          }),
+        );
+        panel.position.y = alto / 2 + 0.1;
+
+        const matMarco = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
+        const posteIzq = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.18, alto + 0.2, 0.22, 0.04),
+          matMarco,
+        );
+        posteIzq.position.set(-ancho / 2 - 0.08, alto / 2 + 0.1, 0);
+        const posteDer = posteIzq.clone();
+        posteDer.position.x = ancho / 2 + 0.08;
+
+        const base = new THREE.Mesh(
+          Graficos3D.cajaSuave(ancho + 0.4, 0.16, 0.4, 0.04),
+          matOscuro,
+        );
+        base.position.y = 0.08;
+
+        grupo.add(panel, posteIzq, posteDer, base);
+        grupo.userData = {
+          tipo: "puerta",
+          operacion,
+          valor: valorInicial,
+          canvas,
+          ctx,
+          textura,
+          marco: posteIzq,
+          ancho,
+          usada: false,
+        };
+        pintarTexturaPuerta(grupo);
+        return grupo;
+      }
+
+      // =========================================================
+      //  BARRILES EXPLOSIVOS Y CAJAS DE ARMAS 3D
+      // =========================================================
+      function crearPlacaNumero(texto, colorFondo = "#ef4444") {
+        const canvas = document.createElement("canvas");
+        canvas.width = 192;
+        canvas.height = 96;
+        const ctx = canvas.getContext("2d");
+        const textura = new THREE.CanvasTexture(canvas);
+        textura.encoding = THREE.sRGBEncoding;
+
+        const sprite = new THREE.Sprite(
+          new THREE.SpriteMaterial({ map: textura, transparent: true }),
+        );
+        sprite.scale.set(1.7, 0.85, 1);
+
+        const actualizar = (nuevoTexto, nuevoColor = colorFondo) => {
+          ctx.clearRect(0, 0, 192, 96);
+          ctx.fillStyle = nuevoColor;
+          ctx.beginPath();
+          ctx.roundRect(12, 12, 168, 72, 24);
+          ctx.fill();
+          ctx.lineWidth = 6;
+          ctx.strokeStyle = "#ffffff";
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "900 44px Nunito, Arial, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(String(nuevoTexto), 96, 63);
+          textura.needsUpdate = true;
+        };
+        actualizar(texto, colorFondo);
+        return { sprite, actualizar };
+      }
+
+      function crearCajaObstaculo3D(x, z, vida, indiceArmaPremio = null) {
+        const grupo = new THREE.Group();
+        grupo.position.set(x, 0, z);
+
+        const esArma = indiceArmaPremio != null;
+        const cuerpo = new THREE.Mesh(
+          esArma
+            ? Graficos3D.cajaSuave(1.45, 1.15, 1.45, 0.12)
+            : new THREE.CylinderGeometry(0.68, 0.68, 1.35, 18),
+          esArma
+            ? mat(0xf59e0b, { metalness: 0.55, roughness: 0.22, clearcoat: 0.6 })
+            : mat(0xe11d48, { metalness: 0.35, roughness: 0.28 }),
+        );
+        cuerpo.position.y = 0.68;
+        cuerpo.castShadow = cuerpo.receiveShadow = true;
+        grupo.add(cuerpo);
+
+        let modeloFlotante = null;
+        if (esArma) {
+          modeloFlotante = construirModeloArma(indiceArmaPremio);
+          modeloFlotante.scale.setScalar(2.4);
+          modeloFlotante.position.set(0, 1.75, 0);
+          grupo.add(modeloFlotante);
+        }
+
+        const placa = crearPlacaNumero(
+          esArma ? `🔫 ${vida}` : `💥 ${vida}`,
+          esArma ? "#d97706" : "#be123c",
+        );
+        placa.sprite.position.set(0, esArma ? 2.45 : 1.85, 0);
+        grupo.add(placa.sprite);
+
+        grupo.userData = {
+          tipo: "caja",
+          vida,
+          vidaMax: vida,
+          armaPremio: indiceArmaPremio,
+          placa,
+          cuerpo,
+          modeloFlotante,
+          radio: 0.95,
+        };
+        return grupo;
+      }
+
+      // =========================================================
+      //  JEFE MECHA TITÁN 3D AL FINAL DE CADA SECTOR
+      // =========================================================
+      function crearJefeMecha3D(z, vidaMax, sector) {
+        const grupo = new THREE.Group();
+        grupo.position.set(0, 0, z);
+
+        const mArmadura = mat(0x1e1b4b, {
+          metalness: 0.7,
+          roughness: 0.25,
+          clearcoat: 0.6,
+        });
+        const mRojo = mat(0xe11d48, {
+          metalness: 0.5,
+          roughness: 0.22,
+          clearcoat: 0.7,
+        });
+        const mNucleo = new THREE.MeshBasicMaterial({ color: 0xff2a55 });
+
+        const torso = new THREE.Mesh(
+          Graficos3D.cajaSuave(2.4, 2.2, 1.5, 0.18),
+          mArmadura,
+        );
+        torso.position.y = 2.3;
+        torso.castShadow = true;
+
+        const pecho = new THREE.Mesh(
+          Graficos3D.cajaSuave(1.8, 1.2, 1.62, 0.14),
+          mRojo,
+        );
+        pecho.position.y = 2.45;
+
+        const nucleo = new THREE.Mesh(
+          new THREE.SphereGeometry(0.42, 18, 16),
+          mNucleo,
+        );
+        nucleo.position.set(0, 2.45, 0.78);
+
+        const cabeza = new THREE.Mesh(
+          Graficos3D.cajaSuave(1.1, 0.9, 1.0, 0.14),
+          mArmadura,
+        );
+        cabeza.position.y = 3.85;
+        const visor = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.92, 0.26, 0.2, 0.04),
+          new THREE.MeshBasicMaterial({ color: 0xfacc15 }),
+        );
+        visor.position.set(0, 3.88, 0.48);
+
+        const piernaIzq = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.72, 1.4, 0.82, 0.1),
+          mRojo,
+        );
+        piernaIzq.position.set(-0.68, 0.7, 0);
+        const piernaDer = piernaIzq.clone();
+        piernaDer.position.x = 0.68;
+
+        const brazoIzq = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.68, 1.75, 0.78, 0.12),
+          mRojo,
+        );
+        brazoIzq.position.set(-1.62, 2.25, 0.2);
+        const brazoDer = brazoIzq.clone();
+        brazoDer.position.x = 1.62;
+
+        grupo.add(
+          torso,
+          pecho,
+          nucleo,
+          cabeza,
+          visor,
+          piernaIzq,
+          piernaDer,
+          brazoIzq,
+          brazoDer,
+        );
+
+        grupo.userData = {
+          tipo: "jefe",
+          vida: vidaMax,
+          vidaMax,
+          nombre: `🤖 MECHA TITÁN MK-${sector}`,
+          piernaIzq,
+          piernaDer,
+          brazoIzq,
+          brazoDer,
+          nucleo,
+          radio: 2.1,
+        };
+        return grupo;
+      }
+
+      // =========================================================
+      //  ESTADO DE LA PARTIDA Y FORMADOR DE ESCUADRÓN
+      // =========================================================
+      const grupoEscuadron = new THREE.Group();
+      escena.add(grupoEscuadron);
+      const modelosSoldados = [];
+
+      const grupoMundo = new THREE.Group();
+      escena.add(grupoMundo);
+
+      const geoBala = new THREE.SphereGeometry(0.11, 8, 8);
+      const geoParticula = new THREE.BoxGeometry(0.14, 0.14, 0.14);
+
+      const E = {
+        activo: false,
+        tiempo: 0,
+        zAvance: 0,
+        xEscuadron: 0,
+        xObjetivo: 0,
+        soldados: 1,
+        armaIdx: 0,
+        relojDisparo: 0,
+        sector: 1,
+        zInicioSector: 0,
+        zJefeSector: -155,
+        puntos: 0,
+        monedas: 0,
+        sacudida: 0,
+        puertas: [],
+        cajas: [],
+        enemigos: [],
+        balas: [],
+        particulas: [],
+        jefe: null,
+      };
+
+      function textoFlotante(texto, color = "#00f2ff", x3d = E.xEscuadron, y3d = 1.8, z3d = E.zAvance) {
+        const capa = $("capa-fx");
+        if (!capa) return;
+        const v = new THREE.Vector3(x3d, y3d, z3d).project(camara);
+        const px = (v.x * 0.5 + 0.5) * window.innerWidth;
+        const py = (-v.y * 0.5 + 0.5) * window.innerHeight;
+        const div = document.createElement("div");
+        div.className = "flotante-fx";
+        div.style.left = `${limitar(px, 60, window.innerWidth - 60)}px`;
+        div.style.top = `${limitar(py, 80, window.innerHeight - 80)}px`;
+        div.style.color = color;
+        div.textContent = texto;
+        capa.appendChild(div);
+        setTimeout(() => div.remove(), 850);
+      }
+
+      function chispas3D(x, y, z, colorHex, cantidad = 12) {
+        const matP = new THREE.MeshBasicMaterial({ color: colorHex });
+        for (let i = 0; i < cantidad; i++) {
+          const m = new THREE.Mesh(geoParticula, matP);
+          m.position.set(x, y, z);
+          const ang = Math.random() * Math.PI * 2;
+          const vel = azar(3, 9);
+          m.userData = {
+            vx: Math.cos(ang) * vel,
+            vy: azar(3, 8.5),
+            vz: Math.sin(ang) * vel,
+            vida: azar(0.28, 0.55),
+          };
+          grupoMundo.add(m);
+          E.particulas.push(m);
+        }
+      }
+
+      function sincronizarModelosEscuadron() {
+        const deseados = Math.min(MAX_MODELOS_TROPA, Math.max(1, E.soldados));
+        while (modelosSoldados.length < deseados) {
+          const s = crearSoldado3D(false, 0.92);
+          s.rotation.y = Math.PI;
+          grupoEscuadron.add(s);
+          modelosSoldados.push(s);
+        }
+        while (modelosSoldados.length > deseados) {
+          const quitar = modelosSoldados.pop();
+          grupoEscuadron.remove(quitar);
+        }
+
+        // Formación en espiral compacta (estilo Count Masters / Last War)
+        const anguloOro = 2.39996;
+        for (let i = 0; i < modelosSoldados.length; i++) {
+          const s = modelosSoldados[i];
+          const r = i === 0 ? 0 : Math.min(2.35, 0.34 * Math.sqrt(i));
+          const a = i * anguloOro;
+          s.position.x = Math.cos(a) * r;
+          s.position.z = Math.sin(a) * r * 0.85;
+          if (s.userData.armaActual !== E.armaIdx) {
+            s.userData.slotArma.clear();
+            s.userData.slotArma.add(construirModeloArma(E.armaIdx));
+            s.userData.armaActual = E.armaIdx;
+          }
+        }
+
+        $("conteo-tropa").textContent = `👥 ${E.soldados}`;
+        $("burbuja-arma").textContent = ARMAS[E.armaIdx].nombre;
+        const burbuja = $("burbuja-tropa");
+        burbuja.classList.remove("rebote");
+        void burbuja.offsetWidth;
+        burbuja.classList.add("rebote");
+      }
+
+      function cambiarSoldados(delta, motivo = "") {
+        const antes = E.soldados;
+        E.soldados = Math.max(0, Math.min(999, Math.round(E.soldados + delta)));
+        if (E.soldados <= 0) {
+          sincronizarModelosEscuadron();
+          perderPartida();
+          return;
+        }
+        sincronizarModelosEscuadron();
+        if (delta > 0) {
+          sonar("moneda");
+          textoFlotante(
+            motivo || `+${E.soldados - antes} SOLDADOS`,
+            "#00f2ff",
+          );
+        } else if (delta < 0) {
+          sonar("golpe");
+          textoFlotante(`${delta}`, "#ff2a55");
+        }
+      }
+
+      function equiparArma(nuevoIdx) {
+        if (nuevoIdx <= E.armaIdx && nuevoIdx !== 0) {
+          cambiarSoldados(8, "+8 REFUERZOS!");
+          return;
+        }
+        E.armaIdx = limitar(nuevoIdx, 0, ARMAS.length - 1);
+        sincronizarModelosEscuadron();
+        sonar("ganar");
+        textoFlotante(`⚡ ${ARMAS[E.armaIdx].nombre}!`, "#facc15");
+      }
+
+      // =========================================================
+      //  GENERACIÓN PROCEDURAL DE SECTORES (PUERTAS, HORDAS, JEFE)
+      // =========================================================
+      function limpiarSector() {
+        for (const lista of [E.puertas, E.cajas, E.enemigos, E.balas, E.particulas]) {
+          for (const obj of lista) grupoMundo.remove(obj);
+          lista.length = 0;
+        }
+        if (E.jefe) {
+          grupoMundo.remove(E.jefe);
+          E.jefe = null;
+        }
+      }
+
+      function construirSector(numSector, semillaBase) {
+        limpiarSector();
+        const azarSec = Arcade.rng(semillaBase + numSector * 997);
+        E.sector = numSector;
+        E.zInicioSector = E.zAvance;
+        const largoSector = 165;
+        E.zJefeSector = E.zAvance - largoSector;
+
+        $("texto-sector").textContent = `🛡️ SECTOR ${numSector} · PUENTE TITANIO`;
+        $("panel-jefe").classList.add("oculto");
+
+        // 6 filas de eventos antes del Jefe
+        for (let fila = 1; fila <= 6; fila++) {
+          const z = E.zAvance - fila * 23;
+
+          if (fila % 2 === 1) {
+            // Par de puertas holográficas (Izquierda vs Derecha)
+            const izqMultiplicadora = azarSec() > 0.55;
+            const pIzq = crearPuerta3D(
+              -2.05,
+              z,
+              izqMultiplicadora ? "x" : "+",
+              izqMultiplicadora ? 2 : Math.round(6 + numSector * 4 + azarSec() * 8),
+            );
+            const pDer = crearPuerta3D(
+              2.05,
+              z,
+              "+",
+              -Math.round(5 + numSector * 3 + azarSec() * 8),
+            );
+            grupoMundo.add(pIzq, pDer);
+            E.puertas.push(pIzq, pDer);
+          } else {
+            // Fila de cajas de armas + barriles + escuadrón enemigo
+            const armaCandidata = Math.min(
+              ARMAS.length - 1,
+              Math.floor((numSector - 1) / 1 + fila / 2),
+            );
+            const xCajaArma = azarSec() > 0.5 ? -2.3 : 2.3;
+            const vidaArma = Math.round(14 + numSector * 12 + fila * 4);
+            const cajaArma = crearCajaObstaculo3D(
+              xCajaArma,
+              z,
+              vidaArma,
+              armaCandidata,
+            );
+            const cajaBarril = crearCajaObstaculo3D(
+              -xCajaArma,
+              z,
+              Math.round(10 + numSector * 9),
+              null,
+            );
+            grupoMundo.add(cajaArma, cajaBarril);
+            E.cajas.push(cajaArma, cajaBarril);
+
+            // Patrulla de soldados enemigos marchando en el centro
+            const numEnemigos = Math.min(18, 4 + numSector * 3 + fila);
+            for (let k = 0; k < numEnemigos; k++) {
+              const enemigo = crearSoldado3D(true, 0.94);
+              const rx = ( (k % 4) - 1.5 ) * 0.72;
+              const rz = Math.floor(k / 4) * 0.75;
+              enemigo.position.set(rx, 0, z - 6 - rz);
+              enemigo.userData.vida = 2 + numSector * 2;
+              grupoMundo.add(enemigo);
+              E.enemigos.push(enemigo);
+            }
+          }
+        }
+
+        // Jefe Mecha Titán al final del sector
+        const vidaJefe = Math.round(160 + numSector * 140);
+        E.jefe = crearJefeMecha3D(E.zJefeSector, vidaJefe, numSector);
+        grupoMundo.add(E.jefe);
+      }
+
+      // =========================================================
+      //  DISPARO AUTOMÁTICO E IMPACTOS
+      // =========================================================
+      function dispararRafaga() {
+        const arma = ARMAS[E.armaIdx];
+        // Cantidad de cañones simultáneos según el tamaño de tu escuadrón
+        const tiradores = Math.min(9, 1 + Math.floor(Math.sqrt(E.soldados)));
+        const matBala = new THREE.MeshBasicMaterial({ color: arma.color });
+
+        for (let i = 0; i < tiradores; i++) {
+          const soldado = modelosSoldados[i % modelosSoldados.length];
+          const sx = E.xEscuadron + (soldado ? soldado.position.x : 0);
+          const sz = E.zAvance + (soldado ? soldado.position.z : 0) - 0.45;
+
+          const bala = new THREE.Mesh(geoBala, matBala);
+          bala.scale.setScalar(arma.escalaBala);
+          bala.position.set(sx, 0.65, sz);
+          bala.userData = {
+            vx: (Math.random() - 0.5) * arma.dispersion * 25,
+            vz: -arma.velocidad,
+            danio: arma.danio * Math.max(1, Math.ceil(E.soldados / tiradores)),
+            color: arma.color,
+            colorHex: arma.colorHex,
+            perfora: !!arma.perfora,
+            explosivo: !!arma.explosivo,
+            vida: 0.75,
+          };
+          grupoMundo.add(bala);
+          E.balas.push(bala);
+        }
+      }
+
+      // =========================================================
+      //  CONTROLES TÁCTILES, MOUSE Y TECLADO
+      // =========================================================
+      const teclas = { izq: false, der: false };
+      let arrastrando = false,
+        xPunteroPrev = 0;
+
+      window.addEventListener("keydown", (e) => {
+        const k = e.key.toLowerCase();
+        if (k === "a" || e.key === "ArrowLeft") teclas.izq = true;
+        if (k === "d" || e.key === "ArrowRight") teclas.der = true;
+      });
+      window.addEventListener("keyup", (e) => {
+        const k = e.key.toLowerCase();
+        if (k === "a" || e.key === "ArrowLeft") teclas.izq = false;
+        if (k === "d" || e.key === "ArrowRight") teclas.der = false;
+      });
+
+      const lienzo = $("lienzo");
+      lienzo.addEventListener("pointerdown", (e) => {
+        arrastrando = true;
+        xPunteroPrev = e.clientX;
+      });
+      window.addEventListener("pointermove", (e) => {
+        if (!E.activo) return;
+        if (arrastrando) {
+          const dx = (e.clientX - xPunteroPrev) / window.innerWidth;
+          xPunteroPrev = e.clientX;
+          E.xObjetivo = limitar(E.xObjetivo + dx * 11.5, -LIMITE_X, LIMITE_X);
+        } else if (e.pointerType === "mouse") {
+          const norm = (e.clientX / window.innerWidth - 0.5) * 2;
+          E.xObjetivo = limitar(norm * LIMITE_X, -LIMITE_X, LIMITE_X);
+        }
+      });
+      window.addEventListener("pointerup", () => (arrastrando = false));
+
+      // =========================================================
+      //  BUCLE PRINCIPAL 3D (60 FPS)
+      // =========================================================
+      M.alCuadro((dt) => {
+        E.tiempo += dt;
+
+        // En el menú giramos suavemente al escuadrón de demostración
+        if (!E.activo) {
+          for (const s of modelosSoldados) animarSoldado(s, E.tiempo, dt, false);
+          camara.position.set(
+            Math.sin(E.tiempo * 0.4) * 1.4,
+            5.6,
+            E.zAvance + 9.2,
+          );
+          camara.lookAt(0, 1.0, E.zAvance - 7);
+          return;
+        }
+
+        // Movimiento lateral por teclado o puntero
+        if (teclas.izq) E.xObjetivo = limitar(E.xObjetivo - dt * 7.5, -LIMITE_X, LIMITE_X);
+        if (teclas.der) E.xObjetivo = limitar(E.xObjetivo + dt * 7.5, -LIMITE_X, LIMITE_X);
+        E.xEscuadron += (E.xObjetivo - E.xEscuadron) * Math.min(1, dt * 14);
+
+        // ¿Estamos frente al Jefe de Sector?
+        const distJefe = E.jefe ? E.zAvance - E.jefe.position.z : 999;
+        const peleandoJefe = E.jefe && distJefe <= 15.5;
+
+        if (!peleandoJefe) {
+          const velAvance = 9.4 + Math.min(3.5, E.sector * 0.35);
+          E.zAvance -= velAvance * dt;
+          E.puntos += Math.round(velAvance * dt * 2);
+        } else {
+          // El Jefe avanza lentamente hacia el escuadrón presionándolo
+          E.jefe.position.z += dt * 1.85;
+          E.jefe.position.x = Math.sin(E.tiempo * 1.7) * 1.6;
+          if (E.jefe.position.z >= E.zAvance - 2.3) {
+            cambiarSoldados(-Math.max(5, Math.ceil(E.soldados * 0.35)));
+            E.jefe.position.z -= 4.2;
+            E.sacudida = 0.45;
+            if (!E.activo) return;
+          }
+        }
+
+        grupoEscuadron.position.set(E.xEscuadron, 0, E.zAvance);
+        for (const s of modelosSoldados) animarSoldado(s, E.tiempo, dt, true);
+
+        // Reciclar puente infinito y seguir con la luz solar
+        calzada.position.z = E.zAvance - 70;
+        texCalzada.offset.y = -E.zAvance * 0.12;
+        mar.position.z = E.zAvance - 60;
+        for (const arco of tramosPuente) {
+          if (arco.position.z > E.zAvance + 18) arco.position.z -= 18 * 12;
+        }
+        sol.position.set(14, 26, E.zAvance + 18);
+        sol.target.position.set(0, 0, E.zAvance - 15);
+        sol.target.updateMatrixWorld();
+
+        // Cámara dinámica con sacudida de combate
+        E.sacudida = Math.max(0, E.sacudida - dt * 2.2);
+        const sx = (Math.random() - 0.5) * E.sacudida;
+        const sy = (Math.random() - 0.5) * E.sacudida;
+        camara.position.set(
+          E.xEscuadron * 0.42 + sx,
+          6.4 + Math.min(2.2, E.soldados * 0.018) + sy,
+          E.zAvance + 9.6 + Math.min(2.4, E.soldados * 0.02),
+        );
+        camara.lookAt(E.xEscuadron * 0.25, 1.1, E.zAvance - 9.5);
+
+        // Proyectar la burbuja de tropa sobre el escuadrón
+        const posBurbuja = new THREE.Vector3(
+          E.xEscuadron,
+          1.75,
+          E.zAvance + 0.6,
+        ).project(camara);
+        const burbuja = $("burbuja-tropa");
+        burbuja.style.left = `${(posBurbuja.x * 0.5 + 0.5) * window.innerWidth}px`;
+        burbuja.style.top = `${(-posBurbuja.y * 0.5 + 0.5) * window.innerHeight}px`;
+
+        // Progreso del sector
+        const avanceRel = limitar(
+          (E.zInicioSector - E.zAvance) / (E.zInicioSector - E.zJefeSector),
+          0,
+          1,
+        );
+        $("sector-progreso").style.width = `${Math.round(avanceRel * 100)}%`;
+
+        // Ráfaga automática de disparos
+        E.relojDisparo -= dt;
+        if (E.relojDisparo <= 0) {
+          E.relojDisparo = ARMAS[E.armaIdx].cadencia;
+          dispararRafaga();
+        }
+
+        // Actualizar puertas holográficas y cruce del escuadrón
+        for (const p of E.puertas) {
+          if (p.userData.usada) continue;
+          if (
+            Math.abs(p.position.z - E.zAvance) < 0.85 &&
+            Math.abs(p.position.x - E.xEscuadron) < p.userData.ancho * 0.52
+          ) {
+            p.userData.usada = true;
+            p.visible = false;
+            // Desactivar también la puerta gemela de esa misma fila
+            for (const otra of E.puertas) {
+              if (Math.abs(otra.position.z - p.position.z) < 0.5) otra.userData.usada = true;
+            }
+            if (p.userData.operacion === "x") {
+              const extra = E.soldados * (p.userData.valor - 1);
+              cambiarSoldados(extra, `x${p.userData.valor} ¡ESCUADRÓN!`);
+            } else {
+              cambiarSoldados(p.userData.valor);
+            }
+            chispas3D(
+              p.position.x,
+              1.2,
+              p.position.z,
+              p.userData.valor >= 0 || p.userData.operacion === "x"
+                ? 0x00e5ff
+                : 0xff2a55,
+              18,
+            );
+          }
+        }
+
+        // Actualizar cajas y barriles
+        for (let i = E.cajas.length - 1; i >= 0; i--) {
+          const c = E.cajas[i];
+          if (c.userData.modeloFlotante) {
+            c.userData.modeloFlotante.rotation.y += dt * 2.4;
+          }
+          if (
+            Math.abs(c.position.z - E.zAvance) < 0.95 &&
+            Math.abs(c.position.x - E.xEscuadron) < 1.25
+          ) {
+            // Choque directo contra caja sin haberla roto
+            grupoMundo.remove(c);
+            E.cajas.splice(i, 1);
+            E.sacudida = 0.35;
+            cambiarSoldados(-Math.max(2, Math.ceil(c.userData.vida / 5)));
+            if (!E.activo) return;
+          }
+        }
+
+        // Actualizar enemigos en marcha
+        for (let i = E.enemigos.length - 1; i >= 0; i--) {
+          const en = E.enemigos[i];
+          if (E.zAvance - en.position.z < 36) {
+            en.position.z += dt * 4.2;
+            en.position.x += Math.sign(E.xEscuadron - en.position.x) * dt * 1.3;
+            animarSoldado(en, E.tiempo, dt, true);
+          }
+          if (
+            Math.abs(en.position.z - E.zAvance) < 0.85 &&
+            Math.abs(en.position.x - E.xEscuadron) < 1.6
+          ) {
+            chispas3D(en.position.x, 0.7, en.position.z, 0xff2a55, 8);
+            grupoMundo.remove(en);
+            E.enemigos.splice(i, 1);
+            cambiarSoldados(-1);
+            if (!E.activo) return;
+          }
+        }
+
+        // Animar Jefe Mecha si está cerca
+        if (E.jefe && distJefe < 42) {
+          $("panel-jefe").classList.remove("oculto");
+          $("jefe-nombre").textContent = E.jefe.userData.nombre;
+          $("jefe-hp").textContent = `${Math.max(0, E.jefe.userData.vida)} HP`;
+          $("jefe-vida").style.width = `${Math.max(0, (E.jefe.userData.vida / E.jefe.userData.vidaMax) * 100)}%`;
+          const u = E.jefe.userData;
+          u.piernaIzq.rotation.x = Math.sin(E.tiempo * 6) * 0.35;
+          u.piernaDer.rotation.x = -Math.sin(E.tiempo * 6) * 0.35;
+          u.brazoIzq.rotation.x = -0.5 + Math.sin(E.tiempo * 8) * 0.25;
+          u.brazoDer.rotation.x = -0.5 - Math.sin(E.tiempo * 8) * 0.25;
+        }
+
+        // Actualizar balas e impactos
+        for (let i = E.balas.length - 1; i >= 0; i--) {
+          const b = E.balas[i];
+          b.position.x += b.userData.vx * dt;
+          b.position.z += b.userData.vz * dt;
+          b.userData.vida -= dt;
+          let consumida = b.userData.vida <= 0;
+
+          // 1) ¿Impacta una puerta holográfica? ¡Sube el valor de la puerta!
+          if (!consumida) {
+            for (const p of E.puertas) {
+              if (
+                !p.userData.usada &&
+                p.userData.operacion !== "x" &&
+                Math.abs(b.position.z - p.position.z) < 0.65 &&
+                Math.abs(b.position.x - p.position.x) < p.userData.ancho * 0.48
+              ) {
+                const eraNegativa = p.userData.valor < 0;
+                p.userData.valor += 1;
+                pintarTexturaPuerta(p);
+                p.scale.set(1.06, 1.06, 1);
+                setTimeout(() => p.scale.set(1, 1, 1), 60);
+                if (eraNegativa && p.userData.valor >= 0) {
+                  sonar("moneda");
+                  chispas3D(p.position.x, 1.4, p.position.z, 0x00e5ff, 16);
+                  textoFlotante("¡PUERTA MEJORADA!", "#00e5ff", p.position.x, 2.3, p.position.z);
+                }
+                consumida = true;
+                break;
+              }
+            }
+          }
+
+          // 2) ¿Impacta una caja de arma o barril?
+          if (!consumida) {
+            for (let j = E.cajas.length - 1; j >= 0; j--) {
+              const c = E.cajas[j];
+              if (
+                Math.abs(b.position.z - c.position.z) < c.userData.radio &&
+                Math.abs(b.position.x - c.position.x) < c.userData.radio
+              ) {
+                c.userData.vida -= b.userData.danio;
+                c.userData.cuerpo.scale.set(1.12, 0.9, 1.12);
+                setTimeout(() => c.userData.cuerpo.scale.set(1, 1, 1), 55);
+                if (c.userData.vida <= 0) {
+                  chispas3D(
+                    c.position.x,
+                    1.0,
+                    c.position.z,
+                    c.userData.armaPremio != null ? 0xfacc15 : 0xff4d6d,
+                    20,
+                  );
+                  E.sacudida = 0.25;
+                  E.puntos += 45;
+                  if (c.userData.armaPremio != null) {
+                    equiparArma(c.userData.armaPremio);
+                  } else {
+                    sonar("golpe");
+                    cambiarSoldados(6, "+6 RESCATADOS!");
+                  }
+                  grupoMundo.remove(c);
+                  E.cajas.splice(j, 1);
+                } else {
+                  c.userData.placa.actualizar(
+                    c.userData.armaPremio != null
+                      ? `🔫 ${c.userData.vida}`
+                      : `💥 ${c.userData.vida}`,
+                  );
+                }
+                if (!b.userData.perfora) consumida = true;
+                break;
+              }
+            }
+          }
+
+          // 3) ¿Impacta un soldado enemigo?
+          if (!consumida) {
+            for (let j = E.enemigos.length - 1; j >= 0; j--) {
+              const en = E.enemigos[j];
+              if (
+                Math.abs(b.position.z - en.position.z) < 0.55 &&
+                Math.abs(b.position.x - en.position.x) < 0.55
+              ) {
+                en.userData.vida -= b.userData.danio;
+                if (en.userData.vida <= 0) {
+                  chispas3D(en.position.x, 0.65, en.position.z, 0xff2a55, 8);
+                  grupoMundo.remove(en);
+                  E.enemigos.splice(j, 1);
+                  E.puntos += 15;
+                  E.monedas += 1;
+                  $("texto-monedas").textContent = `🪙 ${E.monedas}`;
+                }
+                if (!b.userData.perfora) consumida = true;
+                break;
+              }
+            }
+          }
+
+          // 4) ¿Impacta al Jefe Mecha Titán?
+          if (
+            !consumida &&
+            E.jefe &&
+            Math.abs(b.position.z - E.jefe.position.z) < E.jefe.userData.radio &&
+            Math.abs(b.position.x - E.jefe.position.x) < E.jefe.userData.radio
+          ) {
+            E.jefe.userData.vida -= b.userData.danio;
+            chispas3D(b.position.x, 1.8, E.jefe.position.z + 0.8, b.userData.color, 4);
+            if (Math.random() < 0.28) {
+              textoFlotante(
+                `-${b.userData.danio}`,
+                b.userData.colorHex,
+                E.jefe.position.x + azar(-0.8, 0.8),
+                2.8,
+                E.jefe.position.z,
+              );
+            }
+            consumida = true;
+
+            if (E.jefe.userData.vida <= 0) {
+              // ¡Jefe derrotado! Pasamos al siguiente sector
+              chispas3D(E.jefe.position.x, 2.2, E.jefe.position.z, 0xfacc15, 42);
+              sonar("ganar");
+              E.sacudida = 0.6;
+              E.puntos += 250 * E.sector;
+              E.monedas += 25;
+              $("texto-monedas").textContent = `🪙 ${E.monedas}`;
+              textoFlotante(
+                `🏆 ¡SECTOR ${E.sector} COMPLETADO! +${250 * E.sector} PTS`,
+                "#facc15",
+                0,
+                2.6,
+                E.zAvance - 5,
+              );
+              construirSector(E.sector + 1, J.semilla || 777);
+            }
+          }
+
+          if (consumida) {
+            grupoMundo.remove(b);
+            E.balas.splice(i, 1);
+          }
+        }
+
+        // Actualizar partículas 3D
+        for (let i = E.particulas.length - 1; i >= 0; i--) {
+          const p = E.particulas[i];
+          p.position.x += p.userData.vx * dt;
+          p.position.y += p.userData.vy * dt;
+          p.position.z += p.userData.vz * dt;
+          p.userData.vy -= 18 * dt;
+          p.rotation.x += dt * 8;
+          p.rotation.y += dt * 8;
+          p.userData.vida -= dt;
+          if (p.userData.vida <= 0) {
+            grupoMundo.remove(p);
+            E.particulas.splice(i, 1);
+          }
+        }
+
+        marcador();
+        if (J.modo === "online" && E.tiempo - J.ultimoEnvio > 0.6) {
+          J.ultimoEnvio = E.tiempo;
+          ui.enviar("puntos", { partida: J.partida, puntos: E.puntos });
+        }
+      });
+
+      // =========================================================
+      //  INTEGRACIÓN CON EL SISTEMA DE DUELOS Y RÉCORDS DE ARCADE
+      // =========================================================
+      const J = {
+        modo: null,
+        nombres: [],
+        resultados: [null, null],
+        turno: 0,
+        rival: 0,
+        ultimoEnvio: 0,
+      };
+
+      const ui = Arcade.ui({
+        juego: "escuadron",
+        titulo: "Escuadrón Blitz 3D",
+        emoji: "🛡️",
+        subtitulo:
+          "Multiplica tu ejército, mejora tus armas a balazos y destruye al Mecha Titán",
+        modos: ["solo", "online", "local"],
+        textosModo: {
+          solo: "🏆 Incursión individual (Récord)",
+          online: "🌐 Duelo online con un amigo",
+          local: "👥 2 jugadores (por turnos)",
+        },
+        records: true,
+        unidadRecord: "pts",
+        reglas: [
+          "↔️ Mueve tu escuadrón hacia los lados (mouse, A/D o deslizando el dedo).",
+          "🔫 Tus soldados disparan automáticamente: dispara a las puertas rojas para volverlas azules (+).",
+          "📦 Destruye las cajas doradas para equipar Doble Vector, Minigun, Plasma y Lanzamisiles.",
+          "🤖 Al final de cada sector te espera un Mecha Titán: ¡necesitas un ejército grande para vencerlo!",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          E.activo = false;
+          J.modo = null;
+          $("hud-escuadron").classList.add("oculto");
+        },
+      });
+
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "puntos") J.rival = d.puntos;
+        if (tipo === "fin") {
+          J.rival = d.puntos;
+          J.rivalTermino = true;
+          J.alTerminarRival && J.alTerminarRival();
+        }
+        marcador();
+      };
+
+      function marcador() {
+        const mio = E.puntos;
+        if (J.modo === "solo") {
+          return ui.marcador([
+            {
+              nombre: J.nombres[0] || "Comandante",
+              valor: mio,
+              detalle: `Sector ${E.sector} · 👥 ${E.soldados}`,
+              activo: true,
+            },
+            null,
+          ]);
+        }
+        if (J.modo === "online") {
+          const yo = ui.yo;
+          const v = yo === 0 ? [mio, J.rival] : [J.rival, mio];
+          return ui.marcador(
+            [0, 1].map((i) => ({
+              nombre: J.nombres[i] + (i === yo ? " (tú)" : ""),
+              valor: v[i],
+              detalle:
+                i === yo
+                  ? `Sector ${E.sector} · 👥 ${E.soldados}`
+                  : J.rivalTermino
+                    ? "cayó en combate"
+                    : "🌐 combatiendo",
+              activo: i === yo,
+            })),
+          );
+        }
+        ui.marcador(
+          [0, 1].map((i) => ({
+            nombre: J.nombres[i],
+            valor:
+              i === J.turno
+                ? mio
+                : J.resultados[i] == null
+                  ? "—"
+                  : J.resultados[i],
+            detalle:
+              i === J.turno
+                ? `Sector ${E.sector} · 👥 ${E.soldados}`
+                : J.resultados[i] == null
+                  ? "espera su turno"
+                  : "terminó",
+            activo: i === J.turno,
+          })),
+        );
+      }
+
+      function empezar(modo, info) {
+        Object.assign(J, {
+          modo,
+          nombres: info.nombres,
+          partida: info.partida,
+          semilla: info.semilla || 777,
+          resultados: [null, null],
+          turno: 0,
+          rival: 0,
+          rivalTermino: false,
+          alTerminarRival: null,
+        });
+        iniciarIncursion();
+      }
+
+      function iniciarIncursion() {
+        E.activo = true;
+        E.zAvance = 0;
+        E.xEscuadron = 0;
+        E.xObjetivo = 0;
+        E.soldados = 5;
+        E.armaIdx = 0;
+        E.puntos = 0;
+        E.monedas = 0;
+        $("texto-monedas").textContent = "🪙 0";
+        for (let i = 0; i < tramosPuente.length; i++) {
+          tramosPuente[i].position.z = 20 - i * 12;
+        }
+        sincronizarModelosEscuadron();
+        construirSector(1, J.semilla);
+        $("hud-escuadron").classList.remove("oculto");
+        marcador();
+        ui.avisar("🛡️ ¡ADELANTE ESCUADRÓN!", "#00e5ff");
+      }
+
+      async function perderPartida() {
+        if (!E.activo) return;
+        E.activo = false;
+        sonar("perder");
+        const pts = E.puntos;
+        const nota = `Sector ${E.sector} alcanzado · 🪙 ${E.monedas} monedas`;
+
+        if (J.modo === "solo") {
+          if (
+            await ui.ofrecerRevivir({
+              texto: "Despliega 20 soldados de refuerzo y continúa en este sector.",
+            })
+          ) {
+            E.soldados = 20;
+            E.zAvance += 8;
+            sincronizarModelosEscuadron();
+            E.activo = true;
+            ui.avisar("🚁 ¡20 SOLDADOS DE REFUERZO!", "#26de81");
+            return;
+          }
+          $("hud-escuadron").classList.add("oculto");
+          return ui.terminar({
+            emoji: "🛡️",
+            texto: `¡${pts} puntos!`,
+            nota,
+            record: pts,
+            gano: E.sector > 1 || pts >= 250,
+          });
+        }
+
+        if (J.modo === "local") {
+          J.resultados[J.turno] = pts;
+          if (J.turno === 0) {
+            J.turno = 1;
+            ui.avisar(`Turno de ${J.nombres[1]}`, "#4fb3ff");
+            await esperar(1200);
+            return iniciarIncursion();
+          }
+          $("hud-escuadron").classList.add("oculto");
+          const [a, b] = J.resultados;
+          return ui.terminar({
+            emoji: a === b ? "🤝" : "🏆",
+            texto: a === b ? "¡Empate!" : `¡Ganó ${J.nombres[a > b ? 0 : 1]}!`,
+            nota: `${J.nombres[0]}: ${a} pts · ${J.nombres[1]}: ${b} pts`,
+          });
+        }
+
+        // Modo online
+        ui.enviar("fin", { partida: J.partida, puntos: pts });
+        if (!J.rivalTermino) {
+          ui.avisar("Esperando a que termine tu rival…", "#4fb3ff");
+          await Promise.race([
+            new Promise((r) => (J.alTerminarRival = r)),
+            esperar(90000),
+          ]);
+        }
+        $("hud-escuadron").classList.add("oculto");
+        const yo = ui.yo;
+        const gane = pts > J.rival,
+          empate = pts === J.rival;
+        ui.terminar({
+          emoji: empate ? "🤝" : gane ? "🏆" : "💥",
+          texto: empate
+            ? "¡Empate!"
+            : gane
+              ? "¡Tu escuadrón llegó más lejos!"
+              : `Ganó ${J.nombres[1 - yo]}`,
+          nota: `Tú: ${pts} pts · ${J.nombres[1 - yo]}: ${J.rival} pts`,
+          record: pts,
+          gano: gane,
+        });
+      }
+
+      // Escena inicial de demostración en el menú
+      E.soldados = 12;
+      sincronizarModelosEscuadron();
+      construirSector(1, 777);
+    </script>
+  </body>
+</html>
