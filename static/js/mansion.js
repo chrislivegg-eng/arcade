@@ -495,6 +495,19 @@
   body.position.y = 1.2;
   ghost.add(body);
   ball(0.24, 0, 2.25, 0, shroud, ghost);
+  // Solo se ven de cerca: una silueta legible incluso con la linterna agotada.
+  const eyes = [];
+  for (const side of [-1, 1]) {
+    const eye = ball(
+      0.035,
+      side * 0.075,
+      2.27,
+      -0.215,
+      new THREE.MeshBasicMaterial({ color: 0xc95955, transparent: true }),
+      ghost,
+    );
+    eyes.push(eye);
+  }
   for (let side of [-1, 1]) {
     const arm = box(0.12, 1.1, 0.12, side * 0.43, 1.5, 0, shroud, ghost);
     arm.rotation.z = side * 0.16;
@@ -586,6 +599,12 @@
     sprint: false,
     serial: 0,
     muted: false,
+    hunt: 0,
+    flicker: 0,
+    eventIn: 9,
+    noiseX: 0,
+    noiseZ: 10,
+    pulse: 0,
   };
   const pressed = new Set();
   let joystick = { x: 0, y: 0 },
@@ -670,6 +689,28 @@
     $("aviso").textContent = t;
     noticeTime = 4;
   }
+  function disturbance(text, force = false) {
+    // Director de tensión: desplaza a la presencia fuera de la vista, nunca
+    // encima del jugador. El aviso deja tiempo para apagar la luz o esconderse.
+    if (!force && (S.hidden || S.grace > 0 || S.hunt > 0)) return;
+    S.hunt = 8 + Math.random() * 4;
+    S.flicker = 1.1;
+    S.noiseX = S.x;
+    S.noiseZ = S.z;
+    const candidates = nodes.filter(([x, z]) => {
+      const d = Math.hypot(x - S.x, z - S.z);
+      return d > 6 && d < 15 && !lineFree([x, z], [S.x, S.z]);
+    });
+    if (candidates.length) {
+      const [x, z] = candidates[(Math.random() * candidates.length) | 0];
+      S.ghostX = x;
+      S.ghostZ = z;
+      S.route = [];
+      S.repath = 0;
+    }
+    tone(92 + Math.random() * 28, 1.2, 0.025);
+    notice(text);
+  }
   function tone(freq, duration = 0.2, volume = 0.015) {
     if (S.muted || !audio) return;
     const o = audio.createOscillator(),
@@ -712,6 +753,12 @@
       patrol: 0,
       repath: 0,
       seen: 0,
+      hunt: 0,
+      flicker: 0,
+      eventIn: 7 + Math.random() * 6,
+      noiseX: 0,
+      noiseZ: 10,
+      pulse: 0,
       context: null,
     });
     for (const k of keys) {
@@ -720,7 +767,7 @@
     }
     for (const id of ["portada", "pausa", "final"]) $(id).hidden = true;
     $("hud").hidden = false;
-    document.body.classList.remove("cache", "danger");
+    document.body.classList.remove("cache", "danger", "hunt", "flicker");
     try {
       audio ??= new (window.AudioContext || window.webkitAudioContext)();
       await audio.resume();
@@ -757,6 +804,7 @@
           ? "Tres llaves. Vuelve a la puerta principal."
           : target.name + " encontrada.",
       );
+      disturbance("Algo despertó en la casa.", true);
     } else if (target.type === "armario") {
       S.hidden = true;
       S.flash = false;
@@ -847,6 +895,7 @@
     S.ghostX = 0;
     S.ghostZ = -14;
     S.seen = 0;
+    S.hunt = 0;
     S.route = [];
     S.grace = 14;
     S.repath = 0;
@@ -868,6 +917,23 @@
     dt = Math.min(dt, 0.05);
     S.elapsed += dt;
     S.grace = Math.max(0, S.grace - dt);
+    S.hunt = Math.max(0, S.hunt - dt);
+    S.flicker = Math.max(0, S.flicker - dt);
+    S.eventIn -= dt;
+    if (S.eventIn <= 0) {
+      S.eventIn = 13 + Math.random() * 12;
+      const events = [
+        "Una puerta se cerró en algún lugar.",
+        "Escuchas una respiración detrás de las paredes.",
+        "Las luces se apagan por un instante.",
+      ];
+      disturbance(events[(Math.random() * events.length) | 0]);
+    }
+    document.body.classList.toggle(
+      "flicker",
+      S.flicker > 0 && Math.sin(t * 30) > -0.2,
+    );
+    document.body.classList.toggle("hunt", S.hunt > 0);
     noticeTime -= dt;
     if (noticeTime <= 0) $("aviso").textContent = "";
     let forward =
@@ -927,7 +993,7 @@
       !S.hidden &&
       ((visible && distance < (S.flash ? 12 : 4)) ||
         (running && moving && distance < 15));
-    if (detect) S.seen = 4;
+    if (detect || (S.hunt > 0 && distance < 11 && !S.hidden)) S.seen = 4;
     else S.seen = Math.max(0, S.seen - dt);
     S.repath -= dt;
     if (S.repath <= 0) {
@@ -949,7 +1015,7 @@
         dx = x - S.ghostX,
         dz = z - S.ghostZ,
         len = Math.hypot(dx, dz),
-        step = Math.min(len, dt * (S.seen > 0 ? 2.8 : 1.1));
+        step = Math.min(len, dt * (S.seen > 0 ? 3.35 : 1.1));
       if (len < 0.15) S.route.shift();
       else {
         const nx = S.ghostX + (dx / len) * step,
@@ -967,6 +1033,10 @@
       S.ghostZ,
     );
     const danger = !S.hidden && distance < 6 && S.grace === 0;
+    eyes.forEach((eye) => {
+      eye.material.opacity = clamp((7 - distance) / 5, 0, 0.95);
+      eye.visible = distance < 7;
+    });
     document.body.classList.toggle("danger", danger);
     if (!S.hidden && visible && distance < 0.8 && S.grace === 0) catchPlayer();
     if (danger && Math.floor(S.elapsed * 2) !== S.beat) {
@@ -1024,6 +1094,15 @@
         : danger
           ? "Escuchas pasos cerca…"
           : "La casa escucha";
+    $("pulso").querySelector("span").textContent = S.hidden
+      ? "OCULTO"
+      : S.seen > 0
+        ? "HUYE"
+        : danger
+          ? "CERCA"
+          : S.hunt > 0
+            ? "INQUIETO"
+            : "CALMA";
     $("linterna").textContent =
       `${S.flash ? "●" : "○"} Linterna ${Math.ceil(S.battery)}%`;
   }
