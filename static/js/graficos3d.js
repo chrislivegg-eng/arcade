@@ -99,6 +99,12 @@
 
   function material(opciones = {}) {
     const o = { ...opciones };
+    // Base PBR compartida: evita superficies planas aunque un juego no defina
+    // manualmente todos los acabados.
+    if (o.roughness == null) o.roughness = 0.48;
+    if (o.metalness == null) o.metalness = 0.035;
+    if (o.envMapIntensity == null) o.envMapIntensity = 0.72;
+    if (o.dithering == null) o.dithering = true;
     if (!o.bumpMap && !o.transparent && !o.vertexColors) {
       o.bumpMap = textura((o.metalness || 0) > 0.4 ? "metal" : "micro", 2);
       o.bumpScale = (o.metalness || 0) > 0.4 ? 0.0008 : 0.0012;
@@ -229,6 +235,26 @@
       tamanos: new Map(),
     };
     mundos.add(estado);
+    // Grado cinematográfico común inspirado en los mundos nuevos del portal:
+    // luz ambiente fría, un rebote cálido y contraste moderado.
+    M.renderer.toneMappingExposure =
+      tema === "espacio" ? 1.18 : tema === "cielo" ? 1.1 : 1.14;
+    if (!M.escena.userData.acabadoCinematico) {
+      M.escena.userData.acabadoCinematico = true;
+      const cielo =
+        tema === "espacio" ? 0x526da6 : tema === "cielo" ? 0xb9dcff : 0x84bdf5;
+      const suelo = tema === "cielo" ? 0x5a3540 : 0x150c25;
+      const rebote = new THREE.HemisphereLight(cielo, suelo, 0.28);
+      M.escena.add(rebote);
+      const contorno = new THREE.PointLight(
+        tema === "espacio" ? 0x9c7dff : 0x63dfff,
+        0.38,
+        28,
+        2,
+      );
+      contorno.position.set(-7, 5, -4);
+      M.escena.add(contorno);
+    }
     // Se ejecuta cuando la escena del juego ya terminó de construir sus luces.
     requestAnimationFrame(() => {
       M.escena.traverse((o) => {
