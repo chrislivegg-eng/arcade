@@ -1,0 +1,1290 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0d0b1e" />
+    <title>Torre de Poder 3D · Chris Arcade</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
+    <style>
+      #hud-torre {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 4;
+        font-family: "Nunito", sans-serif;
+        overflow: hidden;
+      }
+      #hud-torre.oculto {
+        display: none;
+      }
+
+      /* Panel superior de Reino, Vidas y Rango del Héroe */
+      #panel-reino {
+        position: fixed;
+        top: calc(88px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(480px, 92vw);
+        background: linear-gradient(135deg, rgba(17, 14, 38, 0.9), rgba(32, 18, 58, 0.88));
+        backdrop-filter: blur(8px);
+        border: 2px solid rgba(250, 204, 21, 0.45);
+        border-radius: 20px;
+        padding: 9px 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .reino-info {
+        display: flex;
+        flex-direction: column;
+      }
+      #titulo-reino {
+        color: #fef08a;
+        font-weight: 900;
+        font-size: 0.9rem;
+        letter-spacing: 0.04em;
+      }
+      #rango-heroe {
+        color: #c4b5fd;
+        font-weight: 800;
+        font-size: 0.76rem;
+      }
+      .reino-estado {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 900;
+        font-size: 1rem;
+      }
+      #vidas-heroe {
+        letter-spacing: 2px;
+      }
+      #monedas-torre {
+        color: #fde047;
+      }
+
+      /* Etiquetas HTML nítidas que flotan sobre cada personaje/piso 3D */
+      #capa-etiquetas {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .etiqueta-poder {
+        position: absolute;
+        transform: translate(-50%, -100%);
+        padding: 3px 12px;
+        border-radius: 999px;
+        font-weight: 900;
+        font-size: 1.05rem;
+        color: #fff;
+        white-space: nowrap;
+        border: 2.5px solid #fff;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+        text-shadow: 0 2px 3px rgba(0, 0, 0, 0.65);
+        transition: transform 0.14s cubic-bezier(0.2, 1.6, 0.4, 1);
+      }
+      .etiqueta-poder.heroe {
+        background: linear-gradient(135deg, #2563eb, #06b6d4);
+        font-size: 1.2rem;
+        padding: 4px 15px;
+        border-color: #fef08a;
+        box-shadow: 0 0 18px rgba(6, 182, 212, 0.7);
+      }
+      .etiqueta-poder.enemigo-ganable {
+        background: linear-gradient(135deg, #16a34a, #22c55e);
+        border-color: #bbf7d0;
+      }
+      .etiqueta-poder.enemigo-peligro {
+        background: linear-gradient(135deg, #dc2626, #991b1b);
+        border-color: #fecaca;
+      }
+      .etiqueta-poder.tesoro {
+        background: linear-gradient(135deg, #d97706, #facc15);
+        color: #1e1b4b;
+        text-shadow: none;
+        border-color: #fff;
+      }
+      .etiqueta-poder.jefe {
+        background: linear-gradient(135deg, #7f1d1d, #e11d48, #f97316);
+        font-size: 1.18rem;
+        border-color: #fde047;
+        box-shadow: 0 0 20px rgba(225, 29, 72, 0.8);
+      }
+
+      /* Botones invisibles/interactivos sobre cada piso para clic directo en celular/PC */
+      .boton-piso {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        width: 138px;
+        height: 76px;
+        border-radius: 16px;
+        border: 2px solid transparent;
+        background: transparent;
+        pointer-events: auto;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s, transform 0.15s;
+      }
+      .boton-piso:hover,
+      .boton-piso:focus-visible {
+        border-color: rgba(250, 204, 21, 0.9);
+        background: rgba(250, 204, 21, 0.12);
+        transform: translate(-50%, -50%) scale(1.05);
+        outline: none;
+      }
+
+      .flotante-torre {
+        position: absolute;
+        font-weight: 900;
+        font-size: 1.4rem;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        text-shadow:
+          0 3px 0 rgba(0, 0, 0, 0.8),
+          0 0 14px rgba(0, 0, 0, 0.6);
+        animation: flotarTorre 0.95s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        white-space: nowrap;
+      }
+      @keyframes flotarTorre {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -10%) scale(0.45);
+        }
+        22% {
+          opacity: 1;
+          transform: translate(-50%, -65%) scale(1.22);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -170%) scale(0.95);
+        }
+      }
+
+      #guia-torre {
+        position: fixed;
+        bottom: calc(20px + env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(15, 12, 34, 0.86);
+        border: 1px solid rgba(250, 204, 21, 0.45);
+        color: #fef9c3;
+        padding: 8px 18px;
+        border-radius: 999px;
+        font-weight: 900;
+        font-size: 0.84rem;
+        text-align: center;
+        max-width: 92vw;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lienzo"></canvas>
+
+    <div id="hud-torre" class="oculto">
+      <div id="panel-reino">
+        <div class="reino-info">
+          <span id="titulo-reino">🏰 FORTALEZA 1 · CASTILLO DE CENIZA</span>
+          <span id="rango-heroe">⚔️ Escudero de Plata</span>
+        </div>
+        <div class="reino-estado">
+          <span id="vidas-heroe">❤️❤️❤️</span>
+          <span id="monedas-torre">🪙 0</span>
+        </div>
+      </div>
+
+      <div id="capa-etiquetas"></div>
+      <div id="capa-fx-torre"></div>
+      <div id="guia-torre">
+        👆 Toca un piso con poder menor o igual al tuyo (🟢) para asaltarlo y absorber su fuerza
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/arcade3d.js') }}"></script>
+    <script>
+      const { $, esperar, azar, limitar, lin, sonar } = Arcade;
+
+      // =========================================================
+      //  ESCENA 3D ÉPICA (FORTALEZA MEDIEVAL SOBRE LAVA VOLCÁNICA)
+      // =========================================================
+      const M = Arcade.mundo({
+        fondo: 0x110d26,
+        fov: 46,
+        niebla: [28, 92],
+        exposicion: 1.18,
+        colorAmbiente: 0xbba8ff,
+        lejos: 130,
+      });
+      const { escena, camara } = M;
+      const acabado3D = Graficos3D.configurar(M, "espacio");
+
+      const mat = (color, extra = {}) =>
+        Arcade.materialPBR({
+          color: lin(color),
+          roughness: 0.45,
+          metalness: 0.18,
+          ...extra,
+        });
+
+      escena.add(new THREE.HemisphereLight(0xe0d4ff, 0x2a1215, 0.85));
+
+      const sol = new THREE.DirectionalLight(0xffe8b8, 1.35);
+      sol.position.set(12, 22, 18);
+      sol.castShadow = true;
+      sol.shadow.mapSize.set(2048, 2048);
+      Object.assign(sol.shadow.camera, {
+        left: -14,
+        right: 14,
+        top: 16,
+        bottom: -10,
+        near: 2,
+        far: 60,
+      });
+      escena.add(sol, sol.target);
+
+      // Luz cálida inferior proveniente del foso de lava
+      const luzLava = new THREE.PointLight(0xff4500, 1.6, 32);
+      luzLava.position.set(0, -2, 4);
+      escena.add(luzLava);
+
+      // Mar de lava incandescente bajo las torres
+      const texLava = M.textura(256, 256, (g, w, h) => {
+        const grad = g.createLinearGradient(0, 0, w, h);
+        grad.addColorStop(0, "#7f1d1d");
+        grad.addColorStop(0.5, "#ea580c");
+        grad.addColorStop(1, "#facc15");
+        g.fillStyle = grad;
+        g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 450; i++) {
+          g.fillStyle = Math.random() > 0.4 ? "rgba(254, 240, 138, 0.35)" : "rgba(69, 10, 10, 0.45)";
+          g.beginPath();
+          g.arc(Math.random() * w, Math.random() * h, azar(4, 18), 0, Math.PI * 2);
+          g.fill();
+        }
+      });
+      texLava.wrapS = texLava.wrapT = THREE.RepeatWrapping;
+      texLava.repeat.set(8, 8);
+
+      const fosoLava = new THREE.Mesh(
+        new THREE.PlaneGeometry(160, 120),
+        new THREE.MeshBasicMaterial({ map: texLava }),
+      );
+      fosoLava.rotation.x = -Math.PI / 2;
+      fosoLava.position.set(0, -3.2, -6);
+      escena.add(fosoLava);
+
+      // Materiales arquitectónicos de castillo 3D
+      const matPiedraTorre = mat(0x475569, { roughness: 0.78, metalness: 0.12 });
+      const matPiedraOscura = mat(0x334155, { roughness: 0.82, metalness: 0.15 });
+      const matMaderaPiso = mat(0x78350f, { roughness: 0.7 });
+      const matOroReal = mat(0xfacc15, {
+        metalness: 0.85,
+        roughness: 0.18,
+        clearcoat: 0.7,
+      });
+      const matPlataReal = mat(0xe2e8f0, {
+        metalness: 0.8,
+        roughness: 0.22,
+        clearcoat: 0.6,
+      });
+      const matAceroOscuro = mat(0x1e1b4b, {
+        metalness: 0.75,
+        roughness: 0.28,
+        clearcoat: 0.5,
+      });
+
+      // =========================================================
+      //  MODELOS 3D: CABALLERO HÉROE, GUARDIAS, JEFES Y TESOROS
+      // =========================================================
+      function crearCaballero3D(nivelEvolucion = 0) {
+        const g = new THREE.Group();
+        const mArmadura =
+          nivelEvolucion >= 2
+            ? mat(0x06b6d4, { metalness: 0.75, roughness: 0.15, clearcoat: 0.9 })
+            : nivelEvolucion === 1
+              ? matOroReal
+              : matPlataReal;
+        const mCapa = mat(
+          nivelEvolucion >= 2 ? 0xfacc15 : nivelEvolucion === 1 ? 0xdc2626 : 0x2563eb,
+          { roughness: 0.6 },
+        );
+
+        // Piernas
+        const pIzq = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.16, 0.36, 0.16, 0.04),
+          mArmadura,
+        );
+        pIzq.position.set(-0.12, 0.18, 0);
+        const pDer = pIzq.clone();
+        pDer.position.x = 0.12;
+
+        // Torso blindado y capa
+        const torso = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.44, 0.48, 0.28, 0.08),
+          mArmadura,
+        );
+        torso.position.y = 0.56;
+        torso.castShadow = true;
+
+        const capa = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.42, 0.56, 0.06, 0.02),
+          mCapa,
+        );
+        capa.position.set(0, 0.5, -0.17);
+        capa.rotation.x = 0.12;
+
+        // Cabeza y yelmo con penacho
+        const yelmo = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.34, 0.34, 0.34, 0.09),
+          mArmadura,
+        );
+        yelmo.position.y = 0.98;
+        yelmo.castShadow = true;
+
+        const visor = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.26, 0.08, 0.08, 0.02),
+          new THREE.MeshBasicMaterial({
+            color: nivelEvolucion >= 2 ? 0xfef08a : 0x38bdf8,
+          }),
+        );
+        visor.position.set(0, 0.98, 0.16);
+
+        const penacho = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.1, 0.22, 0.28, 0.04),
+          mCapa,
+        );
+        penacho.position.set(0, 1.22, -0.02);
+
+        // Escudo en brazo izquierdo
+        const escudo = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.1, 0.44, 0.36, 0.04),
+          nivelEvolucion >= 1 ? matOroReal : mCapa,
+        );
+        escudo.position.set(-0.3, 0.56, 0.08);
+
+        // Brazo derecho y Espada 3D articulada
+        const pivoteEspada = new THREE.Group();
+        pivoteEspada.position.set(0.3, 0.62, 0.05);
+
+        const empuñadura = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.24, 0.06, 0.08, 0.02),
+          matOroReal,
+        );
+        empuñadura.position.y = 0.12;
+        const hojaLargo = 0.58 + nivelEvolucion * 0.18;
+        const hoja = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.09, hojaLargo, 0.04, 0.015),
+          nivelEvolucion >= 2
+            ? new THREE.MeshBasicMaterial({ color: 0x67e8f9 })
+            : nivelEvolucion === 1
+              ? matOroReal
+              : matPlataReal,
+        );
+        hoja.position.y = 0.14 + hojaLargo / 2;
+        pivoteEspada.add(empuñadura, hoja);
+
+        g.add(pIzq, pDer, torso, capa, yelmo, visor, penacho, escudo, pivoteEspada);
+        g.rotation.y = Math.PI * 0.42;
+        g.userData = { pivoteEspada, evolucion: nivelEvolucion };
+        return g;
+      }
+
+      function crearEnemigoTorre3D(esJefe = false, variante = 0) {
+        const g = new THREE.Group();
+        const escala = esJefe ? 1.38 : 0.96;
+        const mCuerpo = esJefe
+          ? mat(0x991b1b, { metalness: 0.5, roughness: 0.25, clearcoat: 0.7 })
+          : variante % 2 === 0
+            ? mat(0x3f6212, { roughness: 0.5 }) // Orco
+            : matAceroOscuro; // Caballero Oscuro
+
+        const torso = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.48, 0.52, 0.32, 0.08),
+          mCuerpo,
+        );
+        torso.position.y = 0.54;
+        torso.castShadow = true;
+
+        const cabeza = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.36, 0.36, 0.34, 0.08),
+          mCuerpo,
+        );
+        cabeza.position.y = 0.98;
+
+        const ojos = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.26, 0.08, 0.08, 0.02),
+          new THREE.MeshBasicMaterial({ color: esJefe ? 0xfacc15 : 0xff2a55 }),
+        );
+        ojos.position.set(0, 0.98, 0.16);
+
+        // Cuernos si es jefe o caballero oscuro
+        if (esJefe || variante % 2 === 1) {
+          for (const lado of [-1, 1]) {
+            const cuerno = new THREE.Mesh(
+              new THREE.ConeGeometry(0.07, 0.28, 8),
+              matOroReal,
+            );
+            cuerno.position.set(lado * 0.2, 1.2, 0);
+            cuerno.rotation.z = -lado * 0.35;
+            g.add(cuerno);
+          }
+        }
+
+        // Maza / Hacha de guerra
+        const pivoteArma = new THREE.Group();
+        pivoteArma.position.set(-0.32, 0.58, 0.08);
+        const mango = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.04, 0.04, 0.65, 8),
+          matMaderaPiso,
+        );
+        mango.position.y = 0.22;
+        const cabezaHacha = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.32, 0.22, 0.12, 0.03),
+          esJefe ? mat(0xf97316, { emissive: 0x9a3412 }) : matPlataReal,
+        );
+        cabezaHacha.position.y = 0.52;
+        pivoteArma.add(mango, cabezaHacha);
+
+        g.add(torso, cabeza, ojos, pivoteArma);
+        g.scale.setScalar(escala);
+        g.rotation.y = -Math.PI * 0.42;
+        g.userData = { pivoteArma };
+        return g;
+      }
+
+      function crearTesoro3D(operacion) {
+        const g = new THREE.Group();
+        if (operacion === "x") {
+          // Espada legendaria en pedestal de cristal
+          const pedestal = new THREE.Mesh(
+            Graficos3D.cajaSuave(0.55, 0.24, 0.55, 0.06),
+            matOroReal,
+          );
+          pedestal.position.y = 0.12;
+          const espada = new THREE.Mesh(
+            Graficos3D.cajaSuave(0.14, 0.85, 0.06, 0.02),
+            new THREE.MeshBasicMaterial({ color: 0xfef08a }),
+          );
+          espada.position.y = 0.68;
+          g.add(pedestal, espada);
+          g.userData = { giratorio: espada };
+        } else {
+          // Cofre real dorado y rubí
+          const base = new THREE.Mesh(
+            Graficos3D.cajaSuave(0.62, 0.42, 0.46, 0.06),
+            mat(0xb45309, { roughness: 0.4, metalness: 0.4 }),
+          );
+          base.position.y = 0.24;
+          const tapa = new THREE.Mesh(
+            Graficos3D.cajaSuave(0.66, 0.22, 0.5, 0.06),
+            matOroReal,
+          );
+          tapa.position.y = 0.5;
+          g.add(base, tapa);
+          g.userData = { giratorio: g };
+        }
+        return g;
+      }
+
+      // =========================================================
+      //  CONSTRUCCIÓN DE PISOS Y TORRES 3D
+      // =========================================================
+      const ALTO_PISO = 2.05;
+      const ANCHO_SALA = 2.75;
+      const PROF_SALA = 2.2;
+
+      function crearEstructuraSala3D(x, y, esTorreHeroe = false, esCima = false) {
+        const sala = new THREE.Group();
+        sala.position.set(x, y, 0);
+
+        // Piso de piedra tallada
+        const piso = new THREE.Mesh(
+          Graficos3D.cajaSuave(ANCHO_SALA, 0.26, PROF_SALA, 0.05),
+          matPiedraTorre,
+        );
+        piso.position.y = -0.13;
+        piso.receiveShadow = piso.castShadow = true;
+        acabado3D.superficie(piso, "roca", { repetir: 2 });
+        sala.add(piso);
+
+        // Pared trasera de castillo
+        const pared = new THREE.Mesh(
+          Graficos3D.cajaSuave(ANCHO_SALA - 0.16, ALTO_PISO - 0.2, 0.26, 0.04),
+          matPiedraOscura,
+        );
+        pared.position.set(0, ALTO_PISO / 2 - 0.1, -PROF_SALA / 2 + 0.15);
+        pared.receiveShadow = true;
+        acabado3D.superficie(pared, "roca", { repetir: 2 });
+        sala.add(pared);
+
+        // Columnas laterales
+        for (const lado of [-1, 1]) {
+          const col = new THREE.Mesh(
+            Graficos3D.cajaSuave(0.28, ALTO_PISO, 0.34, 0.04),
+            matPiedraTorre,
+          );
+          col.position.set(
+            lado * (ANCHO_SALA / 2 - 0.16),
+            ALTO_PISO / 2 - 0.1,
+            0.35,
+          );
+          col.castShadow = true;
+          sala.add(col);
+        }
+
+        // Marco luminoso indicador de estado (para pisos enemigos)
+        let marcoLuz = null;
+        if (!esTorreHeroe) {
+          marcoLuz = new THREE.Mesh(
+            Graficos3D.cajaSuave(ANCHO_SALA + 0.06, 0.12, PROF_SALA + 0.06, 0.03),
+            new THREE.MeshBasicMaterial({ color: 0x22c55e }),
+          );
+          marcoLuz.position.y = 0.02;
+          sala.add(marcoLuz);
+        }
+
+        // Almenas de castillo si es la cima de la torre
+        if (esCima) {
+          const techo = new THREE.Mesh(
+            Graficos3D.cajaSuave(ANCHO_SALA + 0.2, 0.26, PROF_SALA + 0.16, 0.05),
+            matPiedraTorre,
+          );
+          techo.position.y = ALTO_PISO - 0.05;
+          sala.add(techo);
+          for (let i = -2; i <= 2; i++) {
+            const almena = new THREE.Mesh(
+              Graficos3D.cajaSuave(0.36, 0.34, 0.36, 0.04),
+              matPiedraTorre,
+            );
+            almena.position.set(i * 0.56, ALTO_PISO + 0.22, PROF_SALA / 2 - 0.18);
+            sala.add(almena);
+          }
+        }
+
+        sala.userData = { marcoLuz };
+        return sala;
+      }
+
+      // =========================================================
+      //  ESTADO DEL JUEGO Y GENERADOR MATEMÁTICO DE TORRES
+      // =========================================================
+      const grupoCastillo = new THREE.Group();
+      escena.add(grupoCastillo);
+
+      const T = {
+        activo: false,
+        ocupado: false,
+        tiempo: 0,
+        reino: 1,
+        vidas: 3,
+        poderHeroe: 15,
+        puntos: 0,
+        monedas: 0,
+        sacudida: 0,
+        heroe: null,
+        posHeroeBase: new THREE.Vector3(-3.3, 0, 0),
+        salasHeroe: [],
+        pisosEnemigos: [],
+        particulas: [],
+      };
+
+      const NOMBRES_REINOS = [
+        "CASTILLO DE CENIZA",
+        "BASTIÓN DE CRISTAL",
+        "CIUDADELA DEL DRAGÓN",
+        "TORREÓN DEL ABISMO",
+        "FORTALEZA SOLAR",
+      ];
+
+      function actualizarAparienciaHeroe() {
+        const nivelEvo = T.poderHeroe >= 250 ? 2 : T.poderHeroe >= 70 ? 1 : 0;
+        const rangos = [
+          "⚔️ Escudero de Plata",
+          "👑 Paladín de Oro Real",
+          "🐉 Señor Dragón Celestial",
+        ];
+        $("rango-heroe").textContent = rangos[nivelEvo];
+
+        if (!T.heroe || T.heroe.userData.evolucion !== nivelEvo) {
+          const posAnt = T.heroe
+            ? T.heroe.position.clone()
+            : T.posHeroeBase.clone();
+          if (T.heroe) grupoCastillo.remove(T.heroe);
+          T.heroe = crearCaballero3D(nivelEvo);
+          T.heroe.position.copy(posAnt);
+          grupoCastillo.add(T.heroe);
+        }
+      }
+
+      function textoFlotanteTorre(texto, color, pos3d) {
+        const capa = $("capa-fx-torre");
+        if (!capa) return;
+        const v = pos3d.clone().project(camara);
+        const px = (v.x * 0.5 + 0.5) * window.innerWidth;
+        const py = (-v.y * 0.5 + 0.5) * window.innerHeight;
+        const div = document.createElement("div");
+        div.className = "flotante-torre";
+        div.style.left = `${limitar(px, 60, window.innerWidth - 60)}px`;
+        div.style.top = `${limitar(py, 80, window.innerHeight - 80)}px`;
+        div.style.color = color;
+        div.textContent = texto;
+        capa.appendChild(div);
+        setTimeout(() => div.remove(), 950);
+      }
+
+      function chispasCombate(pos, colorHex, n = 16) {
+        const geo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
+        const m = new THREE.MeshBasicMaterial({ color: colorHex });
+        for (let i = 0; i < n; i++) {
+          const p = new THREE.Mesh(geo, m);
+          p.position.copy(pos);
+          const ang = Math.random() * Math.PI * 2;
+          const v = azar(2.5, 7.5);
+          p.userData = {
+            vx: Math.cos(ang) * v,
+            vy: azar(2.5, 7),
+            vz: Math.sin(ang) * v,
+            vida: azar(0.3, 0.6),
+          };
+          grupoCastillo.add(p);
+          T.particulas.push(p);
+        }
+      }
+
+      function construirReino(numReino, semillaBase) {
+        // Limpiar geometrías previas
+        while (grupoCastillo.children.length) {
+          grupoCastillo.remove(grupoCastillo.children[0]);
+        }
+        T.salasHeroe = [];
+        T.pisosEnemigos = [];
+        T.particulas = [];
+        T.reino = numReino;
+
+        const nombreReino =
+          NOMBRES_REINOS[(numReino - 1) % NOMBRES_REINOS.length];
+        $("titulo-reino").textContent = `🏰 FORTALEZA ${numReino} · ${nombreReino}`;
+
+        const azarR = Arcade.rng(semillaBase + numReino * 1319);
+
+        // Torre izquierda del Héroe (empieza con 2 pisos de base)
+        const xHeroe = -3.25;
+        for (let i = 0; i < 2; i++) {
+          const s = crearEstructuraSala3D(xHeroe, i * ALTO_PISO, true, i === 1);
+          grupoCastillo.add(s);
+          T.salasHeroe.push(s);
+        }
+        T.posHeroeBase.set(xHeroe, 1 * ALTO_PISO, 0.15);
+        T.heroe = null;
+        actualizarAparienciaHeroe();
+
+        // Diseñamos 6 pisos en 2 torres enemigas (x = 0.25 y x = 3.45, 3 pisos cada una)
+        // Garantizamos que siempre haya una ruta matemática ganadora paso a paso
+        let simPoder = T.poderHeroe;
+        const definiciones = [];
+        for (let paso = 0; paso < 5; paso++) {
+          if (paso === 2 && azarR() > 0.25) {
+            // Espada multiplicadora x2
+            definiciones.push({
+              tipo: "tesoro",
+              operacion: "x",
+              valor: 2,
+              ordenSugerido: paso,
+            });
+            simPoder = simPoder * 2;
+          } else if (paso === 1 && azarR() > 0.55) {
+            // Cofre de bono +
+            const bono = Math.max(5, Math.round(simPoder * 0.35));
+            definiciones.push({
+              tipo: "tesoro",
+              operacion: "+",
+              valor: bono,
+              ordenSugerido: paso,
+            });
+            simPoder += bono;
+          } else {
+            // Enemigo con poder ligeramente inferior al poder simulado en ese paso
+            const factor = paso === 0 ? 0.72 : azarR() * 0.18 + 0.74;
+            const poderEnemigo = Math.max(
+              4,
+              Math.floor(simPoder * factor),
+            );
+            definiciones.push({
+              tipo: "enemigo",
+              operacion: "+",
+              valor: poderEnemigo,
+              esJefe: false,
+              ordenSugerido: paso,
+            });
+            simPoder += poderEnemigo;
+          }
+        }
+        // El 6º piso siempre es el Jefe Final de la Fortaleza
+        const poderJefe = Math.max(20, Math.floor(simPoder * 0.86));
+        definiciones.push({
+          tipo: "enemigo",
+          operacion: "+",
+          valor: poderJefe,
+          esJefe: true,
+          ordenSugerido: 5,
+        });
+
+        // Mezclamos los primeros 5 pisos en las posiciones de las dos torres; el Jefe va arriba a la derecha
+        const primerosCinco = definiciones.slice(0, 5);
+        for (let i = primerosCinco.length - 1; i > 0; i--) {
+          const j = Math.floor(azarR() * (i + 1));
+          [primerosCinco[i], primerosCinco[j]] = [primerosCinco[j], primerosCinco[i]];
+        }
+        const ordenFinal = [...primerosCinco, definiciones[5]];
+
+        const columnasX = [0.25, 3.45];
+        for (let idx = 0; idx < 6; idx++) {
+          const col = idx < 3 ? 0 : 1;
+          const fila = idx % 3;
+          const x = columnasX[col];
+          const y = fila * ALTO_PISO;
+          const def = ordenFinal[idx];
+
+          const sala = crearEstructuraSala3D(x, y, false, fila === 2);
+          grupoCastillo.add(sala);
+
+          let actor3D;
+          if (def.tipo === "tesoro") {
+            actor3D = crearTesoro3D(def.operacion);
+          } else {
+            actor3D = crearEnemigoTorre3D(def.esJefe, idx + numReino);
+          }
+          actor3D.position.set(x, y, 0.15);
+          grupoCastillo.add(actor3D);
+
+          T.pisosEnemigos.push({
+            id: idx,
+            x,
+            y,
+            sala,
+            actor3D,
+            resuelto: false,
+            ...def,
+          });
+        }
+
+        reconstruirEtiquetasDOM();
+      }
+
+      // =========================================================
+      //  ETIQUETAS HTML SOBRE CADA PISO Y BOTONES INTERACTIVOS
+      // =========================================================
+      let etiquetaHeroeDOM = null;
+
+      function reconstruirEtiquetasDOM() {
+        const capa = $("capa-etiquetas");
+        capa.innerHTML = "";
+
+        etiquetaHeroeDOM = document.createElement("div");
+        etiquetaHeroeDOM.className = "etiqueta-poder heroe";
+        capa.appendChild(etiquetaHeroeDOM);
+
+        for (const p of T.pisosEnemigos) {
+          const et = document.createElement("div");
+          et.className = "etiqueta-poder";
+          capa.appendChild(et);
+          p.etiquetaDOM = et;
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "boton-piso";
+          btn.setAttribute(
+            "aria-label",
+            p.tipo === "tesoro"
+              ? `Tesoro ${p.operacion}${p.valor}`
+              : `${p.esJefe ? "Jefe" : "Enemigo"} de poder ${p.valor}`,
+          );
+          btn.addEventListener("click", () => asaltarPiso(p));
+          capa.appendChild(btn);
+          p.botonDOM = btn;
+        }
+        actualizarEtiquetasDOM();
+      }
+
+      function actualizarEtiquetasDOM() {
+        if (!etiquetaHeroeDOM) return;
+        etiquetaHeroeDOM.textContent = `⚔️ ${T.poderHeroe}`;
+
+        for (const p of T.pisosEnemigos) {
+          if (p.resuelto) {
+            p.etiquetaDOM.style.display = "none";
+            p.botonDOM.style.display = "none";
+            if (p.sala.userData.marcoLuz) p.sala.userData.marcoLuz.visible = false;
+            continue;
+          }
+          if (p.tipo === "tesoro") {
+            p.etiquetaDOM.className = "etiqueta-poder tesoro";
+            p.etiquetaDOM.textContent =
+              p.operacion === "x" ? `🗡️ x${p.valor}` : `🎁 +${p.valor}`;
+            if (p.sala.userData.marcoLuz)
+              p.sala.userData.marcoLuz.material.color.setHex(0xfacc15);
+          } else {
+            const ganable = T.poderHeroe >= p.valor;
+            p.etiquetaDOM.className = `etiqueta-poder ${
+              p.esJefe
+                ? ganable
+                  ? "enemigo-ganable"
+                  : "jefe"
+                : ganable
+                  ? "enemigo-ganable"
+                  : "enemigo-peligro"
+            }`;
+            p.etiquetaDOM.textContent = `${p.esJefe ? "👹" : "💀"} ${p.valor}`;
+            if (p.sala.userData.marcoLuz) {
+              p.sala.userData.marcoLuz.material.color.setHex(
+                ganable ? 0x22c55e : 0xef4444,
+              );
+            }
+          }
+        }
+      }
+
+      function proyectarEtiquetas3D() {
+        if (!T.heroe || !etiquetaHeroeDOM) return;
+        const vh = T.heroe.position
+          .clone()
+          .add(new THREE.Vector3(0, 1.58, 0))
+          .project(camara);
+        etiquetaHeroeDOM.style.left = `${(vh.x * 0.5 + 0.5) * window.innerWidth}px`;
+        etiquetaHeroeDOM.style.top = `${(-vh.y * 0.5 + 0.5) * window.innerHeight}px`;
+
+        for (const p of T.pisosEnemigos) {
+          if (p.resuelto) continue;
+          const vp = new THREE.Vector3(
+            p.x,
+            p.y + (p.esJefe ? 1.85 : 1.45),
+            0.15,
+          ).project(camara);
+          p.etiquetaDOM.style.left = `${(vp.x * 0.5 + 0.5) * window.innerWidth}px`;
+          p.etiquetaDOM.style.top = `${(-vp.y * 0.5 + 0.5) * window.innerHeight}px`;
+
+          const vb = new THREE.Vector3(p.x, p.y + 0.75, 0.2).project(camara);
+          p.botonDOM.style.left = `${(vb.x * 0.5 + 0.5) * window.innerWidth}px`;
+          p.botonDOM.style.top = `${(-vb.y * 0.5 + 0.5) * window.innerHeight}px`;
+        }
+      }
+
+      // =========================================================
+      //  ANIMACIÓN DE SALTO Y DUELO EN CADA PISO
+      // =========================================================
+      async function animarSaltoHeroe(destino, duracionMs = 340) {
+        const origen = T.heroe.position.clone();
+        const inicio = performance.now();
+        while (true) {
+          const f = Math.min(1, (performance.now() - inicio) / duracionMs);
+          T.heroe.position.lerpVectors(origen, destino, f);
+          T.heroe.position.y += Math.sin(f * Math.PI) * 1.45;
+          await esperar(16);
+          if (f >= 1) break;
+        }
+        T.heroe.position.copy(destino);
+      }
+
+      async function asaltarPiso(piso) {
+        if (!T.activo || T.ocupado || piso.resuelto) return;
+        T.ocupado = true;
+
+        sonar("click");
+        const posCombate = new THREE.Vector3(piso.x - 0.65, piso.y, 0.22);
+        await animarSaltoHeroe(posCombate, 320);
+
+        // Animación de espadazo
+        for (let i = 0; i < 2; i++) {
+          T.heroe.userData.pivoteEspada.rotation.z = -1.35;
+          if (piso.actor3D.userData.pivoteArma) {
+            piso.actor3D.userData.pivoteArma.rotation.z = 1.2;
+          }
+          chispasCombate(
+            new THREE.Vector3(piso.x, piso.y + 0.8, 0.3),
+            0xfacc15,
+            10,
+          );
+          sonar("golpe");
+          await esperar(130);
+          T.heroe.userData.pivoteEspada.rotation.z = 0;
+          if (piso.actor3D.userData.pivoteArma) {
+            piso.actor3D.userData.pivoteArma.rotation.z = 0;
+          }
+          await esperar(90);
+        }
+
+        if (piso.tipo === "tesoro") {
+          piso.resuelto = true;
+          grupoCastillo.remove(piso.actor3D);
+          if (piso.operacion === "x") {
+            T.poderHeroe = T.poderHeroe * piso.valor;
+            textoFlotanteTorre(
+              `🗡️ ¡PODER x${piso.valor}! (${T.poderHeroe})`,
+              "#fde047",
+              new THREE.Vector3(piso.x, piso.y + 1.2, 0),
+            );
+          } else {
+            T.poderHeroe += piso.valor;
+            textoFlotanteTorre(
+              `🎁 +${piso.valor} PODER!`,
+              "#fde047",
+              new THREE.Vector3(piso.x, piso.y + 1.2, 0),
+            );
+          }
+          sonar("moneda");
+          T.puntos += 35 * T.reino;
+          actualizarAparienciaHeroe();
+          actualizarEtiquetasDOM();
+          await animarSaltoHeroe(T.posHeroeBase, 280);
+          T.ocupado = false;
+          marcador();
+          return;
+        }
+
+        // ¿Le gana el Héroe al enemigo de este piso?
+        if (T.poderHeroe >= piso.valor) {
+          piso.resuelto = true;
+          sonar("moneda");
+          T.sacudida = piso.esJefe ? 0.55 : 0.25;
+          chispasCombate(
+            new THREE.Vector3(piso.x, piso.y + 0.8, 0.2),
+            0x22c55e,
+            22,
+          );
+          grupoCastillo.remove(piso.actor3D);
+
+          T.poderHeroe += piso.valor;
+          T.puntos += (piso.esJefe ? 180 : 45) * T.reino;
+          T.monedas += piso.esJefe ? 15 : 3;
+          $("monedas-torre").textContent = `🪙 ${T.monedas}`;
+
+          textoFlotanteTorre(
+            `+${piso.valor} PODER ABSORBIDO!`,
+            "#4ade80",
+            new THREE.Vector3(piso.x, piso.y + 1.2, 0),
+          );
+
+          actualizarAparienciaHeroe();
+          actualizarEtiquetasDOM();
+          await animarSaltoHeroe(T.posHeroeBase, 280);
+          marcador();
+
+          // ¿Quedan pisos enemigos en esta fortaleza?
+          const pendientes = T.pisosEnemigos.filter((x) => !x.resuelto);
+          if (pendientes.length === 0) {
+            sonar("ganar");
+            ui.avisar(
+              `🏰 ¡FORTALEZA ${T.reino} CONQUISTADA!`,
+              "#facc15",
+            );
+            await esperar(1100);
+            construirReino(T.reino + 1, J.semilla || 777);
+            marcador();
+          }
+          T.ocupado = false;
+        } else {
+          // El enemigo era más fuerte: pierde 1 corazón y rebota a su torre
+          T.vidas -= 1;
+          T.sacudida = 0.48;
+          sonar("perder");
+          $("vidas-heroe").textContent =
+            "❤️".repeat(Math.max(0, T.vidas)) +
+            "🖤".repeat(Math.max(0, 3 - T.vidas));
+          chispasCombate(
+            new THREE.Vector3(piso.x, piso.y + 0.8, 0.2),
+            0xff2a55,
+            20,
+          );
+          textoFlotanteTorre(
+            `⚠️ ¡NECESITAS ${piso.valor} DE PODER!`,
+            "#ff4d6d",
+            new THREE.Vector3(piso.x, piso.y + 1.3, 0),
+          );
+          await animarSaltoHeroe(T.posHeroeBase, 300);
+
+          if (T.vidas <= 0) {
+            T.ocupado = false;
+            return finIncursion();
+          }
+          T.ocupado = false;
+        }
+      }
+
+      // =========================================================
+      //  BUCLE DE RENDERIZADO 3D
+      // =========================================================
+      M.alCuadro((dt) => {
+        T.tiempo += dt;
+        texLava.offset.x = (texLava.offset.x + dt * 0.04) % 1;
+        texLava.offset.y = (texLava.offset.y + dt * 0.025) % 1;
+        luzLava.intensity = 1.45 + Math.sin(T.tiempo * 4.5) * 0.25;
+
+        // Animar respiración de personajes y giro de tesoros
+        if (T.heroe && !T.ocupado) {
+          T.heroe.position.y =
+            T.posHeroeBase.y + Math.sin(T.tiempo * 3.5) * 0.05;
+        }
+        for (const p of T.pisosEnemigos) {
+          if (p.resuelto) continue;
+          if (p.tipo === "tesoro" && p.actor3D.userData.giratorio) {
+            p.actor3D.userData.giratorio.rotation.y += dt * 2.2;
+          } else {
+            p.actor3D.position.y =
+              p.y + Math.sin(T.tiempo * 3.2 + p.id) * 0.05;
+          }
+        }
+
+        // Actualizar partículas
+        for (let i = T.particulas.length - 1; i >= 0; i--) {
+          const p = T.particulas[i];
+          p.position.x += p.userData.vx * dt;
+          p.position.y += p.userData.vy * dt;
+          p.position.z += p.userData.vz * dt;
+          p.userData.vy -= 16 * dt;
+          p.rotation.x += dt * 7;
+          p.userData.vida -= dt;
+          if (p.userData.vida <= 0) {
+            grupoCastillo.remove(p);
+            T.particulas.splice(i, 1);
+          }
+        }
+
+        // Cámara enfocando las 3 torres
+        T.sacudida = Math.max(0, T.sacudida - dt * 2.2);
+        const sx = (Math.random() - 0.5) * T.sacudida;
+        const sy = (Math.random() - 0.5) * T.sacudida;
+        const esVertical = window.innerWidth < 680;
+        camara.position.set(
+          0.15 + sx,
+          (esVertical ? 3.2 : 2.95) + sy,
+          esVertical ? 14.8 : 11.4,
+        );
+        camara.lookAt(0.15, 2.35, 0);
+
+        if (T.activo) proyectarEtiquetas3D();
+      });
+
+      // =========================================================
+      //  INTEGRACIÓN CON ARCADE.UI, DUELOS Y RÉCORDS
+      // =========================================================
+      const J = {
+        modo: null,
+        nombres: [],
+        resultados: [null, null],
+        turno: 0,
+        rival: 0,
+      };
+
+      const ui = Arcade.ui({
+        juego: "torre_poder",
+        titulo: "Torre de Poder 3D",
+        emoji: "🏰",
+        subtitulo:
+          "Elige el piso correcto, absorbe la fuerza de tus enemigos y conquista la fortaleza",
+        modos: ["solo", "online", "local"],
+        textosModo: {
+          solo: "🏆 Campaña de Reinos (Récord)",
+          online: "🌐 Duelo online con un amigo",
+          local: "👥 2 jugadores (por turnos)",
+        },
+        records: true,
+        unidadRecord: "pts",
+        reglas: [
+          "⚔️ Tu caballero tiene un número de Poder sobre la cabeza.",
+          "🟢 Ataca primero a los pisos con enemigos de poder menor o igual al tuyo para absorber su fuerza.",
+          "🗡️ Recoge cofres (+) y espadas legendarias (x2) para multiplicar tu poder antes de retar al Jefe (👹).",
+          "❤️ Tienes 3 corazones por incursión: ¡calcula bien el orden de ataque en cada fortaleza!",
+        ],
+        alEmpezar: empezar,
+        alSalir: () => {
+          T.activo = false;
+          J.modo = null;
+          $("hud-torre").classList.add("oculto");
+        },
+      });
+
+      ui.alEvento = (tipo, d) => {
+        if (!d || d.partida !== J.partida) return;
+        if (tipo === "puntos") J.rival = d.puntos;
+        if (tipo === "fin") {
+          J.rival = d.puntos;
+          J.rivalTermino = true;
+          J.alTerminarRival && J.alTerminarRival();
+        }
+        marcador();
+      };
+
+      function marcador() {
+        const mio = T.puntos;
+        if (J.modo === "online") {
+          ui.enviar("puntos", { partida: J.partida, puntos: mio });
+        }
+        if (J.modo === "solo") {
+          return ui.marcador([
+            {
+              nombre: J.nombres[0] || "Héroe",
+              valor: mio,
+              detalle: `Fortaleza ${T.reino} · ⚔️ ${T.poderHeroe}`,
+              activo: true,
+            },
+            null,
+          ]);
+        }
+        if (J.modo === "online") {
+          const yo = ui.yo;
+          const v = yo === 0 ? [mio, J.rival] : [J.rival, mio];
+          return ui.marcador(
+            [0, 1].map((i) => ({
+              nombre: J.nombres[i] + (i === yo ? " (tú)" : ""),
+              valor: v[i],
+              detalle:
+                i === yo
+                  ? `Fortaleza ${T.reino} · ⚔️ ${T.poderHeroe}`
+                  : J.rivalTermino
+                    ? "terminó"
+                    : "🌐 conquistando",
+              activo: i === yo,
+            })),
+          );
+        }
+        ui.marcador(
+          [0, 1].map((i) => ({
+            nombre: J.nombres[i],
+            valor:
+              i === J.turno
+                ? mio
+                : J.resultados[i] == null
+                  ? "—"
+                  : J.resultados[i],
+            detalle:
+              i === J.turno
+                ? `Fortaleza ${T.reino} · ⚔️ ${T.poderHeroe}`
+                : J.resultados[i] == null
+                  ? "espera su turno"
+                  : "terminó",
+            activo: i === J.turno,
+          })),
+        );
+      }
+
+      function empezar(modo, info) {
+        Object.assign(J, {
+          modo,
+          nombres: info.nombres,
+          partida: info.partida,
+          semilla: info.semilla || 777,
+          resultados: [null, null],
+          turno: 0,
+          rival: 0,
+          rivalTermino: false,
+          alTerminarRival: null,
+        });
+        iniciarCampana();
+      }
+
+      function iniciarCampana() {
+        T.activo = true;
+        T.ocupado = false;
+        T.vidas = 3;
+        T.poderHeroe = 15;
+        T.puntos = 0;
+        T.monedas = 0;
+        $("vidas-heroe").textContent = "❤️❤️❤️";
+        $("monedas-torre").textContent = "🪙 0";
+        construirReino(1, J.semilla);
+        $("hud-torre").classList.remove("oculto");
+        marcador();
+        ui.avisar("🏰 ¡ELIGE UN PISO PARA ATACAR!", "#facc15");
+      }
+
+      async function finIncursion() {
+        T.activo = false;
+        const pts = T.puntos;
+        const nota = `Fortaleza ${T.reino} · Poder máximo ⚔️ ${T.poderHeroe}`;
+
+        if (J.modo === "solo") {
+          if (
+            await ui.ofrecerRevivir({
+              texto: "Recupera tus 3 corazones y duplica el poder de tu caballero (x2).",
+            })
+          ) {
+            T.vidas = 3;
+            T.poderHeroe *= 2;
+            $("vidas-heroe").textContent = "❤️❤️❤️";
+            actualizarAparienciaHeroe();
+            actualizarEtiquetasDOM();
+            T.activo = true;
+            ui.avisar("⚡ ¡PODER DUPLICADO!", "#22c55e");
+            return;
+          }
+          $("hud-torre").classList.add("oculto");
+          return ui.terminar({
+            emoji: "🏰",
+            texto: `¡${pts} puntos!`,
+            nota,
+            record: pts,
+            gano: T.reino > 1 || pts >= 150,
+          });
+        }
+
+        if (J.modo === "local") {
+          J.resultados[J.turno] = pts;
+          if (J.turno === 0) {
+            J.turno = 1;
+            ui.avisar(`Turno de ${J.nombres[1]}`, "#4fb3ff");
+            await esperar(1200);
+            return iniciarCampana();
+          }
+          $("hud-torre").classList.add("oculto");
+          const [a, b] = J.resultados;
+          return ui.terminar({
+            emoji: a === b ? "🤝" : "🏆",
+            texto: a === b ? "¡Empate!" : `¡Ganó ${J.nombres[a > b ? 0 : 1]}!`,
+            nota: `${J.nombres[0]}: ${a} pts · ${J.nombres[1]}: ${b} pts`,
+          });
+        }
+
+        ui.enviar("fin", { partida: J.partida, puntos: pts });
+        if (!J.rivalTermino) {
+          ui.avisar("Esperando a tu rival…", "#4fb3ff");
+          await Promise.race([
+            new Promise((r) => (J.alTerminarRival = r)),
+            esperar(90000),
+          ]);
+        }
+        $("hud-torre").classList.add("oculto");
+        const yo = ui.yo;
+        const gane = pts > J.rival,
+          empate = pts === J.rival;
+        ui.terminar({
+          emoji: empate ? "🤝" : gane ? "🏆" : "💀",
+          texto: empate
+            ? "¡Empate!"
+            : gane
+              ? "¡Conquistaste más fortalezas!"
+              : `Ganó ${J.nombres[1 - yo]}`,
+          nota: `Tú: ${pts} pts · ${J.nombres[1 - yo]}: ${J.rival} pts`,
+          record: pts,
+          gano: gane,
+        });
+      }
+
+      // Escena inicial de fondo para el menú
+      construirReino(1, 777);
+    </script>
+  </body>
+</html>
