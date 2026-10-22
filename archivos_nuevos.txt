@@ -126,3 +126,4 @@ static/mansion.css
 static/js/mansion.js
 templates/juego_escuadron.html
 templates/juego_torre_poder.html
+templates/juego_alfileres.html
