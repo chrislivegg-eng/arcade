@@ -31,62 +31,107 @@
 
       #panel-camara {
         position: fixed;
-        top: calc(88px + env(safe-area-inset-top));
+        top: calc(84px + env(safe-area-inset-top));
         left: 50%;
         transform: translateX(-50%);
-        width: min(500px, 92vw);
-        background: linear-gradient(135deg, rgba(24, 14, 36, 0.92), rgba(42, 22, 18, 0.9));
-        backdrop-filter: blur(8px);
-        border: 2px solid rgba(250, 204, 21, 0.5);
+        width: min(560px, 94vw);
+        background: linear-gradient(
+          135deg,
+          rgba(18, 12, 30, 0.94),
+          rgba(38, 18, 26, 0.92)
+        );
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(250, 204, 21, 0.55);
         border-radius: 20px;
-        padding: 9px 16px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+        padding: 10px 16px;
+        box-shadow:
+          0 12px 32px rgba(0, 0, 0, 0.65),
+          inset 0 1px 0 rgba(255, 255, 255, 0.15);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
       }
       .camara-textos {
         display: flex;
         flex-direction: column;
+        gap: 2px;
+        min-width: 0;
       }
       #titulo-camara {
         color: #fef08a;
         font-weight: 900;
-        font-size: 0.92rem;
+        font-size: 0.94rem;
         letter-spacing: 0.04em;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
       }
       #objetivo-camara {
         color: #fed7aa;
         font-weight: 800;
         font-size: 0.76rem;
+        line-height: 1.25;
       }
       .camara-acciones {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .caja-progreso-oro {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 3px;
       }
       #progreso-oro {
         font-weight: 900;
         color: #4ade80;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         white-space: nowrap;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
       }
-      #btn-reintentar-nivel {
-        pointer-events: auto;
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-        color: #fff;
-        border: 2px solid #fef08a;
+      .barra-oro-fondo {
+        width: 68px;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.14);
         border-radius: 999px;
-        padding: 5px 13px;
+        overflow: hidden;
+        border: 1px solid rgba(250, 204, 21, 0.35);
+      }
+      #barra-oro-relleno {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #facc15, #4ade80);
+        border-radius: 999px;
+        transition: width 0.2s ease-out;
+      }
+      .btn-hud-alfiler {
+        pointer-events: auto;
+        color: #fff;
+        border-radius: 999px;
+        padding: 6px 12px;
         font-family: inherit;
         font-weight: 900;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        transition:
+          transform 0.14s ease,
+          filter 0.14s ease;
+        white-space: nowrap;
       }
-      #btn-reintentar-nivel:hover {
+      .btn-hud-alfiler:hover {
         transform: scale(1.06);
+        filter: brightness(1.1);
+      }
+      #btn-pista-nivel {
+        background: linear-gradient(135deg, #0ea5e9, #0284c7);
+        border: 2px solid #bae6fd;
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+      }
+      #btn-reintentar-nivel {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        border: 2px solid #fef08a;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
       }
 
       /* Botones circulares que flotan sobre la argolla de cada alfiler 3D */
@@ -98,47 +143,97 @@
       .tirador-alfiler {
         position: absolute;
         transform: translate(-50%, -50%);
-        width: 58px;
-        height: 58px;
+        width: 50px;
+        height: 50px;
         border-radius: 50%;
-        background: radial-gradient(circle at 35% 35%, #fef08a, #f59e0b 65%, #92400e);
-        border: 3px solid #ffffff;
+        background: radial-gradient(
+          circle at 32% 30%,
+          rgba(254, 249, 195, 0.95),
+          rgba(245, 158, 11, 0.88) 62%,
+          rgba(120, 53, 15, 0.95)
+        );
+        border: 2.5px solid #fef08a;
         color: #1e1b4b;
         font-weight: 900;
-        font-size: 1.15rem;
+        font-size: 1rem;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        line-height: 1;
         pointer-events: auto;
         cursor: pointer;
         box-shadow:
-          0 0 20px rgba(250, 204, 21, 0.75),
-          0 6px 14px rgba(0, 0, 0, 0.55);
-        transition: transform 0.14s cubic-bezier(0.2, 1.6, 0.4, 1);
-        animation: latidoAlfiler 1.4s infinite ease-in-out;
+          0 0 18px rgba(250, 204, 21, 0.75),
+          0 6px 14px rgba(0, 0, 0, 0.65),
+          inset 0 2px 4px rgba(255, 255, 255, 0.65);
+        transition:
+          transform 0.14s cubic-bezier(0.2, 1.6, 0.4, 1),
+          box-shadow 0.2s ease;
+        animation: latidoAlfiler 1.6s infinite ease-in-out;
+        user-select: none;
+      }
+      .tirador-alfiler .flecha-alfiler {
+        font-size: 1.15rem;
+        font-weight: 900;
+        color: #451a03;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+      }
+      .tirador-alfiler .num-alfiler {
+        font-size: 0.64rem;
+        font-weight: 900;
+        color: #78350f;
+        margin-top: -1px;
       }
       .tirador-alfiler:hover {
-        transform: translate(-50%, -50%) scale(1.18);
+        transform: translate(-50%, -50%) scale(1.2);
+      }
+      .tirador-alfiler.pista-activa {
+        border-color: #4ade80;
+        background: radial-gradient(
+          circle at 32% 30%,
+          #dcfce7,
+          #22c55e 65%,
+          #14532d
+        );
+        box-shadow:
+          0 0 32px rgba(74, 222, 128, 1),
+          0 0 60px rgba(34, 197, 94, 0.85);
+        animation: latidoPista 0.75s infinite ease-in-out;
       }
       @keyframes latidoAlfiler {
-        0%, 100% {
-          box-shadow: 0 0 16px rgba(250, 204, 21, 0.65), 0 5px 12px rgba(0, 0, 0, 0.5);
+        0%,
+        100% {
+          box-shadow:
+            0 0 14px rgba(250, 204, 21, 0.6),
+            0 5px 12px rgba(0, 0, 0, 0.55);
         }
         50% {
-          box-shadow: 0 0 28px rgba(254, 240, 138, 0.95), 0 6px 16px rgba(0, 0, 0, 0.6);
+          box-shadow:
+            0 0 26px rgba(254, 240, 138, 0.95),
+            0 6px 16px rgba(0, 0, 0, 0.65);
+        }
+      }
+      @keyframes latidoPista {
+        0%,
+        100% {
+          transform: translate(-50%, -50%) scale(1);
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.24);
         }
       }
 
       .flotante-alfiler {
         position: absolute;
         font-weight: 900;
-        font-size: 1.35rem;
+        font-size: 1.25rem;
         pointer-events: none;
         transform: translate(-50%, -50%);
         text-shadow:
-          0 3px 0 rgba(0, 0, 0, 0.8),
-          0 0 12px rgba(0, 0, 0, 0.6);
-        animation: subirAlfilerFx 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          0 3px 0 rgba(0, 0, 0, 0.85),
+          0 0 14px rgba(0, 0, 0, 0.7);
+        animation: subirAlfilerFx 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         white-space: nowrap;
       }
       @keyframes subirAlfilerFx {
@@ -146,31 +241,49 @@
           opacity: 0;
           transform: translate(-50%, -10%) scale(0.5);
         }
-        25% {
+        22% {
           opacity: 1;
-          transform: translate(-50%, -65%) scale(1.2);
+          transform: translate(-50%, -65%) scale(1.18);
         }
         100% {
           opacity: 0;
-          transform: translate(-50%, -160%) scale(0.95);
+          transform: translate(-50%, -175%) scale(0.95);
         }
       }
 
       #guia-alfileres {
         position: fixed;
-        bottom: calc(20px + env(safe-area-inset-bottom));
+        bottom: calc(16px + env(safe-area-inset-bottom));
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(20, 12, 28, 0.88);
-        border: 1px solid rgba(250, 204, 21, 0.45);
+        background: rgba(15, 10, 24, 0.9);
+        backdrop-filter: blur(6px);
+        border: 1.5px solid rgba(250, 204, 21, 0.45);
         color: #fef9c3;
-        padding: 8px 18px;
+        padding: 7px 18px;
         border-radius: 999px;
         font-weight: 900;
-        font-size: 0.84rem;
+        font-size: 0.8rem;
         text-align: center;
-        max-width: 92vw;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+        max-width: 94vw;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      }
+
+      @media (max-width: 600px) {
+        #panel-camara {
+          padding: 8px 12px;
+          gap: 8px;
+        }
+        #titulo-camara {
+          font-size: 0.82rem;
+        }
+        #objetivo-camara {
+          font-size: 0.7rem;
+        }
+        .tirador-alfiler {
+          width: 44px;
+          height: 44px;
+        }
       }
     </style>
   </head>
@@ -180,19 +293,41 @@
     <div id="hud-alfileres" class="oculto">
       <div id="panel-camara">
         <div class="camara-textos">
-          <span id="titulo-camara">📍 BÓVEDA 1 · LAVA Y AGUA</span>
-          <span id="objetivo-camara">💧 Enfría la lava con agua antes de soltar el tesoro</span>
+          <span id="titulo-camara">📍 BÓVEDA 1 · EL BAUTIZO DE FUEGO</span>
+          <span id="objetivo-camara"
+            >💧 Enfría la lava con agua antes de soltar el tesoro</span
+          >
         </div>
         <div class="camara-acciones">
-          <span id="progreso-oro">💎 0%</span>
-          <button id="btn-reintentar-nivel" type="button">🔄 Reiniciar</button>
+          <div class="caja-progreso-oro">
+            <span id="progreso-oro">💎 0%</span>
+            <div class="barra-oro-fondo">
+              <div id="barra-oro-relleno"></div>
+            </div>
+          </div>
+          <button
+            id="btn-pista-nivel"
+            class="btn-hud-alfiler"
+            type="button"
+            title="Ver qué alfiler sacar"
+          >
+            💡 Pista
+          </button>
+          <button
+            id="btn-reintentar-nivel"
+            class="btn-hud-alfiler"
+            type="button"
+          >
+            🔄 Reiniciar
+          </button>
         </div>
       </div>
 
       <div id="capa-alfileres-dom"></div>
       <div id="capa-fx-alfileres"></div>
       <div id="guia-alfileres">
-        👆 Toca las argollas doradas (📍) en el orden correcto · 💧 Agua + 🔥 Lava = 🪨 Piedra
+        👆 Toca un alfiler dorado o su argolla para retirarlo · 💧 Agua + 🔥
+        Lava = 🪨 Obsidiana · 💣 Barril destruye Orcos
       </div>
     </div>
 
@@ -206,15 +341,15 @@
       //  ESCENA 3D (BÓVEDA DE TESOROS SUBTERRÁNEA)
       // =========================================================
       const M = Arcade.mundo({
-        fondo: 0x130b1c,
-        fov: 45,
-        niebla: [24, 75],
-        exposicion: 1.18,
+        fondo: 0x0d0816,
+        fov: 44,
+        niebla: [22, 65],
+        exposicion: 1.16,
         colorAmbiente: 0xffdfb8,
-        lejos: 100,
+        lejos: 90,
       });
-      const { escena, camara } = M;
-      const acabado3D = Graficos3D.configurar(M, "interior");
+      const { escena, camara, lienzo } = M;
+      Graficos3D.configurar(M, "interior");
 
       const mat = (color, extra = {}) =>
         Arcade.materialPBR({
@@ -224,10 +359,10 @@
           ...extra,
         });
 
-      escena.add(new THREE.HemisphereLight(0xffe8c2, 0x221030, 0.9));
+      escena.add(new THREE.HemisphereLight(0xffe8c2, 0x1a0d2a, 0.88));
 
-      const sol = new THREE.DirectionalLight(0xfff0d4, 1.4);
-      sol.position.set(8, 16, 15);
+      const sol = new THREE.DirectionalLight(0xfff1d6, 1.38);
+      sol.position.set(7, 15, 14);
       sol.castShadow = true;
       sol.shadow.mapSize.set(2048, 2048);
       Object.assign(sol.shadow.camera, {
@@ -236,148 +371,779 @@
         top: 12,
         bottom: -10,
         near: 2,
-        far: 45,
+        far: 42,
       });
       escena.add(sol, sol.target);
 
-      const luzAntorchaIzq = new THREE.PointLight(0xff7b00, 1.35, 22);
-      luzAntorchaIzq.position.set(-5.5, 4.5, 3);
-      const luzAntorchaDer = new THREE.PointLight(0xff7b00, 1.35, 22);
-      luzAntorchaDer.position.set(5.5, 4.5, 3);
-      escena.add(luzAntorchaIzq, luzAntorchaDer);
+      const luzAntorchaIzq = new THREE.PointLight(0xff7b1a, 1.55, 20, 1.8);
+      luzAntorchaIzq.position.set(-5.1, 3.6, 2.2);
+      const luzAntorchaDer = new THREE.PointLight(0xff7b1a, 1.55, 20, 1.8);
+      luzAntorchaDer.position.set(5.1, 3.6, 2.2);
+      const luzLavaDinamica = new THREE.PointLight(0xff4500, 0, 9, 2);
+      luzLavaDinamica.position.set(0, 1, 1.4);
+      escena.add(luzAntorchaIzq, luzAntorchaDer, luzLavaDinamica);
+
+      // =========================================================
+      //  TEXTURAS PROCEDURALES HD SIN COSTURAS (SEAMLESS)
+      // =========================================================
+      function crearTexturasBoveda() {
+        // 1. Mampostería de piedra de mazmorra (Color + Bump) 512x512
+        const cColor = document.createElement("canvas");
+        const cBump = document.createElement("canvas");
+        cColor.width = cColor.height = 512;
+        cBump.width = cBump.height = 512;
+        const gc = cColor.getContext("2d");
+        const gb = cBump.getContext("2d");
+
+        // Fondo de mortero oscuro
+        gc.fillStyle = "#120e1c";
+        gc.fillRect(0, 0, 512, 512);
+        gb.fillStyle = "#181818";
+        gb.fillRect(0, 0, 512, 512);
+
+        const filas = 8;
+        const cols = 4;
+        const altoFila = 512 / filas;
+        const anchoCol = 512 / cols;
+
+        let sem = 4219;
+        const rnd = () =>
+          ((sem = (Math.imul(sem, 1664525) + 1013904223) >>> 0) / 4294967296);
+
+        const paletaPiedra = [
+          [42, 37, 60],
+          [48, 42, 68],
+          [36, 32, 52],
+          [55, 47, 72],
+          [45, 39, 58],
+        ];
+
+        for (let f = 0; f < filas; f++) {
+          const desfase = (f % 2) * (anchoCol * 0.5);
+          const y = f * altoFila;
+          for (let c = -1; c <= cols; c++) {
+            const x = c * anchoCol + desfase;
+            const pad = 4;
+            const bx = x + pad;
+            const by = y + pad;
+            const bw = anchoCol - pad * 2;
+            const bh = altoFila - pad * 2;
+
+            const base =
+              paletaPiedra[
+                Math.abs((f * 7 + ((c + cols) % cols) * 13) % paletaPiedra.length)
+              ];
+            const varLuz = (rnd() - 0.5) * 14;
+            const r = Math.round(limitar(base[0] + varLuz, 20, 90));
+            const g = Math.round(limitar(base[1] + varLuz, 20, 90));
+            const b = Math.round(limitar(base[2] + varLuz, 25, 105));
+
+            // Bloque con gradiente sutil de volumen
+            const grad = gc.createLinearGradient(bx, by, bx, by + bh);
+            grad.addColorStop(0, `rgb(${r + 12}, ${g + 11}, ${b + 14})`);
+            grad.addColorStop(0.5, `rgb(${r}, ${g}, ${b})`);
+            grad.addColorStop(1, `rgb(${r - 10}, ${g - 10}, ${b - 12})`);
+            gc.fillStyle = grad;
+            gc.beginPath();
+            gc.roundRect(bx, by, bw, bh, 6);
+            gc.fill();
+
+            // Bisel superior iluminado
+            gc.strokeStyle = "rgba(255, 235, 200, 0.12)";
+            gc.lineWidth = 2;
+            gc.beginPath();
+            gc.moveTo(bx + 4, by + 2);
+            gc.lineTo(bx + bw - 4, by + 2);
+            gc.stroke();
+
+            // Mapa de altura (Bump) del bloque
+            const gradB = gb.createLinearGradient(bx, by, bx, by + bh);
+            gradB.addColorStop(0, "#e5e5e5");
+            gradB.addColorStop(0.15, "#cccccc");
+            gradB.addColorStop(0.85, "#b5b5b5");
+            gradB.addColorStop(1, "#707070");
+            gb.fillStyle = gradB;
+            gb.beginPath();
+            gb.roundRect(bx, by, bw, bh, 6);
+            gb.fill();
+
+            // Grietas y poros dentro del bloque
+            gc.strokeStyle = "rgba(10, 8, 16, 0.35)";
+            gb.strokeStyle = "#404040";
+            gc.lineWidth = 1.2;
+            gb.lineWidth = 1.5;
+            if (rnd() > 0.45) {
+              const gx = bx + 15 + rnd() * (bw - 30);
+              const gy = by + 8 + rnd() * (bh - 16);
+              gc.beginPath();
+              gc.moveTo(gx, gy);
+              gc.lineTo(gx + (rnd() - 0.5) * 26, gy + (rnd() - 0.5) * 18);
+              gc.stroke();
+              gb.beginPath();
+              gb.moveTo(gx, gy);
+              gb.lineTo(gx + (rnd() - 0.5) * 26, gy + (rnd() - 0.5) * 18);
+              gb.stroke();
+            }
+          }
+        }
+
+        // Grano fino periódico sin costuras
+        const K = (2 * Math.PI) / 512;
+        const imgC = gc.getImageData(0, 0, 512, 512);
+        const imgB = gb.getImageData(0, 0, 512, 512);
+        for (let y = 0; y < 512; y++) {
+          for (let x = 0; x < 512; x++) {
+            const onda =
+              Math.sin(x * K * 6 + Math.cos(y * K * 4)) *
+                Math.cos(y * K * 6 - Math.sin(x * K * 4)) *
+                7 +
+              (rnd() - 0.5) * 8;
+            const i = (y * 512 + x) * 4;
+            imgC.data[i] = limitar(imgC.data[i] + onda, 0, 255);
+            imgC.data[i + 1] = limitar(imgC.data[i + 1] + onda, 0, 255);
+            imgC.data[i + 2] = limitar(imgC.data[i + 2] + onda, 0, 255);
+            imgB.data[i] =
+              imgB.data[i + 1] =
+              imgB.data[i + 2] =
+                limitar(imgB.data[i] + onda * 1.8, 0, 255);
+          }
+        }
+        gc.putImageData(imgC, 0, 0);
+        gb.putImageData(imgB, 0, 0);
+
+        const texParedColor = new THREE.CanvasTexture(cColor);
+        texParedColor.wrapS = texParedColor.wrapT = THREE.RepeatWrapping;
+        texParedColor.repeat.set(4, 3.5);
+        texParedColor.encoding = THREE.sRGBEncoding;
+
+        const texParedBump = new THREE.CanvasTexture(cBump);
+        texParedBump.wrapS = texParedBump.wrapT = THREE.RepeatWrapping;
+        texParedBump.repeat.set(4, 3.5);
+
+        // 2. Textura de Muro de Bóveda (Piedra Basáltica con Vetas Metálicas)
+        const texMuro = M.textura(256, 256, (g, w, h) => {
+          const K2 = (2 * Math.PI) / w;
+          const img = g.createImageData(w, h);
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              const n =
+                Math.sin(x * K2 * 3 + Math.sin(y * K2 * 2)) * 14 +
+                Math.cos(y * K2 * 4 - Math.cos(x * K2 * 3)) * 12 +
+                (rnd() - 0.5) * 14;
+              const i = (y * w + x) * 4;
+              img.data[i] = limitar(74 + n, 35, 130);
+              img.data[i + 1] = limitar(85 + n, 40, 145);
+              img.data[i + 2] = limitar(108 + n * 1.1, 55, 170);
+              img.data[i + 3] = 255;
+            }
+          }
+          g.putImageData(img, 0, 0);
+          // Líneas de sillería fina
+          g.strokeStyle = "rgba(15, 23, 42, 0.45)";
+          g.lineWidth = 3;
+          for (let y = 32; y < h; y += 64) {
+            g.beginPath();
+            g.moveTo(0, y);
+            g.lineTo(w, y);
+            g.stroke();
+          }
+        });
+        texMuro.wrapS = texMuro.wrapT = THREE.RepeatWrapping;
+        texMuro.repeat.set(1, 1);
+
+        // 3. Textura de Magma / Lava Volcánica Incandescente
+        const texLava = M.textura(256, 256, (g, w, h) => {
+          const K2 = (2 * Math.PI) / w;
+          const img = g.createImageData(w, h);
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              const v1 = Math.sin(
+                x * K2 * 2 + 1.8 * Math.sin(y * K2 * 2 + x * K2),
+              );
+              const v2 = Math.cos(
+                y * K2 * 3 - 1.6 * Math.cos(x * K2 * 2 - y * K2),
+              );
+              const calor = (v1 * v2 + 1) * 0.5; // 0..1
+              const grieta = Math.pow(
+                1 - Math.abs(Math.sin(x * K2 * 3 + y * K2 * 2 + v1 * 1.5)),
+                3,
+              );
+              const t = limitar(calor * 0.65 + grieta * 0.75, 0, 1);
+              const i = (y * w + x) * 4;
+              // De corteza rojo-oscura a naranja intenso y venas amarillo-blancas
+              img.data[i] = limitar(130 + t * 180, 90, 255);
+              img.data[i + 1] = limitar(15 + Math.pow(t, 1.5) * 235, 10, 250);
+              img.data[i + 2] = limitar(Math.pow(t, 3.2) * 190, 0, 200);
+              img.data[i + 3] = 255;
+            }
+          }
+          g.putImageData(img, 0, 0);
+        });
+        texLava.wrapS = texLava.wrapT = THREE.RepeatWrapping;
+
+        // 4. Textura de Agua Cristalina con Cáusticas
+        const texAgua = M.textura(256, 256, (g, w, h) => {
+          const K2 = (2 * Math.PI) / w;
+          const img = g.createImageData(w, h);
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              const c1 = Math.sin(x * K2 * 3 + Math.cos(y * K2 * 2));
+              const c2 = Math.cos(y * K2 * 3 - Math.sin(x * K2 * 3));
+              const luz = Math.pow(Math.abs(c1 + c2) * 0.5, 1.6);
+              const i = (y * w + x) * 4;
+              img.data[i] = limitar(10 + luz * 195, 0, 240);
+              img.data[i + 1] = limitar(175 + luz * 80, 140, 255);
+              img.data[i + 2] = limitar(235 + luz * 20, 210, 255);
+              img.data[i + 3] = 255;
+            }
+          }
+          g.putImageData(img, 0, 0);
+        });
+        texAgua.wrapS = texAgua.wrapT = THREE.RepeatWrapping;
+
+        // 5. Textura de Obsidiana Cristalina
+        const texObsidiana = M.textura(256, 256, (g, w, h) => {
+          const K2 = (2 * Math.PI) / w;
+          const img = g.createImageData(w, h);
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              const veta = Math.pow(
+                Math.abs(Math.sin(x * K2 * 4 - y * K2 * 3)),
+                5,
+              );
+              const base = 36 + Math.sin(x * K2 * 2) * 10 + (rnd() - 0.5) * 12;
+              const i = (y * w + x) * 4;
+              img.data[i] = limitar(base + veta * 85, 20, 160);
+              img.data[i + 1] = limitar(base + 4 + veta * 55, 22, 140);
+              img.data[i + 2] = limitar(base + 24 + veta * 130, 38, 210);
+              img.data[i + 3] = 255;
+            }
+          }
+          g.putImageData(img, 0, 0);
+        });
+
+        // 6. Textura de Moneda / Oro Real Grabado
+        const texOro = M.textura(256, 256, (g, w, h) => {
+          const grad = g.createRadialGradient(128, 128, 12, 128, 128, 128);
+          grad.addColorStop(0, "#fef9c3");
+          grad.addColorStop(0.55, "#facc15");
+          grad.addColorStop(0.85, "#eab308");
+          grad.addColorStop(1, "#b45309");
+          g.fillStyle = grad;
+          g.fillRect(0, 0, w, h);
+          g.strokeStyle = "rgba(120, 53, 15, 0.45)";
+          g.lineWidth = 8;
+          g.beginPath();
+          g.arc(128, 128, 104, 0, Math.PI * 2);
+          g.stroke();
+          g.strokeStyle = "rgba(254, 249, 195, 0.7)";
+          g.lineWidth = 4;
+          g.beginPath();
+          g.arc(128, 128, 92, 0, Math.PI * 2);
+          g.stroke();
+        });
+
+        return {
+          texParedColor,
+          texParedBump,
+          texMuro,
+          texLava,
+          texAgua,
+          texObsidiana,
+          texOro,
+        };
+      }
+
+      const TEX = crearTexturasBoveda();
 
       // Materiales de alta calidad para fluidos, joyas, alfileres y muros
-      const matMuroBoveda = mat(0x334155, { roughness: 0.78, metalness: 0.15 });
-      const matFondoBoveda = mat(0x1e293b, { roughness: 0.88, metalness: 0.1 });
-      const matOroPin = mat(0xfacc15, {
+      const matFondoBoveda = Arcade.materialPBR({
+        map: TEX.texParedColor,
+        bumpMap: TEX.texParedBump,
+        bumpScale: 0.065,
+        roughness: 0.84,
+        metalness: 0.08,
+      });
+
+      const matRespaldoInterior = Arcade.materialPBR({
+        map: TEX.texParedColor,
+        bumpMap: TEX.texParedBump,
+        bumpScale: 0.04,
+        color: lin(0x584c70),
+        roughness: 0.9,
+        metalness: 0.1,
+      });
+
+      const matMuroBoveda = Arcade.materialPBR({
+        map: TEX.texMuro,
+        bumpMap: TEX.texParedBump,
+        bumpScale: 0.035,
+        color: lin(0x94a3b8),
+        roughness: 0.55,
+        metalness: 0.28,
+      });
+
+      const matBronceBoveda = mat(0xd97706, {
+        metalness: 0.82,
+        roughness: 0.24,
+        clearcoat: 0.6,
+      });
+
+      const matOroPin = Arcade.materialPBR({
+        map: TEX.texOro,
+        color: lin(0xffe066),
         metalness: 0.88,
         roughness: 0.16,
-        clearcoat: 0.85,
-      });
-      const matRubiPin = mat(0xe11d48, {
-        metalness: 0.35,
-        roughness: 0.12,
-        clearcoat: 0.95,
-      });
-
-      const matAgua = mat(0x00e5ff, {
-        metalness: 0.15,
-        roughness: 0.1,
-        clearcoat: 0.95,
-      });
-      const matLava = new THREE.MeshBasicMaterial({ color: 0xff4500 });
-      const matLavaNucleo = new THREE.MeshBasicMaterial({ color: 0xfef08a });
-      const matPiedra = mat(0x64748b, { roughness: 0.85, metalness: 0.1 });
-
-      const matMonedaOro = mat(0xfbbf24, {
-        metalness: 0.9,
-        roughness: 0.14,
         clearcoat: 0.9,
       });
-      const matGemaEsmeralda = mat(0x10b981, {
+
+      const matRubiPin = mat(0xf43f5e, {
         metalness: 0.25,
         roughness: 0.08,
         clearcoat: 1,
+        emissive: lin(0x881337),
+        emissiveIntensity: 0.35,
+      });
+
+      const matZafiroPin = mat(0x38bdf8, {
+        metalness: 0.25,
+        roughness: 0.08,
+        clearcoat: 1,
+        emissive: lin(0x0369a1),
+        emissiveIntensity: 0.35,
+      });
+
+      const matEsmeraldaPin = mat(0x34d399, {
+        metalness: 0.25,
+        roughness: 0.08,
+        clearcoat: 1,
+        emissive: lin(0x065f46),
+        emissiveIntensity: 0.35,
+      });
+
+      const matAgua = Arcade.materialPBR({
+        map: TEX.texAgua,
+        color: lin(0x38bdf8),
+        emissive: lin(0x0284c7),
+        emissiveIntensity: 0.28,
+        metalness: 0.12,
+        roughness: 0.06,
+        clearcoat: 1,
+        clearcoatRoughness: 0.04,
+      });
+
+      const matLava = Arcade.materialPBR({
+        map: TEX.texLava,
+        emissiveMap: TEX.texLava,
+        emissive: new THREE.Color(0xff5500),
+        emissiveIntensity: 1.35,
+        roughness: 0.28,
+        metalness: 0.08,
+      });
+
+      const matPiedra = Arcade.materialPBR({
+        map: TEX.texObsidiana,
+        bumpMap: TEX.texParedBump,
+        bumpScale: 0.03,
+        color: lin(0x94a3b8),
+        roughness: 0.62,
+        metalness: 0.22,
+        clearcoat: 0.35,
+      });
+
+      const matMonedaOro = Arcade.materialPBR({
+        map: TEX.texOro,
+        color: lin(0xfde047),
+        emissive: lin(0x854d0e),
+        emissiveIntensity: 0.22,
+        metalness: 0.92,
+        roughness: 0.12,
+        clearcoat: 0.95,
+      });
+      const matGemaEsmeralda = mat(0x10b981, {
+        emissive: lin(0x065f46),
+        emissiveIntensity: 0.28,
+        metalness: 0.22,
+        roughness: 0.06,
+        clearcoat: 1,
       });
       const matGemaDiamante = mat(0x67e8f9, {
-        metalness: 0.3,
+        emissive: lin(0x0e7490),
+        emissiveIntensity: 0.3,
+        metalness: 0.28,
+        roughness: 0.04,
+        clearcoat: 1,
+      });
+      const matGemaRubi = mat(0xf43f5e, {
+        emissive: lin(0x9f1239),
+        emissiveIntensity: 0.3,
+        metalness: 0.24,
         roughness: 0.06,
         clearcoat: 1,
       });
 
-      // Pared de fondo de la caverna
+      // =========================================================
+      //  ESCENARIO DE MAZMORRA (PARED, PILARES Y ANTORCHAS 3D)
+      // =========================================================
       const paredFondo = new THREE.Mesh(
-        new THREE.PlaneGeometry(36, 30),
+        new THREE.PlaneGeometry(34, 26),
         matFondoBoveda,
       );
-      paredFondo.position.set(0, 2, -1.2);
+      paredFondo.position.set(0, 1.2, -1.35);
       paredFondo.receiveShadow = true;
-      acabado3D.superficie(paredFondo, "roca", { repetir: 8 });
       escena.add(paredFondo);
 
+      // Pilares laterales de piedra y antorchas con llamas 3D
+      const llamasAntorcha = [];
+      function construirDecoradoMazmorra() {
+        const gDeco = new THREE.Group();
+        const mHierro = mat(0x1e293b, { metalness: 0.78, roughness: 0.35 });
+        const mMadera = mat(0x78350f, { roughness: 0.8 });
+        const mLlamaExt = new THREE.MeshBasicMaterial({ color: 0xff6b00 });
+        const mLlamaInt = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+
+        for (const lado of [-1, 1]) {
+          // Columna lateral de piedra
+          const pilar = new THREE.Mesh(
+            Graficos3D.cajaSuave(1.25, 16, 1.2, 0.12),
+            matMuroBoveda,
+          );
+          pilar.position.set(lado * 6.3, 0.5, -0.95);
+          pilar.receiveShadow = true;
+          gDeco.add(pilar);
+
+          // Anillos de bronce en la columna
+          for (const py of [-3.2, 0.8, 4.4]) {
+            const anillo = new THREE.Mesh(
+              Graficos3D.cajaSuave(1.38, 0.26, 1.32, 0.05),
+              matBronceBoveda,
+            );
+            anillo.position.set(lado * 6.3, py, -0.92);
+            gDeco.add(anillo);
+          }
+
+          // Antorcha mural
+          const antorcha = new THREE.Group();
+          antorcha.position.set(lado * 4.85, 3.3, -0.75);
+
+          const soporte = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.16, 0.22, 0.18, 12),
+            mHierro,
+          );
+          soporte.rotation.x = Math.PI / 2;
+          soporte.position.z = -0.15;
+
+          const palo = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.08, 0.05, 0.75, 10),
+            mMadera,
+          );
+          palo.rotation.x = 0.26;
+          palo.position.set(0, 0.22, 0.05);
+
+          const cazoleta = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.18, 0.1, 0.18, 12),
+            mHierro,
+          );
+          cazoleta.position.set(0, 0.56, 0.14);
+
+          const llama = new THREE.Group();
+          llama.position.set(0, 0.74, 0.14);
+          const conoExt = new THREE.Mesh(
+            new THREE.ConeGeometry(0.19, 0.48, 10),
+            mLlamaExt,
+          );
+          const conoInt = new THREE.Mesh(
+            new THREE.ConeGeometry(0.11, 0.32, 8),
+            mLlamaInt,
+          );
+          conoInt.position.set(0, -0.04, 0.04);
+          llama.add(conoExt, conoInt);
+          llamasAntorcha.push(llama);
+
+          antorcha.add(soporte, palo, cazoleta, llama);
+          gDeco.add(antorcha);
+        }
+        escena.add(gDeco);
+      }
+      construirDecoradoMazmorra();
+
       // Geometrías compartidas para las partículas físicas
-      const geoEsferaFluido = new THREE.SphereGeometry(0.24, 14, 12);
-      const geoGema = new THREE.OctahedronGeometry(0.27, 0);
-      const geoRoca = new THREE.DodecahedronGeometry(0.25, 0);
+      const geoEsferaFluido = new THREE.SphereGeometry(0.21, 18, 14);
+      const geoGemaOcta = new THREE.OctahedronGeometry(0.25, 0);
+      const geoGemaDode = new THREE.DodecahedronGeometry(0.23, 0);
+      const geoMoneda = new THREE.CylinderGeometry(0.23, 0.23, 0.09, 18);
+      geoMoneda.rotateX(Math.PI / 2);
+      const geoRoca = new THREE.DodecahedronGeometry(0.21, 0);
+      const geoRemache = new THREE.CylinderGeometry(0.2, 0.22, 1.44, 14);
+      geoRemache.rotateX(Math.PI / 2);
 
       // =========================================================
-      //  MODELOS 3D DEL HÉROE, ORCO GUARDIÁN Y ALFILERES DORADOS
+      //  MODELOS 3D DEL HÉROE, ORCO, BARRIL EXPLOSIVO Y ALFILERES
       // =========================================================
       function crearHeroeBoveda3D() {
         const g = new THREE.Group();
         const mArmadura = mat(0x0284c7, {
-          metalness: 0.7,
-          roughness: 0.22,
-          clearcoat: 0.75,
+          metalness: 0.78,
+          roughness: 0.2,
+          clearcoat: 0.85,
         });
-        const mPiel = mat(0xffdcb8, { roughness: 0.5 });
+        const mAcero = mat(0xe2e8f0, {
+          metalness: 0.88,
+          roughness: 0.18,
+          clearcoat: 0.9,
+        });
+        const mCapa = mat(0xdc2626, { roughness: 0.65 });
+        const mPiel = mat(0xffdcb8, { roughness: 0.45 });
+        const mBota = mat(0x451a03, { roughness: 0.6 });
 
+        // Piernas y botas
+        for (const lx of [-0.14, 0.14]) {
+          const pierna = new THREE.Mesh(
+            Graficos3D.cajaSuave(0.17, 0.28, 0.2, 0.04),
+            mAcero,
+          );
+          pierna.position.set(lx, 0.16, 0);
+          const bota = new THREE.Mesh(
+            Graficos3D.cajaSuave(0.19, 0.12, 0.26, 0.04),
+            mBota,
+          );
+          bota.position.set(lx, 0.06, 0.03);
+          g.add(pierna, bota);
+        }
+
+        // Capa roja trasera
+        const capa = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.56, 0.68, 0.08, 0.03),
+          mCapa,
+        );
+        capa.position.set(0, 0.52, -0.19);
+        capa.rotation.x = 0.08;
+        g.add(capa);
+
+        // Torso acorazado + emblema solar dorado
         const torso = new THREE.Mesh(
-          Graficos3D.cajaSuave(0.52, 0.56, 0.34, 0.08),
+          Graficos3D.cajaSuave(0.52, 0.54, 0.34, 0.08),
           mArmadura,
         );
-        torso.position.y = 0.52;
+        torso.position.y = 0.55;
         torso.castShadow = true;
+        const emblema = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.11, 0),
+          matOroPin,
+        );
+        emblema.position.set(0, 0.58, 0.18);
+        emblema.scale.z = 0.4;
+        const cinturon = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.54, 0.09, 0.36, 0.02),
+          matOroPin,
+        );
+        cinturon.position.y = 0.33;
+        g.add(torso, emblema, cinturon);
 
+        // Hombreras
+        for (const sx of [-0.33, 0.33]) {
+          const hombrera = new THREE.Mesh(
+            new THREE.SphereGeometry(0.14, 12, 10),
+            mAcero,
+          );
+          hombrera.position.set(sx, 0.76, 0);
+          hombrera.scale.set(1, 0.8, 1.1);
+          g.add(hombrera);
+        }
+
+        // Cabeza + Yelmo de caballero con visera y penacho rojo
         const cabeza = new THREE.Mesh(
-          new THREE.SphereGeometry(0.24, 16, 14),
+          new THREE.SphereGeometry(0.23, 16, 14),
           mPiel,
         );
-        cabeza.position.y = 1.02;
+        cabeza.position.y = 1.04;
 
-        const casco = new THREE.Mesh(
-          Graficos3D.cajaSuave(0.46, 0.24, 0.44, 0.08),
+        // Ojos
+        const mOjo = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+        for (const ox of [-0.08, 0.08]) {
+          const ojo = new THREE.Mesh(
+            new THREE.SphereGeometry(0.032, 8, 8),
+            mOjo,
+          );
+          ojo.position.set(ox, 1.03, 0.21);
+          g.add(ojo);
+        }
+
+        const yelmo = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.24, 0.26, 0.28, 16),
+          mAcero,
+        );
+        yelmo.position.y = 1.15;
+        const coronaYelmo = new THREE.Mesh(
+          new THREE.TorusGeometry(0.24, 0.035, 8, 20),
           matOroPin,
         );
-        casco.position.y = 1.16;
+        coronaYelmo.rotation.x = Math.PI / 2;
+        coronaYelmo.position.y = 1.14;
+        const penacho = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.1, 0.22, 0.32, 0.04),
+          mCapa,
+        );
+        penacho.position.set(0, 1.34, -0.03);
+        g.add(cabeza, yelmo, coronaYelmo, penacho);
 
-        const brazoIzq = new THREE.Mesh(
-          Graficos3D.cajaSuave(0.16, 0.42, 0.16, 0.04),
+        // Brazo izquierdo con Escudo Real
+        const brazoIzq = new THREE.Group();
+        brazoIzq.position.set(-0.36, 0.62, 0);
+        const mallaBrazoI = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.15, 0.38, 0.15, 0.04),
           mArmadura,
         );
-        brazoIzq.position.set(-0.36, 0.58, 0);
-        const brazoDer = brazoIzq.clone();
-        brazoDer.position.x = 0.36;
-
-        const espada = new THREE.Mesh(
-          Graficos3D.cajaSuave(0.1, 0.68, 0.04, 0.015),
+        mallaBrazoI.position.y = -0.1;
+        const escudo = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.34, 0.44, 0.08, 0.04),
           matOroPin,
         );
-        espada.position.set(0.38, 0.95, 0.12);
+        escudo.position.set(-0.06, -0.08, 0.14);
+        escudo.rotation.y = -0.25;
+        const centroEscudo = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.24, 0.32, 0.09, 0.03),
+          mArmadura,
+        );
+        centroEscudo.position.copy(escudo.position);
+        centroEscudo.rotation.copy(escudo.rotation);
+        brazoIzq.add(mallaBrazoI, escudo, centroEscudo);
 
-        g.add(torso, cabeza, casco, brazoIzq, brazoDer, espada);
-        g.userData = { brazoIzq, brazoDer, espada, feliz: false, quemado: false };
+        // Brazo derecho con Espada Templaria
+        const brazoDer = new THREE.Group();
+        brazoDer.position.set(0.36, 0.62, 0);
+        const mallaBrazoD = mallaBrazoI.clone();
+        const hojaEspada = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.08, 0.68, 0.03, 0.01),
+          mAcero,
+        );
+        hojaEspada.position.set(0.04, 0.32, 0.12);
+        const guardaEspada = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.26, 0.06, 0.07, 0.02),
+          matOroPin,
+        );
+        guardaEspada.position.set(0.04, 0.0, 0.12);
+        brazoDer.add(mallaBrazoD, hojaEspada, guardaEspada);
+
+        g.add(brazoIzq, brazoDer);
+        g.userData = { brazoIzq, brazoDer, feliz: false, quemado: false };
         return g;
       }
 
       function crearOrcoBoveda3D() {
         const g = new THREE.Group();
-        const mVerde = mat(0x4d7c0f, { roughness: 0.55 });
-        const mArmadura = mat(0x7f1d1d, { roughness: 0.4 });
+        const mVerde = mat(0x4d7c0f, { roughness: 0.5 });
+        const mArmadura = mat(0x450a0a, { metalness: 0.55, roughness: 0.38 });
+        const mCuerno = mat(0xfef3c7, { roughness: 0.35 });
+        const mHierro = mat(0x334155, { metalness: 0.8, roughness: 0.25 });
 
+        // Piernas
+        for (const lx of [-0.16, 0.16]) {
+          const pierna = new THREE.Mesh(
+            Graficos3D.cajaSuave(0.19, 0.28, 0.22, 0.04),
+            mArmadura,
+          );
+          pierna.position.set(lx, 0.16, 0);
+          g.add(pierna);
+        }
+
+        // Torso robusto + cinturón de calavera
         const torso = new THREE.Mesh(
-          Graficos3D.cajaSuave(0.58, 0.58, 0.38, 0.08),
+          Graficos3D.cajaSuave(0.62, 0.56, 0.4, 0.09),
           mArmadura,
         );
         torso.position.y = 0.54;
+        torso.castShadow = true;
+
+        // Cabeza de Orco con colmillos y casco con cuernos
         const cabeza = new THREE.Mesh(
-          Graficos3D.cajaSuave(0.44, 0.4, 0.4, 0.08),
+          Graficos3D.cajaSuave(0.46, 0.42, 0.42, 0.08),
           mVerde,
         );
-        cabeza.position.y = 1.04;
-        const ojos = new THREE.Mesh(
-          Graficos3D.cajaSuave(0.32, 0.08, 0.08, 0.02),
-          new THREE.MeshBasicMaterial({ color: 0xff2a55 }),
-        );
-        ojos.position.set(0, 1.06, 0.19);
+        cabeza.position.y = 1.03;
 
-        g.add(torso, cabeza, ojos);
-        g.userData = { vivo: true };
+        const ojos = new THREE.Mesh(
+          Graficos3D.cajaSuave(0.34, 0.07, 0.08, 0.02),
+          new THREE.MeshBasicMaterial({ color: 0xff1e42 }),
+        );
+        ojos.position.set(0, 1.06, 0.2);
+
+        for (const cx of [-0.12, 0.12]) {
+          const colmillo = new THREE.Mesh(
+            new THREE.ConeGeometry(0.04, 0.13, 8),
+            mCuerno,
+          );
+          colmillo.position.set(cx, 0.92, 0.23);
+          colmillo.rotation.x = 0.25;
+          g.add(colmillo);
+        }
+
+        // Cuernos superiores
+        for (const hx of [-0.24, 0.24]) {
+          const cuerno = new THREE.Mesh(
+            new THREE.ConeGeometry(0.06, 0.26, 8),
+            mCuerno,
+          );
+          cuerno.position.set(hx, 1.28, 0);
+          cuerno.rotation.z = hx < 0 ? 0.45 : -0.45;
+          g.add(cuerno);
+        }
+
+        // Maza / Hacha de guerra en mano derecha
+        const brazoMaza = new THREE.Group();
+        brazoMaza.position.set(0.4, 0.62, 0.08);
+        const mango = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.045, 0.045, 0.72, 8),
+          mat(0x78350f),
+        );
+        mango.position.y = 0.2;
+        const bolaMaza = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(0.18, 0),
+          mHierro,
+        );
+        bolaMaza.position.y = 0.56;
+        brazoMaza.add(mango, bolaMaza);
+
+        g.add(torso, cabeza, ojos, brazoMaza);
+        g.userData = { vivo: true, brazoMaza };
+        return g;
+      }
+
+      function crearBarril3D() {
+        const g = new THREE.Group();
+        const mMadera = mat(0x9a3412, { roughness: 0.65 });
+        const mAro = mat(0x1e293b, { metalness: 0.85, roughness: 0.25 });
+        const cuerpo = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.28, 0.28, 0.62, 16),
+          mMadera,
+        );
+        cuerpo.castShadow = true;
+        for (const ay of [-0.2, 0.2]) {
+          const aro = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.295, 0.295, 0.07, 16),
+            mAro,
+          );
+          aro.position.y = ay;
+          g.add(aro);
+        }
+        // Emblema explosivo brillante al frente
+        const icono = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.13, 0),
+          new THREE.MeshBasicMaterial({ color: 0xfacc15 }),
+        );
+        icono.position.set(0, 0, 0.26);
+        // Mecha encendida arriba
+        const mecha = new THREE.Mesh(
+          new THREE.SphereGeometry(0.07, 8, 8),
+          new THREE.MeshBasicMaterial({ color: 0xff4500 }),
+        );
+        mecha.position.set(0, 0.36, 0);
+        g.add(cuerpo, icono, mecha);
+        g.userData = { mecha };
         return g;
       }
 
       function crearAlfiler3D(def) {
-        // Un alfiler es un segmento desde (x1, y1) hasta (x2, y2), con la argolla en (hx, hy)
         const dx = def.x2 - def.x1;
         const dy = def.y2 - def.y1;
         const largo = Math.hypot(dx, dy);
@@ -386,38 +1152,66 @@
         const cy = (def.y1 + def.y2) / 2;
 
         const grupo = new THREE.Group();
-        grupo.position.set(cx, cy, 0.15);
+        grupo.position.set(cx, cy, 0.16);
         grupo.rotation.z = angulo;
 
-        // Barra dorada del alfiler
+        // Barra dorada grabada del alfiler
         const barra = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.11, 0.11, largo, 16),
+          new THREE.CylinderGeometry(0.115, 0.115, largo, 20),
           matOroPin,
         );
         barra.rotation.z = Math.PI / 2;
         barra.castShadow = true;
         grupo.add(barra);
 
-        // Argolla y gema en el extremo de tiro (x1, y1)
-        const argolla = new THREE.Mesh(
-          new THREE.TorusGeometry(0.34, 0.09, 12, 24),
+        // Punta cónica en el extremo interno (x2, y2)
+        const punta = new THREE.Mesh(
+          new THREE.ConeGeometry(0.115, 0.24, 16),
           matOroPin,
         );
-        argolla.position.x = -largo / 2 - 0.32;
-        const joya = new THREE.Mesh(
-          new THREE.OctahedronGeometry(0.2, 0),
-          matRubiPin,
+        punta.rotation.z = -Math.PI / 2;
+        punta.position.x = largo / 2 + 0.1;
+        grupo.add(punta);
+
+        // Collarín engastado junto a la argolla
+        const collar = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.17, 0.17, 0.14, 16),
+          matBronceBoveda,
         );
-        joya.position.x = -largo / 2 - 0.32;
+        collar.rotation.z = Math.PI / 2;
+        collar.position.x = -largo / 2;
+        grupo.add(collar);
+
+        // Argolla real y joya central en el extremo de tiro (x1, y1)
+        const argolla = new THREE.Mesh(
+          new THREE.TorusGeometry(0.36, 0.095, 14, 28),
+          matOroPin,
+        );
+        argolla.position.x = -largo / 2 - 0.36;
+        argolla.castShadow = true;
+
+        const matJoya =
+          def.colorJoya === "agua"
+            ? matZafiroPin
+            : def.colorJoya === "oro"
+              ? matEsmeraldaPin
+              : matRubiPin;
+        const joya = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.21, 0),
+          matJoya,
+        );
+        joya.position.x = -largo / 2 - 0.36;
         grupo.add(argolla, joya);
 
         // Dirección hacia la que sale el alfiler al jalarlo (hacia x1, y1)
         const dirX = -dx / largo;
         const dirY = -dy / largo;
 
-        return {
+        const pinObj = {
           ...def,
           grupo,
+          joya,
+          argolla,
           largo,
           dirX,
           dirY,
@@ -425,22 +1219,26 @@
           animando: false,
           desplazamiento: 0,
         };
+        grupo.traverse((m) => {
+          if (m.isMesh) m.userData.pinRef = pinObj;
+        });
+        return pinObj;
       }
 
       // =========================================================
-      //  CATÁLOGO DE BÓVEDAS (NIVELES DE ROMPECABEZAS DE FLUIDOS)
+      //  CATÁLOGO DE 10 BÓVEDAS DISEÑADAS A MANO (PROGRESIVAS)
       // =========================================================
       function obtenerDefinicionBoveda(numBoveda) {
-        const idx = (numBoveda - 1) % 5;
+        const idx = (numBoveda - 1) % 10;
 
         if (idx === 0) {
-          // Bóveda 1: Agua arriba a la izquierda, Lava en el centro, Oro a la derecha.
-          // Si sacas el alfiler del agua primero, enfría la lava en piedra y luego el oro cae limpio al héroe.
+          // Bóveda 1: El Bautizo de Fuego
           return {
             titulo: `📍 BÓVEDA ${numBoveda} · EL BAUTIZO DE FUEGO`,
-            objetivo: "💧 Suelta primero el agua para petrificar la lava y luego libera el oro",
+            objetivo:
+              "💧 Suelta primero el agua para petrificar la lava y luego libera el tesoro",
+            ordenSugerido: [1, 3, 2],
             muros: [
-              // Contenedor exterior en forma de embudo
               { x1: -3.4, y1: 5.2, x2: -3.4, y2: -1.2 },
               { x1: 3.4, y1: 5.2, x2: 3.4, y2: -1.2 },
               { x1: -3.4, y1: -1.2, x2: -1.4, y2: -3.2 },
@@ -448,16 +1246,12 @@
               { x1: -1.4, y1: -3.2, x2: -1.4, y2: -4.4 },
               { x1: 1.4, y1: -3.2, x2: 1.4, y2: -4.4 },
               { x1: -1.6, y1: -4.4, x2: 1.6, y2: -4.4 },
-              // Divisor superior entre Agua (izq) y Tesoro (der)
               { x1: 0, y1: 5.2, x2: 0, y2: 2.3 },
             ],
             alfileres: [
-              // Alfiler 1: sostiene el Agua (arriba izq)
-              { id: 1, x1: -3.6, y1: 2.3, x2: 0.0, y2: 2.3 },
-              // Alfiler 2: sostiene el Tesoro (arriba der)
-              { id: 2, x1: 3.6, y1: 2.3, x2: 0.0, y2: 2.3 },
-              // Alfiler 3: sostiene la cámara central (Lava) sobre el héroe
-              { id: 3, x1: -3.6, y1: -0.4, x2: 3.6, y2: -0.4 },
+              { id: 1, x1: -3.6, y1: 2.3, x2: 0.0, y2: 2.3, colorJoya: "agua" },
+              { id: 2, x1: 3.6, y1: 2.3, x2: 0.0, y2: 2.3, colorJoya: "oro" },
+              { id: 3, x1: -3.6, y1: -0.4, x2: 3.6, y2: -0.4, colorJoya: "lava" },
             ],
             gruposParticulas: [
               { tipo: "agua", cx: -1.7, cy: 3.5, cols: 5, filas: 4 },
@@ -466,56 +1260,60 @@
             ],
             heroe: { x: 0, y: -4.35 },
             orcos: [],
+            barriles: [],
           };
         }
 
         if (idx === 1) {
-          // Bóveda 2: Hay un Orco junto al héroe abajo. Primero suelta la lava sobre el orco, luego el agua para enfriar la lava y por último el oro.
+          // Bóveda 2: El Guardián del Foso
           return {
             titulo: `📍 BÓVEDA ${numBoveda} · EL GUARDIÁN DEL FOSO`,
-            objetivo: "🔥 Usa la lava para eliminar al Orco, enfríala con agua y baja el tesoro",
+            objetivo:
+              "🔥 Quema al Orco con lava, enfríala con agua y abre la compuerta del héroe",
+            ordenSugerido: [2, 1, 3, 4],
             muros: [
               { x1: -3.6, y1: 5.2, x2: -3.6, y2: -4.4 },
               { x1: 3.6, y1: 5.2, x2: 3.6, y2: -4.4 },
               { x1: -3.6, y1: -4.4, x2: 3.6, y2: -4.4 },
-              // Tabiques superiores (3 compartimentos: Agua izq, Lava centro, Oro der)
               { x1: -1.2, y1: 5.2, x2: -1.2, y2: 1.8 },
               { x1: 1.2, y1: 5.2, x2: 1.2, y2: 1.8 },
-              // Rampa central que guía hacia la derecha donde está el orco
               { x1: -3.6, y1: 0.2, x2: 0.8, y2: -1.4 },
             ],
             alfileres: [
-              { id: 1, x1: -3.8, y1: 1.8, x2: -1.1, y2: 1.8 }, // Agua
-              { id: 2, x1: -1.2, y1: 1.4, x2: 1.2, y2: 1.4 },  // Lava
-              { id: 3, x1: 3.8, y1: 1.8, x2: 1.1, y2: 1.8 },   // Oro
-              { id: 4, x1: -3.8, y1: -2.5, x2: 0.4, y2: -2.5 }, // Escudo protector del héroe a la izq
+              { id: 1, x1: -3.8, y1: 1.8, x2: -1.1, y2: 1.8, colorJoya: "agua" },
+              { id: 2, x1: -1.2, y1: 1.3, x2: 1.2, y2: 1.3, colorJoya: "lava" },
+              { id: 3, x1: 3.8, y1: 1.8, x2: 1.1, y2: 1.8, colorJoya: "oro" },
+              { id: 4, x1: -3.8, y1: -2.5, x2: 0.5, y2: -2.5, colorJoya: "oro" },
             ],
             gruposParticulas: [
               { tipo: "agua", cx: -2.4, cy: 3.2, cols: 4, filas: 4 },
-              { tipo: "lava", cx: 0.0, cy: 2.9, cols: 4, filas: 4 },
-              { tipo: "oro", cx: 2.4, cy: 3.2, cols: 4, filas: 4 },
+              { tipo: "lava", cx: 0.0, cy: 2.8, cols: 4, filas: 4 },
+              { tipo: "oro", cx: 2.4, cy: 3.2, cols: 5, filas: 4 },
             ],
             heroe: { x: -2.1, y: -4.35 },
             orcos: [{ x: 1.8, y: -4.35 }],
+            barriles: [],
           };
         }
 
         if (idx === 2) {
-          // Bóveda 3: Desvío de lava hacia foso lateral
+          // Bóveda 3: Compuerta de Desvío
           return {
             titulo: `📍 BÓVEDA ${numBoveda} · COMPUERTA DE DESVÍO`,
-            objetivo: "📍 Desvía la lava al foso derecho o enfríala antes de soltar los diamantes",
+            objetivo:
+              "📍 Vacía o enfría la rampa de lava antes de dejar caer los diamantes al caballero",
+            ordenSugerido: [3, 2, 1],
             muros: [
               { x1: -3.5, y1: 5.2, x2: -3.5, y2: -4.4 },
               { x1: 3.5, y1: 5.2, x2: 3.5, y2: -4.4 },
               { x1: -3.5, y1: -4.4, x2: 3.5, y2: -4.4 },
-              { x1: 0.3, y1: -1.2, x2: 0.3, y2: -4.4 }, // Muro divisor inferior (Héroe izq, foso der)
+              { x1: 0.3, y1: -1.2, x2: 0.3, y2: -4.4 },
               { x1: -0.2, y1: 5.2, x2: -0.2, y2: 2.0 },
             ],
             alfileres: [
-              { id: 1, x1: -3.7, y1: 2.0, x2: -0.1, y2: 2.0 }, // Oro arriba izq
-              { id: 2, x1: 3.7, y1: 2.0, x2: -0.1, y2: 2.0 },  // Agua arriba der
-              { id: 3, x1: -3.7, y1: -0.2, x2: 1.8, y2: 0.9 }, // Alfiler inclinado con Lava encima
+              { id: 1, x1: -3.7, y1: 2.0, x2: -0.1, y2: 2.0, colorJoya: "oro" },
+              { id: 2, x1: 3.7, y1: 2.0, x2: -0.1, y2: 2.0, colorJoya: "agua" },
+              { id: 3, x1: -3.7, y1: -0.2, x2: 1.8, y2: 0.9, colorJoya: "lava" },
             ],
             gruposParticulas: [
               { tipo: "oro", cx: -1.8, cy: 3.4, cols: 5, filas: 4 },
@@ -524,14 +1322,49 @@
             ],
             heroe: { x: -1.6, y: -4.35 },
             orcos: [{ x: 1.9, y: -4.35 }],
+            barriles: [],
           };
         }
 
         if (idx === 3) {
-          // Bóveda 4: Cascada triple real
+          // Bóveda 4: El Barril de Pólvora (introduce barriles explosivos)
+          return {
+            titulo: `📍 BÓVEDA ${numBoveda} · EL BARRIL DE PÓLVORA`,
+            objetivo:
+              "💣 Suelta el barril explosivo sobre el Orco, enfría la lava y recoge las joyas",
+            ordenSugerido: [3, 1, 2, 4],
+            muros: [
+              { x1: -3.5, y1: 5.2, x2: -3.5, y2: -4.4 },
+              { x1: 3.5, y1: 5.2, x2: 3.5, y2: -4.4 },
+              { x1: -3.5, y1: -4.4, x2: 3.5, y2: -4.4 },
+              { x1: -0.8, y1: 5.2, x2: -0.8, y2: 1.6 },
+              { x1: 1.4, y1: 5.2, x2: 1.4, y2: 1.6 },
+              { x1: 1.4, y1: -0.8, x2: 3.5, y2: -1.8 },
+            ],
+            alfileres: [
+              { id: 1, x1: -3.7, y1: 1.6, x2: -0.7, y2: 1.6, colorJoya: "agua" },
+              { id: 2, x1: -0.8, y1: 1.2, x2: 1.4, y2: 1.2, colorJoya: "oro" },
+              { id: 3, x1: 3.7, y1: 1.6, x2: 1.3, y2: 1.6, colorJoya: "lava" },
+              { id: 4, x1: -3.7, y1: -0.8, x2: 1.4, y2: -0.8, colorJoya: "lava" },
+            ],
+            gruposParticulas: [
+              { tipo: "agua", cx: -2.1, cy: 3.1, cols: 4, filas: 4 },
+              { tipo: "oro", cx: 0.3, cy: 3.0, cols: 5, filas: 4 },
+              { tipo: "lava", cx: -1.1, cy: 0.1, cols: 5, filas: 2 },
+            ],
+            heroe: { x: -1.8, y: -4.35 },
+            orcos: [{ x: 1.9, y: -4.35 }],
+            barriles: [{ x: 2.4, y: 2.5 }],
+          };
+        }
+
+        if (idx === 4) {
+          // Bóveda 5: Cascada de Obsidiana
           return {
             titulo: `📍 BÓVEDA ${numBoveda} · CASCADA DE OBSIDIANA`,
-            objetivo: "🪨 Convierte los dos pisos de lava en piedra con el tanque de agua superior",
+            objetivo:
+              "🪨 Convierte los dos pisos de lava en piedra con el tanque de agua superior",
+            ordenSugerido: [1, 3, 4, 2],
             muros: [
               { x1: -3.2, y1: 5.4, x2: -3.2, y2: -1.0 },
               { x1: 3.2, y1: 5.4, x2: 3.2, y2: -1.0 },
@@ -543,10 +1376,10 @@
               { x1: 0.0, y1: 5.4, x2: 0.0, y2: 2.8 },
             ],
             alfileres: [
-              { id: 1, x1: -3.4, y1: 2.8, x2: 0.1, y2: 2.8 }, // Tanque de agua izq
-              { id: 2, x1: 3.4, y1: 2.8, x2: -0.1, y2: 2.8 }, // Tesoro der
-              { id: 3, x1: -3.4, y1: 0.9, x2: 3.4, y2: 0.9 },  // Piso de lava 1
-              { id: 4, x1: 3.4, y1: -0.8, x2: -3.4, y2: -0.8 }, // Piso de lava 2
+              { id: 1, x1: -3.4, y1: 2.8, x2: 0.1, y2: 2.8, colorJoya: "agua" },
+              { id: 2, x1: 3.4, y1: 2.8, x2: -0.1, y2: 2.8, colorJoya: "oro" },
+              { id: 3, x1: -3.4, y1: 0.9, x2: 3.4, y2: 0.9, colorJoya: "lava" },
+              { id: 4, x1: 3.4, y1: -0.8, x2: -3.4, y2: -0.8, colorJoya: "lava" },
             ],
             gruposParticulas: [
               { tipo: "agua", cx: -1.6, cy: 3.9, cols: 5, filas: 4 },
@@ -556,35 +1389,171 @@
             ],
             heroe: { x: 0, y: -4.35 },
             orcos: [],
+            barriles: [],
           };
         }
 
-        // Bóveda 5: El Tesoro del Rey Dragón
+        if (idx === 5) {
+          // Bóveda 6: Emboscada Doble (2 Orcos)
+          return {
+            titulo: `📍 BÓVEDA ${numBoveda} · EMBOSCADA DOBLE`,
+            objetivo:
+              "👹 Usa el barril y la lava contra los dos Orcos antes de liberar al caballero",
+            ordenSugerido: [2, 1, 3, 4],
+            muros: [
+              { x1: -3.6, y1: 5.2, x2: -3.6, y2: -4.4 },
+              { x1: 3.6, y1: 5.2, x2: 3.6, y2: -4.4 },
+              { x1: -3.6, y1: -4.4, x2: 3.6, y2: -4.4 },
+              { x1: -1.1, y1: 5.2, x2: -1.1, y2: 1.9 },
+              { x1: 1.1, y1: 5.2, x2: 1.1, y2: 1.9 },
+              { x1: -3.6, y1: -0.2, x2: 0.4, y2: -1.6 },
+            ],
+            alfileres: [
+              { id: 1, x1: -3.8, y1: 1.9, x2: -1.0, y2: 1.9, colorJoya: "agua" },
+              { id: 2, x1: -1.1, y1: 1.5, x2: 1.1, y2: 1.5, colorJoya: "lava" },
+              { id: 3, x1: 3.8, y1: 1.9, x2: 1.0, y2: 1.9, colorJoya: "oro" },
+              { id: 4, x1: -3.8, y1: -2.6, x2: 0.2, y2: -2.6, colorJoya: "oro" },
+            ],
+            gruposParticulas: [
+              { tipo: "agua", cx: -2.3, cy: 3.3, cols: 4, filas: 4 },
+              { tipo: "lava", cx: 0.0, cy: 2.9, cols: 4, filas: 3 },
+              { tipo: "oro", cx: 2.3, cy: 3.3, cols: 5, filas: 4 },
+            ],
+            heroe: { x: -2.1, y: -4.35 },
+            orcos: [
+              { x: 1.1, y: -4.35 },
+              { x: 2.5, y: -4.35 },
+            ],
+            barriles: [{ x: 0.0, y: 4.2 }],
+          };
+        }
+
+        if (idx === 6) {
+          // Bóveda 7: La Trampa del Alquimista
+          return {
+            titulo: `📍 BÓVEDA ${numBoveda} · TRAMPA DEL ALQUIMISTA`,
+            objetivo:
+              "💧 Drena primero el agua sobre la caldera central y luego suelta las esmeraldas",
+            ordenSugerido: [2, 3, 1],
+            muros: [
+              { x1: -3.5, y1: 5.2, x2: -3.5, y2: -1.4 },
+              { x1: 3.5, y1: 5.2, x2: 3.5, y2: -1.4 },
+              { x1: -3.5, y1: -1.4, x2: -1.5, y2: -3.3 },
+              { x1: 3.5, y1: -1.4, x2: 1.5, y2: -3.3 },
+              { x1: -1.5, y1: -3.3, x2: -1.5, y2: -4.4 },
+              { x1: 1.5, y1: -3.3, x2: 1.5, y2: -4.4 },
+              { x1: -1.6, y1: -4.4, x2: 1.6, y2: -4.4 },
+              { x1: 0.0, y1: 5.2, x2: 0.0, y2: 2.2 },
+              { x1: -3.5, y1: 2.2, x2: -1.8, y2: 0.8 },
+              { x1: 3.5, y1: 2.2, x2: 1.8, y2: 0.8 },
+            ],
+            alfileres: [
+              { id: 1, x1: -3.7, y1: 2.2, x2: 0.0, y2: 2.2, colorJoya: "oro" },
+              { id: 2, x1: 3.7, y1: 2.2, x2: 0.0, y2: 2.2, colorJoya: "agua" },
+              { id: 3, x1: -2.2, y1: -0.6, x2: 2.2, y2: -0.6, colorJoya: "lava" },
+            ],
+            gruposParticulas: [
+              { tipo: "oro", cx: -1.7, cy: 3.5, cols: 5, filas: 4 },
+              { tipo: "agua", cx: 1.7, cy: 3.5, cols: 5, filas: 4 },
+              { tipo: "lava", cx: 0.0, cy: 0.4, cols: 5, filas: 3 },
+            ],
+            heroe: { x: 0, y: -4.35 },
+            orcos: [],
+            barriles: [],
+          };
+        }
+
+        if (idx === 7) {
+          // Bóveda 8: Demolición Subterránea
+          return {
+            titulo: `📍 BÓVEDA ${numBoveda} · DEMOLICIÓN SUBTERRÁNEA`,
+            objetivo:
+              "💣 Detona a los guardias del foso derecho y canaliza el tesoro hacia el héroe",
+            ordenSugerido: [3, 2, 1],
+            muros: [
+              { x1: -3.5, y1: 5.2, x2: -3.5, y2: -4.4 },
+              { x1: 3.5, y1: 5.2, x2: 3.5, y2: -4.4 },
+              { x1: -3.5, y1: -4.4, x2: 3.5, y2: -4.4 },
+              { x1: 0.2, y1: -1.5, x2: 0.2, y2: -4.4 },
+              { x1: -0.4, y1: 5.2, x2: -0.4, y2: 1.8 },
+            ],
+            alfileres: [
+              { id: 1, x1: -3.7, y1: 1.8, x2: -0.3, y2: 1.8, colorJoya: "oro" },
+              { id: 2, x1: 3.7, y1: 1.8, x2: -0.3, y2: 1.8, colorJoya: "agua" },
+              { id: 3, x1: 3.7, y1: -0.2, x2: -1.6, y2: 0.7, colorJoya: "lava" },
+            ],
+            gruposParticulas: [
+              { tipo: "oro", cx: -1.9, cy: 3.3, cols: 5, filas: 4 },
+              { tipo: "agua", cx: 1.5, cy: 3.3, cols: 5, filas: 4 },
+              { tipo: "lava", cx: 1.0, cy: 0.9, cols: 4, filas: 2 },
+            ],
+            heroe: { x: -1.7, y: -4.35 },
+            orcos: [{ x: 1.8, y: -4.35 }],
+            barriles: [{ x: 1.6, y: 1.6 }],
+          };
+        }
+
+        if (idx === 8) {
+          // Bóveda 9: Foso de los Tres Sellos
+          return {
+            titulo: `📍 BÓVEDA ${numBoveda} · LOS TRES SELLOS REALES`,
+            objetivo:
+              "💧 Purifica la cámara central antes de abrir el sello inferior del caballero",
+            ordenSugerido: [1, 3, 2, 4],
+            muros: [
+              { x1: -3.5, y1: 5.2, x2: -3.5, y2: -4.4 },
+              { x1: 3.5, y1: 5.2, x2: 3.5, y2: -4.4 },
+              { x1: -3.5, y1: -4.4, x2: 3.5, y2: -4.4 },
+              { x1: 0.0, y1: 5.2, x2: 0.0, y2: 2.0 },
+              { x1: -3.5, y1: -0.4, x2: -1.3, y2: -2.0 },
+              { x1: 3.5, y1: -0.4, x2: 1.3, y2: -2.0 },
+            ],
+            alfileres: [
+              { id: 1, x1: -3.7, y1: 2.0, x2: 0.1, y2: 2.0, colorJoya: "agua" },
+              { id: 2, x1: 3.7, y1: 2.0, x2: -0.1, y2: 2.0, colorJoya: "oro" },
+              { id: 3, x1: -3.7, y1: 0.1, x2: 3.7, y2: 0.1, colorJoya: "lava" },
+              { id: 4, x1: -1.6, y1: -2.0, x2: 1.6, y2: -2.0, colorJoya: "oro" },
+            ],
+            gruposParticulas: [
+              { tipo: "agua", cx: -1.7, cy: 3.4, cols: 5, filas: 4 },
+              { tipo: "oro", cx: 1.7, cy: 3.4, cols: 5, filas: 4 },
+              { tipo: "lava", cx: 0.0, cy: 1.0, cols: 5, filas: 2 },
+            ],
+            heroe: { x: 0.0, y: -4.35 },
+            orcos: [],
+            barriles: [],
+          };
+        }
+
+        // Bóveda 10: Cámara del Rey Dragón
         return {
           titulo: `📍 BÓVEDA ${numBoveda} · CÁMARA DEL REY DRAGÓN`,
-          objetivo: "👑 neutraliza la lava y los guardias para bañarte en joyas reales",
+          objetivo:
+            "👑 Neutraliza el magma volcánico con agua y báñate en el tesoro real",
+          ordenSugerido: [1, 3, 2, 4],
           muros: [
             { x1: -3.6, y1: 5.2, x2: -3.6, y2: -4.4 },
             { x1: 3.6, y1: 5.2, x2: 3.6, y2: -4.4 },
             { x1: -3.6, y1: -4.4, x2: 3.6, y2: -4.4 },
             { x1: -1.1, y1: 5.2, x2: -1.1, y2: 2.1 },
             { x1: 1.1, y1: 5.2, x2: 1.1, y2: 2.1 },
-            { x1: -3.6, y1: -0.5, x2: -0.8, y2: -1.8 },
-            { x1: 3.6, y1: -0.5, x2: 0.8, y2: -1.8 },
+            { x1: -3.6, y1: -0.5, x2: -0.9, y2: -1.9 },
+            { x1: 3.6, y1: -0.5, x2: 0.9, y2: -1.9 },
           ],
           alfileres: [
-            { id: 1, x1: -3.8, y1: 2.1, x2: -1.0, y2: 2.1 }, // Agua izq
-            { id: 2, x1: -1.1, y1: 1.7, x2: 1.1, y2: 1.7 },  // Oro centro
-            { id: 3, x1: 3.8, y1: 2.1, x2: 1.0, y2: 2.1 },   // Lava der
-            { id: 4, x1: -1.4, y1: -1.8, x2: 1.4, y2: -1.8 }, // Compuerta central al héroe
+            { id: 1, x1: -3.8, y1: 2.1, x2: -1.0, y2: 2.1, colorJoya: "agua" },
+            { id: 2, x1: -1.1, y1: 1.7, x2: 1.1, y2: 1.7, colorJoya: "oro" },
+            { id: 3, x1: 3.8, y1: 2.1, x2: 1.0, y2: 2.1, colorJoya: "lava" },
+            { id: 4, x1: -1.4, y1: -1.9, x2: 1.4, y2: -1.9, colorJoya: "oro" },
           ],
           gruposParticulas: [
-            { tipo: "agua", cx: -2.3, cy: 3.4, cols: 4, filas: 4 },
-            { tipo: "oro", cx: 0.0, cy: 3.2, cols: 5, filas: 4 },
+            { tipo: "agua", cx: -2.3, cy: 3.4, cols: 5, filas: 4 },
+            { tipo: "oro", cx: 0.0, cy: 3.2, cols: 5, filas: 5 },
             { tipo: "lava", cx: 2.3, cy: 3.4, cols: 4, filas: 4 },
           ],
           heroe: { x: 0.0, y: -4.35 },
           orcos: [],
+          barriles: [],
         };
       }
 
@@ -602,10 +1571,13 @@
         puntos: 0,
         oroTotal: 0,
         oroRecogido: 0,
+        oroPerdido: 0,
         sacudida: 0,
+        ordenSugerido: [],
         segmentosMuro: [],
         alfileres: [],
         particulas: [],
+        barriles: [],
         efectos: [],
         heroe: null,
         orcos: [],
@@ -624,29 +1596,41 @@
         div.style.color = color;
         div.textContent = texto;
         capa.appendChild(div);
-        setTimeout(() => div.remove(), 900);
+        setTimeout(() => div.remove(), 980);
       }
 
-      function vapor3D(x, y, colorHex = 0xe2e8f0, n = 6) {
+      function vapor3D(x, y, colorHex = 0xe2e8f0, n = 6, escala = 1) {
         const m = new THREE.MeshBasicMaterial({
           color: colorHex,
           transparent: true,
-          opacity: 0.85,
+          opacity: 0.88,
         });
         for (let i = 0; i < n; i++) {
           const s = new THREE.Mesh(
-            new THREE.SphereGeometry(azar(0.1, 0.22), 8, 8),
+            new THREE.SphereGeometry(azar(0.09, 0.21) * escala, 8, 8),
             m,
           );
-          s.position.set(x + azar(-0.15, 0.15), y + azar(-0.1, 0.1), 0.35);
+          s.position.set(x + azar(-0.18, 0.18), y + azar(-0.12, 0.12), 0.36);
           s.userData = {
-            vx: azar(-1.2, 1.2),
-            vy: azar(1.5, 3.8),
-            vida: azar(0.35, 0.65),
+            vx: azar(-1.5, 1.5) * escala,
+            vy: azar(1.4, 3.8) * escala,
+            vida: azar(0.35, 0.7),
+            vidaMax: 0.65,
           };
           grupoNivel.add(s);
           A.efectos.push(s);
         }
+      }
+
+      function actualizarHUDProgreso() {
+        const pct = Math.min(
+          100,
+          Math.round((A.oroRecogido / Math.max(1, A.oroTotal)) * 100),
+        );
+        $("progreso-oro").textContent = `💎 ${pct}%`;
+        const barra = $("barra-oro-relleno");
+        if (barra) barra.style.width = `${pct}%`;
+        return pct;
       }
 
       function cargarBoveda(numBoveda) {
@@ -656,34 +1640,75 @@
         A.segmentosMuro = [];
         A.alfileres = [];
         A.particulas = [];
+        A.barriles = [];
         A.efectos = [];
         A.orcos = [];
         A.boveda = numBoveda;
         A.resuelto = false;
         A.oroTotal = 0;
         A.oroRecogido = 0;
+        A.oroPerdido = 0;
 
         const def = obtenerDefinicionBoveda(numBoveda);
+        A.ordenSugerido = def.ordenSugerido || [];
         $("titulo-camara").textContent = def.titulo;
         $("objetivo-camara").textContent = def.objetivo;
-        $("progreso-oro").textContent = "💎 0%";
+        actualizarHUDProgreso();
 
-        // 1. Construir muros 3D biselados
+        // Respaldo interior oscuro de la bóveda para dar profundidad 3D
+        const respaldo = new THREE.Mesh(
+          Graficos3D.cajaSuave(7.5, 10.1, 0.2, 0.08),
+          matRespaldoInterior,
+        );
+        respaldo.position.set(0, 0.4, -0.62);
+        respaldo.receiveShadow = true;
+        grupoNivel.add(respaldo);
+
+        // 1. Construir muros 3D biselados con remaches de bronce en los vértices
+        const verticesRemache = new Set();
         for (const m of def.muros) {
           const dx = m.x2 - m.x1;
           const dy = m.y2 - m.y1;
           const largo = Math.hypot(dx, dy);
           const angulo = Math.atan2(dy, dx);
           const mesh = new THREE.Mesh(
-            Graficos3D.cajaSuave(largo + 0.28, 0.32, 1.35, 0.06),
+            Graficos3D.cajaSuave(largo + 0.24, 0.32, 1.32, 0.06),
             matMuroBoveda,
           );
           mesh.position.set((m.x1 + m.x2) / 2, (m.y1 + m.y2) / 2, 0);
           mesh.rotation.z = angulo;
           mesh.castShadow = mesh.receiveShadow = true;
-          acabado3D.superficie(mesh, "roca", { repetir: 2 });
           grupoNivel.add(mesh);
-          A.segmentosMuro.push({ x1: m.x1, y1: m.y1, x2: m.x2, y2: m.y2, grosor: 0.18 });
+
+          // Borde dorado frontal en el muro
+          const franja = new THREE.Mesh(
+            Graficos3D.cajaSuave(largo + 0.16, 0.08, 0.08, 0.02),
+            matBronceBoveda,
+          );
+          franja.position.set((m.x1 + m.x2) / 2, (m.y1 + m.y2) / 2, 0.64);
+          franja.rotation.z = angulo;
+          grupoNivel.add(franja);
+
+          for (const [vx, vy] of [
+            [m.x1, m.y1],
+            [m.x2, m.y2],
+          ]) {
+            const k = `${vx.toFixed(1)}:${vy.toFixed(1)}`;
+            if (!verticesRemache.has(k)) {
+              verticesRemache.add(k);
+              const remache = new THREE.Mesh(geoRemache, matBronceBoveda);
+              remache.position.set(vx, vy, 0);
+              grupoNivel.add(remache);
+            }
+          }
+
+          A.segmentosMuro.push({
+            x1: m.x1,
+            y1: m.y1,
+            x2: m.x2,
+            y2: m.y2,
+            grosor: 0.17,
+          });
         }
 
         // 2. Construir alfileres dorados interactivos
@@ -693,12 +1718,24 @@
           const pin = crearAlfiler3D(pDef);
           grupoNivel.add(pin.grupo);
 
+          const flecha =
+            Math.abs(pin.dirX) >= Math.abs(pin.dirY)
+              ? pin.dirX < 0
+                ? "⬅"
+                : "➡"
+              : pin.dirY > 0
+                ? "⬆"
+                : "⬇";
+
           const btn = document.createElement("button");
           btn.type = "button";
           btn.className = "tirador-alfiler";
-          btn.textContent = "📍";
+          btn.innerHTML = `<span class="flecha-alfiler">${flecha}</span><span class="num-alfiler">#${pDef.id}</span>`;
           btn.setAttribute("aria-label", `Sacar alfiler ${pDef.id}`);
-          btn.addEventListener("click", () => sacarAlfiler(pin));
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            sacarAlfiler(pin);
+          });
           capaDom.appendChild(btn);
           pin.botonDOM = btn;
           A.alfileres.push(pin);
@@ -707,36 +1744,36 @@
         // 3. Crear fluidos (Agua, Lava) y Joyas de Tesoro
         let indiceColor = 0;
         for (const g of def.gruposParticulas) {
-          const paso = 0.44;
+          const paso = 0.41;
           for (let f = 0; f < g.filas; f++) {
             for (let c = 0; c < g.cols; c++) {
               const px =
-                g.cx + (c - (g.cols - 1) / 2) * paso + azar(-0.04, 0.04);
-              const py = g.cy + (f - (g.filas - 1) / 2) * paso;
+                g.cx +
+                (c - (g.cols - 1) / 2) * paso +
+                (f % 2 === 0 ? 0.03 : -0.03) +
+                azar(-0.02, 0.02);
+              const py = g.cy + (f - (g.filas - 1) / 2) * (paso * 0.94);
 
               let mesh;
               if (g.tipo === "agua") {
                 mesh = new THREE.Mesh(geoEsferaFluido, matAgua);
               } else if (g.tipo === "lava") {
                 mesh = new THREE.Mesh(geoEsferaFluido, matLava);
-                const nucleo = new THREE.Mesh(
-                  new THREE.SphereGeometry(0.13, 8, 8),
-                  matLavaNucleo,
-                );
-                nucleo.position.z = 0.12;
-                mesh.add(nucleo);
               } else {
                 indiceColor++;
-                const mGema =
-                  indiceColor % 3 === 0
-                    ? matGemaDiamante
-                    : indiceColor % 2 === 0
-                      ? matGemaEsmeralda
-                      : matMonedaOro;
-                mesh = new THREE.Mesh(geoGema, mGema);
+                const mod = indiceColor % 4;
+                if (mod === 0) {
+                  mesh = new THREE.Mesh(geoGemaOcta, matGemaDiamante);
+                } else if (mod === 1) {
+                  mesh = new THREE.Mesh(geoMoneda, matMonedaOro);
+                } else if (mod === 2) {
+                  mesh = new THREE.Mesh(geoGemaDode, matGemaEsmeralda);
+                } else {
+                  mesh = new THREE.Mesh(geoGemaOcta, matGemaRubi);
+                }
                 A.oroTotal++;
               }
-              mesh.position.set(px, py, 0.12);
+              mesh.position.set(px, py, 0.14);
               mesh.castShadow = true;
               grupoNivel.add(mesh);
 
@@ -744,25 +1781,43 @@
                 tipo: g.tipo, // "agua", "lava", "oro", "piedra"
                 x: px,
                 y: py,
-                vx: 0,
+                vx: azar(-0.08, 0.08),
                 vy: 0,
-                r: 0.21,
+                r: 0.19,
+                cargasAgua: 2, // Cada gota de agua puede petrificar hasta 2 de lava antes de evaporarse
                 mesh,
                 recogida: false,
+                semillaFase: azar(0, 6.28),
               });
             }
           }
         }
 
-        // 4. Héroe y Orcos
+        // 4. Barriles explosivos (si la bóveda los incluye)
+        for (const b of def.barriles || []) {
+          const mBarril = crearBarril3D();
+          mBarril.position.set(b.x, b.y, 0.16);
+          grupoNivel.add(mBarril);
+          A.barriles.push({
+            x: b.x,
+            y: b.y,
+            vx: 0,
+            vy: 0,
+            r: 0.31,
+            mesh: mBarril,
+            explotado: false,
+          });
+        }
+
+        // 5. Héroe y Orcos
         const heroe3D = crearHeroeBoveda3D();
-        heroe3D.position.set(def.heroe.x, def.heroe.y, 0.12);
+        heroe3D.position.set(def.heroe.x, def.heroe.y, 0.14);
         grupoNivel.add(heroe3D);
         A.heroe = { x: def.heroe.x, y: def.heroe.y, mesh: heroe3D };
 
         for (const o of def.orcos) {
           const mOrco = crearOrcoBoveda3D();
-          mOrco.position.set(o.x, o.y, 0.12);
+          mOrco.position.set(o.x, o.y, 0.14);
           grupoNivel.add(mOrco);
           A.orcos.push({ x: o.x, y: o.y, mesh: mOrco, vivo: true });
         }
@@ -771,10 +1826,31 @@
       function sacarAlfiler(pin) {
         if (!A.activo || A.resuelto || pin.sacado || pin.animando) return;
         pin.animando = true;
-        pin.botonDOM.style.display = "none";
+        if (pin.botonDOM) {
+          pin.botonDOM.classList.remove("pista-activa");
+          pin.botonDOM.style.display = "none";
+        }
         sonar("click");
-        vapor3D(pin.x1, pin.y1, 0xfef08a, 8);
+        vapor3D(pin.x1, pin.y1, 0xfef08a, 9);
       }
+
+      // Permitir también tocar o hacer clic directamente sobre la barra 3D del alfiler en el canvas
+      lienzo.addEventListener("pointerdown", (e) => {
+        if (!A.activo || A.resuelto) return;
+        const rayo = M.pantallaARayo(e.clientX, e.clientY);
+        const mallas = [];
+        for (const pin of A.alfileres) {
+          if (!pin.sacado && !pin.animando) {
+            pin.grupo.traverse((c) => {
+              if (c.isMesh) mallas.push(c);
+            });
+          }
+        }
+        const hits = rayo.intersectObjects(mallas, false);
+        if (hits.length > 0 && hits[0].object.userData.pinRef) {
+          sacarAlfiler(hits[0].object.userData.pinRef);
+        }
+      });
 
       $("btn-reintentar-nivel").addEventListener("click", () => {
         if (!A.activo) return;
@@ -782,12 +1858,36 @@
         cargarBoveda(A.boveda);
       });
 
-      // Colisión de círculo (partícula) contra segmento (muro o alfiler activo)
-      function rebotarContraSegmento(p, x1, y1, x2, y2, grosor) {
+      $("btn-pista-nivel").addEventListener("click", () => {
+        if (!A.activo || A.resuelto) return;
+        sonar("click");
+        for (const pin of A.alfileres) {
+          if (pin.botonDOM) pin.botonDOM.classList.remove("pista-activa");
+        }
+        const sigId = A.ordenSugerido.find((id) => {
+          const p = A.alfileres.find((al) => al.id === id);
+          return p && !p.sacado && !p.animando;
+        });
+        const objetivo =
+          A.alfileres.find((al) => al.id === sigId) ||
+          A.alfileres.find((al) => !al.sacado && !al.animando);
+        if (objetivo && objetivo.botonDOM) {
+          objetivo.botonDOM.classList.add("pista-activa");
+          textoFlotanteAlfiler(
+            `💡 ¡Tira del alfiler #${objetivo.id}!`,
+            "#4ade80",
+            (objetivo.x1 + objetivo.x2) / 2,
+            (objetivo.y1 + objetivo.y2) / 2 + 0.65,
+          );
+        }
+      });
+
+      // Colisión de círculo (partícula o barril) contra segmento (muro o alfiler activo)
+      function rebotarContraSegmento(p, x1, y1, x2, y2, grosor, restitucion = 0.14) {
         const dx = x2 - x1;
         const dy = y2 - y1;
         const len2 = dx * dx + dy * dy;
-        if (len2 === 0) return;
+        if (len2 === 0) return false;
         const t = limitar(((p.x - x1) * dx + (p.y - y1) * dy) / len2, 0, 1);
         const cx = x1 + t * dx;
         const cy = y1 + t * dy;
@@ -803,19 +1903,108 @@
           p.y += ny * solape;
           const vn = p.vx * nx + p.vy * ny;
           if (vn < 0) {
-            p.vx -= (1 + 0.18) * vn * nx;
-            p.vy -= (1 + 0.18) * vn * ny;
-            p.vx *= 0.92;
+            p.vx -= (1 + restitucion) * vn * nx;
+            p.vy -= (1 + restitucion) * vn * ny;
+            // Deslizamiento fluido en rampas
+            p.vx *= p.tipo === "agua" ? 0.985 : 0.94;
+          }
+          return true;
+        }
+        return false;
+      }
+
+      function convertirEnPiedra(particula) {
+        if (particula.tipo === "piedra" || particula.recogida) return;
+        particula.tipo = "piedra";
+        particula.r = 0.18;
+        particula.mesh.geometry = geoRoca;
+        particula.mesh.material = matPiedra;
+        particula.mesh.scale.set(1, 1, 1);
+      }
+
+      function enfriarClusterLava(cx, cy, radio = 0.68) {
+        for (const p of A.particulas) {
+          if (!p.recogida && p.tipo === "lava") {
+            if (Math.hypot(p.x - cx, p.y - cy) < radio) {
+              convertirEnPiedra(p);
+            }
           }
         }
       }
 
-      function convertirEnPiedra(particula) {
-        if (particula.tipo === "piedra") return;
-        particula.tipo = "piedra";
-        particula.mesh.geometry = geoRoca;
-        particula.mesh.material = matPiedra;
-        particula.mesh.clear();
+      function explotarBarril(barril) {
+        if (barril.explotado) return;
+        barril.explotado = true;
+        barril.mesh.visible = false;
+        A.sacudida = 0.55;
+        sonar("golpe");
+        vapor3D(barril.x, barril.y, 0xff6b00, 18, 1.35);
+        vapor3D(barril.x, barril.y, 0xfef08a, 10, 1.1);
+        textoFlotanteAlfiler(
+          "💥 ¡BOOM!",
+          "#facc15",
+          barril.x,
+          barril.y + 0.8,
+        );
+
+        // Eliminar Orcos en el radio de la explosión
+        for (const orco of A.orcos) {
+          if (
+            orco.vivo &&
+            Math.hypot(orco.x - barril.x, orco.y + 0.5 - barril.y) < 2.2
+          ) {
+            orco.vivo = false;
+            orco.mesh.visible = false;
+            sonar("moneda");
+            vapor3D(orco.x, orco.y + 0.6, 0x4ade80, 14);
+            textoFlotanteAlfiler(
+              "💥 ¡ORCO ELIMINADO!",
+              "#4ade80",
+              orco.x,
+              orco.y + 1.3,
+            );
+            A.puntos += 75;
+          }
+        }
+
+        // Empujar partículas cercanas y enfriar/dispersar lava adyacente
+        for (const p of A.particulas) {
+          if (p.recogida) continue;
+          const dx = p.x - barril.x;
+          const dy = p.y - barril.y;
+          const d = Math.hypot(dx, dy);
+          if (d < 2.0 && d > 0.01) {
+            if (p.tipo === "lava" && d < 1.35) {
+              convertirEnPiedra(p);
+            }
+            const f = (2.0 - d) * 4.5;
+            p.vx += (dx / d) * f;
+            p.vy += (dy / d) * f + 2.0;
+          }
+        }
+      }
+
+      function verificarDerrotaPorOroPerdido() {
+        if (!A.activo || A.resuelto || A.oroTotal === 0) return;
+        const maxPosible = A.oroTotal - A.oroPerdido;
+        const pctMax = Math.round((maxPosible / A.oroTotal) * 100);
+        if (pctMax < 65) {
+          A.resuelto = true;
+          sonar("perder");
+          textoFlotanteAlfiler(
+            "💔 ¡SE PERDIÓ DEMASIADO TESORO!",
+            "#ff4d6d",
+            0,
+            0.5,
+          );
+          setTimeout(
+            () =>
+              falloBoveda(
+                "La lava destruyó demasiadas joyas. ¡Enfría la lava primero!",
+              ),
+            950,
+          );
+        }
       }
 
       // =========================================================
@@ -823,35 +2012,97 @@
       // =========================================================
       M.alCuadro((dt) => {
         A.tiempo += dt;
-        const subDt = Math.min(0.025, dt) / 2;
+        const subPasos = 3;
+        const subDt = Math.min(0.026, dt) / subPasos;
 
-        // Animar extracción de alfileres
+        // Animar texturas vivas (flujo de magma y agua + antorchas)
+        TEX.texLava.offset.x = (A.tiempo * 0.08) % 1;
+        TEX.texLava.offset.y = (A.tiempo * 0.05) % 1;
+        TEX.texAgua.offset.x = (A.tiempo * 0.12) % 1;
+        TEX.texAgua.offset.y = (Math.sin(A.tiempo * 1.5) * 0.06) % 1;
+        matLava.emissiveIntensity = 1.25 + Math.sin(A.tiempo * 5.5) * 0.25;
+
+        for (let i = 0; i < llamasAntorcha.length; i++) {
+          const ll = llamasAntorcha[i];
+          const s = 1 + Math.sin(A.tiempo * 14 + i * 2) * 0.12;
+          ll.scale.set(s, 1 + Math.cos(A.tiempo * 18 + i) * 0.16, s);
+          ll.rotation.z = Math.sin(A.tiempo * 9 + i) * 0.1;
+        }
+        luzAntorchaIzq.intensity = 1.45 + Math.sin(A.tiempo * 13) * 0.2;
+        luzAntorchaDer.intensity = 1.45 + Math.cos(A.tiempo * 11) * 0.2;
+
+        // Animar extracción de alfileres y rotación de sus joyas
         for (const pin of A.alfileres) {
+          if (pin.joya) pin.joya.rotation.y += dt * 2.4;
           if (pin.animando && !pin.sacado) {
-            pin.desplazamiento += dt * 15;
-            pin.grupo.position.x += pin.dirX * dt * 15;
-            pin.grupo.position.y += pin.dirY * dt * 15;
-            if (pin.desplazamiento >= pin.largo + 0.6) {
+            pin.desplazamiento += dt * 16;
+            pin.grupo.position.x += pin.dirX * dt * 16;
+            pin.grupo.position.y += pin.dirY * dt * 16;
+            if (pin.desplazamiento >= pin.largo + 0.65) {
               pin.sacado = true;
               pin.grupo.visible = false;
             }
           }
           // Proyectar botón de la argolla en pantalla
           if (!pin.sacado && !pin.animando && pin.botonDOM) {
-            const hx = pin.x1 + (pin.x1 - pin.x2) / pin.largo * 0.32;
-            const hy = pin.y1 + (pin.y1 - pin.y2) / pin.largo * 0.32;
+            const hx = pin.x1 + ((pin.x1 - pin.x2) / pin.largo) * 0.36;
+            const hy = pin.y1 + ((pin.y1 - pin.y2) / pin.largo) * 0.36;
             const v = new THREE.Vector3(hx, hy, 0.25).project(camara);
             pin.botonDOM.style.left = `${(v.x * 0.5 + 0.5) * window.innerWidth}px`;
             pin.botonDOM.style.top = `${(-v.y * 0.5 + 0.5) * window.innerHeight}px`;
           }
         }
 
-        // 2 subpasos físicos por cuadro para estabilidad total de fluidos
-        for (let paso = 0; paso < 2; paso++) {
+        // Subpasos físicos para estabilidad total de fluidos y barriles
+        for (let paso = 0; paso < subPasos; paso++) {
+          // Actualizar barriles explosivos
+          for (const b of A.barriles) {
+            if (b.explotado) continue;
+            const vyAntes = b.vy;
+            b.vy -= 14.5 * subDt;
+            b.x += b.vx * subDt;
+            b.y += b.vy * subDt;
+
+            for (const m of A.segmentosMuro) {
+              if (
+                rebotarContraSegmento(b, m.x1, m.y1, m.x2, m.y2, m.grosor, 0.1) &&
+                vyAntes < -5.2
+              ) {
+                explotarBarril(b);
+                break;
+              }
+            }
+            if (b.explotado) continue;
+            for (const pin of A.alfileres) {
+              if (!pin.sacado && !pin.animando) {
+                rebotarContraSegmento(
+                  b,
+                  pin.x1,
+                  pin.y1,
+                  pin.x2,
+                  pin.y2,
+                  0.13,
+                  0.05,
+                );
+              }
+            }
+            // ¿Toca un Orco al caer?
+            for (const orco of A.orcos) {
+              if (
+                orco.vivo &&
+                Math.hypot(b.x - orco.x, b.y - (orco.y + 0.55)) < 0.78
+              ) {
+                explotarBarril(b);
+                break;
+              }
+            }
+          }
+
+          // Actualizar partículas (Agua, Lava, Oro, Piedra)
           for (let i = 0; i < A.particulas.length; i++) {
             const p = A.particulas[i];
             if (p.recogida) continue;
-            p.vy -= 14.5 * subDt;
+            p.vy -= 14.8 * subDt;
             p.x += p.vx * subDt;
             p.y += p.vy * subDt;
 
@@ -867,7 +2118,7 @@
             }
           }
 
-          // Colisión entre partículas + Reacción Agua + Lava = Piedra Obsidiana
+          // Colisión entre partículas + Reacciones Químicas
           for (let i = 0; i < A.particulas.length; i++) {
             const a = A.particulas[i];
             if (a.recogida) continue;
@@ -891,23 +2142,79 @@
                 const dvy = b.vy - a.vy;
                 const vn = dvx * nx + dvy * ny;
                 if (vn < 0) {
-                  const imp = vn * 0.48;
+                  const imp = vn * 0.46;
                   a.vx += imp * nx;
                   a.vy += imp * ny;
                   b.vx -= imp * nx;
                   b.vy -= imp * ny;
                 }
 
-                // ¡Reacción Química Agua + Lava!
+                // Empuje lateral hidrostático para que el agua y la lava fluyan como líquidos reales
+                if (
+                  (a.tipo === "agua" || a.tipo === "lava") &&
+                  a.tipo === b.tipo &&
+                  Math.abs(ny) > 0.5
+                ) {
+                  const empuje = ( nx >= 0 ? 1 : -1 ) * 0.18;
+                  a.vx -= empuje;
+                  b.vx += empuje;
+                }
+
+                // ¡Reacción 1: Agua + Lava = Piedra Obsidiana + Evaporación limpia!
                 if (
                   (a.tipo === "agua" && b.tipo === "lava") ||
                   (a.tipo === "lava" && b.tipo === "agua")
                 ) {
-                  convertirEnPiedra(a);
-                  convertirEnPiedra(b);
-                  if (Math.random() < 0.35) {
+                  const gotaAgua = a.tipo === "agua" ? a : b;
+                  const gotaLava = a.tipo === "lava" ? a : b;
+                  convertirEnPiedra(gotaLava);
+                  enfriarClusterLava(gotaLava.x, gotaLava.y, 0.65);
+
+                  gotaAgua.cargasAgua--;
+                  if (gotaAgua.cargasAgua <= 0) {
+                    gotaAgua.recogida = true;
+                    gotaAgua.mesh.visible = false;
+                  }
+                  if (Math.random() < 0.45) {
                     sonar("golpe");
-                    vapor3D((a.x + b.x) / 2, (a.y + b.y) / 2, 0xe2e8f0, 4);
+                    vapor3D(
+                      (a.x + b.x) / 2,
+                      (a.y + b.y) / 2,
+                      0xe2e8f0,
+                      5,
+                    );
+                  }
+                }
+
+                // ¡Reacción 2: Agua ya fría / Piedra recién formada con Lava pegada!
+                if (
+                  (a.tipo === "piedra" && b.tipo === "lava") ||
+                  (a.tipo === "lava" && b.tipo === "piedra")
+                ) {
+                  // Si hay agua cerca, la conducción térmica termina de petrificar la lava
+                  const hayAguaCerca = A.particulas.some(
+                    (w) =>
+                      !w.recogida &&
+                      w.tipo === "agua" &&
+                      Math.hypot(w.x - a.x, w.y - a.y) < 0.85,
+                  );
+                  if (hayAguaCerca) {
+                    convertirEnPiedra(a.tipo === "lava" ? a : b);
+                  }
+                }
+
+                // ¡Reacción 3: Lava quema el Tesoro (Oro) si se tocan!
+                if (
+                  (a.tipo === "lava" && b.tipo === "oro") ||
+                  (a.tipo === "oro" && b.tipo === "lava")
+                ) {
+                  const joya = a.tipo === "oro" ? a : b;
+                  if (!joya.recogida) {
+                    joya.recogida = true;
+                    joya.mesh.visible = false;
+                    A.oroPerdido++;
+                    vapor3D(joya.x, joya.y, 0x475569, 4);
+                    verificarDerrotaPorOroPerdido();
                   }
                 }
               }
@@ -915,25 +2222,84 @@
           }
         }
 
-        // Sincronizar mallas 3D y comprobar contacto con Héroe y Orcos
+        // Sincronizar mallas de barriles
+        for (const b of A.barriles) {
+          if (b.explotado) continue;
+          b.mesh.position.set(b.x, b.y, 0.16);
+          b.mesh.rotation.z -= b.vx * dt * 1.5;
+          if (b.mesh.userData.mecha) {
+            const s = 0.85 + Math.sin(A.tiempo * 24) * 0.3;
+            b.mesh.userData.mecha.scale.set(s, s, s);
+          }
+        }
+
+        // Sincronizar mallas 3D de partículas, luz de lava y contacto con Héroe y Orcos
+        let lavaX = 0,
+          lavaY = 0,
+          cuentaLava = 0;
+
         for (const p of A.particulas) {
           if (p.recogida) continue;
-          p.mesh.position.set(p.x, p.y, 0.12);
-          if (p.tipo === "oro" || p.tipo === "piedra") {
-            p.mesh.rotation.z -= p.vx * dt * 2;
-            p.mesh.rotation.y += dt * 2.2;
+
+          if (p.tipo === "lava") {
+            lavaX += p.x;
+            lavaY += p.y;
+            cuentaLava++;
+            // Pulsación orgánica del magma
+            const pulso = 1 + Math.sin(A.tiempo * 6 + p.semillaFase) * 0.08;
+            p.mesh.scale.set(pulso, 1 / pulso, pulso);
+            p.mesh.rotation.z += dt * 0.8;
+          } else if (p.tipo === "agua") {
+            // Deformación elástica suave según velocidad
+            const vel = Math.min(1.25, 1 + Math.hypot(p.vx, p.vy) * 0.04);
+            p.mesh.scale.set(1 / Math.sqrt(vel), vel, 1);
+          } else if (p.tipo === "oro") {
+            p.mesh.rotation.z -= p.vx * dt * 2.2;
+            p.mesh.rotation.y += dt * 2.8;
+          } else if (p.tipo === "piedra") {
+            p.mesh.rotation.z -= p.vx * dt * 2.0;
+          }
+
+          // Atracción magnética del tesoro cuando está cerca del Caballero
+          if (p.tipo === "oro" && A.activo && !A.resuelto && A.heroe) {
+            const dxH = A.heroe.x - p.x;
+            const dyH = A.heroe.y + 0.55 - p.y;
+            const distH = Math.hypot(dxH, dyH);
+            if (distH < 1.35 && distH > 0.01) {
+              p.vx += (dxH / distH) * dt * 18;
+              p.vy += (dyH / distH) * dt * 18;
+            }
+          }
+
+          p.mesh.position.set(p.x, p.y, 0.14);
+
+          // ¿Toca un Barril la Lava? -> ¡Lo hace explotar!
+          if (p.tipo === "lava") {
+            for (const b of A.barriles) {
+              if (!b.explotado && Math.hypot(p.x - b.x, p.y - b.y) < 0.52) {
+                explotarBarril(b);
+              }
+            }
           }
 
           // ¿Toca a un Orco? La lava o las rocas que caen eliminan al Orco
           for (const orco of A.orcos) {
             if (!orco.vivo) continue;
-            if (Math.hypot(p.x - orco.x, p.y - (orco.y + 0.55)) < 0.72) {
-              if (p.tipo === "lava" || (p.tipo === "piedra" && Math.abs(p.vy) > 1.5)) {
+            if (Math.hypot(p.x - orco.x, p.y - (orco.y + 0.55)) < 0.76) {
+              if (
+                p.tipo === "lava" ||
+                (p.tipo === "piedra" && Math.abs(p.vy) > 1.3)
+              ) {
                 orco.vivo = false;
                 orco.mesh.visible = false;
                 sonar("moneda");
                 vapor3D(orco.x, orco.y + 0.6, 0x4ade80, 14);
-                textoFlotanteAlfiler("💥 ¡ORCO ELIMINADO!", "#4ade80", orco.x, orco.y + 1.2);
+                textoFlotanteAlfiler(
+                  "💥 ¡ORCO ELIMINADO!",
+                  "#4ade80",
+                  orco.x,
+                  orco.y + 1.2,
+                );
                 A.puntos += 60;
               }
             }
@@ -944,7 +2310,7 @@
             A.activo &&
             !A.resuelto &&
             A.heroe &&
-            Math.hypot(p.x - A.heroe.x, p.y - (A.heroe.y + 0.6)) < 0.82
+            Math.hypot(p.x - A.heroe.x, p.y - (A.heroe.y + 0.58)) < 0.88
           ) {
             if (p.tipo === "lava") {
               // ¡La lava quemó al héroe!
@@ -958,7 +2324,13 @@
                 A.heroe.x,
                 A.heroe.y + 1.5,
               );
-              setTimeout(() => falloBoveda("La lava alcanzó al héroe. ¡Enfríala con agua primero!"), 950);
+              setTimeout(
+                () =>
+                  falloBoveda(
+                    "La lava alcanzó al héroe. ¡Enfríala con agua primero!",
+                  ),
+                950,
+              );
               break;
             } else if (p.tipo === "oro") {
               p.recogida = true;
@@ -966,20 +2338,18 @@
               A.oroRecogido++;
               A.puntos += 15;
               if (A.oroRecogido % 3 === 1) sonar("moneda");
-              const pct = Math.min(
-                100,
-                Math.round((A.oroRecogido / Math.max(1, A.oroTotal)) * 100),
-              );
-              $("progreso-oro").textContent = `💎 ${pct}%`;
+              vapor3D(A.heroe.x, A.heroe.y + 0.9, 0xfef08a, 3, 0.7);
+              const pct = actualizarHUDProgreso();
 
               // Con recoger al menos el 65% del tesoro sin quemarse, supera la bóveda
               if (pct >= 65 && !A.resuelto) {
                 A.resuelto = true;
                 sonar("ganar");
-                A.puntos += 120 * A.boveda;
+                const bono = 120 * A.boveda;
+                A.puntos += bono;
                 vapor3D(A.heroe.x, A.heroe.y + 1.1, 0xfef08a, 24);
                 textoFlotanteAlfiler(
-                  `🏆 ¡TESORO CONSEGUIDO! +${120 * A.boveda} PTS`,
+                  `🏆 ¡BÓVEDA SUPERADA! +${bono} PTS`,
                   "#fde047",
                   A.heroe.x,
                   A.heroe.y + 1.6,
@@ -995,19 +2365,46 @@
           }
         }
 
-        // Si un orco vivo tiene camino libre hacia el héroe en el mismo piso, ataca
+        // Actualizar luz puntual dinámica del magma
+        if (cuentaLava > 0) {
+          luzLavaDinamica.position.set(
+            lavaX / cuentaLava,
+            lavaY / cuentaLava,
+            1.4,
+          );
+          luzLavaDinamica.intensity =
+            0.95 + Math.sin(A.tiempo * 7) * 0.2;
+        } else {
+          luzLavaDinamica.intensity = 0;
+        }
+
+        // Animación y patrulla de Orcos vivos
         if (A.activo && !A.resuelto && A.heroe) {
           for (const orco of A.orcos) {
             if (!orco.vivo) continue;
+            if (orco.mesh.userData.brazoMaza) {
+              orco.mesh.userData.brazoMaza.rotation.x =
+                Math.sin(A.tiempo * 6) * 0.35;
+            }
             if (Math.abs(orco.y - A.heroe.y) < 0.5) {
-              // Comprobar si hay algún alfiler bloqueando entre el orco y el héroe
-              const bloqueado = A.alfileres.some(
-                (pin) => !pin.sacado && Math.min(pin.y1, pin.y2) < A.heroe.y + 1.2,
+              const bloqueadoPin = A.alfileres.some(
+                (pin) =>
+                  !pin.sacado && Math.min(pin.y1, pin.y2) < A.heroe.y + 1.2,
               );
-              if (!bloqueado) {
-                orco.x += Math.sign(A.heroe.x - orco.x) * dt * 2.8;
+              // También comprobar si hay un muro divisor vertical entre el orco y el héroe
+              const minX = Math.min(orco.x, A.heroe.x);
+              const maxX = Math.max(orco.x, A.heroe.x);
+              const bloqueadoMuro = A.segmentosMuro.some(
+                (m) =>
+                  Math.abs(m.x1 - m.x2) < 0.2 &&
+                  m.x1 > minX &&
+                  m.x1 < maxX &&
+                  Math.min(m.y1, m.y2) <= A.heroe.y + 0.5,
+              );
+              if (!bloqueadoPin && !bloqueadoMuro) {
+                orco.x += Math.sign(A.heroe.x - orco.x) * dt * 2.9;
                 orco.mesh.position.x = orco.x;
-                if (Math.abs(orco.x - A.heroe.x) < 0.7) {
+                if (Math.abs(orco.x - A.heroe.x) < 0.72) {
                   A.resuelto = true;
                   sonar("perder");
                   A.sacudida = 0.45;
@@ -1018,7 +2415,10 @@
                     A.heroe.y + 1.5,
                   );
                   setTimeout(
-                    () => falloBoveda("Elimina primero al Orco con lava o rocas."),
+                    () =>
+                      falloBoveda(
+                        "Elimina primero al Orco con lava, rocas o barriles.",
+                      ),
                     950,
                   );
                 }
@@ -1033,19 +2433,27 @@
           ef.position.x += ef.userData.vx * dt;
           ef.position.y += ef.userData.vy * dt;
           ef.userData.vida -= dt;
+          const s = Math.max(0.1, ef.userData.vida / (ef.userData.vidaMax || 0.6));
+          ef.scale.setScalar(s);
           if (ef.userData.vida <= 0) {
             grupoNivel.remove(ef);
             A.efectos.splice(i, 1);
           }
         }
 
-        // Cámara y celebración del héroe
+        // Animación del caballero y cámara
         if (A.heroe) {
+          const celebrando = A.resuelto && A.oroRecogido > 0;
           A.heroe.mesh.position.y =
             A.heroe.y +
-            (A.resuelto && A.oroRecogido > 0
-              ? Math.abs(Math.sin(A.tiempo * 10)) * 0.35
-              : Math.sin(A.tiempo * 3) * 0.04);
+            (celebrando
+              ? Math.abs(Math.sin(A.tiempo * 10)) * 0.36
+              : Math.sin(A.tiempo * 3.2) * 0.035);
+          if (A.heroe.mesh.userData.brazoDer) {
+            A.heroe.mesh.userData.brazoDer.rotation.z = celebrando
+              ? Math.sin(A.tiempo * 14) * 0.45 + 0.35
+              : Math.sin(A.tiempo * 2.5) * 0.06;
+          }
         }
 
         A.sacudida = Math.max(0, A.sacudida - dt * 2.2);
@@ -1072,7 +2480,7 @@
         titulo: "Alfileres: Lava y Oro 3D",
         emoji: "📍",
         subtitulo:
-          "Saca los pasadores de oro en el orden exacto: enfría la lava, derrota al orco y rescata el tesoro",
+          "Saca los pasadores de oro en el orden exacto: enfría la lava, detona barriles, derrota al orco y rescata el tesoro",
         modos: ["solo", "online", "local"],
         textosModo: {
           solo: "🏆 Exploración de Bóvedas (Récord)",
@@ -1082,10 +2490,10 @@
         records: true,
         unidadRecord: "pts",
         reglas: [
-          "📍 Toca la argolla dorada de un alfiler para retirarlo.",
-          "💧 Cuando el Agua toca la Lava, la convierte en Piedra Obsidiana que ya no quema al héroe.",
-          "👹 Usa la lava o las piedras para aplastar a los Orcos guardianes antes de bajar al piso del héroe.",
-          "💎 Haz que al menos el 65% de las joyas caigan sobre el caballero para abrir la siguiente bóveda.",
+          "📍 Toca la argolla dorada o la barra de un alfiler para retirarlo.",
+          "💧 Cuando el Agua toca la Lava, la petrifica en Piedra Obsidiana y el vapor disipa el calor.",
+          "💣 Usa la lava, rocas o barriles explosivos para derrotar a los Orcos guardianes.",
+          "💎 Haz que al menos el 65% de las joyas lleguen al caballero (¡no dejes que la lava las funda!).",
         ],
         alEmpezar: empezar,
         alSalir: () => {

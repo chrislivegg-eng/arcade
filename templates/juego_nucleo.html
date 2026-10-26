@@ -1,1 +1,101 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Círculo de Destrucción</title><link rel="stylesheet" href="{{ url_for('static',filename='nucleo.css') }}"></head><body><header><a href="/secreto">← ARCADE</a><b>CÍRCULO <i>DE DESTRUCCIÓN</i></b><button id="audio">♫</button></header><main><section class="hud"><div><small>BOLAS</small><strong id="score">0</strong></div><div><small>CADENA</small><strong id="combo">×1</strong></div><div><small>FRACTURA</small><strong id="shield">0%</strong></div><div><small>RÉCORD</small><strong id="best">0</strong></div></section><div id="arena"><canvas id="game" width="780" height="780"></canvas><p id="notice"></p></div><p class="help">TOCA PARA SOLTAR UNA BOLA ROJA · LLEGA A LA GRIETA CENTRAL</p></main><dialog id="intro"><section class="card"><span>SIMULADOR SATISFACTORIO</span><h1>CÍRCULO<br><em>DE DESTRUCCIÓN</em></h1><p>Suelta bolas rojas por la pista exterior. Cuando lleguen a la grieta, rompen el borde y suben los multiplicadores.</p><button id="start">COMENZAR</button><small>PC: clic · Móvil: toque</small></section></dialog><script src="{{ url_for('static',filename='js/nucleo.js') }}"></script></body></html>
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#030711" />
+    <title>Círculo de Destrucción · Chris Arcade</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static',filename='nucleo.css') }}"
+    />
+  </head>
+  <body>
+    <header>
+      <a href="/secreto">← ARCADE</a>
+      <b>CÍRCULO <i>DE DESTRUCCIÓN</i></b>
+      <div class="acciones-header">
+        <button id="saveBtn" type="button" title="Guardar récord actual">
+          💾 Guardar
+        </button>
+        <button
+          id="audio"
+          type="button"
+          aria-label="Activar o silenciar sonido"
+        >
+          ♫
+        </button>
+      </div>
+    </header>
+    <main>
+      <section class="hud" aria-label="Marcador">
+        <div>
+          <small>IMPACTO</small>
+          <strong id="score">0</strong>
+        </div>
+        <div>
+          <small>CADENA</small>
+          <strong id="combo">×1</strong>
+        </div>
+        <div>
+          <small>FRACTURA</small>
+          <strong id="shield">0%</strong>
+        </div>
+        <div>
+          <small>RÉCORD</small>
+          <strong id="best">0</strong>
+        </div>
+      </section>
+      <div id="arena">
+        <canvas id="game" width="780" height="780"></canvas>
+        <p id="notice" role="status"></p>
+      </div>
+      <p class="help">
+        TOCA PARA SOLTAR BOLAS ROJAS · PASAN POR LOS MULTIPLICADORES (×2, ×3,
+        ×4) Y DEMUELEN EL CRISTAL
+      </p>
+    </main>
+
+    <dialog id="intro">
+      <section class="card">
+        <span>SIMULADOR SATISFACTORIO</span>
+        <h1>CÍRCULO<br /><em>DE DESTRUCCIÓN</em></h1>
+        <p>
+          Suelta bolas rojas por las pistas curvas. Al llegar abajo se
+          multiplican y suben por la grieta central para fracturar y demoler el
+          bloque de cristal.
+        </p>
+        <label
+          >Tu nombre
+          <input
+            id="name"
+            maxlength="14"
+            autocomplete="nickname"
+            placeholder="Jugador"
+          />
+        </label>
+        <button id="start" type="button">COMENZAR</button>
+        <small>PC: clic · Móvil: toque continuo</small>
+      </section>
+    </dialog>
+
+    <dialog id="end">
+      <section class="card">
+        <span>¡NÚCLEO DEMOLIDO!</span>
+        <h2 id="resultTitle">Cristal pulverizado.</h2>
+        <strong id="result">0 PTS</strong>
+        <p id="save">Récord guardado en el arcade.</p>
+        <button id="again" type="button">SIGUIENTE NÚCLEO</button>
+        <div>
+          <a href="/records">Ver récords</a>
+          <a href="/secreto">Volver al arcade</a>
+        </div>
+      </section>
+    </dialog>
+
+    <script src="{{ url_for('static',filename='js/nucleo.js') }}"></script>
+  </body>
+</html>

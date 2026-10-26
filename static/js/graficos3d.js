@@ -22,34 +22,37 @@
     const g = c.getContext("2d"),
       r = semilla();
     const pixels = g.createImageData(256, 256);
+    const K = (2 * Math.PI) / 256;
     for (let y = 0; y < 256; y++)
       for (let x = 0; x < 256; x++) {
         let v = 216 + (r() - 0.5) * 35;
         if (tipo === "tela")
           v = 205 + (x % 4 < 2 !== y % 4 < 2 ? 25 : -12) + (r() - 0.5) * 12;
-        if (tipo === "metal") v = 222 + Math.sin(y * 3.1) * 9 + (r() - 0.5) * 8;
+        if (tipo === "metal")
+          v = 222 + Math.sin(y * K * 64) * 9 + (r() - 0.5) * 8;
         if (tipo === "agua")
           v =
             204 +
-            18 * Math.sin(x * 0.074 + 8 * Math.sin(y * 0.025)) +
-            12 * Math.cos(y * 0.098 + x * 0.025);
+            18 * Math.sin(x * K * 3 + 4 * Math.sin(y * K * 1)) +
+            12 * Math.cos(y * K * 4 + x * K * 1);
         if (tipo === "arena")
           v =
             219 +
-            9 * Math.sin(y * 0.14 + 2 * Math.sin(x * 0.025)) +
+            9 * Math.sin(y * K * 6 + 2 * Math.sin(x * K * 1)) +
             (r() - 0.5) * 27;
         if (tipo === "madera")
           v =
             205 +
-            15 * Math.sin(x * 0.12 + 2 * Math.sin(y * 0.018)) +
-            7 * Math.sin(x * 0.45 + y * 0.012);
+            15 * Math.sin(x * K * 5 + 2 * Math.sin(y * K * 1)) +
+            7 * Math.sin(x * K * 18 + y * K * 1);
         if (tipo === "asfalto") v = 183 + (r() - 0.5) * 60;
         if (tipo === "nieve") v = 235 + (r() - 0.5) * 30;
         if (tipo === "roca")
           v =
-            185 +
-            22 * Math.sin(x * 0.07) * Math.cos(y * 0.09) +
-            (r() - 0.5) * 35;
+            192 +
+            16 * Math.sin(x * K * 2 + Math.cos(y * K * 3)) * Math.cos(y * K * 2 - Math.sin(x * K * 2)) +
+            9 * Math.sin((x + y) * K * 5) +
+            (r() - 0.5) * 26;
         const i = (y * 256 + x) * 4;
         pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = v;
         pixels.data[i + 3] = 255;
