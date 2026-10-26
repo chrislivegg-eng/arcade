@@ -130,3 +130,6 @@ templates/juego_alfileres.html
 templates/juego_cortes.html
 static/cortes.css
 static/js/cortes.js
+templates/juego_nucleo.html
+static/nucleo.css
+static/js/nucleo.js
