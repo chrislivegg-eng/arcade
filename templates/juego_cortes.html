@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#090b18" />
     <title>Corte Perfecto · Chris Arcade</title>
     <link rel="stylesheet" href="{{ url_for('static',filename='cortes.css') }}" />
+    <style>dialog{position:fixed;inset:0;overflow:auto}</style>
   </head>
   <body>
     <header><a href="/secreto">← ARCADE</a><b>CORTE <i>PERFECTO</i></b><button id="sonido" aria-label="Activar o silenciar sonido">♫</button></header>
@@ -19,7 +20,7 @@
       <section id="mesa" aria-label="Mesa de corte"><canvas id="lienzo" width="720" height="960"></canvas><div id="flash"></div><p id="mensaje" role="status"></p></section>
       <p class="ayuda">TOCA EL OBJETIVO PARA CORTAR · LOS DIAMANTES DAN TIEMPO · EVITA LAS BOMBAS</p>
     </main>
-    <dialog id="inicio" open><div class="tarjeta"><span>CHRIS ARCADE / PRECISION GAME</span><h1>CORTE<br><em>PERFECTO</em></h1><p>Cada toque deja un corte. Encadena objetivos sin fallar, encuentra los diamantes y no toques las bombas.</p><label>Tu nombre<input id="nombre" maxlength="14" autocomplete="nickname" placeholder="Jugador" /></label><button id="empezar">EMPEZAR · 45 SEGUNDOS</button><small>PC: clic · Móvil: toque. No necesitas arrastrar.</small></div></dialog>
+    <dialog id="inicio"><div class="tarjeta"><span>CHRIS ARCADE / PRECISION GAME</span><h1>CORTE<br><em>PERFECTO</em></h1><p>Cada toque deja un corte. Encadena objetivos sin fallar, encuentra los diamantes y no toques las bombas.</p><label>Tu nombre<input id="nombre" maxlength="14" autocomplete="nickname" placeholder="Jugador" /></label><button id="empezar">EMPEZAR · 45 SEGUNDOS</button><small>PC: clic · Móvil: toque. No necesitas arrastrar.</small></div></dialog>
     <dialog id="final"><div class="tarjeta"><span>TIEMPO TERMINADO</span><h2 id="titulo">Corte limpio.</h2><strong id="resultado">0</strong><p id="guardado"></p><button id="otra">OTRA PARTIDA</button><a href="/records">Ver récords</a><a href="/secreto">Volver al arcade</a></div></dialog>
     <script src="{{ url_for('static',filename='js/cortes.js') }}"></script>
   </body>
