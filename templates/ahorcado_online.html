@@ -81,7 +81,8 @@
 
     <script>
       let miSala = "",
-        miJugador = "";
+        miJugador = "",
+        victoriaGuardada = false;
       const alfabeto = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ".split("");
 
       function crearSala() {
@@ -96,6 +97,7 @@
       }
 
       function iniciar() {
+        victoriaGuardada = false;
         document.getElementById("pantalla-lobby").style.display = "none";
         document.getElementById("pantalla-juego").style.display = "block";
         document.getElementById("display-sala").innerText = miSala;
@@ -123,6 +125,10 @@
               document.getElementById("estado-turno").innerHTML =
                 "<span style='color:green'>¡GANARON! 🎉</span>";
               document.getElementById("teclado").style.display = "none";
+              if (!victoriaGuardada) {
+                victoriaGuardada = true;
+                if (typeof guardarVictoria === "function") guardarVictoria(true);
+              }
             } else if (s.estado === "perdieron") {
               document.getElementById("estado-turno").innerHTML =
                 "<span style='color:red'>¡PERDIERON! 😿</span>";
@@ -139,7 +145,8 @@
                 if (btn) btn.disabled = true;
               });
             }
-          });
+          })
+          .catch(() => {});
       }
 
       function enviarLetra(l) {

@@ -1,89 +1,110 @@
 <!doctype html>
 <html lang="es">
   <head>
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
-    />
-
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
-    />
-
     <meta charset="UTF-8" />
-    <title>Kitty Adventure - Salto a la Cima PRO</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>🌸 Salto a la Cima PRO 3D</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap"
       rel="stylesheet"
     />
     <style>
+      * {
+        box-sizing: border-box;
+      }
       body {
         font-family: "Nunito", sans-serif;
-        background: linear-gradient(135deg, #ffe6f2 0%, #ffccf2 100%);
+        background: radial-gradient(circle at top, #fff0f7 0%, #ffd6eb 60%, #ffb8de 100%);
         margin: 0;
-        padding: 20px;
+        padding: 14px 10px 28px;
         text-align: center;
-        color: #ff66b3;
+        color: #d81b60;
+        user-select: none;
       }
 
       #game-container {
         display: inline-block;
-        background: rgba(255, 255, 255, 0.8);
-        padding: 30px;
-        border-radius: 40px;
-        box-shadow: 0 10px 30px rgba(255, 153, 204, 0.5);
-        border: 4px dashed #ff99cc;
+        background: rgba(255, 255, 255, 0.94);
+        padding: 20px 18px;
+        border-radius: 34px;
+        box-shadow:
+          0 18px 42px rgba(216, 27, 96, 0.25),
+          0 8px 0 #ff99cc;
+        border: 3px solid #ffb3d9;
         position: relative;
+        max-width: 450px;
+        width: 100%;
       }
 
       canvas {
-        background: linear-gradient(to bottom, #e6f7ff 0%, #ffffff 100%);
-        border: 4px solid #ffb3d9;
-        border-radius: 20px;
-        cursor: none; /* Oculta el puntero dentro del juego */
+        background: linear-gradient(to bottom, #bae6fd 0%, #fdf2f8 100%);
+        border: 4px solid #ff66b3;
+        border-radius: 22px;
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+        box-shadow: inset 0 4px 14px rgba(255, 255, 255, 0.8);
+        touch-action: none;
       }
 
       .hud {
         display: flex;
         justify-content: space-around;
-        width: 400px;
-        margin: 0 auto 15px auto;
-        font-size: 1.5em;
+        max-width: 400px;
+        width: 100%;
+        margin: 0 auto 12px auto;
+        font-size: 1.25rem;
         font-weight: 900;
-        color: #ff66b3;
-        text-shadow: 2px 2px 0px white;
+        color: #d81b60;
+        background: #fff5f9;
+        padding: 8px 14px;
+        border-radius: 16px;
+        border: 2px solid #ffb3d9;
       }
 
       .btn-juego {
-        background: linear-gradient(45deg, #ff99cc, #ff66b3);
+        background: linear-gradient(180deg, #ff85c0, #d81b60);
         color: white;
         border: none;
-        padding: 12px 30px;
-        font-size: 1.2em;
+        padding: 11px 24px;
+        font-size: 1.05rem;
+        font-family: "Nunito", sans-serif;
         border-radius: 50px;
         cursor: pointer;
-        font-weight: bold;
-        margin: 10px;
-        box-shadow: 0 5px 15px rgba(255, 102, 179, 0.4);
+        font-weight: 900;
+        margin: 6px;
+        box-shadow: 0 5px 0 #9c1448, 0 8px 16px rgba(216, 27, 96, 0.3);
         text-decoration: none;
         display: inline-block;
-        transition: 0.3s;
       }
 
-      .btn-juego:hover {
-        transform: scale(1.05);
-        filter: brightness(1.1);
+      .controles-movil {
+        display: flex;
+        justify-content: center;
+        gap: 18px;
+        margin-top: 10px;
+      }
+
+      .btn-control {
+        width: 68px;
+        height: 52px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff, #ffe4f2);
+        border: 3px solid #ff66b3;
+        box-shadow: 0 5px 0 #ff99cc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        cursor: pointer;
       }
 
       #overlay {
@@ -92,98 +113,102 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: white;
-        padding: 40px;
-        border-radius: 30px;
-        width: 80%;
-        border: 4px dashed #ff99cc;
-        box-shadow: 0 10px 40px rgba(255, 153, 204, 0.6);
+        background: rgba(255, 255, 255, 0.98);
+        padding: 28px 22px;
+        border-radius: 28px;
+        width: 88%;
+        border: 4px solid #ff66b3;
+        box-shadow: 0 18px 45px rgba(216, 27, 96, 0.4);
         z-index: 10;
       }
 
-      /* Estilo para las instrucciones rápidas */
       .controles-info {
-        font-size: 0.9em;
-        color: #ff85c2;
-        margin-top: -10px;
-        margin-bottom: 10px;
+        font-size: 0.88rem;
+        color: #ad1457;
+        font-weight: 800;
+        margin: 0 0 8px;
       }
     </style>
   </head>
 
   <body>
     <div id="game-container">
-      <h1 style="margin-top: 0; color: #ff3385">🌸 Salto a la Cima 🎀</h1>
+      <h1 style="margin: 0 0 4px; color: #d81b60; font-size: 1.75rem">
+        🌸 Salto a la Cima 3D 🎀
+      </h1>
 
       <p class="controles-info">
-        Mueve a Kitty con las flechas ⬅️ ➡️ del teclado
+        Usa ⬅️ ➡️, botones o desliza sobre el lienzo para guiar a Kitty
       </p>
 
       <div class="hud">
-        <div>Altura: <span id="score">0</span>m</div>
-        <div>Nivel: <span id="nivel">1</span></div>
+        <div>📏 Altura: <span id="score">0</span>m</div>
+        <div>⚡ Nivel: <span id="nivel">1</span></div>
       </div>
 
-      <canvas id="gameCanvas" width="400" height="600"></canvas>
+      <canvas id="gameCanvas" width="400" height="560"></canvas>
+
       <div class="controles-movil">
-        <div class="controles-movil">
-          <div
-            class="btn-control"
-            onmousedown="teclas.Izq = true"
-            onmouseup="teclas.Izq = false"
-            onmouseleave="teclas.Izq = false"
-            ontouchstart="teclas.Izq=true"
-            ontouchend="teclas.Izq=false"
-          >
-            ⬅️
-          </div>
-          <div
-            class="btn-control"
-            onmousedown="teclas.Der = true"
-            onmouseup="teclas.Der = false"
-            onmouseleave="teclas.Der = false"
-            ontouchstart="teclas.Der=true"
-            ontouchend="teclas.Der=false"
-          >
-            ➡️
-          </div>
+        <div
+          class="btn-control"
+          onmousedown="teclas.Izq = true"
+          onmouseup="teclas.Izq = false"
+          onmouseleave="teclas.Izq = false"
+          ontouchstart="teclas.Izq = true; event.preventDefault();"
+          ontouchend="teclas.Izq = false"
+        >
+          ⬅️
+        </div>
+        <div
+          class="btn-control"
+          onmousedown="teclas.Der = true"
+          onmouseup="teclas.Der = false"
+          onmouseleave="teclas.Der = false"
+          ontouchstart="teclas.Der = true; event.preventDefault();"
+          ontouchend="teclas.Der = false"
+        >
+          ➡️
         </div>
       </div>
-      <br />
-      <button class="btn-juego" onclick="iniciarJuego()">
-        ▶️ Jugar / Reiniciar
-      </button>
-      <a
-        href="/secreto"
-        class="btn-juego"
-        style="background: #fff; color: #ff66b3; border: 2px solid #ff99cc"
-        >🏠 Menú</a
-      >
+
+      <div style="margin-top: 8px">
+        <button class="btn-juego" onclick="iniciarJuego()">
+          ▶️ Jugar / Reiniciar
+        </button>
+        <a
+          href="/secreto"
+          class="btn-juego"
+          style="background: #fff; color: #d81b60; border: 2px solid #ff99cc; box-shadow: 0 4px 0 #ffb3d9"
+          >🏠 Menú</a
+        >
+      </div>
 
       <div id="overlay">
-        <h2 id="end-title" style="color: #ff66b3; font-size: 2.5em; margin: 0">
+        <h2 id="end-title" style="color: #d81b60; font-size: 2rem; margin: 0">
           ¡Oh no! 🌪️
         </h2>
-        <p id="end-msg" style="font-size: 1.5em; color: #666"></p>
+        <p id="end-msg" style="font-size: 1.2rem; color: #555"></p>
         <input
           type="text"
           id="nombre-usuario"
           placeholder="Tu nombre..."
           style="
             padding: 10px;
-            border-radius: 10px;
+            border-radius: 12px;
             border: 2px solid #ff99cc;
-            width: 60%;
+            width: 75%;
             margin-bottom: 10px;
+            text-align: center;
+            font-weight: 800;
           "
         /><br />
         <button class="btn-juego" onclick="guardar()">💾 Guardar Récord</button>
         <button
           class="btn-juego"
           onclick="iniciarJuego()"
-          style="background: #ccc"
+          style="background: #94a3b8; box-shadow: 0 4px 0 #64748b"
         >
-          🔄 Volver a Intentar
+          🔄 Reintentar
         </button>
       </div>
     </div>
@@ -194,75 +219,127 @@
       const overlay = document.getElementById("overlay");
       const endTitle = document.getElementById("end-title");
       const endMsg = document.getElementById("end-msg");
-      const finalScoreSpan = document.getElementById("final-score");
 
-      // Cargar imagen de Hello Kitty
-      const kittyImg = new Image();
-      // Usamos una imagen estática si el GIF da problemas, pero el enlace parece correcto.
-      // Si no carga, reemplaza por una URL de imagen estática de Kitty.
-      kittyImg.src =
-        "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExa29lZDV4ZTcxaG4ycjVqY2l1bmsyeThhd2loeWMxaWRmY2k4YWN3MyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/kZqbBT64ECtjy/giphy.gif";
-
-      // Parámetros de Kitty actualizados para hitboxes más precisas
       let kitty = {
-        x: 200,
+        x: 180,
         y: 300,
-        w: 40, // Un poco más pequeña visualmente
-        h: 40,
+        w: 42,
+        h: 42,
         dy: 0,
         dx: 0,
-        reboteNorm: -12, // Salto normal
-        reboteSuper: -22, // ¡Súper salto con globo!
-        velCaidaMax: 15,
+        reboteNorm: -12.2,
+        reboteSuper: -21,
+        velCaidaMax: 14,
       };
 
       let plataformas = [];
-      let nubes = []; // Obstáculos negativos (caída)
-      let globos = []; // Bonus positivos (súper salto)
+      let nubes = [];
+      let globos = [];
       let score = 0;
       let nivel = 1;
       let gameActivo = false;
-      let frameId;
+      let frameId = null;
       const gravedad = 0.4;
       const teclas = { Izq: false, Der: false };
 
+      function dibujarKitty3D(x, y, w, h) {
+        const cx = x + w / 2;
+        const cy = y + h / 2;
+
+        ctx.save();
+        // Sombra suave
+        ctx.fillStyle = "rgba(216, 27, 96, 0.2)";
+        ctx.beginPath();
+        ctx.ellipse(cx, y + h + 2, w * 0.38, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Orejitas
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#d81b60";
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(x + 6, y + 16);
+        ctx.lineTo(x + 2, y + 2);
+        ctx.lineTo(x + 17, y + 9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x + w - 6, y + 16);
+        ctx.lineTo(x + w - 2, y + 2);
+        ctx.lineTo(x + w - 17, y + 9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Cabeza afelpada 3D
+        const grad = ctx.createRadialGradient(cx - 5, cy - 5, 4, cx, cy, w * 0.5);
+        grad.addColorStop(0, "#ffffff");
+        grad.addColorStop(0.8, "#fff0f7");
+        grad.addColorStop(1, "#ffd1e8");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + 3, w * 0.46, h * 0.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Ojitos y nariz
+        ctx.fillStyle = "#2d1222";
+        ctx.beginPath();
+        ctx.arc(cx - 8, cy + 3, 2.6, 0, Math.PI * 2);
+        ctx.arc(cx + 8, cy + 3, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + 6, 3.2, 2.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Moño 3D rosa en la oreja derecha
+        ctx.fillStyle = "#ff1493";
+        ctx.beginPath();
+        ctx.arc(x + w - 11, y + 9, 5, 0, Math.PI * 2);
+        ctx.arc(x + w - 4, y + 13, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffbe0b";
+        ctx.beginPath();
+        ctx.arc(x + w - 7.5, y + 11, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
       function iniciarJuego() {
-        // Cancelar cualquier loop previo si existe
         if (frameId) cancelAnimationFrame(frameId);
 
-        // Ocultar overlay
         overlay.style.display = "none";
-        document.getElementById("nombre-usuario").value = "";
-
-        // Reset variables
         score = 0;
         nivel = 1;
         document.getElementById("score").innerText = score;
         document.getElementById("nivel").innerText = nivel;
 
         kitty.x = canvas.width / 2 - kitty.w / 2;
-        kitty.y = 400;
-        kitty.dy = 0;
+        kitty.y = 380;
+        kitty.dy = kitty.reboteNorm;
         kitty.dx = 0;
         teclas.Izq = false;
         teclas.Der = false;
 
-        // Plataforma base segura siempre al inicio
         plataformas = [
           {
-            x: canvas.width / 2 - 60,
-            y: 550,
-            w: 120,
-            h: 15,
+            x: canvas.width / 2 - 65,
+            y: 510,
+            w: 130,
+            h: 16,
             tipo: "normal",
           },
         ];
         nubes = [];
         globos = [];
 
-        // Generar plataformas iniciales
         for (let i = 1; i < 7; i++) {
-          generarPlataforma(550 - i * 100);
+          generarPlataforma(510 - i * 88);
         }
 
         gameActivo = true;
@@ -270,32 +347,30 @@
       }
 
       function generarPlataforma(y) {
-        let ancho = Math.max(50, 110 - nivel * 4);
+        let ancho = Math.max(54, 112 - nivel * 4);
         let x = Math.random() * (canvas.width - ancho);
 
-        // Decidir tipo de plataforma basado en el nivel
         let tipo = "normal";
-        if (nivel >= 2 && Math.random() < 0.25) {
-          // 25% de probabilidad de pinchos desde nivel 2
+        if (nivel >= 2 && Math.random() < 0.22) {
           tipo = "pinchos";
+        } else if (Math.random() < 0.16) {
+          tipo = "resorte";
         }
 
         plataformas.push({
           x: x,
           y: y,
           w: ancho,
-          h: 15,
+          h: 16,
           tipo: tipo,
         });
       }
 
-      // Función para generar globos de ayuda
       function generarGlobo(y) {
-        // 15% de probabilidad de generar un globo sobre la plataforma, si no es de pinchos
-        if (Math.random() < 0.15) {
+        if (Math.random() < 0.16) {
           globos.push({
             x: Math.random() * (canvas.width - 30),
-            y: y - 60, // Flotando sobre el nivel de la plataforma
+            y: y - 55,
             w: 30,
             h: 40,
             usado: false,
@@ -306,47 +381,42 @@
       function gameLoop() {
         if (!gameActivo) return;
 
-        // Aplicar gravedad y movimiento
         kitty.dy = Math.min(kitty.dy + gravedad, kitty.velCaidaMax);
         kitty.y += kitty.dy;
 
-        if (teclas.Izq) kitty.dx = -6;
-        else if (teclas.Der) kitty.dx = 6;
-        else kitty.dx *= 0.8; // Fricción suave al soltar
+        if (teclas.Izq) kitty.dx = -6.2;
+        else if (teclas.Der) kitty.dx = 6.2;
+        else kitty.dx *= 0.82;
 
         kitty.x += kitty.dx;
 
-        // Bordes de pantalla infinitos
         if (kitty.x > canvas.width) kitty.x = -kitty.w;
         if (kitty.x + kitty.w < 0) kitty.x = canvas.width;
 
-        // --- LÓGICA DE INTERACCIONES ---
-
-        // 1. Colisión con Plataformas y Pinchos (Solo cuando cae)
         if (kitty.dy > 0) {
           let landed = false;
           plataformas.forEach((plat) => {
-            // Hitbox de los pies de Kitty
             if (
               kitty.x + kitty.w * 0.2 < plat.x + plat.w &&
               kitty.x + kitty.w * 0.8 > plat.x &&
-              kitty.y + kitty.h > plat.y &&
-              kitty.y + kitty.h < plat.y + plat.h + kitty.dy + 2
+              kitty.y + kitty.h >= plat.y &&
+              kitty.y + kitty.h <= plat.y + plat.h + kitty.dy + 4
             ) {
               if (plat.tipo === "pinchos") {
                 terminarJuego("¡Ay! 📌", "Aterrizaste en pinchos a los");
-                landed = true; // Evita el salto normal
+                landed = true;
+              } else if (plat.tipo === "resorte") {
+                kitty.dy = kitty.reboteSuper * 0.85;
+                landed = true;
               } else {
                 kitty.dy = kitty.reboteNorm;
                 landed = true;
               }
             }
           });
-          if (landed && !gameActivo) return; // Salir si murió por pinchos
+          if (landed && !gameActivo) return;
         }
 
-        // 2. Colisión con Globos (Ayuda - Súper Salto)
-        // Se puede tocar en cualquier dirección, no solo cayendo
         globos.forEach((globo, index) => {
           if (
             !globo.usado &&
@@ -355,14 +425,12 @@
             kitty.y < globo.y + globo.h &&
             kitty.y + kitty.h > globo.y
           ) {
-            kitty.dy = kitty.reboteSuper; // Impulso gigante
-            globo.usado = true; // El globo "explota" o desaparece
+            kitty.dy = kitty.reboteSuper;
+            globo.usado = true;
             globos.splice(index, 1);
           }
         });
 
-        // 3. Colisión con Nubes (Obstáculo - Caída forzada)
-        // Solo si toca la nuble por debajo o lados mientras sube o cae
         nubes.forEach((n, index) => {
           if (
             kitty.x < n.x + 35 &&
@@ -370,181 +438,163 @@
             kitty.y < n.y + 25 &&
             kitty.y + kitty.h > n.y + 5
           ) {
-            kitty.dy = 10; // Te empuja hacia abajo fuerte
-            nubes.splice(index, 1); // La nube desaparece
+            kitty.dy = 9;
+            nubes.splice(index, 1);
           }
         });
 
-        // --- SCROLL VERTICAL Y PUNTUACIÓN ---
-        if (kitty.y < 250) {
-          let diff = 250 - kitty.y;
-          kitty.y = 250; // Mantener a Kitty en la zona media
-          score += Math.floor(diff / 5); // Puntuación sube más rápido
+        if (kitty.y < 230) {
+          let diff = 230 - kitty.y;
+          kitty.y = 230;
+          score += Math.max(1, Math.floor(diff / 4));
           document.getElementById("score").innerText = score;
 
-          // Subir de nivel cada 1000 puntos
-          if (score > nivel * 1000) {
+          if (score > nivel * 800) {
             nivel++;
             document.getElementById("nivel").innerText = nivel;
           }
 
-          // Mover todo el mundo hacia abajo
           plataformas.forEach((p) => (p.y += diff));
           nubes.forEach((n) => (n.y += diff));
           globos.forEach((g) => (g.y += diff));
         }
 
-        // --- GESTIÓN DE ELEMENTOS DEL MAPA ---
-
-        // Limpiar plataformas viejas y generar nuevas
         for (let i = plataformas.length - 1; i >= 0; i--) {
           if (plataformas[i].y > canvas.height) {
             plataformas.splice(i, 1);
-            // Generar nueva plataforma arriba
-            let nuevaY =
-              plataformas.length > 0
-                ? plataformas[plataformas.length - 1].y - 100
-                : -20;
+            let minY = plataformas.reduce((m, p) => Math.min(m, p.y), canvas.height);
+            let nuevaY = minY - 88;
             generarPlataforma(nuevaY);
-
-            // Probabilidad de generar globo cerca de la nueva plataforma
             generarGlobo(nuevaY);
           }
         }
 
-        // Generar nubes obstáculos (solo nivel 2+)
-        if (nivel >= 2 && Math.random() < 0.015) {
+        if (nivel >= 2 && Math.random() < 0.012) {
           nubes.push({
             x: Math.random() * (canvas.width - 40),
-            y: -50,
+            y: -40,
             w: 40,
             h: 30,
           });
         }
-        // Mover y limpiar nubes viejas
         for (let i = nubes.length - 1; i >= 0; i--) {
-          nubes[i].y += 1 + nivel * 0.2; // Caen un poco
+          nubes[i].y += 1 + nivel * 0.18;
           if (nubes[i].y > canvas.height) nubes.splice(i, 1);
         }
 
-        // Limpiar globos viejos que salieron de pantalla
         for (let i = globos.length - 1; i >= 0; i--) {
           if (globos[i].y > canvas.height) globos.splice(i, 1);
         }
 
-        // --- DIBUJAR TODO ---
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 1. Dibujar plataformas y pinchos
         plataformas.forEach((p) => {
-          ctx.fillStyle = "#ffb3d9"; // Color plataforma normal
-          ctx.fillRect(p.x, p.y, p.w, p.h);
+          ctx.save();
+          if (p.tipo === "resorte") {
+            ctx.fillStyle = "#fde047";
+            ctx.strokeStyle = "#d97706";
+          } else if (p.tipo === "pinchos") {
+            ctx.fillStyle = "#fda4af";
+            ctx.strokeStyle = "#e11d48";
+          } else {
+            ctx.fillStyle = "#ff99cc";
+            ctx.strokeStyle = "#d81b60";
+          }
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(p.x, p.y, p.w, p.h, 8);
+          else ctx.rect(p.x, p.y, p.w, p.h);
+          ctx.fill();
+          ctx.stroke();
 
           if (p.tipo === "pinchos") {
-            // Dibujar pinchos rojos/rosas oscuros encima
-            ctx.fillStyle = "#ff1a75";
-            for (let i = 0; i < p.w; i += 10) {
+            ctx.fillStyle = "#e11d48";
+            for (let i = 4; i < p.w - 6; i += 10) {
               ctx.beginPath();
               ctx.moveTo(p.x + i, p.y);
-              ctx.lineTo(p.x + i + 5, p.y - 12);
+              ctx.lineTo(p.x + i + 5, p.y - 10);
               ctx.lineTo(p.x + i + 10, p.y);
               ctx.fill();
             }
           }
+          ctx.restore();
         });
 
-        // 2. Dibujar Globos (Ayuda)
         globos.forEach((g) => {
-          ctx.font = "35px Arial";
-          ctx.fillText("🎈", g.x, g.y + 30); // Usamos emoji para estética kawaii rápida
+          ctx.font = "32px Arial";
+          ctx.fillText("🎈", g.x, g.y + 28);
         });
 
-        // 3. Dibujar Nubes (Obstáculos)
         nubes.forEach((n) => {
-          ctx.font = "35px Arial";
-          ctx.fillText("☁️", n.x, n.y + 25);
+          ctx.font = "30px Arial";
+          ctx.fillText("⛈️", n.x, n.y + 24);
         });
 
-        // 4. Dibujar Hello Kitty
-        ctx.drawImage(kittyImg, kitty.x, kitty.y, kitty.w, kitty.h);
+        dibujarKitty3D(kitty.x, kitty.y, kitty.w, kitty.h);
 
-        // --- VERIFICAR GAME OVER (Caída) ---
         if (kitty.y > canvas.height) {
-          terminarJuego("¡Oh no! 🌪️", "Te caíste a los");
+          terminarJuego("¡Oh no! 🌪️", "Caíste después de subir");
         } else {
           frameId = requestAnimationFrame(gameLoop);
         }
       }
 
-      // Manejo de controles por teclado
       document.addEventListener("keydown", (e) => {
-        if (e.key === "ArrowLeft") teclas.Izq = true;
-        if (e.key === "ArrowRight") teclas.Der = true;
+        if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") teclas.Izq = true;
+        if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") teclas.Der = true;
       });
       document.addEventListener("keyup", (e) => {
-        if (e.key === "ArrowLeft") teclas.Izq = false;
-        if (e.key === "ArrowRight") teclas.Der = false;
+        if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") teclas.Izq = false;
+        if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") teclas.Der = false;
+      });
+
+      canvas.addEventListener("pointermove", (e) => {
+        if (!gameActivo) return;
+        const rect = canvas.getBoundingClientRect();
+        const relX = ((e.clientX - rect.left) / (rect.width || 400)) * canvas.width;
+        kitty.x = Math.max(0, Math.min(canvas.width - kitty.w, relX - kitty.w / 2));
       });
 
       function terminarJuego(titulo, mensajeBase) {
         gameActivo = false;
         if (frameId) cancelAnimationFrame(frameId);
 
+        try {
+          const guardado = localStorage.getItem("nombreUsuario") || "";
+          const inputNombre = document.getElementById("nombre-usuario");
+          if (guardado && inputNombre && !inputNombre.value) {
+            inputNombre.value = guardado;
+          }
+        } catch (e) {}
+
         endTitle.innerText = titulo;
         endMsg.innerHTML =
-          mensajeBase + " <b style='color:#ff3385;'>" + score + "</b> metros.";
+          mensajeBase + " <b style='color:#d81b60;'>" + score + "</b> metros.";
         overlay.style.display = "block";
       }
 
       function guardar() {
-        let nombre = document.getElementById("nombre-usuario").value;
+        let nombre = document.getElementById("nombre-usuario").value.trim();
         if (nombre) {
-          // NOTA: Esta URL '/guardar_cima' debe existir en tu servidor Flask
           fetch("/guardar_cima", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              nombre: nombre,
-              puntos: score,
-            }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre: nombre, puntos: score }),
           })
             .then(() => {
-              // Redirigir a la tabla de récords tras guardar
               window.location.href = "/secreto";
             })
-            .catch((err) => {
-              console.error("Error guardando récord:", err);
-              alert("No se pudo conectar con el servidor para guardar.");
+            .catch(() => {
+              window.location.href = "/secreto";
             });
         } else {
           alert("Por favor, ingresa tu nombre.");
         }
       }
 
-      // Iniciar automáticamente al cargar la página si se desea
-      // o esperar a que presionen el botón.
-      kittyImg.onload = () => {
-        ctx.font = "20px Nunito";
-        ctx.fillStyle = "#ff66b3";
-        ctx.textAlign = "center";
-        ctx.fillText(
-          "Imagen cargada. Presiona Jugar.",
-          canvas.width / 2,
-          canvas.height / 2,
-        );
-      };
+      // Pantalla inicial lista al instante
+      dibujarKitty3D(180, 240, 42, 42);
     </script>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-    <script>
-      // Ejemplo de cómo usarlo en cualquier juego:
-      // Ya no necesitas prompt, el archivo scripts.js se encarga de todo.
-
-      function alGanarJuego(misPuntos) {
-        // Solo llamas a esta función y listo
-        enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
-      }
-    </script>
   </body>
 </html>

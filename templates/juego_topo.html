@@ -5,14 +5,12 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
     />
-
     <meta charset="UTF-8" />
-    <title>Atrapa al Topo Kawaii</title>
+    <title>Atrapa al Topo 3D 🐹</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap"
       rel="stylesheet"
@@ -20,147 +18,140 @@
     <style>
       body {
         font-family: "Nunito", sans-serif;
-        background: linear-gradient(135deg, #e6ccff 0%, #f2e6ff 100%);
+        background: radial-gradient(circle at 50% 15%, #2e154a 0%, #120822 65%, #07030e 100%);
+        color: #f8fafc;
         margin: 0;
-        padding: 20px;
+        padding: 16px;
         text-align: center;
+        user-select: none;
       }
 
       #game-container {
         display: inline-block;
-        background: rgba(255, 255, 255, 0.9);
-        padding: 30px;
-        border-radius: 30px;
-        box-shadow: 0 10px 30px rgba(153, 51, 255, 0.2);
-        border: 4px dashed #c299ff;
+        background: linear-gradient(155deg, rgba(46, 24, 76, 0.94), rgba(18, 10, 34, 0.96));
+        padding: 24px 20px;
+        border-radius: 32px;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+        border: 2px solid rgba(192, 132, 252, 0.45);
+        max-width: 480px;
+        width: 100%;
       }
 
       h1 {
-        color: #9933ff;
-        margin-top: 0;
-        font-size: 2.5em;
-        text-shadow: 2px 2px 0px #e6ccff;
+        color: #c084fc;
+        margin: 0 0 10px;
+        font-size: 2em;
+        text-shadow: 0 0 16px rgba(192, 132, 252, 0.45);
       }
 
       .hud {
         display: flex;
         justify-content: space-around;
-        font-size: 1.8em;
+        font-size: 1.25em;
         font-weight: 900;
-        margin-bottom: 20px;
-        color: #7a00cc;
+        margin-bottom: 16px;
+        color: #fde047;
+        background: rgba(15, 23, 42, 0.8);
+        padding: 10px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
       }
 
       .tablero {
         display: grid;
-        grid-template-columns: repeat(3, 120px);
-        gap: 20px;
+        grid-template-columns: repeat(3, minmax(90px, 118px));
+        gap: 16px;
         justify-content: center;
       }
 
       .hoyo {
-        width: 120px;
-        height: 120px;
-        background: #8b5a2b;
-        /* Color tierra */
+        width: 100%;
+        aspect-ratio: 1;
+        background: radial-gradient(circle at 50% 35%, #5c3a21 0%, #3b2313 65%, #1c0f07 100%);
         border-radius: 50%;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 70px;
+        font-size: 58px;
         box-shadow:
-          inset 0 15px 25px rgba(0, 0, 0, 0.6),
-          0 5px 10px rgba(0, 0, 0, 0.1);
-        cursor: crosshair;
-        /* Cursor de "apuntar" */
+          inset 0 16px 26px rgba(0, 0, 0, 0.85),
+          0 6px 0 #14532d,
+          0 12px 20px rgba(0, 0, 0, 0.45);
+        border: 4px solid #22c55e;
+        cursor: pointer;
         user-select: none;
         overflow: hidden;
         position: relative;
+        touch-action: manipulation;
       }
-      /* Simula el pasto alrededor del hoyo */
 
       .hoyo::after {
         content: "";
         position: absolute;
-        bottom: 0;
+        bottom: -2px;
         left: 0;
         right: 0;
-        height: 20px;
-        background: #33cc66;
+        height: 22px;
+        background: linear-gradient(180deg, #4ade80, #15803d);
         border-radius: 0 0 60px 60px;
+        z-index: 2;
       }
 
       .topo {
-        transition: transform 0.1s ease-in-out;
-        transform: translateY(100px);
-        /* Escondido por defecto */
+        transition: transform 0.13s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        transform: translateY(95px) scale(0.8);
         z-index: 1;
+        filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.5));
       }
 
       .hoyo.asomado .topo {
-        transform: translateY(0);
-        /* Sube cuando tiene la clase asomado */
+        transform: translateY(-4px) scale(1);
       }
 
       .btn-juego {
-        background: linear-gradient(45deg, #c299ff, #9933ff);
+        background: linear-gradient(135deg, #a855f7, #ec4899);
         color: white;
         border: none;
-        padding: 15px 40px;
-        font-size: 1.2em;
+        padding: 12px 28px;
+        font-size: 1.1em;
         border-radius: 50px;
         cursor: pointer;
-        font-weight: bold;
-        margin-top: 20px;
-        box-shadow: 0 5px 15px rgba(153, 51, 255, 0.4);
+        font-weight: 900;
+        margin: 16px 6px 0;
+        box-shadow: 0 6px 18px rgba(168, 85, 247, 0.4);
         text-decoration: none;
         display: inline-block;
         transition: 0.2s;
       }
-
       .btn-juego:hover {
-        transform: scale(1.05);
+        transform: translateY(-2px);
       }
     </style>
   </head>
 
   <body>
     <div id="game-container">
-      <h1>🐹 Atrapa al Topo 🔨</h1>
+      <h1>🐹 Atrapa al Topo 3D 🔨</h1>
+      <p style="margin: 0 0 10px; font-size: 0.85rem; color: #cbd5e1">
+        🐹 +1 pt · 👑 Topo Rey +3 pts (+2s) · 💣 Evita las bombas
+      </p>
 
       <div class="hud">
-        <div>Tiempo: <span id="tiempo">30</span>s</div>
-        <div>Puntos: <span id="puntos">0</span></div>
+        <div>⏱️ <span id="tiempo">30</span>s</div>
+        <div>🎯 <span id="puntos">0</span></div>
+        <div>🔥 <span id="combo-topo">×1</span></div>
       </div>
 
       <div class="tablero">
-        <div class="hoyo" onclick="golpear(0)">
-          <div class="topo">🐹</div>
-        </div>
-        <div class="hoyo" onclick="golpear(1)">
-          <div class="topo">🐹</div>
-        </div>
-        <div class="hoyo" onclick="golpear(2)">
-          <div class="topo">🐹</div>
-        </div>
-        <div class="hoyo" onclick="golpear(3)">
-          <div class="topo">🐹</div>
-        </div>
-        <div class="hoyo" onclick="golpear(4)">
-          <div class="topo">🐹</div>
-        </div>
-        <div class="hoyo" onclick="golpear(5)">
-          <div class="topo">🐹</div>
-        </div>
-        <div class="hoyo" onclick="golpear(6)">
-          <div class="topo">🐹</div>
-        </div>
-        <div class="hoyo" onclick="golpear(7)">
-          <div class="topo">🐹</div>
-        </div>
-        <div class="hoyo" onclick="golpear(8)">
-          <div class="topo">🐹</div>
-        </div>
+        <div class="hoyo" onpointerdown="golpear(0)"><div class="topo">🐹</div></div>
+        <div class="hoyo" onpointerdown="golpear(1)"><div class="topo">🐹</div></div>
+        <div class="hoyo" onpointerdown="golpear(2)"><div class="topo">🐹</div></div>
+        <div class="hoyo" onpointerdown="golpear(3)"><div class="topo">🐹</div></div>
+        <div class="hoyo" onpointerdown="golpear(4)"><div class="topo">🐹</div></div>
+        <div class="hoyo" onpointerdown="golpear(5)"><div class="topo">🐹</div></div>
+        <div class="hoyo" onpointerdown="golpear(6)"><div class="topo">🐹</div></div>
+        <div class="hoyo" onpointerdown="golpear(7)"><div class="topo">🐹</div></div>
+        <div class="hoyo" onpointerdown="golpear(8)"><div class="topo">🐹</div></div>
       </div>
 
       <button class="btn-juego" onclick="iniciarJuego()">
@@ -169,40 +160,58 @@
       <a
         href="/secreto"
         class="btn-juego"
-        style="background: #fff; color: #9933ff; border: 2px solid #9933ff"
-        >🏠 Volver al Menú</a
+        style="background: rgba(255,255,255,0.12); border: 1px solid #c084fc"
+        >🏠 Menú</a
       >
     </div>
 
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
     <script>
       const hoyos = document.querySelectorAll(".hoyo");
       let puntos = 0;
+      let racha = 0;
       let tiempoRestante = 30;
       let juegoActivo = false;
       let topoTimer;
       let relojTimer;
       let hoyoAnterior;
 
-      // Función para elegir un hoyo al azar que no sea el mismo que el anterior
       function hoyoAleatorio() {
         const idx = Math.floor(Math.random() * hoyos.length);
         const hoyo = hoyos[idx];
-        if (hoyo === hoyoAnterior) {
-          return hoyoAleatorio(); // Recursión si es el mismo
-        }
+        if (hoyo === hoyoAnterior) return hoyoAleatorio();
         hoyoAnterior = hoyo;
         return hoyo;
       }
 
       function asomarTopo() {
-        // Tiempo al azar que el topo se queda arriba (entre 0.5s y 1.2s)
-        const tiempoAsomado = Math.round(Math.random() * (1200 - 500) + 500);
+        if (!juegoActivo) return;
+        const tiempoAsomado = Math.max(
+          380,
+          Math.round(Math.random() * (980 - 480) + 480 - puntos * 6),
+        );
         const hoyo = hoyoAleatorio();
+        const topo = hoyo.querySelector(".topo");
 
+        const rnd = Math.random();
+        let tipo = "normal";
+        if (rnd < 0.16) {
+          tipo = "bomba";
+          topo.innerText = "💣";
+        } else if (rnd < 0.34) {
+          tipo = "rey";
+          topo.innerText = "👑";
+        } else {
+          topo.innerText = "🐹";
+        }
+        hoyo.dataset.tipo = tipo;
         hoyo.classList.add("asomado");
 
-        // Se esconde después de un rato
         topoTimer = setTimeout(() => {
+          if (hoyo.classList.contains("asomado") && hoyo.dataset.tipo !== "bomba") {
+            racha = 0;
+            document.getElementById("combo-topo").innerText = "×1";
+          }
           hoyo.classList.remove("asomado");
           if (juegoActivo) asomarTopo();
         }, tiempoAsomado);
@@ -211,37 +220,54 @@
       function golpear(indice) {
         if (!juegoActivo) return;
         const hoyo = hoyos[indice];
+        if (!hoyo.classList.contains("asomado")) return;
 
-        // Si le dimos al topo mientras estaba asomado
-        if (hoyo.classList.contains("asomado")) {
-          puntos++;
-          document.getElementById("puntos").innerText = puntos;
-          hoyo.classList.remove("asomado"); // Se esconde instantáneamente por el golpe
+        clearTimeout(topoTimer);
+        hoyo.classList.remove("asomado");
+        const topo = hoyo.querySelector(".topo");
+        const tipo = hoyo.dataset.tipo || "normal";
 
-          // Cambiamos el emoji a uno mareado temporalmente para dar retroalimentación
-          const topo = hoyo.querySelector(".topo");
+        if (tipo === "bomba") {
+          racha = 0;
+          puntos = Math.max(0, puntos - 2);
+          topo.innerText = "💥";
+        } else if (tipo === "rey") {
+          racha++;
+          const mult = 1 + Math.floor(racha / 4);
+          puntos += 3 * mult;
+          tiempoRestante += 2;
+          document.getElementById("tiempo").innerText = tiempoRestante;
+          topo.innerText = "✨";
+        } else {
+          racha++;
+          const mult = 1 + Math.floor(racha / 4);
+          puntos += 1 * mult;
           topo.innerText = "😵";
-          setTimeout(() => {
-            topo.innerText = "🐹";
-          }, 300);
         }
+
+        document.getElementById("puntos").innerText = puntos;
+        document.getElementById("combo-topo").innerText = `×${1 + Math.floor(racha / 4)}`;
+
+        setTimeout(() => {
+          if (juegoActivo) asomarTopo();
+        }, 120);
       }
 
       function iniciarJuego() {
         if (juegoActivo) return;
         puntos = 0;
+        racha = 0;
         tiempoRestante = 30;
         juegoActivo = true;
         document.getElementById("puntos").innerText = puntos;
         document.getElementById("tiempo").innerText = tiempoRestante;
+        document.getElementById("combo-topo").innerText = "×1";
 
         asomarTopo();
 
-        // Reloj en cuenta regresiva
         relojTimer = setInterval(() => {
           tiempoRestante--;
           document.getElementById("tiempo").innerText = tiempoRestante;
-
           if (tiempoRestante <= 0) {
             terminarJuego();
           }
@@ -252,34 +278,24 @@
         juegoActivo = false;
         clearInterval(relojTimer);
         clearTimeout(topoTimer);
-        hoyos.forEach((hoyo) => hoyo.classList.remove("asomado")); // Esconde a todos
+        hoyos.forEach((hoyo) => hoyo.classList.remove("asomado"));
 
         setTimeout(() => {
-          let nombre = prompt(
-            `¡Se acabó el tiempo! Atrapaste ${puntos} topos 🐹. Ingresa tu nombre:`,
-          );
+          let nombre =
+            localStorage.getItem("nombreUsuario") ||
+            prompt(`¡Se acabó el tiempo! Lograste ${puntos} pts 🐹. Ingresa tu nombre:`);
           if (nombre) {
+            localStorage.setItem("nombreUsuario", nombre);
             fetch("/guardar_topo", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                nombre: nombre,
-                puntos: puntos,
-              }),
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ nombre: nombre, puntos: puntos }),
             }).then(() => (window.location.href = "/secreto"));
           }
-        }, 500);
+        }, 350);
       }
-    </script>
-    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-    <script>
-      // Ejemplo de cómo usarlo en cualquier juego:
-      // Ya no necesitas prompt, el archivo scripts.js se encarga de todo.
 
       function alGanarJuego(misPuntos) {
-        // Solo llamas a esta función y listo
         enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
       }
     </script>

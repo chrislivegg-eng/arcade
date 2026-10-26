@@ -85,7 +85,8 @@
 
     <script>
       let miSala = "",
-        miJugador = "";
+        miJugador = "",
+        victoriaGuardada = false;
 
       function crearSala() {
         miSala = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -99,6 +100,7 @@
       }
 
       function iniciar() {
+        victoriaGuardada = false;
         document.getElementById("pantalla-lobby").style.display = "none";
         document.getElementById("pantalla-juego").style.display = "block";
         document.getElementById("display-sala").innerText = miSala;
@@ -118,8 +120,13 @@
                 s.ganador === miJugador
                   ? "<h2 style='color:green;'>¡GANASTE! 🎉</h2>"
                   : "<h2 style='color:red;'>¡PERDISTE! 😿</h2>";
+              if (!victoriaGuardada && s.ganador === miJugador) {
+                victoriaGuardada = true;
+                guardarVictoria(s.ganador);
+              }
             }
-          });
+          })
+          .catch(() => {});
       }
 
       function enviarNumero() {

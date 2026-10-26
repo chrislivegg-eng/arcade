@@ -5,14 +5,12 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
     />
-
     <meta charset="UTF-8" />
-    <title>Rally Kawaii</title>
+    <title>Rally Kawaii Turbo 3D 🏎️</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap"
       rel="stylesheet"
@@ -20,57 +18,65 @@
     <style>
       body {
         font-family: "Nunito", sans-serif;
-        background: linear-gradient(135deg, #ffb3b3 0%, #ffccff 100%);
+        background: radial-gradient(circle at 50% 15%, #3b0d2c 0%, #150618 65%, #07020a 100%);
         margin: 0;
-        padding: 20px;
+        padding: 14px;
         text-align: center;
-        color: #ff0055;
+        color: #f8fafc;
+        user-select: none;
       }
 
       #game-container {
         display: inline-block;
-        background: white;
-        padding: 20px;
+        background: linear-gradient(155deg, rgba(45, 18, 52, 0.94), rgba(18, 8, 26, 0.96));
+        padding: 18px;
         border-radius: 30px;
-        box-shadow: 0 10px 30px rgba(255, 0, 85, 0.2);
-        border: 4px dashed #ff6688;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+        border: 2px solid rgba(244, 63, 94, 0.45);
         position: relative;
+        max-width: 100%;
       }
 
       canvas {
-        background: #555;
-        border: 4px solid #ff3366;
-        border-radius: 15px;
+        background: #1e293b;
+        border: 3px solid #f43f5e;
+        border-radius: 18px;
+        max-width: 100%;
+        height: auto;
+        touch-action: none;
       }
 
       .hud {
         display: flex;
         justify-content: space-around;
-        width: 360px;
+        width: min(360px, 100%);
         margin: 0 auto 10px auto;
-        font-size: 1.5em;
+        font-size: 1.15em;
         font-weight: 900;
-        color: #ff0055;
+        color: #fde047;
+        background: rgba(15, 23, 42, 0.8);
+        padding: 8px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
       }
 
       .btn-juego {
-        background: linear-gradient(45deg, #ff4d4d, #ff0055);
+        background: linear-gradient(135deg, #f43f5e, #e11d48);
         color: white;
         border: none;
-        padding: 12px 30px;
-        font-size: 1.2em;
+        padding: 11px 26px;
+        font-size: 1.05em;
         border-radius: 50px;
         cursor: pointer;
-        font-weight: bold;
-        margin: 10px;
-        box-shadow: 0 5px 15px rgba(255, 0, 85, 0.4);
+        font-weight: 900;
+        margin: 6px;
+        box-shadow: 0 6px 18px rgba(244, 63, 94, 0.4);
         text-decoration: none;
         display: inline-block;
         transition: 0.2s;
       }
-
       .btn-juego:hover {
-        transform: scale(1.05);
+        transform: translateY(-2px);
       }
 
       #overlay {
@@ -79,12 +85,13 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: rgba(255, 255, 255, 0.95);
-        padding: 40px;
-        border-radius: 30px;
-        width: 80%;
-        border: 4px dashed #ff3366;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        background: rgba(15, 23, 42, 0.96);
+        color: #fff;
+        padding: 30px 24px;
+        border-radius: 26px;
+        width: 86%;
+        border: 2px solid #f43f5e;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
         z-index: 10;
       }
     </style>
@@ -92,93 +99,117 @@
 
   <body>
     <div id="game-container">
-      <h1 style="margin-top: 0">🏎️ Rally Kawaii 🚙</h1>
+      <h1 style="margin: 0 0 8px; color: #fb7185; font-size: 1.85rem">
+        🏎️ Rally Turbo 3D 🚙
+      </h1>
 
       <div class="hud">
         <div>Distancia: <span id="score">0</span>m</div>
         <div>Nivel: <span id="nivel">1</span></div>
+        <div>Escudo: <span id="escudo-rally">OFF</span></div>
       </div>
 
       <canvas id="gameCanvas" width="360" height="500"></canvas>
-      <div class="controles-movil">
-        <div
-          class="btn-control"
-          onmousedown="teclas.Izq = true"
-          onmouseup="teclas.Izq = false"
-          onmouseleave="teclas.Izq = false"
-          ontouchstart="teclas.Izq=true"
-          ontouchend="teclas.Izq=false"
+      <div class="controles-movil" style="display:flex; justify-content:center; gap:18px; margin-top:8px;">
+        <button
+          type="button"
+          class="btn-juego"
+          style="padding:10px 26px; margin:0"
+          onpointerdown="cambiarCarril(-1)"
         >
-          ⬅️
-        </div>
-        <div
-          class="btn-control"
-          onmousedown="teclas.Der = true"
-          onmouseup="teclas.Der = false"
-          onmouseleave="teclas.Der = false"
-          ontouchstart="teclas.Der=true"
-          ontouchend="teclas.Der=false"
+          ⬅️ Izquierda
+        </button>
+        <button
+          type="button"
+          class="btn-juego"
+          style="padding:10px 26px; margin:0"
+          onpointerdown="cambiarCarril(1)"
         >
-          ➡️
-        </div>
+          Derecha ➡️
+        </button>
       </div>
-      <br />
-      <button class="btn-juego" onclick="iniciarJuego()">
-        ▶️ Iniciar Carrera
-      </button>
-      <a
-        href="/secreto"
-        class="btn-juego"
-        style="background: #fff; color: #ff0055; border: 2px solid #ff0055"
-        >🏠 Menú</a
-      >
+      <div style="margin-top: 8px">
+        <button class="btn-juego" onclick="iniciarJuego()">
+          ▶️ Iniciar Carrera
+        </button>
+        <a
+          href="/secreto"
+          class="btn-juego"
+          style="background: rgba(255,255,255,0.12); border: 1px solid #fb7185"
+          >🏠 Menú</a
+        >
+      </div>
 
       <div id="overlay">
-        <h2 style="color: #ff0055; font-size: 2.5em; margin: 0">¡Crash! 💥</h2>
-        <p style="font-size: 1.5em; color: #666">
+        <h2 style="color: #fb7185; font-size: 2.2em; margin: 0">¡Crash! 💥</h2>
+        <p style="font-size: 1.25em; color: #cbd5e1">
           Llegaste al <b>Nivel <span id="final-nivel"></span></b> con
-          <b id="final-score"></b> metros.
+          <b id="final-score" style="color:#fde047"></b> metros.
         </p>
         <button class="btn-juego" onclick="guardar()">💾 Guardar Récord</button>
         <button
           class="btn-juego"
-          onclick="location.reload()"
-          style="background: #ccc"
+          onclick="iniciarJuego()"
+          style="background: #475569"
         >
           🔄 Reintentar
         </button>
       </div>
     </div>
 
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
     <script>
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
 
-      const anchoCarril = 120;
-      const carriles = [20, 140, 260];
+      // Definir teclas para compatibilidad total con cualquier handler móvil
+      const teclas = { Izq: false, Der: false };
+      const carriles = [52, 160, 268]; // Centros de los 3 carriles de asfalto
       let carrilActual = 1;
+      let xVisual = carriles[1];
 
-      let jugadorY = 400;
+      let jugadorY = 405;
       let obstaculos = [];
       let score = 0;
       let nivel = 1;
+      let escudo = false;
+      let turboFrames = 0;
       let gameActivo = false;
       let frameId;
-      let velocidad = 5;
-      let lineasY = 0;
+      let velocidad = 5.5;
+      let offsetPista = 0;
       let timerObstaculos;
 
+      function cambiarCarril(dir) {
+        if (!gameActivo) {
+          iniciarJuego();
+          return;
+        }
+        carrilActual = Math.max(0, Math.min(2, carrilActual + dir));
+      }
+
+      canvas.addEventListener("pointerdown", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        cambiarCarril(x < rect.width / 2 ? -1 : 1);
+      });
+
       function iniciarJuego() {
-        if (gameActivo) return;
+        if (timerObstaculos) clearTimeout(timerObstaculos);
+        if (frameId) cancelAnimationFrame(frameId);
         obstaculos = [];
         score = 0;
         nivel = 1;
-        velocidad = 5;
+        velocidad = 5.5;
         carrilActual = 1;
-        lineasY = 0;
+        xVisual = carriles[1];
+        escudo = false;
+        turboFrames = 0;
+        offsetPista = 0;
 
         document.getElementById("score").innerText = score;
         document.getElementById("nivel").innerText = nivel;
+        document.getElementById("escudo-rally").innerText = "OFF";
         document.getElementById("overlay").style.display = "none";
         gameActivo = true;
 
@@ -189,86 +220,188 @@
       function programarObstaculo() {
         if (!gameActivo) return;
         crearObstaculo();
-
-        // Fórmula mágica: Conforme sube el nivel, el tiempo entre obstáculos baja
-        // Empieza en 1.2 segundos y se va haciendo más corto (hasta un límite de 0.4s para no hacerlo imposible)
-        let tiempoSpawn = Math.max(400, 1200 - nivel * 100);
+        let tiempoSpawn = Math.max(360, 1080 - nivel * 85);
         timerObstaculos = setTimeout(programarObstaculo, tiempoSpawn);
       }
 
       function crearObstaculo() {
-        const carrilRandom = Math.floor(Math.random() * 3);
-        const esBomba = Math.random() < 0.3;
+        const cIdx = Math.floor(Math.random() * 3);
+        const rnd = Math.random();
+        let tipo = "barrera";
+        let emoji = "🚧";
+        if (rnd < 0.25) {
+          tipo = "bomba";
+          emoji = "💣";
+        } else if (rnd < 0.45) {
+          tipo = "auto";
+          emoji = "🚓";
+        } else if (rnd < 0.62) {
+          tipo = "turbo";
+          emoji = "⚡";
+        } else if (rnd < 0.7 && !escudo) {
+          tipo = "escudo";
+          emoji = "🛡️";
+        }
         obstaculos.push({
-          x: carriles[carrilRandom] + 20,
-          y: -60,
-          w: 40,
-          h: 40,
-          emoji: esBomba ? "💣" : "🚧",
+          x: carriles[cIdx],
+          y: -50,
+          tipo,
+          emoji,
         });
+      }
+
+      function dibujarAuto3D(cx, cy, colorPpal, esJugador) {
+        // Sombra proyectada
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.beginPath();
+        ctx.roundRect(cx - 20, cy + 4, 44, 68, 12);
+        ctx.fill();
+
+        // Ruedas
+        ctx.fillStyle = "#0f172a";
+        for (const [wx, wy] of [
+          [-23, 10],
+          [17, 10],
+          [-23, 46],
+          [17, 46],
+        ]) {
+          ctx.fillRect(cx + wx, cy + wy, 6, 15);
+        }
+
+        // Chasis 3D con gradiente metálico
+        const g = ctx.createLinearGradient(cx - 20, cy, cx + 20, cy + 66);
+        g.addColorStop(0, "#ffffff");
+        g.addColorStop(0.2, colorPpal);
+        g.addColorStop(1, "#881337");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.roundRect(cx - 20, cy, 40, 66, 11);
+        ctx.fill();
+
+        // Parabrisas y techo
+        ctx.fillStyle = "#38bdf8";
+        ctx.beginPath();
+        ctx.roundRect(cx - 14, cy + 14, 28, 32, 7);
+        ctx.fill();
+
+        if (esJugador) {
+          // Faros delanteros luminosos
+          ctx.fillStyle = "rgba(254, 240, 138, 0.28)";
+          ctx.beginPath();
+          ctx.moveTo(cx - 14, cy);
+          ctx.lineTo(cx - 28, cy - 55);
+          ctx.lineTo(cx + 28, cy - 55);
+          ctx.lineTo(cx + 14, cy);
+          ctx.closePath();
+          ctx.fill();
+
+          if (turboFrames > 0) {
+            ctx.fillStyle = "#f97316";
+            ctx.beginPath();
+            ctx.moveTo(cx - 9, cy + 66);
+            ctx.lineTo(cx, cy + 88 + Math.random() * 12);
+            ctx.lineTo(cx + 9, cy + 66);
+            ctx.fill();
+          }
+          if (escudo) {
+            ctx.strokeStyle = "#38bdf8";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(cx, cy + 33, 42, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
       }
 
       function gameLoop() {
         if (!gameActivo) return;
 
-        // Avanzar distancia
-        score += 1;
+        if (teclas.Izq) {
+          cambiarCarril(-1);
+          teclas.Izq = false;
+        }
+        if (teclas.Der) {
+          cambiarCarril(1);
+          teclas.Der = false;
+        }
+
+        const velActual = velocidad + (turboFrames > 0 ? 4 : 0);
+        if (turboFrames > 0) turboFrames--;
+
+        score += turboFrames > 0 ? 2 : 1;
         document.getElementById("score").innerText = score;
 
-        // Subir de nivel cada 400 metros
         if (score % 400 === 0) {
           nivel += 1;
-          velocidad += 1.5; // Aumenta la velocidad de la calle y objetos
+          velocidad = Math.min(13, velocidad + 1.1);
           document.getElementById("nivel").innerText = nivel;
         }
 
-        // Mover la carretera
-        lineasY += velocidad;
-        if (lineasY >= 40) lineasY = 0;
+        offsetPista = (offsetPista + velActual) % 48;
+        xVisual += (carriles[carrilActual] - xVisual) * 0.24;
 
-        // Limpiar pantalla
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // 1. Césped lateral y bordes de pista (pianos rojo/blanco)
+        ctx.fillStyle = "#14532d";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Dibujar Carretera
-        ctx.fillStyle = "#fff";
-        for (let i = 0; i < canvas.height + 40; i += 40) {
-          ctx.fillRect(118, i + lineasY - 40, 4, 20);
-          ctx.fillRect(238, i + lineasY - 40, 4, 20);
+        ctx.fillStyle = "#334155";
+        ctx.fillRect(20, 0, 320, canvas.height);
+
+        for (let y = -48; y < canvas.height + 48; y += 48) {
+          const py = y + offsetPista;
+          ctx.fillStyle = "#ef4444";
+          ctx.fillRect(14, py, 8, 24);
+          ctx.fillRect(338, py, 8, 24);
+          ctx.fillStyle = "#f8fafc";
+          ctx.fillRect(14, py + 24, 8, 24);
+          ctx.fillRect(338, py + 24, 8, 24);
+
+          // Líneas divisoras de carril
+          ctx.fillStyle = "rgba(255,255,255,0.75)";
+          ctx.fillRect(124, py, 5, 26);
+          ctx.fillRect(232, py, 5, 26);
         }
 
-        // Mover y dibujar obstáculos
-        for (let i = 0; i < obstaculos.length; i++) {
+        // 2. Obstáculos y Power-ups
+        for (let i = obstaculos.length - 1; i >= 0; i--) {
           let obs = obstaculos[i];
-          obs.y += velocidad;
+          obs.y += velActual;
 
-          ctx.font = "35px Arial";
+          ctx.font = "34px Arial";
+          ctx.textAlign = "center";
           ctx.fillText(obs.emoji, obs.x, obs.y + 30);
 
-          // Colisiones más precisas (hitbox ajustada)
-          let jugadorX = carriles[carrilActual] + 20;
-          let margenObjeto = 5;
-          let margenJugador = 10;
-
-          if (
-            obs.y + obs.h - margenObjeto > jugadorY + margenJugador &&
-            obs.y + margenObjeto < jugadorY + 50 - margenJugador &&
-            obs.x + obs.w - margenObjeto > jugadorX + margenJugador &&
-            obs.x + margenObjeto < jugadorX + 40 - margenJugador
-          ) {
-            terminarJuego();
-            return;
+          const dx = Math.abs(obs.x - xVisual);
+          const dy = Math.abs(obs.y + 16 - (jugadorY + 32));
+          if (dx < 32 && dy < 38) {
+            if (obs.tipo === "turbo") {
+              score += 50;
+              turboFrames = 90;
+              obstaculos.splice(i, 1);
+              continue;
+            } else if (obs.tipo === "escudo") {
+              escudo = true;
+              document.getElementById("escudo-rally").innerText = "ACTIVO 🛡️";
+              obstaculos.splice(i, 1);
+              continue;
+            } else if (escudo) {
+              escudo = false;
+              document.getElementById("escudo-rally").innerText = "OFF";
+              obstaculos.splice(i, 1);
+              continue;
+            } else {
+              terminarJuego();
+              return;
+            }
           }
 
-          if (obs.y > canvas.height) {
+          if (obs.y > canvas.height + 40) {
             obstaculos.splice(i, 1);
-            i--;
           }
         }
 
-        // Dibujar jugador
-        let xActual = carriles[carrilActual] + 20;
-        ctx.font = "40px Arial";
-        ctx.fillText("🚙", xActual, jugadorY + 40);
+        // 3. Dibujar Auto del Jugador en 3D
+        dibujarAuto3D(xVisual, jugadorY, "#f43f5e", true);
 
         frameId = requestAnimationFrame(gameLoop);
       }
@@ -282,44 +415,33 @@
         document.getElementById("overlay").style.display = "block";
       }
 
-      // Controles de movimiento
       document.addEventListener("keydown", (e) => {
         if (!gameActivo) return;
-        if (e.key === "ArrowLeft" && carrilActual > 0) {
-          carrilActual--;
+        if (e.key === "ArrowLeft" || e.key === "a") {
+          cambiarCarril(-1);
           e.preventDefault();
         }
-        if (e.key === "ArrowRight" && carrilActual < 2) {
-          carrilActual++;
+        if (e.key === "ArrowRight" || e.key === "d") {
+          cambiarCarril(1);
           e.preventDefault();
         }
       });
 
       function guardar() {
-        let nombre = prompt(
-          `Llegaste al Nivel ${nivel}. Ingresa tu nombre de piloto:`,
-        );
+        let nombre =
+          localStorage.getItem("nombreUsuario") ||
+          prompt(`Llegaste al Nivel ${nivel}. Ingresa tu nombre de piloto:`);
         if (nombre) {
+          localStorage.setItem("nombreUsuario", nombre);
           fetch("/guardar_rally", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              nombre: nombre,
-              puntos: score,
-            }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre: nombre, puntos: score }),
           }).then(() => (window.location.href = "/secreto"));
         }
       }
-    </script>
-    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-    <script>
-      // Ejemplo de cómo usarlo en cualquier juego:
-      // Ya no necesitas prompt, el archivo scripts.js se encarga de todo.
 
       function alGanarJuego(misPuntos) {
-        // Solo llamas a esta función y listo
         enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
       }
     </script>

@@ -601,6 +601,27 @@ def generar_patron_pixel(ronda):
     return patron
 
 # --- APIs MULTIJUGADOR: MEMORAMA (CORREGIDO) ---
+@app.route('/api/crear_sala_memorama', methods=['POST'])
+def api_crear_sala_memorama():
+    codigo = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    cartas = emojis_memorama + emojis_memorama
+    random.shuffle(cartas)
+    salas_memorama[codigo] = {
+        'cartas': cartas,
+        'visibles': [False] * 16,
+        'resueltas': [False] * 16,
+        'turno': 1,
+        'puntos_1': 0,
+        'puntos_2': 0,
+        'cartas_seleccionadas': []
+    }
+    return jsonify({"sala": codigo})
+
+@app.route('/guardar_memorama_online', methods=['POST'])
+def guardar_memorama_online():
+    nombre = (request.json.get('nombre') or 'Jugador').strip().title()
+    return guardar_generico(ARCHIVO_MEMORAMA, nombre, 1, acumulable=True)
+
 @app.route('/api/estado_memorama/<sala>')
 def estado_memorama(sala):
     if sala not in salas_memorama:
@@ -628,6 +649,16 @@ def api_jugar_memorama():
         return jsonify({"error": "Sala no encontrada"}), 404
     
     estado = salas_memorama[sala]
+
+    # Si quedaron 2 cartas abiertas sin resolver del turno anterior, cerrarlas primero
+    if len(estado['cartas_seleccionadas']) == 2:
+        i1, i2 = estado['cartas_seleccionadas']
+        if not estado['resueltas'][i1]:
+            estado['visibles'][i1] = False
+        if not estado['resueltas'][i2]:
+            estado['visibles'][i2] = False
+        estado['turno'] = 2 if estado['turno'] == 1 else 1
+        estado['cartas_seleccionadas'] = []
     
     # Verificar si es el turno del jugador
     if estado['turno'] != jugador:
@@ -641,7 +672,7 @@ def api_jugar_memorama():
     estado['visibles'][idx] = True
     estado['cartas_seleccionadas'].append(idx)
     
-    # Si hay 2 cartas seleccionadas, verificar par
+    # Si hay 2 cartas seleccionadas y son iguales, marcar par de inmediato
     if len(estado['cartas_seleccionadas']) == 2:
         i1, i2 = estado['cartas_seleccionadas']
         if estado['cartas'][i1] == estado['cartas'][i2]:
@@ -651,10 +682,9 @@ def api_jugar_memorama():
                 estado['puntos_1'] += 1
             else:
                 estado['puntos_2'] += 1
-        else:
-            # No es par, cambiar turno
-            estado['turno'] = 2 if jugador == 1 else 1
-        estado['cartas_seleccionadas'] = []
+            estado['cartas_seleccionadas'] = []
+        # Si no son par, dejamos cartas_seleccionadas con [i1, i2] para que se vean 750ms
+        # y luego /api/verificar_memorama las oculte y cambie el turno.
     
     return jsonify(estado)
 

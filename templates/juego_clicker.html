@@ -1,18 +1,12 @@
 <!doctype html>
 <html lang="es">
   <head>
+    <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
-    />
-
-    <meta charset="UTF-8" />
-    <title>Kitty Clicker</title>
+    <title>🎀 Kitty Clicker 3D</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
@@ -22,211 +16,381 @@
       rel="stylesheet"
     />
     <style>
+      * {
+        box-sizing: border-box;
+      }
       body {
         font-family: "Nunito", sans-serif;
-        background: linear-gradient(135deg, #fff0f5 0%, #ffe6f2 100%);
+        background: radial-gradient(circle at top, #fff0f6 0%, #ffd6eb 55%, #ffb8de 100%);
         margin: 0;
-        padding: 20px;
+        padding: 18px 12px 32px;
         text-align: center;
+        min-height: 100vh;
       }
-
+      h1 {
+        color: #d81b60;
+        font-size: clamp(1.8rem, 4vw, 2.5rem);
+        margin: 6px 0 14px;
+        text-shadow: 0 3px 0 #ffffff, 0 6px 16px rgba(216, 27, 96, 0.22);
+      }
       .clicker-container {
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-around;
-        align-items: flex-start;
-        max-width: 900px;
-        margin: 30px auto;
-        background: white;
-        padding: 30px;
-        border-radius: 30px;
-        box-shadow: 0 10px 30px rgba(255, 153, 204, 0.3);
-        border: 4px dashed #ffb3d9;
+        align-items: stretch;
+        gap: 24px;
+        max-width: 920px;
+        margin: 0 auto 20px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 240, 248, 0.96) 100%);
+        padding: 26px;
+        border-radius: 32px;
+        box-shadow:
+          0 22px 48px rgba(216, 27, 96, 0.2),
+          0 8px 0 #ff99cc,
+          inset 0 2px 0 #ffffff;
+        border: 3px solid #ffb3d9;
       }
-
       .zona-click {
-        flex: 1;
+        flex: 1 1 320px;
         text-align: center;
+        background: linear-gradient(180deg, #fff8fc, #ffeef7);
+        border-radius: 24px;
+        padding: 20px 16px;
+        border: 2px solid #ffd1e8;
+        box-shadow: inset 0 3px 8px rgba(255, 102, 163, 0.1);
+        position: relative;
+        overflow: hidden;
       }
-
+      .marcadores {
+        font-size: 1.35rem;
+        color: #ad1457;
+        font-weight: 900;
+        margin-bottom: 4px;
+      }
+      .marcadores span {
+        color: #ff1493;
+        font-size: 2.2rem;
+        display: block;
+        text-shadow: 0 2px 0 #fff;
+      }
+      .sub-stats {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+      .stat-pill {
+        background: #fff;
+        border: 2px solid #ffb3d9;
+        border-radius: 999px;
+        padding: 5px 14px;
+        font-size: 0.9rem;
+        font-weight: 900;
+        color: #c2185b;
+        box-shadow: 0 3px 0 #ffd1e8;
+      }
+      .fever-wrap {
+        max-width: 280px;
+        margin: 0 auto 12px;
+        background: #ffe0ef;
+        border-radius: 999px;
+        height: 14px;
+        border: 2px solid #ff99cc;
+        overflow: hidden;
+        position: relative;
+      }
+      .fever-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #ff66b3, #ffbe0b, #ff1493);
+        transition: width 0.15s ease;
+      }
       #btn-gigante {
-        font-size: 100px;
-        background: #ffe6f2;
-        border: 6px solid #ff99cc;
+        font-size: 96px;
+        background: radial-gradient(circle at 32% 28%, #ffffff 0%, #ffe0f0 45%, #ff85c0 100%);
+        border: 6px solid #ff4da6;
         border-radius: 50%;
-        width: 250px;
-        height: 250px;
+        width: 220px;
+        height: 220px;
         cursor: pointer;
-        box-shadow: 0 10px 20px rgba(255, 153, 204, 0.4);
-        transition: transform 0.1s;
+        box-shadow:
+          0 14px 0 #d81b60,
+          0 22px 35px rgba(216, 27, 96, 0.35),
+          inset 0 6px 12px rgba(255, 255, 255, 0.9);
+        transition: transform 0.08s ease, box-shadow 0.08s ease;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 20px auto;
+        margin: 18px auto 12px;
         user-select: none;
+        position: relative;
       }
-
-      #btn-gigante:active {
-        transform: scale(0.9);
+      #btn-gigante:active,
+      #btn-gigante.pulsado {
+        transform: translateY(8px) scale(0.95);
+        box-shadow:
+          0 6px 0 #d81b60,
+          0 12px 20px rgba(216, 27, 96, 0.3),
+          inset 0 4px 10px rgba(255, 255, 255, 0.8);
       }
-
-      .marcadores {
-        font-size: 1.8em;
-        color: #ff3385;
+      #btn-gigante.fiebre {
+        border-color: #ffbe0b;
+        box-shadow:
+          0 14px 0 #d97706,
+          0 0 35px rgba(255, 190, 11, 0.75),
+          inset 0 6px 12px rgba(255, 255, 255, 0.95);
+      }
+      .float-pts {
+        position: absolute;
         font-weight: 900;
-        margin-bottom: 10px;
+        font-size: 1.35rem;
+        color: #ff1493;
+        text-shadow: 0 2px 0 #fff;
+        pointer-events: none;
+        animation: floatUp 0.75s ease-out forwards;
       }
-
-      .marcadores span {
-        color: #ff66a3;
-        font-size: 1.5em;
-        display: block;
+      @keyframes floatUp {
+        0% {
+          opacity: 1;
+          transform: translateY(0) scale(0.9);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-55px) scale(1.15);
+        }
       }
-
       .zona-tienda {
-        flex: 1;
+        flex: 1 1 340px;
         display: flex;
         flex-direction: column;
-        gap: 15px;
+        gap: 12px;
+        justify-content: center;
       }
-
       .mejora-btn {
-        background: linear-gradient(45deg, #ff99cc, #ff66a3);
+        background: linear-gradient(180deg, #ff85c0 0%, #ff3385 100%);
         color: white;
-        border: none;
-        padding: 15px;
-        border-radius: 15px;
-        font-size: 1.2em;
+        border: 2px solid #ffcce6;
+        padding: 14px 16px;
+        border-radius: 18px;
+        font-size: 1.05rem;
+        font-family: "Nunito", sans-serif;
         cursor: pointer;
-        font-weight: bold;
-        box-shadow: 0 5px 15px rgba(255, 102, 163, 0.4);
-        transition: 0.2s;
+        font-weight: 900;
+        box-shadow: 0 6px 0 #c2185b, 0 10px 20px rgba(255, 51, 133, 0.28);
+        transition: transform 0.12s, filter 0.12s;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        text-align: left;
       }
-
       .mejora-btn:hover:not(:disabled) {
-        transform: scale(1.05);
+        transform: translateY(-2px);
+        filter: brightness(1.06);
       }
-
+      .mejora-btn:active:not(:disabled) {
+        transform: translateY(3px);
+        box-shadow: 0 3px 0 #c2185b;
+      }
       .mejora-btn:disabled {
-        background: #e0e0e0;
-        color: #a0a0a0;
-        box-shadow: none;
+        background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
+        color: #64748b;
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 0 #94a3b8;
         cursor: not-allowed;
       }
-
+      .costo-badge {
+        background: rgba(255, 255, 255, 0.22);
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 0.95rem;
+        white-space: nowrap;
+      }
+      .acciones-bar {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
       .accion-salir {
-        background: linear-gradient(45deg, #ff6666, #ff1a1a);
+        background: linear-gradient(180deg, #ff5c8a 0%, #d81b60 100%);
         color: white;
         border: none;
-        padding: 15px 30px;
-        font-size: 1.2em;
-        border-radius: 50px;
+        padding: 13px 28px;
+        font-size: 1.1rem;
+        font-family: "Nunito", sans-serif;
+        border-radius: 999px;
         cursor: pointer;
-        font-weight: bold;
+        font-weight: 900;
         text-decoration: none;
-        margin-top: 20px;
+        box-shadow: 0 5px 0 #9c1448, 0 10px 20px rgba(216, 27, 96, 0.3);
         display: inline-block;
       }
     </style>
   </head>
 
   <body>
-    <h1 style="color: #ff3385">🎀 Kitty Clicker 🎀</h1>
+    <h1>🎀 Kitty Clicker 3D 🎀</h1>
 
     <div class="clicker-container">
-      <div class="zona-click">
+      <div class="zona-click" id="zona-click">
         <div class="marcadores">
-          Puntos Kawaii: <span id="display-puntos">0</span>
-        </div>
-        <div style="color: #999; font-size: 1.2em; font-weight: bold">
-          <span id="display-pps">0</span> puntos por segundo
+          Puntos Kawaii <span id="display-puntos">0</span>
         </div>
 
-        <div id="btn-gigante" onclick="hacerClick()">🎀</div>
+        <div class="sub-stats">
+          <div class="stat-pill">⚡ <span id="display-pps">0</span> p/s</div>
+          <div class="stat-pill">👆 +<span id="display-ppc">1</span> / clic</div>
+          <div class="stat-pill" id="badge-combo">🔥 x1</div>
+        </div>
+
+        <div class="fever-wrap" title="Barra de Fiebre Kawaii (Clics rápidos = x2 puntos)">
+          <div class="fever-fill" id="fever-bar"></div>
+        </div>
+
+        <div id="btn-gigante" onclick="hacerClick(event)">🎀</div>
+        <div style="font-size: 0.85rem; color: #ad1457; font-weight: 800">
+          💡 Presiona <b>Espacio</b> o toca rápido para activar <b>Fiebre x2</b>
+        </div>
       </div>
 
       <div class="zona-tienda">
-        <h2 style="color: #ff3385; margin-top: 0">Tienda Mágica 🛒</h2>
+        <h2 style="color: #d81b60; margin: 0 0 4px">Tienda Mágica 🛒</h2>
 
-        <button
-          class="mejora-btn"
-          id="btn-auto"
-          onclick="comprarMejora('auto')"
-        >
+        <button class="mejora-btn" id="btn-varita" onclick="comprarMejora('varita')">
+          <span>🪄 Varita Brillante (+1 por clic)</span>
+          <span class="costo-badge" id="costo-varita">25 pts</span>
+        </button>
+
+        <button class="mejora-btn" id="btn-auto" onclick="comprarMejora('auto')">
           <span>🖱️ Auto-Click (+1 p/s)</span>
-          <span id="costo-auto">50 pts</span>
+          <span class="costo-badge" id="costo-auto">50 pts</span>
         </button>
 
-        <button
-          class="mejora-btn"
-          id="btn-gato"
-          onclick="comprarMejora('gato')"
-        >
+        <button class="mejora-btn" id="btn-gato" onclick="comprarMejora('gato')">
           <span>🐱 Gato Ayudante (+5 p/s)</span>
-          <span id="costo-gato">300 pts</span>
+          <span class="costo-badge" id="costo-gato">300 pts</span>
         </button>
 
-        <button
-          class="mejora-btn"
-          id="btn-fabrica"
-          onclick="comprarMejora('fabrica')"
-        >
+        <button class="mejora-btn" id="btn-fabrica" onclick="comprarMejora('fabrica')">
           <span>🏭 Fábrica de Moños (+20 p/s)</span>
-          <span id="costo-fabrica">1000 pts</span>
+          <span class="costo-badge" id="costo-fabrica">1000 pts</span>
+        </button>
+
+        <button class="mejora-btn" id="btn-castillo" onclick="comprarMejora('castillo')">
+          <span>🏰 Castillo Kawaii (+100 p/s)</span>
+          <span class="costo-badge" id="costo-castillo">4500 pts</span>
         </button>
       </div>
     </div>
 
-    <button class="accion-salir" onclick="guardarYSalir()">
-      💾 Guardar Récord y Salir
-    </button>
+    <div class="acciones-bar">
+      <button class="accion-salir" onclick="guardarYSalir()">
+        💾 Guardar Récord y Salir
+      </button>
+      <a href="/secreto" class="accion-salir" style="background: linear-gradient(180deg, #94a3b8, #64748b); box-shadow: 0 5px 0 #475569">
+        🏠 Menú
+      </a>
+    </div>
+
     <script>
       let puntos = 0;
       let puntosPorSegundo = 0;
+      let puntosPorClick = 1;
+      let fiebre = 0;
 
       let costos = {
+        varita: 25,
         auto: 50,
         gato: 300,
         fabrica: 1000,
+        castillo: 4500,
       };
 
       let incrementos = {
         auto: 1,
         gato: 5,
         fabrica: 20,
+        castillo: 100,
       };
 
       const displayPuntos = document.getElementById("display-puntos");
       const displayPPS = document.getElementById("display-pps");
+      const displayPPC = document.getElementById("display-ppc");
+      const badgeCombo = document.getElementById("badge-combo");
+      const feverBar = document.getElementById("fever-bar");
       const btnGigante = document.getElementById("btn-gigante");
+      const zonaClick = document.getElementById("zona-click");
 
-      function hacerClick() {
-        puntos++;
-        actualizarUI();
-
-        // Animación visual al hacer clic (opcional, se siente más responsivo)
-        btnGigante.style.transform = "scale(0.90)";
-        setTimeout(() => (btnGigante.style.transform = "scale(1)"), 100);
+      let audioCtx = null;
+      function sonarPop(freq = 600) {
+        try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.08);
+        } catch (e) {}
       }
 
-      // --- AQUÍ ESTÁ LA NUEVA LÓGICA PARA LA BARRA ESPACIADORA ---
+      function mostrarFlotante(texto, esCritico) {
+        if (!zonaClick) return;
+        const el = document.createElement("div");
+        el.className = "float-pts";
+        el.innerText = texto;
+        if (esCritico) {
+          el.style.color = "#d97706";
+          el.style.fontSize = "1.65rem";
+        }
+        el.style.left = 38 + Math.random() * 24 + "%";
+        el.style.top = "45%";
+        zonaClick.appendChild(el);
+        setTimeout(() => el.remove(), 750);
+      }
+
+      function hacerClick(ev) {
+        fiebre = Math.min(100, fiebre + 8);
+        const multFiebre = fiebre >= 80 ? 2 : 1;
+        const critico = Math.random() < 0.08;
+        const ganancia = puntosPorClick * multFiebre * (critico ? 3 : 1);
+
+        puntos += ganancia;
+        sonarPop(multFiebre === 2 ? 780 : 580);
+        mostrarFlotante((critico ? "✨+" : "+") + ganancia, critico || multFiebre === 2);
+        actualizarUI();
+
+        btnGigante.classList.add("pulsado");
+        btnGigante.style.transform = "scale(0.90)";
+        setTimeout(() => {
+          btnGigante.classList.remove("pulsado");
+          btnGigante.style.transform = "scale(1)";
+        }, 90);
+      }
+
       document.addEventListener("keydown", (e) => {
         if (e.code === "Space") {
           hacerClick();
-          e.preventDefault(); // Evita que la página haga scroll al presionar espacio
+          e.preventDefault();
         }
       });
-      // ----------------------------------------------------------
 
       function comprarMejora(tipo) {
         if (puntos >= costos[tipo]) {
           puntos -= costos[tipo];
-          puntosPorSegundo += incrementos[tipo];
-
-          // La mejora se vuelve un 30% más cara cada vez
-          costos[tipo] = Math.floor(costos[tipo] * 1.3);
+          if (tipo === "varita") {
+            puntosPorClick += 1;
+          } else {
+            puntosPorSegundo += incrementos[tipo] || 0;
+          }
+          costos[tipo] = Math.floor(costos[tipo] * 1.32);
+          sonarPop(880);
           actualizarUI();
         }
       }
@@ -234,43 +398,56 @@
       function actualizarUI() {
         displayPuntos.innerText = Math.floor(puntos);
         displayPPS.innerText = puntosPorSegundo;
+        if (displayPPC) displayPPC.innerText = puntosPorClick;
 
-        document.getElementById("btn-auto").disabled = puntos < costos.auto;
-        document.getElementById("costo-auto").innerText = costos.auto + " pts";
+        const enFiebre = fiebre >= 80;
+        if (badgeCombo) badgeCombo.innerText = enFiebre ? "🔥 FIEBRE x2" : "🔥 x1";
+        if (feverBar) feverBar.style.width = fiebre + "%";
+        btnGigante.classList.toggle("fiebre", enFiebre);
 
-        document.getElementById("btn-gato").disabled = puntos < costos.gato;
-        document.getElementById("costo-gato").innerText = costos.gato + " pts";
-
-        document.getElementById("btn-fabrica").disabled =
-          puntos < costos.fabrica;
-        document.getElementById("costo-fabrica").innerText =
-          costos.fabrica + " pts";
+        ["varita", "auto", "gato", "fabrica", "castillo"].forEach((k) => {
+          const btn = document.getElementById("btn-" + k);
+          const lbl = document.getElementById("costo-" + k);
+          if (btn) btn.disabled = puntos < costos[k];
+          if (lbl) lbl.innerText = costos[k] + " pts";
+        });
       }
 
       setInterval(() => {
         if (puntosPorSegundo > 0) {
           puntos += puntosPorSegundo;
-          actualizarUI();
         }
+        if (fiebre > 0) {
+          fiebre = Math.max(0, fiebre - 4);
+        }
+        actualizarUI();
       }, 1000);
 
       function guardarYSalir() {
-        let nombre = prompt(
-          `Terminaste con ${Math.floor(puntos)} puntos. ¡Ingresa tu nombre para el récord!`,
-        );
+        let nombreGuardado = "";
+        try {
+          nombreGuardado = localStorage.getItem("nombreUsuario") || "";
+        } catch (e) {}
+        let nombre =
+          nombreGuardado ||
+          prompt(
+            `Terminaste con ${Math.floor(puntos)} puntos. ¡Ingresa tu nombre para el récord!`,
+          );
         if (nombre) {
           fetch("/guardar_clicker", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               nombre: nombre,
               puntos: Math.floor(puntos),
             }),
-          }).then(() => {
-            window.location.href = "/secreto";
-          });
+          })
+            .then(() => {
+              window.location.href = "/secreto";
+            })
+            .catch(() => {
+              window.location.href = "/secreto";
+            });
         } else {
           window.location.href = "/secreto";
         }
@@ -279,14 +456,5 @@
       actualizarUI();
     </script>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-    <script>
-      // Ejemplo de cómo usarlo en cualquier juego:
-      // Ya no necesitas prompt, el archivo scripts.js se encarga de todo.
-
-      function alGanarJuego(misPuntos) {
-        // Solo llamas a esta función y listo
-        enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
-      }
-    </script>
   </body>
 </html>

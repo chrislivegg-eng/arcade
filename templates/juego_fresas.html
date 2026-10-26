@@ -5,81 +5,158 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-
+    <meta charset="UTF-8" />
+    <title>Atrapa las Fresas PRO 🍓</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
     />
-
-    <meta charset="UTF-8" />
-    <title>Atrapa las Fresas</title>
     <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap"
       rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
     />
     <style>
-      #contenedor-juego {
-        width: 400px;
-        height: 500px;
-        background: #ffe4e9;
-        border: 4px solid #ff99cc;
-        border-radius: 15px;
-        margin: 20px auto;
-        position: relative;
-        overflow: hidden;
+      body {
+        font-family: "Nunito", sans-serif;
+        background: radial-gradient(circle at 50% 15%, #3b1332 0%, #17081c 60%, #09030d 100%);
+        color: #fff;
+        margin: 0;
+        padding: 12px;
+        text-align: center;
+        user-select: none;
       }
 
-      #jugador {
-        width: 60px;
-        height: 60px;
-        background: url("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExa29lZDV4ZTcxaG4ycjVqY2l1bmsyeThhd2loeWMxaWRmY2k4YWN3MyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/kZqbBT64ECtjy/giphy.gif")
-          center/cover;
-        position: absolute;
-        bottom: 10px;
-        left: 170px;
-      }
-
-      .objeto-cae {
-        font-size: 30px;
-        position: absolute;
-        top: -40px;
-        line-height: 1;
-        /* Ayuda a que el emoji ocupe exactamente su espacio */
+      h2 {
+        margin: 4px 0 8px;
+        color: #fb7185;
+        font-size: 1.9rem;
+        text-shadow: 0 0 16px rgba(251, 113, 133, 0.45);
       }
 
       .estadisticas {
-        text-align: center;
-        font-size: 1.5em;
-        font-weight: bold;
-        color: #ff3385;
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        font-size: 1.15em;
+        font-weight: 900;
+        color: #fde047;
+        margin-bottom: 8px;
+      }
+      .stat-pill {
+        background: rgba(30, 14, 40, 0.88);
+        border: 1px solid rgba(251, 113, 133, 0.35);
+        padding: 6px 14px;
+        border-radius: 999px;
+      }
+
+      #contenedor-juego {
+        width: min(400px, calc(100vw - 28px));
+        height: 460px;
+        background:
+          radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.45), transparent 55%),
+          linear-gradient(180deg, #bae6fd 0%, #fbcfe8 78%, #4ade80 78%, #16a34a 100%);
+        border: 4px solid #f472b6;
+        border-radius: 24px;
+        margin: 10px auto;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        touch-action: none;
+        cursor: ew-resize;
+      }
+
+      #jugador {
+        width: 68px;
+        height: 64px;
+        position: absolute;
+        bottom: 14px;
+        left: 166px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 46px;
+        filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35));
+        transition: transform 0.08s ease;
+      }
+      #jugador.con-escudo::after {
+        content: "";
+        position: absolute;
+        inset: -6px;
+        border-radius: 50%;
+        border: 3px solid #38bdf8;
+        background: rgba(56, 189, 248, 0.22);
+        box-shadow: 0 0 16px #38bdf8;
+      }
+
+      .objeto-cae {
+        font-size: 32px;
+        position: absolute;
+        top: -40px;
+        line-height: 1;
+        filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.25));
+      }
+
+      .flotante-fresa {
+        position: absolute;
+        font-weight: 900;
+        font-size: 1.1rem;
+        pointer-events: none;
+        animation: subirFresa 0.65s ease-out forwards;
+      }
+      @keyframes subirFresa {
+        from {
+          opacity: 1;
+          transform: translateY(0) scale(0.9);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-34px) scale(1.15);
+        }
       }
 
       #tabla-container {
-        background: #fff0f5;
-        padding: 15px;
-        border-radius: 15px;
-        border: 2px solid #ff99cc;
-        margin: 20px auto;
-        width: 300px;
+        background: rgba(30, 14, 40, 0.9);
+        padding: 14px;
+        border-radius: 20px;
+        border: 2px solid rgba(244, 114, 182, 0.4);
+        margin: 14px auto;
+        width: min(360px, 94%);
         text-align: center;
+      }
+      #tabla-records {
+        width: 100%;
+        color: #f8fafc;
+        border-collapse: collapse;
+      }
+      #tabla-records th,
+      #tabla-records td {
+        padding: 6px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       }
     </style>
   </head>
 
-  <body style="text-align: center">
-    <h2>Atrapa las Fresas 🍓</h2>
-    <div class="estadisticas">Puntos: <span id="puntos">0</span></div>
-
-    <div id="contenedor-juego">
-      <div id="jugador"></div>
+  <body>
+    <h2>🍓 Atrapa las Fresas 3D 🍓</h2>
+    <div class="estadisticas">
+      <div class="stat-pill">Puntos: <span id="puntos">0</span></div>
+      <div class="stat-pill">Vidas: <span id="vidas">❤️❤️❤️</span></div>
+      <div class="stat-pill">Racha: <span id="combo-fresa">×1</span></div>
     </div>
 
-    <button class="btn" onclick="iniciarJuego()">Iniciar Juego</button>
-    <a href="/secreto" class="btn">Volver al Menú</a>
+    <div id="contenedor-juego">
+      <div id="jugador">🐱🧺</div>
+    </div>
+
+    <div>
+      <button class="btn" onclick="iniciarJuego()">▶️ Iniciar Juego</button>
+      <a href="/secreto" class="btn">🏠 Volver al Menú</a>
+    </div>
 
     <div id="tabla-container">
-      <h3>🏆 Top Recolectores</h3>
-      <table id="tabla-records" style="width: 100%">
+      <h3 style="margin: 0 0 8px; color: #f472b6">🏆 Top Recolectores</h3>
+      <table id="tabla-records">
         <thead>
           <tr>
             <th>Nombre</th>
@@ -90,96 +167,177 @@
       </table>
     </div>
 
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
     <script>
-      let jugadorX = 170;
+      let jugadorX = 166;
       let puntos = 0;
+      let vidas = 3;
+      let racha = 0;
+      let escudo = false;
       let juegoActivo = false;
       let intervaloCaida;
       let intervaloCreacion;
       const contenedor = document.getElementById("contenedor-juego");
       const jugador = document.getElementById("jugador");
 
+      function anchoMaxJugador() {
+        return Math.max(220, contenedor.clientWidth - 72);
+      }
+
       function cargarRanking() {
-        fetch("/obtener_fresas", {
-          cache: "no-store",
-        })
+        fetch("/obtener_fresas", { cache: "no-store" })
           .then((r) => r.json())
           .then((data) => {
             let tbody = document.querySelector("#tabla-records tbody");
             tbody.innerHTML = "";
-            let sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+            let sorted = Object.entries(data)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 8);
             for (let [nombre, cant] of sorted) {
               tbody.innerHTML += `<tr><td>${nombre}</td><td>${cant}</td></tr>`;
             }
-          });
+          })
+          .catch(() => {});
       }
       window.onload = cargarRanking;
 
-      // Movimiento del jugador
+      function moverJugadorAX(px) {
+        const rect = contenedor.getBoundingClientRect();
+        jugadorX = Math.max(6, Math.min(anchoMaxJugador(), px - rect.left - 34));
+        jugador.style.left = jugadorX + "px";
+      }
+
+      contenedor.addEventListener("pointermove", (e) => {
+        if (!juegoActivo) return;
+        moverJugadorAX(e.clientX);
+      });
+      contenedor.addEventListener("pointerdown", (e) => {
+        if (!juegoActivo) iniciarJuego();
+        moverJugadorAX(e.clientX);
+      });
+
       document.addEventListener("keydown", (e) => {
         if (!juegoActivo) return;
-        if (e.key === "ArrowLeft" && jugadorX > 10) jugadorX -= 25;
-        if (e.key === "ArrowRight" && jugadorX < 330) jugadorX += 25;
+        if ((e.key === "ArrowLeft" || e.key === "a") && jugadorX > 8)
+          jugadorX = Math.max(6, jugadorX - 28);
+        if (
+          (e.key === "ArrowRight" || e.key === "d") &&
+          jugadorX < anchoMaxJugador()
+        )
+          jugadorX = Math.min(anchoMaxJugador(), jugadorX + 28);
         jugador.style.left = jugadorX + "px";
       });
 
+      function efectoTexto(txt, color) {
+        const d = document.createElement("div");
+        d.className = "flotante-fresa";
+        d.style.left = jugadorX + 10 + "px";
+        d.style.bottom = "76px";
+        d.style.color = color;
+        d.innerText = txt;
+        contenedor.appendChild(d);
+        setTimeout(() => d.remove(), 650);
+      }
+
       function crearObjeto() {
+        if (!juegoActivo) return;
         const obj = document.createElement("div");
         obj.classList.add("objeto-cae");
-        // 20% probabilidad de bomba, 80% fresa
-        let esBomba = Math.random() < 0.2;
-        obj.innerText = esBomba ? "💣" : "🍓";
-        obj.dataset.tipo = esBomba ? "bomba" : "fresa";
-        obj.style.left = Math.floor(Math.random() * 340) + "px";
+        const rnd = Math.random();
+        let tipo = "fresa";
+        let emoji = "🍓";
+        if (rnd < 0.22) {
+          tipo = "bomba";
+          emoji = "💣";
+        } else if (rnd < 0.34) {
+          tipo = "dorada";
+          emoji = "🌟";
+        } else if (rnd < 0.4 && !escudo) {
+          tipo = "escudo";
+          emoji = "🫧";
+        }
+        obj.innerText = emoji;
+        obj.dataset.tipo = tipo;
+        obj.style.left =
+          Math.floor(Math.random() * Math.max(200, contenedor.clientWidth - 44)) +
+          "px";
         contenedor.appendChild(obj);
       }
 
       function moverObjetos() {
         const objetos = document.querySelectorAll(".objeto-cae");
+        const vel = 4.8 + Math.min(4.5, puntos * 0.06);
         objetos.forEach((obj) => {
-          let top = parseInt(obj.style.top || -40);
-          top += 5; // Velocidad de caída
+          let top = parseFloat(obj.style.top || -40);
+          top += vel;
           obj.style.top = top + "px";
 
-          // Cálculo de Colisiones con HITBOX AJUSTADO
           let objRect = obj.getBoundingClientRect();
           let jugRect = jugador.getBoundingClientRect();
 
-          // Margen para hacer la caja de colisión más pequeña y precisa
-          let margenJugador = 15; // Kitty tiene espacio vacío a los lados
-          let margenObjeto = 5; // Los emojis tienen un poco de espacio extra
-
           if (
-            objRect.bottom - margenObjeto >= jugRect.top + margenJugador &&
-            objRect.top + margenObjeto <= jugRect.bottom - margenJugador &&
-            objRect.right - margenObjeto >= jugRect.left + margenJugador &&
-            objRect.left + margenObjeto <= jugRect.right - margenJugador
+            objRect.bottom >= jugRect.top + 10 &&
+            objRect.top <= jugRect.bottom - 8 &&
+            objRect.right >= jugRect.left + 8 &&
+            objRect.left <= jugRect.right - 8
           ) {
-            if (obj.dataset.tipo === "bomba") {
-              terminarJuego();
+            const tipo = obj.dataset.tipo;
+            obj.remove();
+
+            if (tipo === "bomba") {
+              if (escudo) {
+                escudo = false;
+                jugador.classList.remove("con-escudo");
+                efectoTexto("🛡️ ¡ESCUDO!", "#38bdf8");
+              } else {
+                vidas--;
+                racha = 0;
+                document.getElementById("vidas").innerText =
+                  "❤️".repeat(Math.max(0, vidas)) || "💔";
+                document.getElementById("combo-fresa").innerText = "×1";
+                efectoTexto("💥 -1 VIDA", "#ef4444");
+                if (vidas <= 0) {
+                  terminarJuego();
+                }
+              }
+            } else if (tipo === "escudo") {
+              escudo = true;
+              jugador.classList.add("con-escudo");
+              efectoTexto("🫧 ESCUDO ACTIVO", "#38bdf8");
             } else {
-              puntos++;
+              racha++;
+              const mult = 1 + Math.floor(racha / 5);
+              const base = tipo === "dorada" ? 5 : 1;
+              const ganados = base * mult;
+              puntos += ganados;
               document.getElementById("puntos").innerText = puntos;
-              obj.remove();
+              document.getElementById("combo-fresa").innerText = `×${mult}`;
+              efectoTexto(`+${ganados} 🍓`, tipo === "dorada" ? "#fde047" : "#f43f5e");
             }
-          } else if (top > 500) {
-            obj.remove(); // Eliminar si sale de la pantalla
+          } else if (top > 470) {
+            if (obj.dataset.tipo === "fresa") racha = 0;
+            obj.remove();
           }
         });
       }
 
       function iniciarJuego() {
         if (juegoActivo) return;
-        // Limpiar tablero
         document.querySelectorAll(".objeto-cae").forEach((e) => e.remove());
         puntos = 0;
+        vidas = 3;
+        racha = 0;
+        escudo = false;
+        jugador.classList.remove("con-escudo");
         document.getElementById("puntos").innerText = puntos;
-        jugadorX = 170;
+        document.getElementById("vidas").innerText = "❤️❤️❤️";
+        document.getElementById("combo-fresa").innerText = "×1";
+        jugadorX = Math.floor(anchoMaxJugador() / 2);
         jugador.style.left = jugadorX + "px";
         juegoActivo = true;
 
-        intervaloCreacion = setInterval(crearObjeto, 800); // Crea objeto cada 0.8s
-        intervaloCaida = setInterval(moverObjetos, 20); // Mueve objetos a 50fps
+        intervaloCreacion = setInterval(crearObjeto, 680);
+        intervaloCaida = setInterval(moverObjetos, 20);
       }
 
       function terminarJuego() {
@@ -188,33 +346,23 @@
         clearInterval(intervaloCaida);
 
         setTimeout(() => {
-          let nombre = prompt(
-            `¡Boom! Atrapaste ${puntos} fresas. Escribe tu nombre para guardar tu récord:`,
-          );
+          let nombre =
+            localStorage.getItem("nombreUsuario") ||
+            prompt(`¡Fin de partida! Atrapaste ${puntos} pts en fresas. Tu nombre:`);
           if (nombre) {
+            localStorage.setItem("nombreUsuario", nombre);
             fetch("/guardar_fresas", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                nombre: nombre,
-                puntos: puntos,
-              }),
-            }).then(() => {
-              window.location.reload();
-            });
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ nombre: nombre, puntos: puntos }),
+            })
+              .then(() => cargarRanking())
+              .catch(() => {});
           }
-        }, 100);
+        }, 120);
       }
-    </script>
-    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-    <script>
-      // Ejemplo de cómo usarlo en cualquier juego:
-      // Ya no necesitas prompt, el archivo scripts.js se encarga de todo.
 
       function alGanarJuego(misPuntos) {
-        // Solo llamas a esta función y listo
         enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
       }
     </script>

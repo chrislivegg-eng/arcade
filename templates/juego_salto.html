@@ -1,18 +1,12 @@
 <!doctype html>
 <html lang="es">
   <head>
+    <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
-    />
-
-    <meta charset="UTF-8" />
-    <title>Kitty Saltarina Misión Extrema</title>
+    <title>Kitty Saltarina · Misión Extrema 3D</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
@@ -22,184 +16,239 @@
       rel="stylesheet"
     />
     <style>
+      * {
+        box-sizing: border-box;
+      }
       body {
         font-family: "Nunito", sans-serif;
-        background: linear-gradient(135deg, #ffe6f2 0%, #e6f7ff 100%);
+        background: radial-gradient(circle at top, #fff0f7 0%, #e0f2fe 100%);
         margin: 0;
-        padding: 20px;
+        padding: 16px 10px 28px;
         text-align: center;
+        user-select: none;
       }
 
       h2 {
-        color: #ff3385;
-        font-size: 2.5em;
-        text-shadow: 2px 2px 0px #ffe6f2;
-        margin-bottom: 10px;
+        color: #d81b60;
+        font-size: clamp(1.6rem, 4vw, 2.3rem);
+        text-shadow: 0 2px 0 #ffffff;
+        margin: 6px 0 12px;
       }
-
-      #juego {
-        width: 700px;
-        height: 250px;
-        /* Más alto para acomodar obstáculos aéreos */
-        border: 6px solid #ff99cc;
-        margin: 20px auto;
-        overflow: hidden;
-        position: relative;
-        background: linear-gradient(
-          to bottom,
-          #87ceeb 0%,
-          #e0f6ff 80%,
-          #90ee90 80%,
-          #32cd32 100%
-        );
-        /* Cielo y pasto */
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(255, 153, 204, 0.4);
-      }
-
-      #kitty-player {
-        width: 60px;
-        height: 60px;
-        background: url("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExa29lZDV4ZTcxaG4ycjVqY2l1bmsyeThhd2loeWMxaWRmY2k4YWN3MyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/kZqbBT64ECtjy/giphy.gif")
-          center/cover;
-        position: absolute;
-        bottom: 50px;
-        /* Nivel del piso (encima del pasto verde) */
-        left: 50px;
-        transition: bottom 0.1s;
-        /* Para suavizar la gravedad personalizada */
-      }
-
-      .obstaculo {
-        position: absolute;
-        border-radius: 10px;
-        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-      }
-      /* Tipos de obstáculos */
-
-      .obstaculo-suelo {
-        background: #ff4d4d;
-        width: 40px;
-        height: 50px;
-        bottom: 50px;
-      }
-      /* Hay que saltarlo */
-
-      .obstaculo-aire {
-        background: #9933ff;
-        width: 50px;
-        height: 80px;
-        bottom: 130px;
-      }
-      /* Hay que pasar por debajo */
-
-      .obstaculo-rapido {
-        background: #ffcc00;
-        width: 30px;
-        height: 30px;
-        bottom: 50px;
-        border-radius: 50%;
-      }
-      /* Muy rápido, requiere reflejos */
 
       .hud {
         display: flex;
         justify-content: space-around;
-        width: 700px;
-        margin: 0 auto;
-        font-size: 1.5em;
-        font-weight: bold;
-        color: #ff3385;
-        background: white;
-        padding: 10px;
-        border-radius: 15px;
-        border: 2px solid #ff99cc;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        max-width: 700px;
+        width: 100%;
+        margin: 0 auto 12px;
+        font-size: 1.15rem;
+        font-weight: 900;
+        color: #d81b60;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 10px 16px;
+        border-radius: 18px;
+        border: 3px solid #ff99cc;
+        box-shadow: 0 6px 0 #ffb3d9;
+      }
+
+      #juego {
+        max-width: 700px;
+        width: 100%;
+        height: 260px;
+        border: 5px solid #ff66b3;
+        margin: 12px auto;
+        overflow: hidden;
+        position: relative;
+        background: linear-gradient(
+          to bottom,
+          #7dd3fc 0%,
+          #e0f2fe 76%,
+          #4ade80 76%,
+          #16a34a 100%
+        );
+        border-radius: 24px;
+        box-shadow:
+          0 14px 32px rgba(216, 27, 96, 0.25),
+          inset 0 4px 12px rgba(255, 255, 255, 0.65);
+        touch-action: manipulation;
+      }
+
+      #kitty-player {
+        width: 56px;
+        height: 56px;
+        position: absolute;
+        bottom: 52px;
+        left: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at 35% 30%, #ffffff 0%, #ffe4f2 75%, #ffb3d9 100%);
+        border: 3px solid #d81b60;
+        border-radius: 18px;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2), inset 0 2px 4px #fff;
+        font-size: 34px;
+        z-index: 5;
+        transition: height 0.08s ease;
+      }
+
+      #kitty-player::after {
+        content: "🎀";
+        position: absolute;
+        top: -12px;
+        right: -6px;
+        font-size: 20px;
+        filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+      }
+
+      #kitty-player.agachada {
+        height: 34px;
+        border-radius: 14px;
+      }
+
+      .obstaculo {
+        position: absolute;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+      }
+
+      .obstaculo-suelo {
+        background: linear-gradient(180deg, #fb7185, #e11d48);
+        border: 3px solid #fff;
+        box-shadow: 0 6px 12px rgba(225, 29, 72, 0.35);
+        width: 42px;
+        height: 48px;
+        bottom: 52px;
+      }
+
+      .obstaculo-aire {
+        background: linear-gradient(180deg, #c084fc, #7e22ce);
+        border: 3px solid #fff;
+        box-shadow: 0 6px 14px rgba(126, 34, 206, 0.35);
+        width: 52px;
+        height: 68px;
+        bottom: 102px;
+      }
+
+      .obstaculo-rapido {
+        background: radial-gradient(circle at 30% 30%, #fef08a, #f59e0b);
+        border: 3px solid #fff;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.45);
+        width: 34px;
+        height: 34px;
+        bottom: 52px;
+        border-radius: 50%;
+      }
+
+      .controls-row {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 10px;
       }
 
       .btn-juego {
-        background: linear-gradient(45deg, #ff99cc, #ff66a3);
+        background: linear-gradient(180deg, #ff85c0, #d81b60);
         color: white;
         border: none;
-        padding: 15px 40px;
-        font-size: 1.5em;
+        padding: 13px 28px;
+        font-size: 1.15rem;
+        font-family: "Nunito", sans-serif;
         border-radius: 50px;
         cursor: pointer;
-        font-weight: bold;
-        margin-top: 20px;
-        box-shadow: 0 5px 15px rgba(255, 102, 163, 0.4);
-        transition: 0.2s;
+        font-weight: 900;
+        box-shadow: 0 6px 0 #9c1448, 0 10px 20px rgba(216, 27, 96, 0.3);
+        transition: transform 0.1s;
       }
 
-      .btn-juego:hover {
-        transform: scale(1.05);
+      .btn-juego:active {
+        transform: translateY(4px);
+        box-shadow: 0 2px 0 #9c1448;
       }
 
       #ventana-derrota {
         display: none;
         position: fixed;
-        top: 10%;
-        left: 25%;
-        width: 50%;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 30px;
-        border: 4px dashed #ff99cc;
-        border-radius: 30px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: min(460px, 92vw);
+        background: rgba(255, 255, 255, 0.98);
+        padding: 24px;
+        border: 4px solid #ff66b3;
+        border-radius: 28px;
         text-align: center;
         z-index: 1000;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        backdrop-filter: blur(5px);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
       }
 
       .tabla-records {
         width: 100%;
         border-collapse: collapse;
-        margin: 15px 0;
+        margin: 12px 0;
       }
 
       .tabla-records th,
       .tabla-records td {
         border-bottom: 2px solid #ffe6f2;
-        padding: 10px;
+        padding: 8px;
         text-align: left;
         font-weight: bold;
       }
 
       .tabla-records th {
-        background-color: #ff99cc;
+        background-color: #ff66b3;
         color: white;
-        border-radius: 10px 10px 0 0;
-      }
-
-      .tabla-records tr:nth-child(even) {
-        background-color: #fff0f5;
       }
     </style>
   </head>
 
   <body>
-    <h2>¡Misión Extrema Kitty! 🏃‍♀️💨</h2>
+    <h2>¡Misión Extrema Kitty 3D! 🏃‍♀️💨</h2>
 
     <div class="hud">
-      <span>Puntos: <span id="contador-puntos">0</span></span>
-      <span>Velocidad: Nivel <span id="nivel-velocidad">1</span></span>
+      <span>⭐ Puntos: <span id="contador-puntos">0</span></span>
+      <span>⚡ Nivel: <span id="nivel-velocidad">1</span></span>
+      <span>🦘 Doble Salto Activo</span>
     </div>
 
     <div id="juego">
-      <div id="kitty-player"></div>
+      <div id="kitty-player">🐱</div>
     </div>
 
-    <button class="btn-juego" onclick="saltar()">¡SALTAR! (Espacio)</button>
-    <br /><br />
-    <a
-      href="/secreto"
-      class="btn"
-      style="text-decoration: none; color: #666; font-weight: bold"
-      >🏠 Volver al Menú</a
-    >
+    <div class="controls-row">
+      <button class="btn-juego" onclick="saltar()">⬆️ ¡SALTAR! (Espacio)</button>
+      <button
+        class="btn-juego"
+        style="background: linear-gradient(180deg, #a855f7, #6b21a8); box-shadow: 0 6px 0 #4c1d95"
+        onmousedown="agachar(true)"
+        onmouseup="agachar(false)"
+        onmouseleave="agachar(false)"
+        ontouchstart="agachar(true); event.preventDefault();"
+        ontouchend="agachar(false)"
+      >
+        ⬇️ AGACHARSE (Flecha Abajo)
+      </button>
+    </div>
+
+    <div style="margin-top: 16px">
+      <a
+        href="/secreto"
+        class="btn"
+        style="text-decoration: none; color: #d81b60; font-weight: 900"
+        >🏠 Volver al Menú</a
+      >
+    </div>
 
     <div id="ventana-derrota">
-      <h2 style="font-size: 3em; margin: 0">¡Ouch! 💥</h2>
-      <p style="font-size: 1.5em; color: #666" id="mensaje-puntos"></p>
+      <h2 style="font-size: 2.2rem; margin: 0">¡Ouch! 💥</h2>
+      <p style="font-size: 1.2rem; color: #555" id="mensaje-puntos"></p>
 
       <h3>🏆 Top Corredores</h3>
       <table class="tabla-records" id="lista-puntos">
@@ -217,25 +266,27 @@
         id="nombre-usuario"
         placeholder="Tu nombre..."
         style="
-          padding: 15px;
-          border-radius: 15px;
+          padding: 12px;
+          border-radius: 14px;
           border: 2px solid #ff99cc;
-          width: 70%;
-          font-size: 1.2em;
+          width: 80%;
+          font-size: 1.05rem;
           text-align: center;
+          font-weight: 800;
         "
       />
-      <br /><br />
-      <button class="btn-juego" onclick="guardarRécord()">
-        Guardar Récord
-      </button>
-      <button
-        class="btn-juego"
-        onclick="location.reload()"
-        style="background: linear-gradient(45deg, #ccc, #999)"
-      >
-        Intentar de Nuevo
-      </button>
+      <div class="controls-row" style="margin-top: 14px">
+        <button class="btn-juego" onclick="guardarRécord()">
+          💾 Guardar Récord
+        </button>
+        <button
+          class="btn-juego"
+          onclick="iniciarJuego()"
+          style="background: linear-gradient(180deg, #94a3b8, #64748b); box-shadow: 0 5px 0 #475569"
+        >
+          🔄 Reintentar
+        </button>
+      </div>
     </div>
 
     <script>
@@ -246,87 +297,97 @@
       let nivel = 1;
       let juegoActivo = false;
 
-      // Física del salto
       let isJumping = false;
+      let isDucking = false;
+      let saltosRestantes = 2;
       let kittyVelocityY = 0;
-      let kittyPositionY = 50; // Piso
-      const gravity = 1.8;
-      const jumpStrength = 22;
+      let kittyPositionY = 52;
+      const PISO_Y = 52;
+      const gravity = 1.65;
+      const jumpStrength = 20;
 
-      // Variables de juego
-      let velocidadJuego = 5; // px por frame
+      let velocidadJuego = 5.2;
       let framesMover = null;
       let framesGenerar = null;
       let framesPuntos = null;
       let arrayObstaculos = [];
 
       function iniciarJuego() {
-        if (juegoActivo) return;
+        if (framesPuntos) clearInterval(framesPuntos);
+        if (framesGenerar) clearTimeout(framesGenerar);
+        if (framesMover) cancelAnimationFrame(framesMover);
+
         juegoActivo = true;
         puntos = 0;
         nivel = 1;
-        velocidadJuego = 5;
+        velocidadJuego = 5.2;
+        kittyPositionY = PISO_Y;
+        kittyVelocityY = 0;
+        isJumping = false;
+        isDucking = false;
+        saltosRestantes = 2;
+        kitty.classList.remove("agachada");
+        kitty.style.bottom = PISO_Y + "px";
         arrayObstaculos = [];
 
         document.getElementById("contador-puntos").innerText = "0";
         document.getElementById("nivel-velocidad").innerText = "1";
         document.getElementById("ventana-derrota").style.display = "none";
-        document.querySelectorAll(".obstaculo").forEach((e) => e.remove()); // Limpiar tablero
+        document.querySelectorAll(".obstaculo").forEach((e) => e.remove());
 
-        // Loop de puntos y dificultad
         framesPuntos = setInterval(() => {
           puntos += 10;
           document.getElementById("contador-puntos").innerText = puntos;
 
-          // Cada 500 puntos sube el nivel (máximo nivel 10)
           if (puntos % 500 === 0 && nivel < 10) {
             nivel++;
-            velocidadJuego += 1.5; // Aumenta la velocidad global
+            velocidadJuego += 1.2;
             document.getElementById("nivel-velocidad").innerText = nivel;
-            juegoContenedor.style.boxShadow = `0 10px 30px rgba(255, ${153 - nivel * 10}, ${204 - nivel * 10}, 0.6)`; // El borde se oscurece
           }
         }, 100);
 
-        // Generador de obstáculos dinámico
         function programarSiguienteObstaculo() {
           if (!juegoActivo) return;
           generarObstaculo();
-          // Tiempo aleatorio entre obstáculos (disminuye si el nivel es mayor)
-          let tiempoMin = Math.max(600, 1500 - nivel * 100);
-          let tiempoMax = Math.max(1200, 2500 - nivel * 100);
+          let tiempoMin = Math.max(650, 1450 - nivel * 90);
+          let tiempoMax = Math.max(1150, 2300 - nivel * 95);
           let tiempoRandom =
             Math.floor(Math.random() * (tiempoMax - tiempoMin + 1)) + tiempoMin;
           framesGenerar = setTimeout(programarSiguienteObstaculo, tiempoRandom);
         }
         programarSiguienteObstaculo();
 
-        // Game Loop (Física y movimiento a 60fps)
         framesMover = requestAnimationFrame(gameLoop);
       }
 
       function generarObstaculo() {
+        if (!juegoActivo) return;
         const obs = document.createElement("div");
         obs.classList.add("obstaculo");
 
-        // Decidir tipo de obstáculo basado en probabilidad (cambia con el nivel)
         let prob = Math.random();
         let tipo = "obstaculo-suelo";
         let velExtra = 0;
+        let icono = "🌵";
 
-        if (nivel > 2 && prob > 0.7) {
-          tipo = "obstaculo-aire"; // A partir del nivel 3 salen pájaros/obstáculos altos
-        } else if (nivel > 4 && prob < 0.2) {
-          tipo = "obstaculo-rapido"; // A partir del nivel 5 salen balas rápidas
-          velExtra = 4;
+        if (nivel > 2 && prob > 0.68) {
+          tipo = "obstaculo-aire";
+          icono = "🦇";
+        } else if (nivel > 4 && prob < 0.22) {
+          tipo = "obstaculo-rapido";
+          velExtra = 3.2;
+          icono = "⚡";
         }
 
         obs.classList.add(tipo);
-        obs.style.right = "-60px"; // Empieza fuera de pantalla
+        obs.innerText = icono;
+        const startX = juegoContenedor.clientWidth || 700;
+        obs.style.left = startX + "px";
         juegoContenedor.appendChild(obs);
 
         arrayObstaculos.push({
           element: obs,
-          x: 700, // Ancho del contenedor
+          x: startX,
           velocidad: velocidadJuego + velExtra,
           tipo: tipo,
         });
@@ -335,44 +396,41 @@
       function gameLoop() {
         if (!juegoActivo) return;
 
-        // FÍSICA DEL SALTO
-        if (isJumping || kittyPositionY > 50) {
+        if (isJumping || kittyPositionY > PISO_Y) {
           kittyPositionY += kittyVelocityY;
           kittyVelocityY -= gravity;
 
-          // Colisión con el piso
-          if (kittyPositionY <= 50) {
-            kittyPositionY = 50;
+          if (kittyPositionY <= PISO_Y) {
+            kittyPositionY = PISO_Y;
             isJumping = false;
+            saltosRestantes = 2;
             kittyVelocityY = 0;
           }
           kitty.style.bottom = kittyPositionY + "px";
         }
 
-        // MOVER OBSTÁCULOS Y CHECAR COLISIÓN
         let kittyRect = kitty.getBoundingClientRect();
-        // Reducimos un poco el hitbox (caja de colisión) de Kitty para que no sea injusto
         let hitboxMargin = 10;
 
         for (let i = 0; i < arrayObstaculos.length; i++) {
           let obsData = arrayObstaculos[i];
           obsData.x -= obsData.velocidad;
-          obsData.element.style.left = obsData.x + "px"; // Movemos por left para ser exactos
+          obsData.element.style.left = obsData.x + "px";
 
-          // Checar Colisión
           let obsRect = obsData.element.getBoundingClientRect();
 
           if (
+            obsRect.width > 0 &&
+            kittyRect.width > 0 &&
             obsRect.left < kittyRect.right - hitboxMargin &&
             obsRect.right > kittyRect.left + hitboxMargin &&
             obsRect.top < kittyRect.bottom - hitboxMargin &&
             obsRect.bottom > kittyRect.top + hitboxMargin
           ) {
             terminarJuego();
-            return; // Detiene el loop inmediatamente
+            return;
           }
 
-          // Limpiar obstáculos que ya pasaron
           if (obsData.x < -100) {
             obsData.element.remove();
             arrayObstaculos.splice(i, 1);
@@ -388,22 +446,41 @@
           iniciarJuego();
           return;
         }
-        // Solo puede saltar si está en el piso
-        if (!isJumping && kittyPositionY === 50) {
+        if (saltosRestantes > 0) {
           isJumping = true;
+          isDucking = false;
+          kitty.classList.remove("agachada");
           kittyVelocityY = jumpStrength;
+          saltosRestantes--;
+        }
+      }
+
+      function agachar(activo) {
+        if (!juegoActivo) return;
+        isDucking = activo;
+        kitty.classList.toggle("agachada", activo);
+        if (activo && kittyPositionY > PISO_Y) {
+          kittyVelocityY = -14;
         }
       }
 
       document.addEventListener("keydown", (e) => {
-        if (e.code === "Space" || e.code === "ArrowUp") {
+        if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
           saltar();
+          e.preventDefault();
+        } else if (e.code === "ArrowDown" || e.code === "KeyS") {
+          agachar(true);
           e.preventDefault();
         }
       });
 
-      // Soporte táctil para jugar en celular
-      juegoContenedor.addEventListener("touchstart", (e) => {
+      document.addEventListener("keyup", (e) => {
+        if (e.code === "ArrowDown" || e.code === "KeyS") {
+          agachar(false);
+        }
+      });
+
+      juegoContenedor.addEventListener("pointerdown", (e) => {
         saltar();
         e.preventDefault();
       });
@@ -414,25 +491,31 @@
         clearTimeout(framesGenerar);
         cancelAnimationFrame(framesMover);
 
+        try {
+          const guardado = localStorage.getItem("nombreUsuario") || "";
+          const inputNombre = document.getElementById("nombre-usuario");
+          if (guardado && inputNombre && !inputNombre.value) {
+            inputNombre.value = guardado;
+          }
+        } catch (e) {}
+
         document.getElementById("ventana-derrota").style.display = "block";
         document.getElementById("mensaje-puntos").innerHTML =
           `Llegaste al <b>Nivel ${nivel}</b> con <b>${puntos} puntos</b>.`;
 
-        // Cargar Ranking
-        fetch("/obtener_puntos", {
-          cache: "no-store",
-        })
+        fetch("/obtener_puntos", { cache: "no-store" })
           .then((r) => r.json())
           .then((data) => {
             let tbody = document.querySelector("#lista-puntos tbody");
             tbody.innerHTML = "";
             let sorted = Object.entries(data)
               .sort((a, b) => b[1] - a[1])
-              .slice(0, 5); // Mostrar solo el Top 5
+              .slice(0, 5);
             for (let [nombre, cant] of sorted) {
               tbody.innerHTML += `<tr><td>${nombre}</td><td>${cant}</td></tr>`;
             }
-          });
+          })
+          .catch(() => {});
       }
 
       function guardarRécord() {
@@ -440,28 +523,19 @@
         if (nombre.trim() !== "") {
           fetch("/guardar_puntos", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              nombre: nombre,
+              nombre: nombre.trim(),
               puntos: puntos,
             }),
-          }).then(() => location.reload());
+          })
+            .then(() => iniciarJuego())
+            .catch(() => iniciarJuego());
         } else {
           alert("¡No olvides escribir tu nombre para la fama!");
         }
       }
     </script>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-    <script>
-      // Ejemplo de cómo usarlo en cualquier juego:
-      // Ya no necesitas prompt, el archivo scripts.js se encarga de todo.
-
-      function alGanarJuego(misPuntos) {
-        // Solo llamas a esta función y listo
-        enviarPuntaje("/guardar_tu_juego", { puntos: misPuntos });
-      }
-    </script>
   </body>
 </html>

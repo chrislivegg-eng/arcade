@@ -99,7 +99,8 @@
     <script>
       let miSala = "",
         miJugador = "",
-        intervalo = null;
+        intervalo = null,
+        victoriaGuardada = false;
 
       function crearSala() {
         miSala = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -113,6 +114,7 @@
       }
 
       function iniciar() {
+        victoriaGuardada = false;
         document.getElementById("pantalla-lobby").style.display = "none";
         document.getElementById("pantalla-juego").style.display = "block";
         document.getElementById("display-sala").innerText = miSala;
@@ -138,13 +140,19 @@
                 document.getElementById("estado-juego").innerText =
                   s.ganador === miJugador ? "¡GANASTE! 🎉" : "¡PERDISTE! 😿";
               document.getElementById("btn-tirar").style.display = "none";
+              if (!victoriaGuardada && s.ganador === miJugador) {
+                victoriaGuardada = true;
+                guardarVictoria(s.ganador);
+              }
             } else {
+              victoriaGuardada = false;
               document.getElementById("estado-juego").innerText =
                 s[miJugador] === 0 ? "¡Tira tu dado!" : "Esperando al rival...";
               document.getElementById("btn-tirar").style.display =
                 s[miJugador] === 0 ? "inline-block" : "none";
             }
-          });
+          })
+          .catch(() => {});
       }
 
       function tirarDado() {

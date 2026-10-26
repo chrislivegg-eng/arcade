@@ -59,11 +59,11 @@
       }
     g.putImageData(pixels, 0, 0);
     if (tipo === "cesped") {
-      for (let i = 0; i < 3200; i++) {
-        g.strokeStyle = r() > 0.5 ? "#a5a5a5" : "#f5f5f5";
-        g.lineWidth = 0.65;
-        const x = r() * 256,
-          y = r() * 256;
+      for (let i = 0; i < 3600; i++) {
+        g.strokeStyle = r() > 0.5 ? "#9ca3af" : "#f3f4f6";
+        g.lineWidth = 0.7;
+        const x = 6 + r() * 244,
+          y = 8 + r() * 240;
         g.beginPath();
         g.moveTo(x, y);
         g.lineTo(x + r() * 3 - 1.5, y - 2 - r() * 5);
@@ -74,11 +74,11 @@
       g.strokeStyle = "rgba(110,130,150,.25)";
       g.lineWidth = 0.55;
       for (let i = 0; i < 170; i++) {
-        const x = r() * 256,
-          y = r() * 256;
+        const x = 16 + r() * 224,
+          y = 16 + r() * 224;
         g.beginPath();
         g.moveTo(x, y);
-        g.quadraticCurveTo(x + 20, y + 8, x + 40 * r(), y + 30 * r());
+        g.quadraticCurveTo(x + 14, y + 6, x + 28 * (r() - 0.5), y + 24 * (r() - 0.5));
         g.stroke();
       }
     }

@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>💖 Memorama Online</title>
+    <title>💖 Memorama 3D Kawaii</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
@@ -24,66 +24,69 @@
 
       body {
         font-family: "Nunito", sans-serif;
-        background: linear-gradient(135deg, #ffe6f0, #ffd9e6, #ffe6f5);
+        background: radial-gradient(circle at top, #fff0f7 0%, #ffd6eb 60%, #ffb8de 100%);
         min-height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 20px;
+        padding: 16px;
       }
 
       .container {
-        background: rgba(255, 255, 255, 0.92);
+        background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
-        border-radius: 40px;
-        padding: 30px 25px;
-        max-width: 600px;
+        border-radius: 36px;
+        padding: 26px 22px;
+        max-width: 580px;
         width: 100%;
-        box-shadow: 0 20px 60px rgba(255, 51, 133, 0.2);
-        border: 3px solid rgba(255, 153, 204, 0.3);
+        box-shadow:
+          0 20px 50px rgba(216, 27, 96, 0.22),
+          0 8px 0 #ff99cc;
+        border: 3px solid #ffb3d9;
         text-align: center;
       }
 
       h1 {
-        font-size: 2.2rem;
-        color: #ff3385;
-        text-shadow: 3px 3px 0 #ffb3d9;
-        margin-bottom: 5px;
+        font-size: 2.1rem;
+        color: #d81b60;
+        text-shadow: 0 2px 0 #fff, 0 4px 12px rgba(216, 27, 96, 0.2);
+        margin-bottom: 4px;
       }
 
       .subtitle {
-        color: #ff6b9d;
-        font-size: 0.9rem;
-        margin-bottom: 15px;
+        color: #ad1457;
+        font-size: 0.95rem;
+        font-weight: 800;
+        margin-bottom: 14px;
       }
 
       .lobby-box {
         background: #fff5f9;
-        padding: 25px;
+        padding: 22px;
         border-radius: 25px;
         border: 3px dashed #ff99cc;
-        margin: 15px 0;
+        margin: 12px 0;
       }
 
       .lobby-box h3 {
-        color: #ff3385;
-        margin-bottom: 15px;
+        color: #d81b60;
+        margin-bottom: 12px;
       }
 
       .lobby-box hr {
-        border: 1px solid #ffe6f2;
-        margin: 20px 0;
+        border: 1px solid #ffd6eb;
+        margin: 18px 0;
       }
 
       .btn {
-        padding: 14px 28px;
+        padding: 13px 24px;
         border: none;
         border-radius: 50px;
         font-family: "Nunito", sans-serif;
         font-weight: 900;
         font-size: 1rem;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -95,51 +98,35 @@
       }
 
       .btn-primary {
-        background: linear-gradient(135deg, #ff6b9d, #ff3385);
-        box-shadow: 0 6px 20px rgba(255, 51, 133, 0.35);
-      }
-
-      .btn-primary:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(255, 51, 133, 0.45);
+        background: linear-gradient(180deg, #ff6b9d, #d81b60);
+        box-shadow: 0 5px 0 #9c1448, 0 8px 18px rgba(216, 27, 96, 0.3);
       }
 
       .btn-purple {
-        background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-        box-shadow: 0 6px 20px rgba(108, 92, 231, 0.35);
-      }
-
-      .btn-purple:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(108, 92, 231, 0.45);
+        background: linear-gradient(180deg, #8b5cf6, #6d28d9);
+        box-shadow: 0 5px 0 #4c1d95, 0 8px 18px rgba(109, 40, 217, 0.3);
       }
 
       .btn-green {
-        background: linear-gradient(135deg, #00b894, #55efc4);
-        color: white;
-        box-shadow: 0 6px 20px rgba(0, 184, 148, 0.35);
+        background: linear-gradient(180deg, #10b981, #059669);
+        box-shadow: 0 5px 0 #065f46, 0 8px 18px rgba(16, 185, 129, 0.3);
       }
 
-      .btn-green:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(0, 184, 148, 0.45);
+      .btn:active {
+        transform: translateY(3px);
       }
 
       .input-sala {
-        padding: 14px 20px;
+        padding: 12px 18px;
         border-radius: 15px;
         border: 2px solid #ff99cc;
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         text-align: center;
-        width: 80%;
-        margin-bottom: 15px;
+        width: 85%;
+        margin-bottom: 12px;
         font-family: "Nunito", sans-serif;
+        font-weight: 900;
         outline: none;
-        transition: border-color 0.3s;
-      }
-
-      .input-sala:focus {
-        border-color: #ff3385;
       }
 
       .game-header {
@@ -149,199 +136,162 @@
         flex-wrap: wrap;
         gap: 10px;
         background: #fff5f9;
-        padding: 12px 20px;
-        border-radius: 20px;
+        padding: 10px 16px;
+        border-radius: 18px;
         border: 2px solid #ff99cc;
-        margin-bottom: 15px;
+        margin-bottom: 12px;
       }
 
       .game-header .room-info {
         font-weight: 900;
-        color: #ff3385;
-        font-size: 1rem;
+        color: #d81b60;
+        font-size: 0.95rem;
       }
 
       .game-header .player-info {
-        background: #ff3385;
+        background: #d81b60;
         color: white;
-        padding: 4px 16px;
+        padding: 4px 14px;
         border-radius: 30px;
         font-weight: 900;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
       }
 
       .turn-indicator {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
+        font-weight: 900;
         color: #4a2a3a;
         padding: 10px;
         background: white;
         border-radius: 15px;
         border: 2px solid #ffccdd;
-        margin-bottom: 15px;
-        min-height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
+        margin-bottom: 12px;
       }
 
       .marcador {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
-        margin: 15px 0;
-        max-width: 300px;
-        margin-left: auto;
-        margin-right: auto;
+        margin: 12px auto;
+        max-width: 340px;
       }
 
       .stat-card {
         background: white;
-        border-radius: 20px;
-        padding: 12px;
+        border-radius: 18px;
+        padding: 10px;
         border: 2px solid #ffccdd;
-        text-align: center;
+        box-shadow: 0 4px 0 #ffd6eb;
       }
 
       .stat-card .stat-number {
-        font-size: 1.8rem;
+        font-size: 1.65rem;
         font-weight: 900;
-        color: #ff3385;
+        color: #d81b60;
       }
 
       .stat-card .stat-label {
-        font-size: 0.7rem;
-        color: #cc99aa;
+        font-size: 0.72rem;
+        color: #9d4edd;
+        font-weight: 900;
         text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-
-      .stat-card.player1 .stat-number {
-        color: #0099ff;
-      }
-
-      .stat-card.player2 .stat-number {
-        color: #ff9900;
       }
 
       .memorama-tablero {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 10px;
-        max-width: 400px;
-        margin: 20px auto;
-        perspective: 1000px;
+        max-width: 390px;
+        margin: 16px auto;
       }
 
       .carta {
         aspect-ratio: 1;
-        background: linear-gradient(135deg, #ff99cc, #ff66a3);
+        background: linear-gradient(145deg, #ff85c0, #d81b60);
         border-radius: 16px;
         cursor: pointer;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 2.8rem;
+        font-size: 2.35rem;
         color: transparent;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        box-shadow: 0 6px 20px rgba(255, 51, 133, 0.15);
+        transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        box-shadow:
+          0 6px 0 #9c1448,
+          0 10px 20px rgba(216, 27, 96, 0.22),
+          inset 0 2px 3px rgba(255, 255, 255, 0.5);
         user-select: none;
-        border: 3px solid rgba(255, 255, 255, 0.3);
-        min-height: 70px;
-        transform-style: preserve-3d;
+        border: 3px solid rgba(255, 255, 255, 0.65);
+        min-height: 68px;
+        position: relative;
+      }
+
+      .carta::after {
+        content: "🎀";
+        font-size: 1.5rem;
+        color: rgba(255, 255, 255, 0.85);
+        position: absolute;
       }
 
       .carta.volteada {
-        background: white;
+        background: linear-gradient(180deg, #ffffff 0%, #fff0f7 100%);
         color: #4a2a3a;
-        transform: rotateY(180deg);
-        border: 3px solid #ff99cc;
-        box-shadow: 0 6px 25px rgba(255, 51, 133, 0.25);
+        border: 3px solid #ff66b3;
+        box-shadow:
+          0 5px 0 #ff99cc,
+          0 8px 18px rgba(255, 51, 133, 0.22);
+        transform: translateY(-2px);
+      }
+
+      .carta.volteada::after,
+      .carta.encontrada::after {
+        content: "";
       }
 
       .carta.encontrada {
-        background: #ffe4e9;
+        background: linear-gradient(180deg, #fef9c3 0%, #fde047 100%);
         color: #4a2a3a;
         cursor: default;
-        border: 3px solid #ff3385;
-        transform: rotateY(180deg) scale(0.95);
-        box-shadow: 0 4px 15px rgba(255, 51, 133, 0.15);
+        border: 3px solid #f59e0b;
+        transform: scale(0.96);
+        box-shadow: 0 4px 0 #d97706;
       }
 
       .carta:hover:not(.volteada):not(.encontrada) {
-        transform: scale(1.08);
-        box-shadow: 0 8px 30px rgba(255, 51, 133, 0.3);
+        transform: translateY(-3px);
       }
 
       .back-link {
         display: inline-block;
-        margin-top: 15px;
-        color: #ff3385;
+        margin-top: 10px;
+        color: #d81b60;
         font-weight: 900;
         text-decoration: none;
         padding: 8px 20px;
         border-radius: 30px;
-        border: 2px solid #ff3385;
-        transition: all 0.3s ease;
+        border: 2px solid #d81b60;
         font-size: 0.9rem;
-      }
-
-      .back-link:hover {
-        background: #ff3385;
-        color: white;
-      }
-
-      @media (max-width: 500px) {
-        .container {
-          padding: 15px 12px;
-        }
-
-        h1 {
-          font-size: 1.6rem;
-        }
-
-        .memorama-tablero {
-          gap: 6px;
-          max-width: 320px;
-        }
-
-        .carta {
-          font-size: 2rem;
-          min-height: 60px;
-          border-radius: 12px;
-        }
-
-        .game-header {
-          flex-direction: column;
-          align-items: center;
-        }
-      }
-
-      @media (max-width: 380px) {
-        .memorama-tablero {
-          gap: 4px;
-          max-width: 280px;
-        }
-
-        .carta {
-          font-size: 1.6rem;
-          min-height: 50px;
-          border-radius: 10px;
-        }
       }
     </style>
   </head>
 
   <body>
     <div class="container">
-      <h1>💖 Memorama Online</h1>
-      <p class="subtitle">🎮 Encuentra las parejas antes que tu rival</p>
+      <h1>💖 Memorama Kawaii 3D</h1>
+      <p class="subtitle">🎮 Entrena tu memoria en solitario o reta a un amigo online</p>
 
       <!-- LOBBY -->
       <div id="pantalla-lobby" class="lobby-box">
-        <h3>🎮 Jugar Online con un amigo</h3>
+        <h3>🌟 Modo Solitario (Clásico)</h3>
+        <button class="btn btn-green" onclick="iniciarModoSolo()">
+          🎀 Jugar Solo (Récord de Intentos)
+        </button>
+
+        <hr />
+
+        <h3>🌐 Jugar Online con un Amigo</h3>
         <button class="btn btn-primary" onclick="crearSala()">
-          ✨ Crear Nueva Sala
+          ✨ Crear Nueva Sala Online
         </button>
 
         <input
@@ -362,26 +312,22 @@
       <!-- JUEGO -->
       <div id="pantalla-juego" style="display: none">
         <div class="game-header">
-          <span class="room-info"
-            >🏠 Sala: <span id="display-sala"></span
-          ></span>
-          <span class="player-info"
-            >Jugador <span id="display-jugador"></span
-          ></span>
+          <span class="room-info">🏠 Modo: <span id="display-sala">SOLO</span></span>
+          <span class="player-info">Jugador <span id="display-jugador">1</span></span>
         </div>
 
         <div class="turn-indicator" id="turnIndicator">
-          <span id="display-turno">Cargando...</span>
+          <span id="display-turno">🎀 ¡Encuentra todas las parejas!</span>
         </div>
 
         <div class="marcador">
           <div class="stat-card player1">
             <div class="stat-number" id="pts-1">0</div>
-            <div class="stat-label">🎀 Jugador 1</div>
+            <div class="stat-label" id="lbl-1">🎀 Pares</div>
           </div>
           <div class="stat-card player2">
             <div class="stat-number" id="pts-2">0</div>
-            <div class="stat-label">🌟 Jugador 2</div>
+            <div class="stat-label" id="lbl-2">🎯 Intentos</div>
           </div>
         </div>
 
@@ -389,7 +335,7 @@
 
         <div
           style="
-            margin-top: 15px;
+            margin-top: 14px;
             display: flex;
             gap: 10px;
             justify-content: center;
@@ -410,8 +356,8 @@
               width: auto;
               padding: 10px 20px;
               font-size: 0.9rem;
-              background: #ccc;
-              box-shadow: none;
+              background: #94a3b8;
+              box-shadow: 0 4px 0 #64748b;
             "
           >
             🚪 Salir
@@ -421,34 +367,152 @@
     </div>
 
     <script>
-      // ============================================================
-      //  CONFIGURACIÓN
-      // ============================================================
+      const EMOJIS_BASE = ["🎀", "🐱", "🍓", "🌸", "🍭", "🦄", "💎", "👑"];
+      let modoJuego = "solo"; // 'solo' | 'online'
       let miSala = "";
       let miJugador = 1;
       let intervalo = null;
       let juegoActivo = false;
       let procesando = false;
 
+      // Estado para modo solo
+      let cartasSolo = [];
+      let visiblesSolo = [];
+      let resueltasSolo = [];
+      let seleccionSolo = [];
+      let paresSolo = 0;
+      let intentosSolo = 0;
+
       // ============================================================
-      //  FUNCIONES DE SALA
+      //  MODO SOLO (1 JUGADOR)
+      // ============================================================
+      function iniciarModoSolo() {
+        modoJuego = "solo";
+        if (intervalo) clearInterval(intervalo);
+        document.getElementById("pantalla-lobby").style.display = "none";
+        document.getElementById("pantalla-juego").style.display = "block";
+        document.getElementById("display-sala").textContent = "SOLITARIO";
+        document.getElementById("display-jugador").textContent = "1";
+        document.getElementById("lbl-1").textContent = "🎀 Pares (de 8)";
+        document.getElementById("lbl-2").textContent = "🎯 Intentos";
+        document.getElementById("display-turno").textContent =
+          "🎀 ¡Encuentra los 8 pares en el menor número de intentos!";
+
+        cartasSolo = [...EMOJIS_BASE, ...EMOJIS_BASE];
+        for (let i = cartasSolo.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [cartasSolo[i], cartasSolo[j]] = [cartasSolo[j], cartasSolo[i]];
+        }
+        visiblesSolo = Array(16).fill(false);
+        resueltasSolo = Array(16).fill(false);
+        seleccionSolo = [];
+        paresSolo = 0;
+        intentosSolo = 0;
+        juegoActivo = true;
+        procesando = false;
+        actualizarMarcadorSolo();
+        renderizarTableroSolo();
+      }
+
+      function actualizarMarcadorSolo() {
+        document.getElementById("pts-1").textContent = paresSolo;
+        document.getElementById("pts-2").textContent = intentosSolo;
+      }
+
+      function renderizarTableroSolo() {
+        const tablero = document.getElementById("tablero");
+        tablero.innerHTML = "";
+        for (let i = 0; i < 16; i++) {
+          const div = document.createElement("div");
+          div.className = "carta";
+          if (visiblesSolo[i] || resueltasSolo[i]) {
+            div.classList.add("volteada");
+            div.textContent = cartasSolo[i];
+            if (resueltasSolo[i]) div.classList.add("encontrada");
+          }
+          if (!visiblesSolo[i] && !resueltasSolo[i] && !procesando && juegoActivo) {
+            div.onclick = () => voltearCartaSolo(i);
+          }
+          tablero.appendChild(div);
+        }
+      }
+
+      function voltearCartaSolo(idx) {
+        if (!juegoActivo || procesando || visiblesSolo[idx] || resueltasSolo[idx]) return;
+        visiblesSolo[idx] = true;
+        seleccionSolo.push(idx);
+        renderizarTableroSolo();
+
+        if (seleccionSolo.length === 2) {
+          procesando = true;
+          intentosSolo++;
+          actualizarMarcadorSolo();
+          const [i1, i2] = seleccionSolo;
+          if (cartasSolo[i1] === cartasSolo[i2]) {
+            resueltasSolo[i1] = true;
+            resueltasSolo[i2] = true;
+            paresSolo++;
+            seleccionSolo = [];
+            procesando = false;
+            actualizarMarcadorSolo();
+            renderizarTableroSolo();
+            if (paresSolo === 8) {
+              juegoActivo = false;
+              document.getElementById("display-turno").textContent =
+                `🎉 ¡Completado en ${intentosSolo} intentos!`;
+              guardarRecordSolo(intentosSolo);
+            }
+          } else {
+            setTimeout(() => {
+              visiblesSolo[i1] = false;
+              visiblesSolo[i2] = false;
+              seleccionSolo = [];
+              procesando = false;
+              renderizarTableroSolo();
+            }, 650);
+          }
+        }
+      }
+
+      function guardarRecordSolo(intentos) {
+        let nombre = "";
+        try {
+          nombre = localStorage.getItem("nombreUsuario") || "";
+        } catch (e) {}
+        if (!nombre) nombre = "Jugador";
+        fetch("/guardar_memorama", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nombre: nombre, intentos: intentos }),
+        }).catch(() => {});
+      }
+
+      // ============================================================
+      //  FUNCIONES DE SALA ONLINE
       // ============================================================
       function crearSala() {
+        modoJuego = "online";
         fetch("/api/crear_sala_memorama", { method: "POST" })
           .then((r) => r.json())
           .then((data) => {
             miSala = data.sala;
             miJugador = 1;
             arrancarJuego();
+          })
+          .catch(() => {
+            miSala = Math.random().toString(36).substring(2, 6).toUpperCase();
+            miJugador = 1;
+            arrancarJuego();
           });
       }
 
       function unirseSala() {
-        const cod = document.getElementById("codigo-sala").value.toUpperCase();
+        const cod = document.getElementById("codigo-sala").value.trim().toUpperCase();
         if (cod.length < 4) {
           alert("⚠️ Ingresa un código válido de 4 caracteres");
           return;
         }
+        modoJuego = "online";
         miSala = cod;
         miJugador = 2;
         arrancarJuego();
@@ -459,7 +523,10 @@
         document.getElementById("pantalla-juego").style.display = "block";
         document.getElementById("display-sala").textContent = miSala;
         document.getElementById("display-jugador").textContent = miJugador;
+        document.getElementById("lbl-1").textContent = "🎀 Jugador 1";
+        document.getElementById("lbl-2").textContent = "🌟 Jugador 2";
         juegoActivo = true;
+        procesando = false;
 
         if (intervalo) clearInterval(intervalo);
         intervalo = setInterval(obtenerEstado, 800);
@@ -467,29 +534,48 @@
       }
 
       // ============================================================
-      //  OBTENER ESTADO
+      //  OBTENER ESTADO ONLINE
       // ============================================================
       function obtenerEstado() {
-        if (!juegoActivo) return;
+        if (!juegoActivo || modoJuego !== "online") return;
 
         fetch(`/api/estado_memorama/${miSala}`)
           .then((r) => r.json())
           .then((estado) => {
-            // Actualizar turno
             const esMiTurno = estado.turno === miJugador;
             const turnoText = esMiTurno
               ? "🎀 ¡ES TU TURNO!"
               : "⏳ Esperando al rival...";
             document.getElementById("display-turno").textContent = turnoText;
 
-            // Actualizar puntuaciones
             document.getElementById("pts-1").textContent = estado.puntos_1;
             document.getElementById("pts-2").textContent = estado.puntos_2;
 
-            // Renderizar tablero
             renderizarTablero(estado);
 
-            // Verificar fin del juego
+            if (
+              estado.cartas_seleccionadas &&
+              estado.cartas_seleccionadas.length === 2 &&
+              !procesando
+            ) {
+              procesando = true;
+              setTimeout(() => {
+                fetch("/api/verificar_memorama", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ sala: miSala }),
+                })
+                  .then((r) => r.json())
+                  .then((nuevoEstado) => {
+                    procesando = false;
+                    renderizarTablero(nuevoEstado);
+                  })
+                  .catch(() => {
+                    procesando = false;
+                  });
+              }, 700);
+            }
+
             const totalPares = 8;
             if (estado.puntos_1 + estado.puntos_2 === totalPares) {
               clearInterval(intervalo);
@@ -500,26 +586,21 @@
                   : estado.puntos_2 > estado.puntos_1
                     ? 2
                     : 0;
-              setTimeout(() => {
-                let mensaje =
-                  ganador === 0
-                    ? "🤝 ¡Empate!"
-                    : ganador === miJugador
-                      ? "🎉 ¡GANASTE!"
-                      : "😅 Perdiste...";
-                alert(
-                  mensaje + `\nJ1: ${estado.puntos_1} | J2: ${estado.puntos_2}`,
-                );
+              const mensaje =
+                ganador === 0
+                  ? "🤝 ¡Empate!"
+                  : ganador === miJugador
+                    ? "🎉 ¡GANASTE LA PARTIDA!"
+                    : "😅 Ganó tu rival";
+              document.getElementById("display-turno").textContent = mensaje;
+              if (ganador === miJugador) {
                 guardarVictoria(ganador);
-              }, 500);
+              }
             }
           })
           .catch(() => {});
       }
 
-      // ============================================================
-      //  RENDERIZAR TABLERO
-      // ============================================================
       function renderizarTablero(estado) {
         const tablero = document.getElementById("tablero");
         tablero.innerHTML = "";
@@ -536,12 +617,12 @@
             }
           }
 
-          // Solo permitir clic si es tu turno y la carta no está visible/resuelta
           if (
             estado.turno === miJugador &&
             !estado.visibles[i] &&
             !estado.resueltas[i] &&
-            !procesando
+            !procesando &&
+            (!estado.cartas_seleccionadas || estado.cartas_seleccionadas.length < 2)
           ) {
             div.onclick = () => jugarCarta(i);
             div.style.cursor = "pointer";
@@ -553,13 +634,8 @@
         }
       }
 
-      // ============================================================
-      //  JUGAR CARTA
-      // ============================================================
       function jugarCarta(idx) {
-        if (procesando) return;
-        if (!juegoActivo) return;
-
+        if (procesando || !juegoActivo) return;
         procesando = true;
 
         fetch("/api/jugar_memorama", {
@@ -573,19 +649,37 @@
         })
           .then((r) => r.json())
           .then((estado) => {
-            procesando = false;
-            // Actualizar estado inmediatamente
             renderizarTablero(estado);
+            if (estado.cartas_seleccionadas && estado.cartas_seleccionadas.length === 2) {
+              setTimeout(() => {
+                fetch("/api/verificar_memorama", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ sala: miSala }),
+                })
+                  .then((r) => r.json())
+                  .then((est2) => {
+                    procesando = false;
+                    renderizarTablero(est2);
+                  })
+                  .catch(() => {
+                    procesando = false;
+                  });
+              }, 700);
+            } else {
+              procesando = false;
+            }
           })
           .catch(() => {
             procesando = false;
           });
       }
 
-      // ============================================================
-      //  REINICIAR JUEGO
-      // ============================================================
       function reiniciarJuego() {
+        if (modoJuego === "solo") {
+          iniciarModoSolo();
+          return;
+        }
         if (!miSala) return;
 
         fetch("/api/reiniciar_memorama", {
@@ -593,18 +687,21 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sala: miSala }),
         }).then(() => {
+          juegoActivo = true;
+          procesando = false;
           if (intervalo) clearInterval(intervalo);
           intervalo = setInterval(obtenerEstado, 800);
           obtenerEstado();
         });
       }
 
-      // ============================================================
-      //  GUARDAR VICTORIA
-      // ============================================================
       function guardarVictoria(ganador) {
-        if (ganador === 0) return;
-        const nombre = prompt("✨ Ingresa tu nombre para el récord:");
+        if (ganador === 0 || ganador !== miJugador) return;
+        let nombre = "";
+        try {
+          nombre = localStorage.getItem("nombreUsuario") || "";
+        } catch (e) {}
+        if (!nombre) nombre = prompt("✨ Ingresa tu nombre para el récord:") || "";
         if (nombre && nombre.trim()) {
           fetch("/guardar_memorama_online", {
             method: "POST",
@@ -614,9 +711,6 @@
         }
       }
 
-      // ============================================================
-      //  SALIR
-      // ============================================================
       function salirJuego() {
         if (intervalo) {
           clearInterval(intervalo);

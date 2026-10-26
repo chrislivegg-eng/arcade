@@ -79,6 +79,10 @@
 
       <div id="area-juego">
         <div id="fantasma" onclick="tocarFantasma()">👻</div>
+        <h1
+          id="mensaje-final"
+          style="display: none; color: white; margin-top: 20vh"
+        ></h1>
       </div>
       <br />
       <a href="/secreto" class="btn" style="background: #ccc; padding: 10px"
@@ -89,7 +93,8 @@
     <script>
       let miSala = "",
         miJugador = "",
-        currentFid = 1;
+        currentFid = 1,
+        victoriaGuardada = false;
 
       function crearSala() {
         miSala = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -103,6 +108,7 @@
       }
 
       function iniciar() {
+        victoriaGuardada = false;
         document.getElementById("pantalla-lobby").style.display = "none";
         document.getElementById("pantalla-juego").style.display = "block";
         document.getElementById("display-sala").innerText = miSala;
@@ -117,16 +123,33 @@
             document.getElementById("pts-p1").innerText = s.p1;
             document.getElementById("pts-p2").innerText = s.p2;
 
+            let fantasma = document.getElementById("fantasma");
+            let msgFinal = document.getElementById("mensaje-final");
+
             if (s.ganador !== "") {
-              document.getElementById("area-juego").innerHTML =
-                `<h1 style="color:white; margin-top:20vh;">${s.ganador === miJugador ? "¡GANASTE! 🎉" : "¡PERDISTE! 😿"}</h1>`;
+              if (fantasma) fantasma.style.display = "none";
+              if (msgFinal) {
+                msgFinal.style.display = "block";
+                msgFinal.innerText =
+                  s.ganador === miJugador ? "¡GANASTE! 🎉" : "¡PERDISTE! 😿";
+              }
+              if (!victoriaGuardada && s.ganador === miJugador) {
+                victoriaGuardada = true;
+                if (typeof guardarVictoria === "function") {
+                  guardarVictoria(s.ganador);
+                }
+              }
             } else {
-              let fantasma = document.getElementById("fantasma");
-              fantasma.style.left = s.fx + "%";
-              fantasma.style.top = s.fy + "%";
+              if (msgFinal) msgFinal.style.display = "none";
+              if (fantasma) {
+                fantasma.style.display = "block";
+                fantasma.style.left = s.fx + "%";
+                fantasma.style.top = s.fy + "%";
+              }
               currentFid = s.fid;
             }
-          });
+          })
+          .catch(() => {});
       }
 
       function tocarFantasma() {
