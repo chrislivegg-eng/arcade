@@ -494,6 +494,7 @@ TABLAS = [
     ("record_escuadron.txt", "🛡️ Escuadrón Blitz 3D", "pts", False),
     ("record_torre_poder.txt", "🏰 Torre de Poder 3D", "pts", False),
     ("record_alfileres.txt", "📍 Alfileres: Lava y Oro 3D", "pts", False),
+    ("record_cortes.txt", "✂️ Corte Perfecto", "pts", False),
     ("record_pinball.txt", "🪩 Pinball Nova", "pts", False),
     ("record_templo.txt", "🏛️ Umbra · Templo perdido", "s", True),
     ("record_mansion.txt", "👻 Nocturna · Mansión", "s", True),

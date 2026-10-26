@@ -72,6 +72,7 @@ JUEGOS = {
     'escuadron': 'juego_escuadron.html',
     'torre_poder': 'juego_torre_poder.html',
     'alfileres': 'juego_alfileres.html',
+    'cortes': 'juego_cortes.html',
 }
 # En estos juegos el récord es "menos es mejor" (golpes, milisegundos)
 RECORD_MENOR = {'mini_golf', 'reflejos', 'karts', 'sudoku', 'buscaminas', 'sopa', 'flow', 'parejas', 'nonograma', 'templo', 'mansion'}

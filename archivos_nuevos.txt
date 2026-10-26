@@ -127,3 +127,6 @@ static/js/mansion.js
 templates/juego_escuadron.html
 templates/juego_torre_poder.html
 templates/juego_alfileres.html
+templates/juego_cortes.html
+static/cortes.css
+static/js/cortes.js
