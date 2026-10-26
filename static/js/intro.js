@@ -8,23 +8,48 @@
   const estado = document.getElementById('intro-estado');
   const progreso = document.getElementById('intro-progreso');
   const repetir = document.getElementById('intro-repetir');
+  const CLAVE_INTRO_VISTA = 'arcade_intro_vista_v1';
   let espera, generacion = 0, visibleAntes = false;
-  // A native dialog keeps the menu inert and lets Escape / the skip form work.
+
+  // Asegura que el diálogo inicie cerrado hasta verificar si ya se vio antes.
   modal.removeAttribute('open');
   if (typeof modal.showModal !== 'function') return;
-  repetir.hidden = false;
+  if (repetir) repetir.hidden = false;
 
-  function cerrar() { if (modal.open) modal.close(); }
+  function yaVioIntro() {
+    if (new URLSearchParams(location.search).get('intro') === '1') return false;
+    try {
+      return (
+        localStorage.getItem(CLAVE_INTRO_VISTA) === '1' ||
+        sessionStorage.getItem(CLAVE_INTRO_VISTA) === '1'
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function marcarIntroVista() {
+    try {
+      localStorage.setItem(CLAVE_INTRO_VISTA, '1');
+      sessionStorage.setItem(CLAVE_INTRO_VISTA, '1');
+    } catch (_) {}
+  }
+
+  function cerrar() {
+    marcarIntroVista();
+    if (modal.open) modal.close();
+  }
+
   function botones() {
     sonido.textContent = video.muted ? 'Activar música' : 'Silenciar música';
     sonido.setAttribute('aria-pressed', String(!video.muted));
     pausa.textContent = video.paused ? 'Continuar' : 'Pausar';
   }
+
   async function reproducir(conSonido = false) {
     const turno = generacion;
     if (!modal.open) return;
     if (conSonido) video.muted = false;
-    // Start a bounded timeout only after the visitor actually requests data.
     clearTimeout(espera);
     espera = setTimeout(cerrar, 10000);
     try {
@@ -43,8 +68,10 @@
       pausa.hidden = true;
     }
   }
+
   function abrir() {
     if (modal.open) return;
+    marcarIntroVista();
     generacion++;
     visibleAntes = false;
     video.muted = true;
@@ -61,7 +88,9 @@
     if (tranquilo) sonido.textContent = 'Reproducir con música';
     else reproducir();
   }
+
   modal.addEventListener('close', () => {
+    marcarIntroVista();
     generacion++;
     clearTimeout(espera);
     visibleAntes = false;
@@ -72,6 +101,7 @@
     const selector = document.querySelector('#selector-modo:not(.oculto) button');
     (selector || document.getElementById('texto-modo'))?.focus({ preventScroll: true });
   });
+
   video.addEventListener('playing', () => {
     if (!modal.open) { video.pause(); return; }
     clearTimeout(espera);
@@ -105,6 +135,10 @@
       video.pause();
     } else if (visibleAntes) { visibleAntes = false; reproducir(); }
   });
-  repetir.addEventListener('click', abrir);
-  abrir();
+  if (repetir) repetir.addEventListener('click', abrir);
+
+  // Solo abre automáticamente el tráiler la primera vez; al recargar o volver de un juego no molesta.
+  if (!yaVioIntro()) {
+    abrir();
+  }
 })();

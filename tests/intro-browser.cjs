@@ -42,6 +42,8 @@ const base=process.env.ARCADE_URL||'http://127.0.0.1:5055';
    await p.locator('#intro-video').evaluate(v=>{v.currentTime=v.duration-.3});
    await p.waitForFunction(()=>!document.querySelector('#arcade-intro').open);
    await p.reload();
+   assert.equal(await p.locator('#arcade-intro').evaluate(d=>d.open),false);
+   await p.locator('#intro-repetir').click();
    await p.waitForFunction(()=>document.querySelector('#arcade-intro').open);
    await p.keyboard.press('Escape');
    await p.waitForFunction(()=>!document.querySelector('#arcade-intro').open);
