@@ -1269,7 +1269,7 @@
           return {
             titulo: `📍 BÓVEDA ${numBoveda} · EL GUARDIÁN DEL FOSO`,
             objetivo:
-              "🔥 Quema al Orco con lava, enfríala con agua y abre la compuerta del héroe",
+              "🔥 Quema al Orco con lava, enfríala con agua y abre la compuerta del tesoro",
             ordenSugerido: [2, 1, 3, 4],
             muros: [
               { x1: -3.6, y1: 5.2, x2: -3.6, y2: -4.4 },
@@ -1277,20 +1277,21 @@
               { x1: -3.6, y1: -4.4, x2: 3.6, y2: -4.4 },
               { x1: -1.2, y1: 5.2, x2: -1.2, y2: 1.8 },
               { x1: 1.2, y1: 5.2, x2: 1.2, y2: 1.8 },
-              { x1: -3.6, y1: 0.2, x2: 0.8, y2: -1.4 },
+              { x1: -3.6, y1: 0.4, x2: 0.4, y2: -1.4 },
+              { x1: 3.6, y1: -0.6, x2: 1.2, y2: -2.2 },
             ],
             alfileres: [
               { id: 1, x1: -3.8, y1: 1.8, x2: -1.1, y2: 1.8, colorJoya: "agua" },
               { id: 2, x1: -1.2, y1: 1.3, x2: 1.2, y2: 1.3, colorJoya: "lava" },
               { id: 3, x1: 3.8, y1: 1.8, x2: 1.1, y2: 1.8, colorJoya: "oro" },
-              { id: 4, x1: -3.8, y1: -2.5, x2: 0.5, y2: -2.5, colorJoya: "oro" },
+              { id: 4, x1: 0.2, y1: -4.5, x2: 0.2, y2: -1.4, colorJoya: "oro" },
             ],
             gruposParticulas: [
               { tipo: "agua", cx: -2.4, cy: 3.2, cols: 4, filas: 4 },
               { tipo: "lava", cx: 0.0, cy: 2.8, cols: 4, filas: 4 },
               { tipo: "oro", cx: 2.4, cy: 3.2, cols: 5, filas: 4 },
             ],
-            heroe: { x: -2.1, y: -4.35 },
+            heroe: { x: -1.9, y: -4.35 },
             orcos: [{ x: 1.8, y: -4.35 }],
             barriles: [],
           };
@@ -1301,24 +1302,25 @@
           return {
             titulo: `📍 BÓVEDA ${numBoveda} · COMPUERTA DE DESVÍO`,
             objetivo:
-              "📍 Vacía o enfría la rampa de lava antes de dejar caer los diamantes al caballero",
-            ordenSugerido: [3, 2, 1],
+              "💧 Usa el agua para petrificar la rampa de lava y luego suelta los diamantes",
+            ordenSugerido: [2, 3, 1],
             muros: [
               { x1: -3.5, y1: 5.2, x2: -3.5, y2: -4.4 },
               { x1: 3.5, y1: 5.2, x2: 3.5, y2: -4.4 },
               { x1: -3.5, y1: -4.4, x2: 3.5, y2: -4.4 },
               { x1: 0.3, y1: -1.2, x2: 0.3, y2: -4.4 },
               { x1: -0.2, y1: 5.2, x2: -0.2, y2: 2.0 },
+              { x1: 3.5, y1: 1.5, x2: 0.2, y2: 0.2 },
             ],
             alfileres: [
               { id: 1, x1: -3.7, y1: 2.0, x2: -0.1, y2: 2.0, colorJoya: "oro" },
               { id: 2, x1: 3.7, y1: 2.0, x2: -0.1, y2: 2.0, colorJoya: "agua" },
-              { id: 3, x1: -3.7, y1: -0.2, x2: 1.8, y2: 0.9, colorJoya: "lava" },
+              { id: 3, x1: -3.7, y1: 0.5, x2: 1.8, y2: -0.6, colorJoya: "lava" },
             ],
             gruposParticulas: [
               { tipo: "oro", cx: -1.8, cy: 3.4, cols: 5, filas: 4 },
               { tipo: "agua", cx: 1.7, cy: 3.4, cols: 5, filas: 4 },
-              { tipo: "lava", cx: -1.1, cy: 0.9, cols: 5, filas: 3 },
+              { tipo: "lava", cx: -1.4, cy: 0.8, cols: 5, filas: 3 },
             ],
             heroe: { x: -1.6, y: -4.35 },
             orcos: [{ x: 1.9, y: -4.35 }],
@@ -1332,28 +1334,29 @@
             titulo: `📍 BÓVEDA ${numBoveda} · EL BARRIL DE PÓLVORA`,
             objetivo:
               "💣 Suelta el barril explosivo sobre el Orco, enfría la lava y recoge las joyas",
-            ordenSugerido: [3, 1, 2, 4],
+            ordenSugerido: [3, 1, 4, 2],
             muros: [
               { x1: -3.5, y1: 5.2, x2: -3.5, y2: -4.4 },
               { x1: 3.5, y1: 5.2, x2: 3.5, y2: -4.4 },
               { x1: -3.5, y1: -4.4, x2: 3.5, y2: -4.4 },
               { x1: -0.8, y1: 5.2, x2: -0.8, y2: 1.6 },
-              { x1: 1.4, y1: 5.2, x2: 1.4, y2: 1.6 },
-              { x1: 1.4, y1: -0.8, x2: 3.5, y2: -1.8 },
+              { x1: 1.3, y1: 5.2, x2: 1.3, y2: 1.6 },
+              { x1: 0.9, y1: -0.8, x2: 0.9, y2: -4.4 },
+              { x1: 1.3, y1: 0.8, x2: -0.6, y2: -0.6 },
             ],
             alfileres: [
               { id: 1, x1: -3.7, y1: 1.6, x2: -0.7, y2: 1.6, colorJoya: "agua" },
-              { id: 2, x1: -0.8, y1: 1.2, x2: 1.4, y2: 1.2, colorJoya: "oro" },
-              { id: 3, x1: 3.7, y1: 1.6, x2: 1.3, y2: 1.6, colorJoya: "lava" },
-              { id: 4, x1: -3.7, y1: -0.8, x2: 1.4, y2: -0.8, colorJoya: "lava" },
+              { id: 2, x1: -0.8, y1: 1.2, x2: 1.3, y2: 1.2, colorJoya: "oro" },
+              { id: 3, x1: 3.7, y1: 1.6, x2: 1.2, y2: 1.6, colorJoya: "lava" },
+              { id: 4, x1: -3.7, y1: -0.8, x2: 0.9, y2: -0.8, colorJoya: "lava" },
             ],
             gruposParticulas: [
               { tipo: "agua", cx: -2.1, cy: 3.1, cols: 4, filas: 4 },
-              { tipo: "oro", cx: 0.3, cy: 3.0, cols: 5, filas: 4 },
-              { tipo: "lava", cx: -1.1, cy: 0.1, cols: 5, filas: 2 },
+              { tipo: "oro", cx: 0.25, cy: 3.0, cols: 5, filas: 4 },
+              { tipo: "lava", cx: -1.4, cy: 0.1, cols: 5, filas: 2 },
             ],
-            heroe: { x: -1.8, y: -4.35 },
-            orcos: [{ x: 1.9, y: -4.35 }],
+            heroe: { x: -1.6, y: -4.35 },
+            orcos: [{ x: 2.1, y: -4.35 }],
             barriles: [{ x: 2.4, y: 2.5 }],
           };
         }
@@ -1398,7 +1401,7 @@
           return {
             titulo: `📍 BÓVEDA ${numBoveda} · EMBOSCADA DOBLE`,
             objetivo:
-              "👹 Usa el barril y la lava contra los dos Orcos antes de liberar al caballero",
+              "👹 Usa el barril y la lava contra los dos Orcos antes de liberar el tesoro",
             ordenSugerido: [2, 1, 3, 4],
             muros: [
               { x1: -3.6, y1: 5.2, x2: -3.6, y2: -4.4 },
@@ -1406,25 +1409,26 @@
               { x1: -3.6, y1: -4.4, x2: 3.6, y2: -4.4 },
               { x1: -1.1, y1: 5.2, x2: -1.1, y2: 1.9 },
               { x1: 1.1, y1: 5.2, x2: 1.1, y2: 1.9 },
-              { x1: -3.6, y1: -0.2, x2: 0.4, y2: -1.6 },
+              { x1: -3.6, y1: 0.4, x2: 0.4, y2: -1.4 },
+              { x1: 3.6, y1: -0.6, x2: 1.2, y2: -2.2 },
             ],
             alfileres: [
               { id: 1, x1: -3.8, y1: 1.9, x2: -1.0, y2: 1.9, colorJoya: "agua" },
               { id: 2, x1: -1.1, y1: 1.5, x2: 1.1, y2: 1.5, colorJoya: "lava" },
               { id: 3, x1: 3.8, y1: 1.9, x2: 1.0, y2: 1.9, colorJoya: "oro" },
-              { id: 4, x1: -3.8, y1: -2.6, x2: 0.2, y2: -2.6, colorJoya: "oro" },
+              { id: 4, x1: 0.2, y1: -4.5, x2: 0.2, y2: -1.4, colorJoya: "oro" },
             ],
             gruposParticulas: [
               { tipo: "agua", cx: -2.3, cy: 3.3, cols: 4, filas: 4 },
               { tipo: "lava", cx: 0.0, cy: 2.9, cols: 4, filas: 3 },
               { tipo: "oro", cx: 2.3, cy: 3.3, cols: 5, filas: 4 },
             ],
-            heroe: { x: -2.1, y: -4.35 },
+            heroe: { x: -1.9, y: -4.35 },
             orcos: [
               { x: 1.1, y: -4.35 },
-              { x: 2.5, y: -4.35 },
+              { x: 2.3, y: -4.35 },
             ],
-            barriles: [{ x: 0.0, y: 4.2 }],
+            barriles: [{ x: 1.65, y: -4.05 }],
           };
         }
 
@@ -1783,8 +1787,9 @@
                 y: py,
                 vx: azar(-0.08, 0.08),
                 vy: 0,
-                r: 0.19,
-                cargasAgua: 2, // Cada gota de agua puede petrificar hasta 2 de lava antes de evaporarse
+                r: 0.175,
+                cargasAgua: 3, // Cada gota de agua enfría en cadena y luego se evapora/drena
+                vidaPiedra: 0,
                 mesh,
                 recogida: false,
                 semillaFase: azar(0, 6.28),
@@ -1905,8 +1910,17 @@
           if (vn < 0) {
             p.vx -= (1 + restitucion) * vn * nx;
             p.vy -= (1 + restitucion) * vn * ny;
-            // Deslizamiento fluido en rampas
-            p.vx *= p.tipo === "agua" ? 0.985 : 0.94;
+            // Deslizamiento fluido en rampas y embudos (sin atascos)
+            if (Math.abs(dy) > 0.02 && Math.abs(dx) > 0.02) {
+              const len = Math.sqrt(len2);
+              // Vector tangente apuntando cuesta abajo
+              const tx = dy < 0 ? dx / len : -dx / len;
+              const ty = dy < 0 ? dy / len : -dy / len;
+              p.vx += tx * 0.22;
+              p.vy += ty * 0.12;
+            } else {
+              p.vx *= p.tipo === "agua" ? 0.99 : 0.96;
+            }
           }
           return true;
         }
@@ -1916,17 +1930,24 @@
       function convertirEnPiedra(particula) {
         if (particula.tipo === "piedra" || particula.recogida) return;
         particula.tipo = "piedra";
-        particula.r = 0.18;
+        particula.r = 0.165;
+        particula.vidaPiedra = azar(0.45, 0.78);
         particula.mesh.geometry = geoRoca;
         particula.mesh.material = matPiedra;
         particula.mesh.scale.set(1, 1, 1);
       }
 
-      function enfriarClusterLava(cx, cy, radio = 0.68) {
-        for (const p of A.particulas) {
-          if (!p.recogida && p.tipo === "lava") {
-            if (Math.hypot(p.x - cx, p.y - cy) < radio) {
-              convertirEnPiedra(p);
+      // Enfriamiento en cadena para que ningún resto de lava quede atrapado
+      function enfriarClusterLava(cx, cy, radio = 1.08) {
+        const cola = [{ x: cx, y: cy }];
+        while (cola.length > 0) {
+          const act = cola.pop();
+          for (const p of A.particulas) {
+            if (!p.recogida && p.tipo === "lava") {
+              if (Math.hypot(p.x - act.x, p.y - act.y) < radio) {
+                convertirEnPiedra(p);
+                cola.push({ x: p.x, y: p.y });
+              }
             }
           }
         }
@@ -2086,10 +2107,11 @@
                 );
               }
             }
-            // ¿Toca un Orco al caer?
+            // ¿Toca un Orco al caer con velocidad?
             for (const orco of A.orcos) {
               if (
                 orco.vivo &&
+                Math.abs(vyAntes) > 2.2 &&
                 Math.hypot(b.x - orco.x, b.y - (orco.y + 0.55)) < 0.78
               ) {
                 explotarBarril(b);
@@ -2130,37 +2152,46 @@
               const dist = Math.hypot(dx, dy);
               const minDist = a.r + b.r;
               if (dist < minDist && dist > 0.0001) {
+                // El tesoro (oro) es pesado y nunca se atasca sobre agua o piedra obsidiana
+                const oroConFluidoOPiedra =
+                  (a.tipo === "oro" && (b.tipo === "agua" || b.tipo === "piedra")) ||
+                  (b.tipo === "oro" && (a.tipo === "agua" || a.tipo === "piedra"));
+
                 const nx = dx / dist;
                 const ny = dy / dist;
                 const solape = (minDist - dist) * 0.5;
-                a.x -= nx * solape;
-                a.y -= ny * solape;
-                b.x += nx * solape;
-                b.y += ny * solape;
+                if (oroConFluidoOPiedra) {
+                  // El oro desplaza al agua/piedra sin frenarse
+                  const liviana = a.tipo === "oro" ? b : a;
+                  const signo = a.tipo === "oro" ? 1 : -1;
+                  liviana.x += signo * nx * solape * 1.6;
+                  liviana.y += signo * ny * solape * 1.6;
+                } else {
+                  a.x -= nx * solape;
+                  a.y -= ny * solape;
+                  b.x += nx * solape;
+                  b.y += ny * solape;
 
-                const dvx = b.vx - a.vx;
-                const dvy = b.vy - a.vy;
-                const vn = dvx * nx + dvy * ny;
-                if (vn < 0) {
-                  const imp = vn * 0.46;
-                  a.vx += imp * nx;
-                  a.vy += imp * ny;
-                  b.vx -= imp * nx;
-                  b.vy -= imp * ny;
+                  const dvx = b.vx - a.vx;
+                  const dvy = b.vy - a.vy;
+                  const vn = dvx * nx + dvy * ny;
+                  if (vn < 0) {
+                    const imp = vn * 0.46;
+                    a.vx += imp * nx;
+                    a.vy += imp * ny;
+                    b.vx -= imp * nx;
+                    b.vy -= imp * ny;
+                  }
                 }
 
-                // Empuje lateral hidrostático para que el agua y la lava fluyan como líquidos reales
-                if (
-                  (a.tipo === "agua" || a.tipo === "lava") &&
-                  a.tipo === b.tipo &&
-                  Math.abs(ny) > 0.5
-                ) {
-                  const empuje = ( nx >= 0 ? 1 : -1 ) * 0.18;
+                // Empuje lateral hidrostático para que el agua, lava y joyas fluyan sin formar arcos
+                if (a.tipo === b.tipo && Math.abs(ny) > 0.5) {
+                  const empuje = (nx >= 0 ? 1 : -1) * 0.22;
                   a.vx -= empuje;
                   b.vx += empuje;
                 }
 
-                // ¡Reacción 1: Agua + Lava = Piedra Obsidiana + Evaporación limpia!
+                // ¡Reacción 1: Agua + Lava = Piedra Obsidiana en cadena + Evaporación limpia!
                 if (
                   (a.tipo === "agua" && b.tipo === "lava") ||
                   (a.tipo === "lava" && b.tipo === "agua")
@@ -2168,7 +2199,7 @@
                   const gotaAgua = a.tipo === "agua" ? a : b;
                   const gotaLava = a.tipo === "lava" ? a : b;
                   convertirEnPiedra(gotaLava);
-                  enfriarClusterLava(gotaLava.x, gotaLava.y, 0.65);
+                  enfriarClusterLava(gotaLava.x, gotaLava.y, 1.08);
 
                   gotaAgua.cargasAgua--;
                   if (gotaAgua.cargasAgua <= 0) {
@@ -2186,21 +2217,14 @@
                   }
                 }
 
-                // ¡Reacción 2: Agua ya fría / Piedra recién formada con Lava pegada!
+                // ¡Reacción 2: Piedra recién enfriada transmite el enfriamiento a Lava pegada!
                 if (
                   (a.tipo === "piedra" && b.tipo === "lava") ||
                   (a.tipo === "lava" && b.tipo === "piedra")
                 ) {
-                  // Si hay agua cerca, la conducción térmica termina de petrificar la lava
-                  const hayAguaCerca = A.particulas.some(
-                    (w) =>
-                      !w.recogida &&
-                      w.tipo === "agua" &&
-                      Math.hypot(w.x - a.x, w.y - a.y) < 0.85,
-                  );
-                  if (hayAguaCerca) {
-                    convertirEnPiedra(a.tipo === "lava" ? a : b);
-                  }
+                  const gotaLava = a.tipo === "lava" ? a : b;
+                  convertirEnPiedra(gotaLava);
+                  enfriarClusterLava(gotaLava.x, gotaLava.y, 0.95);
                 }
 
                 // ¡Reacción 3: Lava quema el Tesoro (Oro) si se tocan!
@@ -2253,11 +2277,28 @@
             // Deformación elástica suave según velocidad
             const vel = Math.min(1.25, 1 + Math.hypot(p.vx, p.vy) * 0.04);
             p.mesh.scale.set(1 / Math.sqrt(vel), vel, 1);
+            // El agua que llega al drenaje del fondo se absorbe limpiamente para no tapar el foso
+            if (p.y < -3.65) {
+              p.recogida = true;
+              p.mesh.visible = false;
+              if (Math.random() < 0.35) vapor3D(p.x, p.y, 0x38bdf8, 2, 0.55);
+              continue;
+            }
           } else if (p.tipo === "oro") {
             p.mesh.rotation.z -= p.vx * dt * 2.2;
             p.mesh.rotation.y += dt * 2.8;
           } else if (p.tipo === "piedra") {
             p.mesh.rotation.z -= p.vx * dt * 2.0;
+            // La obsidiana enfriada se fractura y se disipa en polvo para nunca bloquear el camino
+            p.vidaPiedra = (p.vidaPiedra || 0.6) - dt;
+            const esc = Math.max(0.1, Math.min(1, p.vidaPiedra / 0.45));
+            p.mesh.scale.setScalar(esc);
+            if (p.vidaPiedra <= 0) {
+              p.recogida = true;
+              p.mesh.visible = false;
+              if (Math.random() < 0.4) vapor3D(p.x, p.y, 0x64748b, 3, 0.65);
+              continue;
+            }
           }
 
           // Atracción magnética del tesoro cuando está cerca del Caballero
@@ -2265,9 +2306,9 @@
             const dxH = A.heroe.x - p.x;
             const dyH = A.heroe.y + 0.55 - p.y;
             const distH = Math.hypot(dxH, dyH);
-            if (distH < 1.35 && distH > 0.01) {
-              p.vx += (dxH / distH) * dt * 18;
-              p.vy += (dyH / distH) * dt * 18;
+            if (distH < 2.2 && distH > 0.01) {
+              p.vx += (dxH / distH) * dt * 22;
+              p.vy += (dyH / distH) * dt * 22;
             }
           }
 
@@ -2276,7 +2317,7 @@
           // ¿Toca un Barril la Lava? -> ¡Lo hace explotar!
           if (p.tipo === "lava") {
             for (const b of A.barriles) {
-              if (!b.explotado && Math.hypot(p.x - b.x, p.y - b.y) < 0.52) {
+              if (!b.explotado && Math.hypot(p.x - b.x, p.y - b.y) < 0.55) {
                 explotarBarril(b);
               }
             }
@@ -2285,13 +2326,13 @@
           // ¿Toca a un Orco? La lava o las rocas que caen eliminan al Orco
           for (const orco of A.orcos) {
             if (!orco.vivo) continue;
-            if (Math.hypot(p.x - orco.x, p.y - (orco.y + 0.55)) < 0.76) {
-              if (
-                p.tipo === "lava" ||
-                (p.tipo === "piedra" && Math.abs(p.vy) > 1.3)
-              ) {
+            if (Math.hypot(p.x - orco.x, p.y - (orco.y + 0.55)) < 0.85) {
+              if (p.tipo === "lava" || p.tipo === "piedra") {
                 orco.vivo = false;
                 orco.mesh.visible = false;
+                if (p.tipo === "lava") {
+                  convertirEnPiedra(p);
+                }
                 sonar("moneda");
                 vapor3D(orco.x, orco.y + 0.6, 0x4ade80, 14);
                 textoFlotanteAlfiler(
@@ -2310,9 +2351,13 @@
             A.activo &&
             !A.resuelto &&
             A.heroe &&
-            Math.hypot(p.x - A.heroe.x, p.y - (A.heroe.y + 0.58)) < 0.88
+            Math.hypot(p.x - A.heroe.x, p.y - (A.heroe.y + 0.58)) < 1.08
           ) {
-            if (p.tipo === "lava") {
+            if (p.tipo === "agua") {
+              p.recogida = true;
+              p.mesh.visible = false;
+              continue;
+            } else if (p.tipo === "lava") {
               // ¡La lava quemó al héroe!
               A.resuelto = true;
               A.sacudida = 0.5;
@@ -2378,10 +2423,12 @@
           luzLavaDinamica.intensity = 0;
         }
 
-        // Animación y patrulla de Orcos vivos
+        // Animación y patrulla de Orcos vivos + Avance del Héroe hacia el tesoro cuando la vía está despejada
         if (A.activo && !A.resuelto && A.heroe) {
+          let algunOrcoVivo = false;
           for (const orco of A.orcos) {
             if (!orco.vivo) continue;
+            algunOrcoVivo = true;
             if (orco.mesh.userData.brazoMaza) {
               orco.mesh.userData.brazoMaza.rotation.x =
                 Math.sin(A.tiempo * 6) * 0.35;
@@ -2391,7 +2438,6 @@
                 (pin) =>
                   !pin.sacado && Math.min(pin.y1, pin.y2) < A.heroe.y + 1.2,
               );
-              // También comprobar si hay un muro divisor vertical entre el orco y el héroe
               const minX = Math.min(orco.x, A.heroe.x);
               const maxX = Math.max(orco.x, A.heroe.x);
               const bloqueadoMuro = A.segmentosMuro.some(
@@ -2425,6 +2471,35 @@
               }
             }
           }
+
+          // Si no quedan Orcos vivos ni alfileres bajos ni lava peligrosa en el piso, el Héroe corre hacia las joyas caídas
+          if (!algunOrcoVivo && cuentaLava === 0) {
+            const bloqueadoPinBajo = A.alfileres.some(
+              (pin) =>
+                !pin.sacado && Math.min(pin.y1, pin.y2) < A.heroe.y + 1.3,
+            );
+            if (!bloqueadoPinBajo) {
+              const joyaPiso = A.particulas.find(
+                (p) =>
+                  !p.recogida && p.tipo === "oro" && p.y < A.heroe.y + 1.4,
+              );
+              if (joyaPiso) {
+                const minX = Math.min(joyaPiso.x, A.heroe.x);
+                const maxX = Math.max(joyaPiso.x, A.heroe.x);
+                const bloqueadoMuro = A.segmentosMuro.some(
+                  (m) =>
+                    Math.abs(m.x1 - m.x2) < 0.2 &&
+                    m.x1 > minX &&
+                    m.x1 < maxX &&
+                    Math.min(m.y1, m.y2) <= A.heroe.y + 0.5,
+                );
+                if (!bloqueadoMuro && Math.abs(joyaPiso.x - A.heroe.x) > 0.25) {
+                  A.heroe.x += Math.sign(joyaPiso.x - A.heroe.x) * dt * 3.8;
+                  A.heroe.mesh.position.x = A.heroe.x;
+                }
+              }
+            }
+          }
         }
 
         // Actualizar partículas de vapor/chispas
@@ -2444,6 +2519,7 @@
         // Animación del caballero y cámara
         if (A.heroe) {
           const celebrando = A.resuelto && A.oroRecogido > 0;
+          A.heroe.mesh.position.x = A.heroe.x;
           A.heroe.mesh.position.y =
             A.heroe.y +
             (celebrando
