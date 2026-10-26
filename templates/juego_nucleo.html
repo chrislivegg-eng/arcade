@@ -7,7 +7,7 @@
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
     <meta name="theme-color" content="#030711" />
-    <title>Círculo de Destrucción · Chris Arcade</title>
+    <title>Círculo de Destrucción 3D · Chris Arcade</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static',filename='nucleo.css') }}"
@@ -15,8 +15,11 @@
   </head>
   <body>
     <header>
-      <a href="/secreto">← ARCADE</a>
-      <b>CÍRCULO <i>DE DESTRUCCIÓN</i></b>
+      <a href="/secreto" class="btn-volver">← ARCADE</a>
+      <div class="titulo-central">
+        <b>CÍRCULO <i>DE DESTRUCCIÓN 3D</i></b>
+        <span id="badgeNivel" class="badge-nivel">NÚCLEO NV. 1 · CUARZO</span>
+      </div>
       <div class="acciones-header">
         <button id="saveBtn" type="button" title="Guardar récord actual">
           💾 Guardar
@@ -32,41 +35,93 @@
     </header>
     <main>
       <section class="hud" aria-label="Marcador">
-        <div>
+        <div class="hud-card">
           <small>IMPACTO</small>
           <strong id="score">0</strong>
         </div>
-        <div>
+        <div class="hud-card">
           <small>CADENA</small>
           <strong id="combo">×1</strong>
         </div>
-        <div>
+        <div class="hud-card">
           <small>FRACTURA</small>
           <strong id="shield">0%</strong>
         </div>
-        <div>
+        <div class="hud-card">
           <small>RÉCORD</small>
           <strong id="best">0</strong>
         </div>
       </section>
+
+      <!-- Barra de Sobrecarga / Overdrive + Selector de Pista -->
+      <section class="barra-energia-wrap" aria-label="Estado de sobrecarga">
+        <div class="energia-info">
+          <span id="estadoFiebre">⚡ SOBRECARGA DEL REACTOR</span>
+          <b id="pctFiebre">0%</b>
+        </div>
+        <div class="energia-pista">
+          <div id="barraFiebre" class="energia-relleno"></div>
+        </div>
+        <button id="btnOverdrive" type="button" class="btn-overdrive" disabled>
+          🔥 ACTIVAR FIEBRE
+        </button>
+      </section>
+
       <div id="arena">
         <canvas id="game" width="780" height="780"></canvas>
         <p id="notice" role="status"></p>
       </div>
+
+      <!-- Panel de Mejoras Tácticas en Tiempo Real -->
+      <section class="panel-mejoras" aria-label="Mejoras del reactor">
+        <button type="button" class="btn-mejora" id="upgMultiDisparo">
+          <span class="icono-upg">🚀</span>
+          <span class="info-upg">
+            <b>Multibola</b>
+            <small id="lvlMultiDisparo">Nv.1 · 1 bola</small>
+          </span>
+          <em class="costo-upg" id="costMultiDisparo">⚡ 60</em>
+        </button>
+        <button type="button" class="btn-mejora" id="upgPotencia">
+          <span class="icono-upg">💥</span>
+          <span class="info-upg">
+            <b>Demolición</b>
+            <small id="lvlPotencia">Nv.1 · Daño ×1</small>
+          </span>
+          <em class="costo-upg" id="costPotencia">⚡ 80</em>
+        </button>
+        <button type="button" class="btn-mejora" id="upgPortales">
+          <span class="icono-upg">🌀</span>
+          <span class="info-upg">
+            <b>Portales ×N</b>
+            <small id="lvlPortales">Nv.1 · ×2/×3/×4</small>
+          </span>
+          <em class="costo-upg" id="costPortales">⚡ 120</em>
+        </button>
+        <button type="button" class="btn-mejora" id="upgDron">
+          <span class="icono-upg">🤖</span>
+          <span class="info-upg">
+            <b>Auto-Cañón</b>
+            <small id="lvlDron">Nv.0 · Inactivo</small>
+          </span>
+          <em class="costo-upg" id="costDron">⚡ 100</em>
+        </button>
+      </section>
+
       <p class="help">
-        TOCA PARA SOLTAR BOLAS ROJAS · PASAN POR LOS MULTIPLICADORES (×2, ×3,
-        ×4) Y DEMUELEN EL CRISTAL
+        MANTÉN PULSADO O MUEVE EL CURSOR PARA APUNTAR EL CAÑÓN 3D · CRUZA EL
+        PORTAL DORADO Y MEJORA TU REACTOR
       </p>
     </main>
 
     <dialog id="intro">
       <section class="card">
-        <span>SIMULADOR SATISFACTORIO</span>
+        <span>REACTOR HIPER-SATISFACTORIO 3D</span>
         <h1>CÍRCULO<br /><em>DE DESTRUCCIÓN</em></h1>
         <p>
-          Suelta bolas rojas por las pistas curvas. Al llegar abajo se
-          multiplican y suben por la grieta central para fracturar y demoler el
-          bloque de cristal.
+          Apunta y mantén pulsado para disparar ráfagas de esferas 3D por los
+          conductos tubulares. Atraviesa los anillos multiplicadores, activa el
+          modo <b>Sobrecarga</b> y pulveriza las capas del núcleo cristalino.
         </p>
         <label
           >Tu nombre
@@ -77,8 +132,8 @@
             placeholder="Jugador"
           />
         </label>
-        <button id="start" type="button">COMENZAR</button>
-        <small>PC: clic · Móvil: toque continuo</small>
+        <button id="start" type="button">INICIAR REACTOR 3D</button>
+        <small>PC: Clic/Arrastrar + Teclas 1-4 · Móvil: Toque continuo</small>
       </section>
     </dialog>
 
@@ -87,8 +142,8 @@
         <span>¡NÚCLEO DEMOLIDO!</span>
         <h2 id="resultTitle">Cristal pulverizado.</h2>
         <strong id="result">0 PTS</strong>
-        <p id="save">Récord guardado en el arcade.</p>
-        <button id="again" type="button">SIGUIENTE NÚCLEO</button>
+        <p id="save">Récord guardado en el arcade (+Energía conservada).</p>
+        <button id="again" type="button">SIGUIENTE NÚCLEO (MÁS DURO)</button>
         <div>
           <a href="/records">Ver récords</a>
           <a href="/secreto">Volver al arcade</a>
