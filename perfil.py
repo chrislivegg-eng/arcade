@@ -240,6 +240,28 @@ def ver_perfil():
         return jsonify(_publico(perfiles[pid]))
 
 
+@perfil_bp.route('/api/perfil/squish', methods=['GET', 'POST'])
+def progreso_squish():
+    """Conserva la colección de Neon Squish en el perfil de la cuenta."""
+    datos = _json_objeto() if request.method == 'POST' else request.args
+    pid = str(datos.get('pid') or '')[:40]
+    if not pid:
+        return jsonify({'error': 'Falta el jugador'}), 400
+    if request.method == 'POST':
+        cantidad = datos.get('cantidad')
+        if isinstance(cantidad, bool) or not isinstance(cantidad, int) or not 1 <= cantidad <= 50:
+            return jsonify({'error': 'Cantidad inválida'}), 400
+    pid = identidad_perfil(pid)
+    with candado:
+        perfiles = _leer()
+        p = perfiles.setdefault(pid, _nuevo())
+        progreso = p.setdefault('squish', {'total': 0})
+        if request.method == 'POST':
+            progreso['total'] = min(1000000, progreso['total'] + cantidad)
+            _guardar(perfiles)
+        return jsonify({'total': progreso['total'], 'administrador': es_admin()})
+
+
 @perfil_bp.route('/api/perfil', methods=['POST'])
 def editar_perfil():
     datos = _json_objeto()
@@ -496,6 +518,8 @@ TABLAS = [
     ("record_alfileres.txt", "📍 Alfileres: Lava y Oro 3D", "pts", False),
     ("record_cortes.txt", "✂️ Corte Perfecto", "pts", False),
     ("record_nucleo.txt", "🌀 Círculo de Destrucción", "pts", False),
+    ("record_squish.txt", "🌈 Neon Squish", "objetos", False),
+    ("record_canicas.txt", "🔮 Cascada de Canicas", "pts", False),
     ("record_pinball.txt", "🪩 Pinball Nova", "pts", False),
     ("record_templo.txt", "🏛️ Umbra · Templo perdido", "s", True),
     ("record_mansion.txt", "👻 Nocturna · Mansión", "s", True),

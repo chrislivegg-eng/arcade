@@ -74,6 +74,8 @@ JUEGOS = {
     'alfileres': 'juego_alfileres.html',
     'cortes': 'juego_cortes.html',
     'nucleo': 'juego_nucleo.html',
+    'squish': 'juego_squish.html',
+    'canicas': 'juego_canicas.html',
 }
 # En estos juegos el récord es "menos es mejor" (golpes, milisegundos)
 RECORD_MENOR = {'mini_golf', 'reflejos', 'karts', 'sudoku', 'buscaminas', 'sopa', 'flow', 'parejas', 'nonograma', 'templo', 'mansion'}

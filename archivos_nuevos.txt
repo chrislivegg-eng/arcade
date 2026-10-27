@@ -133,3 +133,9 @@ static/js/cortes.js
 templates/juego_nucleo.html
 static/nucleo.css
 static/js/nucleo.js
+templates/juego_squish.html
+static/squish.css
+static/js/squish.js
+templates/juego_canicas.html
+static/canicas.css
+static/js/canicas.js
