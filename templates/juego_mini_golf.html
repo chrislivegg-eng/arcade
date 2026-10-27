@@ -7,9 +7,62 @@
     <title>Mini Golf 3D · Arcade</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <style>
+      #chips-ruta {
+        flex-wrap: wrap;
+      }
+      #chips-ruta .chip {
+        flex: 1 1 30%;
+        font-size: 0.82rem;
+        padding: 8px 2px;
+      }
+      #btn-camara {
+        position: fixed;
+        right: 14px;
+        bottom: calc(16px + env(safe-area-inset-bottom));
+        z-index: 20;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        background: rgba(20, 16, 40, 0.65);
+        color: #fff;
+        font: 800 0.85rem Nunito, sans-serif;
+        border-radius: 999px;
+        padding: 9px 14px;
+        cursor: pointer;
+        backdrop-filter: blur(6px);
+      }
+      #btn-camara.oculto {
+        display: none;
+      }
+      #medidor-fuerza {
+        position: fixed;
+        left: 50%;
+        bottom: calc(18px + env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        width: min(260px, 60vw);
+        height: 14px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.35);
+        border: 2px solid rgba(255, 255, 255, 0.6);
+        overflow: hidden;
+        z-index: 20;
+        opacity: 0;
+        transition: opacity 0.15s;
+        pointer-events: none;
+      }
+      #medidor-fuerza.visible {
+        opacity: 1;
+      }
+      #medidor-fuerza div {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #26de81, #fed330, #ff4f4f);
+      }
+    </style>
   </head>
   <body>
     <canvas id="lienzo"></canvas>
+    <button id="btn-camara" class="oculto">🎥 Vista</button>
+    <div id="medidor-fuerza"><div></div></div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/cannon.min.js') }}"></script>
@@ -19,23 +72,181 @@
       const { $, esperar, azar, limitar, gauss, lin, material, sonar } = Arcade;
 
       // =========================================================
-      //  HOYOS (cada letra = 50 cm)
+      //  MUNDOS Y HOYOS (cada letra = 50 cm)
       //  # nada · . pasto · S salida · H hoyo · X bloque · O poste
-      //  W agua · M molino · 1-9 puntos de referencia del bot
+      //  W agua · L lava · A arena (frena) · I hielo (resbala)
+      //  > < ^ v  impulsores · T portal (te manda a U) · P hongo rebotador
+      //  M molino · D bloque que se mueve ↔ · E bloque que se mueve ↕
+      //  * estrella (-1 golpe) · 1-9 puntos de referencia del bot
       // =========================================================
-      const HOYOS = [
-        { par: 2, mapa: ["#######", "#..H..#", "#.....#", "#.....#", "#.....#", "#.....#", "#.....#", "#..S..#", "#######"] },
-        { par: 3, mapa: ["#########", "#.1...H.#", "#.......#", "#..######", "#..######", "#..######", "#..######", "#.S######", "#########"] },
-        { par: 3, mapa: ["#######", "#..H..#", "#....3#", "#.XXX.#", "#....2#", "#.O.O.#", "#...1.#", "#XXX..#", "#.....#", "#..S..#", "#######"] },
-        { par: 3, mapa: ["#######", "#..H..#", "#..1..#", "#WW..W#", "#WW..W#", "#.....#", "#.....#", "#..S..#", "#######"] },
-        { par: 3, mapa: ["#######", "#..H..#", "#.....#", "#.....#", "#..M..#", "#.....#", "#.....#", "#.....#", "#..S..#", "#######"] },
-        { par: 4, mapa: ["#########", "#H......#", "#.....3.#", "#####...#", "#####...#", "#.......#", "#1....2.#", "#...#####", "#...#####", "#.S.#####", "#########"] },
+      const MUNDOS = [
+        {
+          id: "pradera",
+          nombre: "Pradera",
+          emoji: "🌸",
+          cielo: ["#3f86d6", "#a8dcff", "#fff1dc"],
+          niebla: 0xbfe2ff,
+          sol: [0xfff4e0, 1.5],
+          hemi: [0xcfeaff, 0x4a7a3a, 0.7],
+          pasto: ["#3fae4a", "#4cbc57"],
+          suelo: 0x5fae4f,
+          madera: { tono: 28, sat: 45, luz: 45 },
+          tope: 0xffffff,
+          bloque: 0x9a9aa5,
+          poste: 0xff4f8b,
+          bandera: "#ff3b3b",
+          deco: "pradera",
+          particulas: "petalos",
+          molino: 1.3,
+          hoyos: [
+            { par: 2, mapa: ["#######", "#..H..#", "#.....#", "#.....#", "#.....#", "#.....#", "#.....#", "#..S..#", "#######"] },
+            { par: 3, mapa: ["#########", "#.1...H.#", "#.......#", "#..######", "#..######", "#..######", "#..######", "#.S######", "#########"] },
+            { par: 3, mapa: ["#######", "#..H..#", "#....3#", "#.XXX.#", "#....2#", "#.O.O.#", "#...1.#", "#XXX..#", "#.....#", "#..S..#", "#######"] },
+            { par: 3, mapa: ["#######", "#..H..#", "#..1..#", "#WW..W#", "#WW..W#", "#.....#", "#.....#", "#..S..#", "#######"] },
+            { par: 3, mapa: ["#######", "#..H..#", "#.....#", "#.....#", "#..M..#", "#.....#", "#.....#", "#.....#", "#..S..#", "#######"] },
+            { par: 4, mapa: ["#########", "#H......#", "#.....3.#", "#####...#", "#####...#", "#.......#", "#1....2.#", "#...#####", "#...#####", "#.S.#####", "#########"] },
+          ],
+        },
+        {
+          id: "playa",
+          nombre: "Playa",
+          emoji: "🏖️",
+          cielo: ["#1aa6e6", "#8fe3ff", "#fff3cf"],
+          niebla: 0xbdeeff,
+          sol: [0xfff0d0, 1.7],
+          hemi: [0xd8f6ff, 0xc9a86a, 0.75],
+          pasto: ["#2fb36b", "#3cc278"],
+          suelo: 0xf0d595,
+          madera: { tono: 34, sat: 28, luz: 68 },
+          tope: 0x22d3c5,
+          bloque: 0xe8d3a8,
+          poste: 0xff8a3d,
+          bandera: "#ff8a3d",
+          deco: "playa",
+          mar: "agua",
+          particulas: null,
+          molino: 1.4,
+          hoyos: [
+            { par: 2, mapa: ["#########", "#...H...#", "#..AAA..#", "#.......#", "#...*...#", "#.......#", "#..AAA..#", "#...S...#", "#########"] },
+            { par: 3, mapa: ["#########", "#.H...2.#", "#.......#", "#WWWW...#", "#WWWW.*.#", "#.....1.#", "#...AAA.#", "#.......#", "#...S...#", "#########"] },
+            { par: 3, mapa: ["#########", "#H...2..#", "#......*#", "#####^###", "#####^###", "#....1..#", "#.AAA...#", "#....S..#", "#########"] },
+            { par: 3, mapa: ["#########", "#...H...#", "#.O...O.#", "#..AAA..#", "#.O.*.O.#", "#.......#", "#WW...WW#", "#WW...WW#", "#...S...#", "#########"] },
+            { par: 4, mapa: ["###########", "#H....<<..#", "#.......2.#", "#######...#", "#######...#", "#.1.......#", "#.>>....*.#", "#...#######", "#...#######", "#.S.#######", "###########"] },
+            { par: 4, mapa: ["###########", "#3...H....#", "#.WWWWWWW.#", "#.W.....W.#", "#.W.AAA.W.#", "#2W..*..W.#", "#.W.....W.#", "#.WWW.WWW.#", "#.........#", "#1...S....#", "###########"] },
+          ],
+        },
+        {
+          id: "glaciar",
+          nombre: "Glaciar",
+          emoji: "❄️",
+          cielo: ["#5d8fd0", "#d4eaff", "#ffffff"],
+          niebla: 0xe2f1ff,
+          sol: [0xeaf4ff, 1.45],
+          hemi: [0xeaf6ff, 0x8fa9c9, 0.85],
+          pasto: ["#58b98c", "#66c69a"],
+          suelo: 0xf2f8ff,
+          madera: { tono: 205, sat: 22, luz: 78 },
+          tope: 0xffffff,
+          bloque: 0xbfe6ff,
+          poste: 0x4fb3ff,
+          bandera: "#4fb3ff",
+          deco: "glaciar",
+          mar: "hielo",
+          particulas: "nieve",
+          molino: 1.3,
+          hoyos: [
+            { par: 2, mapa: ["#######", "#..H..#", "#.....#", "#IIIII#", "#IIIII#", "#IIIII#", "#..*..#", "#..S..#", "#######"] },
+            { par: 3, mapa: ["#########", "#...H...#", "#.......#", "#...D...#", "#.......#", "#IIIIIII#", "#IIIIIII#", "#...*...#", "#...S...#", "#########"] },
+            { par: 3, mapa: ["#########", "#...H...#", "#.P...P.#", "#...P...#", "#.P...P.#", "#..I*I..#", "#..III..#", "#...S...#", "#########"] },
+            { par: 4, mapa: ["###########", "#.......H.#", "#.2.......#", "#.E.#######", "#...#######", "#III#######", "#III#######", "#.1.......#", "#*......S.#", "###########"] },
+            { par: 4, mapa: ["#########", "#H......#", "#.....3.#", "####IIII#", "#2IIIP..#", "#.......#", "#IIII####", "#..1...P#", "#.....*.#", "#S......#", "#########"] },
+            { par: 5, mapa: ["###########", "#H.......*#", "#...P...4.#", "#######.E.#", "#######...#", "#2IIIIIII3#", "#.IIIIIII.#", "#...D.....#", "#1.########", "#..########", "#S.########", "###########"] },
+          ],
+        },
+        {
+          id: "volcan",
+          nombre: "Volcán",
+          emoji: "🌋",
+          cielo: ["#1c0a14", "#6e2418", "#ff8a3d"],
+          niebla: 0x4a1d14,
+          sol: [0xffb070, 1.25],
+          hemi: [0xff9a6a, 0x2a1010, 0.6],
+          pasto: ["#3a8a39", "#459745"],
+          suelo: 0x2e2422,
+          madera: { tono: 15, sat: 10, luz: 24 },
+          tope: 0xff5a10,
+          topeBrilla: true,
+          bloque: 0x3a3436,
+          poste: 0xff5a10,
+          bandera: "#ffbe0b",
+          deco: "volcan",
+          mar: "lava",
+          particulas: "brasas",
+          molino: 1.8,
+          hoyos: [
+            { par: 2, mapa: ["#######", "#..H..#", "#L...L#", "#L.*.L#", "#L...L#", "#L...L#", "#..S..#", "#######"] },
+            { par: 3, mapa: ["#########", "#...H...#", "#LL...LL#", "#.......#", "#...M...#", "#.......#", "#LL...LL#", "#...*...#", "#...S...#", "#########"] },
+            { par: 3, mapa: ["#########", "#...H...#", "#*......#", "#LLL^LLL#", "#LLL^LLL#", "#LLL^LLL#", "#.......#", "#...S...#", "#########"] },
+            { par: 4, mapa: ["#########", "#H......#", "#.....2.#", "#####...#", "#####.M.#", "#####...#", "#L....1.#", "#L......#", "#L..*...#", "#LS.....#", "#########"] },
+            { par: 3, mapa: ["###########", "#....H....#", "#....*....#", "#LLLL.LLLL#", "#.........#", "#....D....#", "#.........#", "#LLLL.LLLL#", "#.........#", "#....S....#", "###########"] },
+            { par: 5, mapa: ["###########", "#H........#", "#.......5.#", "#LLLLLLL..#", "#3.*..M.4.#", "#.........#", "#..LLLLLLL#", "#2........#", "#....<<...#", "#.......S.#", "###########"] },
+          ],
+        },
+        {
+          id: "galaxia",
+          nombre: "Galaxia",
+          emoji: "🌌",
+          cielo: ["#03010f", "#170a45", "#4a1580"],
+          niebla: 0x120830,
+          sol: [0xc9b8ff, 1.1],
+          hemi: [0x8f7dff, 0x100828, 0.75],
+          pasto: ["#2b2a8f", "#3534a3"],
+          neon: true,
+          suelo: 0x0b0822,
+          madera: { tono: 265, sat: 45, luz: 22 },
+          tope: 0x00f0ff,
+          topeBrilla: true,
+          bloque: 0x3b2a8a,
+          poste: 0xff4fd8,
+          bandera: "#ff4fd8",
+          deco: "galaxia",
+          particulas: "estrellas",
+          molino: 2.0,
+          hoyos: [
+            { par: 2, mapa: ["#########", "#...H...#", "#.......#", "#...U...#", "#########", "#...T...#", "#.......#", "#...S...#", "#########"] },
+            { par: 3, mapa: ["#########", "#P..H..P#", "#..P.P..#", "#.P...P.#", "#...*...#", "#.P...P.#", "#.......#", "#...S...#", "#########"] },
+            { par: 3, mapa: ["#########", "#.>>>>v.#", "#.^...v.#", "#.^.H.v.#", "#.^...v.#", "#.^<<<<.#", "#...*...#", "#...S...#", "#########"] },
+            { par: 3, mapa: ["###########", "#H.......*#", "#...E.....#", "#.......U.#", "###########", "#.T.......#", "#....D....#", "#.........#", "#.......S.#", "###########"] },
+            { par: 4, mapa: ["###########", "#H..#....*#", "#...#..P..#", "#.U.#.....#", "#...#####.#", "#.3.....2.#", "#.#######.#", "#.T.....1.#", "#.........#", "#....S....#", "###########"] },
+            { par: 4, mapa: ["###########", "#....H....#", "#.P.....P.#", "#...LLL...#", "#2..LLL...#", "#.........#", "#....M....#", "#...1.....#", "#LLL.D.LLL#", "#...*.....#", "#....S....#", "###########"] },
+          ],
+        },
       ];
+      const HOYOS = [];
+      MUNDOS.forEach((m, mi) => m.hoyos.forEach((h, hi) => HOYOS.push({ ...h, mundo: mi, numMundo: hi + 1 })));
+      const RUTAS = [
+        ...MUNDOS.map((m, mi) => ({ id: m.id, texto: `${m.emoji} ${m.nombre}`, nota: `6 hoyos de ${m.nombre}${mi === 0 ? " · cuenta para récords 🏆" : ""}` })),
+        { id: "mix", texto: "🎲 Mix 9", nota: "9 hoyos sorpresa de todos los mundos" },
+        { id: "tour", texto: "🏆 Gran Tour", nota: `¡Los ${HOYOS.length} hoyos seguidos!` },
+      ];
+      function hoyosDeRuta(id, r) {
+        const mi = MUNDOS.findIndex((m) => m.id === id);
+        if (mi >= 0) return HOYOS.map((h, i) => i).filter((i) => HOYOS[i].mundo === mi);
+        if (id === "tour") return HOYOS.map((h, i) => i);
+        const todos = HOYOS.map((h, i) => i);
+        for (let i = todos.length - 1; i > 0; i--) {
+          const j = Math.floor(r() * (i + 1));
+          [todos[i], todos[j]] = [todos[j], todos[i]];
+        }
+        return todos.slice(0, 9).sort((a, b) => a - b);
+      }
+
       const CELDA = 0.5,
         RADIO_BOLA = 0.05,
-        RADIO_HOYO = 0.1,
-        MAX_GOLPES = 7;
+        RADIO_HOYO = 0.1;
+      const maxGolpes = (h) => Math.max(7, HOYOS[h].par + 4);
       const COLORES = [0xff4f8b, 0x4fb3ff];
+      const DIRECCIONES = { ">": [1, 0], "<": [-1, 0], "^": [0, -1], v: [0, 1] };
 
       // =========================================================
       //  ESCENA
@@ -53,8 +264,9 @@
         ],
       });
       const { escena, camara } = M;
-      const acabado3D = Graficos3D.configurar(M, "cielo");
-      escena.add(new THREE.HemisphereLight(0xcfeaff, 0x4a7a3a, 0.7));
+      Graficos3D.configurar(M, "cielo");
+      const hemi = new THREE.HemisphereLight(0xcfeaff, 0x4a7a3a, 0.7);
+      escena.add(hemi);
       const sol = new THREE.DirectionalLight(0xfff4e0, 1.5);
       sol.position.set(-4, 9, 5);
       sol.castShadow = true;
@@ -63,43 +275,515 @@
       sol.shadow.bias = -0.0005;
       escena.add(sol, sol.target);
 
-      const texturaPasto = M.textura(512, 512, (g, w, h) => {
-        for (let i = 0; i < 8; i++) {
-          g.fillStyle = i % 2 ? "#3fae4a" : "#48b853";
-          g.fillRect(0, (i * h) / 8, w, h / 8);
-        }
+      const compartidos = new Set();
+      const compartir = (x) => (compartidos.add(x), x);
+      function tex(w, h, dibujar, repetir = true) {
+        const t = M.textura(w, h, dibujar);
+        if (repetir) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        return t;
+      }
+      function ruidoPixeles(g, w, h, fuerza, tonos = [0.5, 1, 0.4]) {
         const img = g.getImageData(0, 0, w, h);
         for (let p = 0; p < img.data.length; p += 4) {
-          const r = (Math.random() - 0.5) * 30;
-          img.data[p] += r * 0.5;
-          img.data[p + 1] += r;
-          img.data[p + 2] += r * 0.4;
+          const r = (Math.random() - 0.5) * fuerza;
+          img.data[p] += r * tonos[0];
+          img.data[p + 1] += r * tonos[1];
+          img.data[p + 2] += r * tonos[2];
         }
         g.putImageData(img, 0, 0);
+      }
+
+      // ---------- Texturas de superficies especiales ----------
+      const TX = {};
+      TX.arena = tex(256, 256, (g, w, h) => {
+        g.fillStyle = "#e9cf8f";
+        g.fillRect(0, 0, w, h);
+        g.strokeStyle = "rgba(160,120,60,0.25)";
+        g.lineWidth = 3;
+        for (let y = 10; y < h; y += 22) {
+          g.beginPath();
+          for (let x = 0; x <= w; x += 16) g.lineTo(x, y + Math.sin(x / 20 + y) * 4);
+          g.stroke();
+        }
+        ruidoPixeles(g, w, h, 40, [1, 0.9, 0.6]);
       });
-      texturaPasto.wrapS = texturaPasto.wrapT = THREE.RepeatWrapping;
-      const texturaCesped = texturaPasto.clone();
-      texturaCesped.needsUpdate = true;
-      texturaCesped.repeat.set(30, 30);
-      const alrededor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), material(0x6fbf5f, { map: texturaCesped, roughness: 1 }));
+      TX.hielo = tex(256, 256, (g, w, h) => {
+        const gr = g.createLinearGradient(0, 0, w, h);
+        gr.addColorStop(0, "#dff6ff");
+        gr.addColorStop(1, "#a9dcff");
+        g.fillStyle = gr;
+        g.fillRect(0, 0, w, h);
+        g.strokeStyle = "rgba(255,255,255,0.85)";
+        for (let i = 0; i < 14; i++) {
+          g.lineWidth = azar(0.6, 2);
+          g.beginPath();
+          let x = Math.random() * w,
+            y = Math.random() * h;
+          g.moveTo(x, y);
+          for (let k = 0; k < 4; k++) g.lineTo((x += azar(-40, 40)), (y += azar(-40, 40)));
+          g.stroke();
+        }
+        ruidoPixeles(g, w, h, 12, [1, 1, 1]);
+      });
+      TX.agua = tex(256, 256, (g, w, h) => {
+        g.fillStyle = "#1f86d8";
+        g.fillRect(0, 0, w, h);
+        g.strokeStyle = "rgba(190,240,255,0.55)";
+        for (let i = 0; i < 26; i++) {
+          g.lineWidth = azar(1, 3);
+          g.beginPath();
+          const y = Math.random() * h,
+            x = Math.random() * w;
+          g.moveTo(x, y);
+          g.quadraticCurveTo(x + 20, y - 8, x + 44, y);
+          g.stroke();
+        }
+      });
+      TX.lava = tex(256, 256, (g, w, h) => {
+        g.fillStyle = "#5a0d02";
+        g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 40; i++) {
+          const gr = g.createRadialGradient(0, 0, 1, 0, 0, azar(14, 40));
+          gr.addColorStop(0, "rgba(255,240,120,0.95)");
+          gr.addColorStop(0.4, "rgba(255,120,20,0.8)");
+          gr.addColorStop(1, "rgba(255,60,0,0)");
+          g.save();
+          g.translate(Math.random() * w, Math.random() * h);
+          g.fillStyle = gr;
+          g.fillRect(-40, -40, 80, 80);
+          g.restore();
+        }
+        g.strokeStyle = "rgba(255,200,60,0.8)";
+        for (let i = 0; i < 10; i++) {
+          g.lineWidth = azar(1, 3);
+          g.beginPath();
+          let x = Math.random() * w,
+            y = Math.random() * h;
+          g.moveTo(x, y);
+          for (let k = 0; k < 5; k++) g.lineTo((x += azar(-30, 30)), (y += azar(-30, 30)));
+          g.stroke();
+        }
+      });
+      TX.impulso = tex(128, 256, (g, w, h) => {
+        g.fillStyle = "#26214a";
+        g.fillRect(0, 0, w, h);
+        for (let k = 0; k < 2; k++) {
+          const y = k * 128 + 30;
+          g.fillStyle = k ? "#ffd93d" : "#ff9f1a";
+          g.beginPath();
+          g.moveTo(w / 2, y);
+          g.lineTo(w - 14, y + 56);
+          g.lineTo(w - 38, y + 56);
+          g.lineTo(w / 2, y + 26);
+          g.lineTo(38, y + 56);
+          g.lineTo(14, y + 56);
+          g.closePath();
+          g.fill();
+        }
+      });
+      TX.impulso.repeat.set(1, 1);
+      TX.portal = tex(256, 256, (g, w, h) => {
+        g.translate(w / 2, h / 2);
+        for (let i = 0; i < 60; i++) {
+          g.rotate(0.25);
+          g.strokeStyle = `hsla(${280 + i * 1.2}, 100%, ${50 + (i % 3) * 12}%, 0.85)`;
+          g.lineWidth = 4;
+          g.beginPath();
+          g.arc(0, 0, 10 + i * 1.9, 0, 1.1);
+          g.stroke();
+        }
+      }, false);
+      TX.peligro = tex(128, 128, (g, w, h) => {
+        g.fillStyle = "#ffd23f";
+        g.fillRect(0, 0, w, h);
+        g.fillStyle = "#1d1d28";
+        for (let i = -w; i < w * 2; i += 32) {
+          g.beginPath();
+          g.moveTo(i, 0);
+          g.lineTo(i + 16, 0);
+          g.lineTo(i + 16 - h, h);
+          g.lineTo(i - h, h);
+          g.fill();
+        }
+      });
+      TX.rayas = tex(256, 32, (g, w, h) => {
+        for (let i = 0; i < 8; i++) {
+          g.fillStyle = i % 2 ? "#ffffff" : "#ff3b4f";
+          g.fillRect((i * w) / 8, 0, w / 8, h);
+        }
+      });
+      TX.punto = tex(64, 64, (g, w, h) => {
+        const gr = g.createRadialGradient(32, 32, 1, 32, 32, 30);
+        gr.addColorStop(0, "rgba(255,255,255,1)");
+        gr.addColorStop(0.4, "rgba(255,255,255,0.7)");
+        gr.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = gr;
+        g.fillRect(0, 0, w, h);
+      }, false);
+
+      const MAT = {
+        arena: compartir(material(0xffffff, { map: TX.arena, roughness: 1 })),
+        hielo: compartir(material(0xffffff, { map: TX.hielo, roughness: 0.08, metalness: 0.15, envMapIntensity: 1.3 })),
+        agua: compartir(material(0xffffff, { map: TX.agua, roughness: 0.08, metalness: 0.25, transparent: true, opacity: 0.9 })),
+        lava: compartir(material(0xffffff, { map: TX.lava, emissive: lin(0xffffff), emissiveMap: TX.lava, emissiveIntensity: 0.9, roughness: 0.6 })),
+        impulso: compartir(material(0xffffff, { map: TX.impulso, emissive: lin(0xffffff), emissiveMap: TX.impulso, emissiveIntensity: 0.55, roughness: 0.4 })),
+        portalT: compartir(new THREE.MeshBasicMaterial({ map: TX.portal, transparent: true, color: 0xff7cf5, depthWrite: false })),
+        portalU: compartir(new THREE.MeshBasicMaterial({ map: TX.portal, transparent: true, color: 0x6ff7ff, depthWrite: false })),
+        peligro: compartir(material(0xffffff, { map: TX.peligro, roughness: 0.45 })),
+        rayas: compartir(material(0xffffff, { map: TX.rayas, roughness: 0.35 })),
+        estrella: compartir(material(0xffd23f, { metalness: 0.75, roughness: 0.22, emissive: lin(0xffa000), emissiveIntensity: 0.45 })),
+        hoyo: compartir(new THREE.MeshBasicMaterial({ color: 0x050505 })),
+        labio: compartir(material(0xffffff, { roughness: 0.3 })),
+        asta: compartir(material(0xeeeeee, { metalness: 0.6, roughness: 0.3 })),
+        hongo: compartir(material(0xff4fd8, { roughness: 0.25, emissive: lin(0xff4fd8), emissiveIntensity: 0.35 })),
+        hongoTapa: compartir(material(0xffffff, { roughness: 0.2, emissive: lin(0xffffff), emissiveIntensity: 0.25 })),
+      };
+      const GEO = {
+        losa: compartir(new THREE.PlaneGeometry(CELDA, CELDA)),
+        paredH: compartir(new THREE.BoxGeometry(CELDA + 0.1, 0.16, 0.1)),
+        paredV: compartir(new THREE.BoxGeometry(0.1, 0.16, CELDA + 0.1)),
+        topeH: compartir(new THREE.BoxGeometry(CELDA + 0.12, 0.025, 0.13)),
+        topeV: compartir(new THREE.BoxGeometry(0.13, 0.025, CELDA + 0.12)),
+        bloque: compartir(Graficos3D.cajaSuave ? Graficos3D.cajaSuave(CELDA, 0.25, CELDA, 0.05) : new THREE.BoxGeometry(CELDA, 0.25, CELDA)),
+        movil: compartir(Graficos3D.cajaSuave ? Graficos3D.cajaSuave(CELDA * 0.92, 0.2, CELDA * 0.92, 0.05) : new THREE.BoxGeometry(CELDA * 0.92, 0.2, CELDA * 0.92)),
+        poste: compartir(new THREE.CylinderGeometry(0.11, 0.11, 0.22, 24)),
+        anillo: compartir(new THREE.RingGeometry(0.16, 0.22, 40)),
+        disco: compartir(new THREE.CircleGeometry(0.2, 40)),
+      };
+      // estrella 3D
+      (() => {
+        const s = new THREE.Shape();
+        for (let i = 0; i < 10; i++) {
+          const r = i % 2 ? 0.034 : 0.08,
+            a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+          i ? s.lineTo(Math.cos(a) * r, Math.sin(a) * r) : s.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        const g = new THREE.ExtrudeGeometry(s, { depth: 0.02, bevelEnabled: true, bevelSize: 0.008, bevelThickness: 0.008, bevelSegments: 2 });
+        g.center();
+        GEO.estrella = compartir(g);
+      })();
+
+      // ---------- Suelo alrededor, mar y decoración por mundo ----------
+      const alrededor = new THREE.Mesh(new THREE.CircleGeometry(17, 64), material(0x6fbf5f, { roughness: 1 }));
       alrededor.rotation.x = -Math.PI / 2;
       alrededor.position.y = -0.12;
       alrededor.receiveShadow = true;
       escena.add(alrededor);
+      const mar = new THREE.Mesh(new THREE.RingGeometry(16.5, 90, 64), MAT.agua);
+      mar.rotation.x = -Math.PI / 2;
+      mar.position.y = -0.14;
+      escena.add(mar);
+      let decoracion = null;
+      let particulas = null;
+      let temaActual = -1;
+      const cacheTema = {};
 
-      // árboles y nubes de decoración
-      for (let i = 0; i < 26; i++) {
-        const a = (i / 26) * Math.PI * 2;
-        const r = azar(9, 16);
-        const arbol = new THREE.Group();
-        const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 1, 8), material(0x7a4a26));
-        tronco.position.y = 0.4;
-        const copa = new THREE.Mesh(new THREE.ConeGeometry(azar(0.7, 1.1), azar(1.8, 2.6), 10), material(Math.random() < 0.5 ? 0x2f8f3e : 0x3a9e4a));
-        copa.position.y = 1.9;
-        copa.castShadow = tronco.castShadow = true;
-        arbol.add(tronco, copa);
-        arbol.position.set(Math.cos(a) * r, -0.12, Math.sin(a) * r);
-        escena.add(arbol);
+      function texturaPasto(t) {
+        return tex(256, 256, (g, w, h) => {
+          for (let i = 0; i < 4; i++) {
+            g.fillStyle = t.pasto[i % 2];
+            g.fillRect(0, (i * h) / 4, w, h / 4);
+          }
+          ruidoPixeles(g, w, h, 26);
+          for (let i = 0; i < 1400; i++) {
+            g.strokeStyle = Math.random() < 0.5 ? "rgba(255,255,255,0.07)" : "rgba(0,40,0,0.09)";
+            g.lineWidth = 1;
+            const x = Math.random() * w,
+              y = Math.random() * h;
+            g.beginPath();
+            g.moveTo(x, y);
+            g.lineTo(x + azar(-1.5, 1.5), y - azar(2, 5));
+            g.stroke();
+          }
+          if (t.neon) {
+            g.strokeStyle = "rgba(0,240,255,0.75)";
+            g.lineWidth = 3;
+            for (let k = 0; k <= 2; k++) {
+              g.beginPath();
+              g.moveTo((k * w) / 2, 0);
+              g.lineTo((k * w) / 2, h);
+              g.moveTo(0, (k * h) / 2);
+              g.lineTo(w, (k * h) / 2);
+              g.stroke();
+            }
+          }
+        });
+      }
+      function texturaCielo(t) {
+        return M.textura(64, 512, (g, w, h) => {
+          const gr = g.createLinearGradient(0, 0, 0, h);
+          gr.addColorStop(0, t.cielo[0]);
+          gr.addColorStop(0.55, t.cielo[1]);
+          gr.addColorStop(1, t.cielo[2]);
+          g.fillStyle = gr;
+          g.fillRect(0, 0, w, h);
+          if (t.particulas === "estrellas")
+            for (let i = 0; i < 120; i++) {
+              g.fillStyle = `rgba(255,255,255,${azar(0.3, 1)})`;
+              g.fillRect(Math.random() * w, Math.random() * h * 0.7, 1, 1);
+            }
+        });
+      }
+      function recursosTema(mi) {
+        if (cacheTema[mi]) return cacheTema[mi];
+        const t = MUNDOS[mi];
+        const pasto = texturaPasto(t);
+        const r = {
+          cielo: texturaCielo(t),
+          pasto: compartir(material(0xffffff, Object.assign({ map: pasto, roughness: 0.95 }, t.neon ? { emissive: lin(0xffffff), emissiveMap: pasto, emissiveIntensity: 0.28 } : {}))),
+          pared: compartir(material(0xffffff, { map: tex(256, 64, (g, w, h) => Arcade.dibujarMadera(g, w, h, { ...t.madera, tablas: 2, vertical: false })), roughness: 0.7, metalness: t.neon ? 0.4 : 0.02 })),
+          tope: compartir(material(t.tope, Object.assign({ roughness: 0.35 }, t.topeBrilla ? { emissive: lin(t.tope), emissiveIntensity: 0.9 } : {}))),
+          bloque: compartir(material(t.bloque, Object.assign({ roughness: t.id === "glaciar" ? 0.12 : 0.8, metalness: t.id === "galaxia" ? 0.5 : 0.05 }, t.neon ? { emissive: lin(0x5a3aff), emissiveIntensity: 0.25 } : {}))),
+          poste: compartir(material(t.poste, { roughness: 0.3 })),
+          suelo: material(t.suelo, Object.assign({ roughness: 1 }, t.neon ? { map: pasto, emissive: lin(0x2a1a6a), emissiveIntensity: 0.25 } : {})),
+        };
+        if (t.neon) {
+          const m = r.suelo.map.clone();
+          m.needsUpdate = true;
+          m.repeat.set(20, 20);
+          r.suelo.map = m;
+        }
+        cacheTema[mi] = r;
+        return r;
+      }
+
+      function desechar(obj) {
+        obj.traverse((m) => {
+          if (m.geometry && !compartidos.has(m.geometry)) m.geometry.dispose();
+          if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => !compartidos.has(x) && x.dispose());
+        });
+      }
+
+      function crearDecoracion(t) {
+        const g = new THREE.Group();
+        const sombra = (m) => ((m.castShadow = true), m);
+        const anillo = (i, n, r0, r1) => {
+          const a = (i / n) * Math.PI * 2 + azar(-0.1, 0.1),
+            r = azar(r0, r1);
+          return [Math.cos(a) * r, Math.sin(a) * r];
+        };
+        if (t.deco === "pradera") {
+          for (let i = 0; i < 28; i++) {
+            const [x, z] = anillo(i, 28, 7, 15);
+            const arbol = new THREE.Group();
+            const tronco = sombra(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 1, 8), material(0x7a4a26)));
+            tronco.position.y = 0.4;
+            const redondo = Math.random() < 0.45;
+            const copa = sombra(
+              new THREE.Mesh(
+                redondo ? new THREE.IcosahedronGeometry(azar(0.7, 1), 1) : new THREE.ConeGeometry(azar(0.7, 1.1), azar(1.8, 2.6), 10),
+                material(Math.random() < 0.5 ? 0x2f8f3e : 0x3aa64c, { flatShading: redondo }),
+              ),
+            );
+            copa.position.y = redondo ? 1.5 : 1.9;
+            arbol.add(tronco, copa);
+            arbol.position.set(x, -0.12, z);
+            g.add(arbol);
+          }
+          const colores = [0xff6fa8, 0xffd23f, 0xffffff, 0xb57bff, 0xff8a3d];
+          for (let i = 0; i < 70; i++) {
+            const [x, z] = anillo(i, 70, 4.6, 9);
+            const flor = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), material(colores[i % colores.length], { roughness: 0.5 }));
+            flor.position.set(x, -0.04, z);
+            g.add(flor);
+          }
+          // molino decorativo grande
+          const casa = new THREE.Group();
+          const torre = sombra(new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.9, 3, 8), material(0xfff3e0)));
+          torre.position.y = 1.4;
+          const techo = sombra(new THREE.Mesh(new THREE.ConeGeometry(0.85, 1, 8), material(0xc0392b)));
+          techo.position.y = 3.4;
+          const aspas = new THREE.Group();
+          for (let k = 0; k < 4; k++) {
+            const a = sombra(new THREE.Mesh(new THREE.BoxGeometry(0.25, 2.2, 0.05), material(0xffffff)));
+            a.position.y = 1.1;
+            const piv = new THREE.Group();
+            piv.rotation.z = (k * Math.PI) / 2;
+            piv.add(a);
+            aspas.add(piv);
+          }
+          aspas.position.set(0, 2.8, 0.75);
+          casa.add(torre, techo, aspas);
+          casa.position.set(-9, -0.12, -8);
+          casa.rotation.y = 0.6;
+          g.userData.aspas = aspas;
+          g.add(casa);
+        } else if (t.deco === "playa") {
+          for (let i = 0; i < 16; i++) {
+            const [x, z] = anillo(i, 16, 7, 14);
+            const palma = new THREE.Group();
+            const inclina = azar(-0.25, 0.25);
+            let y = 0;
+            for (let s = 0; s < 6; s++) {
+              const seg = sombra(new THREE.Mesh(new THREE.CylinderGeometry(0.11 - s * 0.01, 0.13 - s * 0.01, 0.45, 8), material(s % 2 ? 0x9b6b3d : 0x8a5a2e)));
+              seg.position.set(Math.sin(inclina) * y * 0.6, y + 0.22, 0);
+              seg.rotation.z = -inclina * 0.6;
+              palma.add(seg);
+              y += 0.42;
+            }
+            const tope = new THREE.Vector3(Math.sin(inclina) * y * 0.6, y, 0);
+            for (let k = 0; k < 7; k++) {
+              const hoja = sombra(new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 6), material(k % 2 ? 0x2e9e4f : 0x3cb85e)));
+              hoja.scale.set(1.6, 0.08, 0.35);
+              const a = (k / 7) * Math.PI * 2;
+              hoja.position.set(tope.x + Math.cos(a) * 0.65, tope.y - 0.15, Math.sin(a) * 0.65);
+              hoja.rotation.y = -a;
+              hoja.rotation.z = -0.35;
+              palma.add(hoja);
+            }
+            for (let k = 0; k < 3; k++) {
+              const coco = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), material(0x5a3a1a));
+              coco.position.set(tope.x + azar(-0.12, 0.12), tope.y - 0.2, azar(-0.12, 0.12));
+              palma.add(coco);
+            }
+            palma.position.set(x, -0.12, z);
+            palma.rotation.y = Math.random() * 6;
+            g.add(palma);
+          }
+          [0xff4f8b, 0x4fb3ff, 0xffd23f, 0x26de81].forEach((c, k) => {
+            const [x, z] = anillo(k * 4 + 2, 16, 5.5, 6.5);
+            const som = new THREE.Group();
+            const palo = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.5, 6), material(0xffffff));
+            palo.position.y = 0.75;
+            const tela = sombra(new THREE.Mesh(new THREE.ConeGeometry(0.9, 0.35, 12), material(c, { roughness: 0.6 })));
+            tela.position.y = 1.5;
+            som.add(palo, tela);
+            som.position.set(x, -0.12, z);
+            g.add(som);
+          });
+        } else if (t.deco === "glaciar") {
+          for (let i = 0; i < 30; i++) {
+            const [x, z] = anillo(i, 30, 7, 15);
+            const pino = new THREE.Group();
+            const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.6, 8), material(0x5a3a22));
+            tronco.position.y = 0.3;
+            pino.add(tronco);
+            const esc = azar(0.8, 1.3);
+            for (let k = 0; k < 3; k++) {
+              const cono = sombra(new THREE.Mesh(new THREE.ConeGeometry((1 - k * 0.25) * esc, 1.1 * esc, 10), material(0x1f6b4a)));
+              cono.position.y = (0.8 + k * 0.6) * esc;
+              const nieve = new THREE.Mesh(new THREE.ConeGeometry((0.5 - k * 0.12) * esc, 0.4 * esc, 10), material(0xffffff, { roughness: 1 }));
+              nieve.position.y = cono.position.y + 0.38 * esc;
+              pino.add(cono, nieve);
+            }
+            pino.position.set(x, -0.12, z);
+            g.add(pino);
+          }
+          for (let i = 0; i < 14; i++) {
+            const [x, z] = anillo(i, 14, 5, 7);
+            const c = sombra(new THREE.Mesh(new THREE.OctahedronGeometry(azar(0.2, 0.45)), material(0xbfe9ff, { roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.8 })));
+            c.position.set(x, 0.15, z);
+            c.scale.y = azar(1.4, 2.4);
+            c.rotation.y = Math.random() * 3;
+            g.add(c);
+          }
+          for (let k = 0; k < 2; k++) {
+            const mono = new THREE.Group();
+            [0.42, 0.3, 0.2].forEach((r, i) => {
+              const b = sombra(new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), material(0xffffff, { roughness: 1 })));
+              b.position.y = [0.3, 0.85, 1.25][i];
+              mono.add(b);
+            });
+            const nariz = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.25, 8), material(0xff8a3d));
+            nariz.rotation.x = Math.PI / 2;
+            nariz.position.set(0, 1.25, 0.25);
+            const gorro = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.25, 12), material(0x222233));
+            gorro.position.y = 1.5;
+            mono.add(nariz, gorro);
+            mono.position.set(k ? 5.6 : -5.8, -0.12, k ? -3 : 2.5);
+            mono.rotation.y = k ? -0.8 : 0.8;
+            g.add(mono);
+          }
+        } else if (t.deco === "volcan") {
+          for (let i = 0; i < 34; i++) {
+            const [x, z] = anillo(i, 34, 5.5, 15);
+            const roca = sombra(new THREE.Mesh(new THREE.DodecahedronGeometry(azar(0.3, 1.1)), material(i % 3 ? 0x2b2426 : 0x3d3335, { roughness: 0.95, flatShading: true })));
+            roca.position.set(x, 0, z);
+            roca.scale.y = azar(0.5, 1.2);
+            roca.rotation.set(Math.random(), Math.random(), Math.random());
+            g.add(roca);
+          }
+          const volcan = new THREE.Mesh(new THREE.ConeGeometry(9, 9, 24, 1, true), material(0x2a1c1a, { roughness: 1, flatShading: true }));
+          volcan.position.set(4, 4.2, -30);
+          const crater = new THREE.Mesh(new THREE.SphereGeometry(2.4, 16, 10), new THREE.MeshBasicMaterial({ color: 0xff6a10 }));
+          crater.position.set(4, 8.8, -30);
+          crater.scale.y = 0.35;
+          g.add(volcan, crater);
+          g.userData.crater = crater;
+        } else if (t.deco === "galaxia") {
+          const neones = [0x00f0ff, 0xff4fd8, 0xb57bff, 0x7dff6a, 0xffd23f];
+          const flotantes = [];
+          for (let i = 0; i < 22; i++) {
+            const [x, z] = anillo(i, 22, 6, 14);
+            const c = neones[i % neones.length];
+            const cr = new THREE.Mesh(
+              i % 3 ? new THREE.OctahedronGeometry(azar(0.3, 0.7)) : new THREE.TorusGeometry(azar(0.4, 0.7), 0.06, 8, 32),
+              material(c, { emissive: lin(c), emissiveIntensity: 0.9, roughness: 0.2, metalness: 0.3 }),
+            );
+            cr.position.set(x, azar(0.6, 3), z);
+            cr.userData.base = cr.position.y;
+            cr.userData.fase = Math.random() * 6;
+            flotantes.push(cr);
+            g.add(cr);
+          }
+          const planeta = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 24), material(0xff7a59, { roughness: 0.8, emissive: lin(0x5a1a10), emissiveIntensity: 0.4 }));
+          planeta.position.set(-18, 14, -40);
+          const aro = new THREE.Mesh(new THREE.RingGeometry(6.5, 9, 64), new THREE.MeshBasicMaterial({ color: 0xffd7a0, side: THREE.DoubleSide, transparent: true, opacity: 0.6 }));
+          aro.position.copy(planeta.position);
+          aro.rotation.set(1.2, 0.3, 0);
+          g.add(planeta, aro);
+          g.userData.flotantes = flotantes;
+        }
+        return g;
+      }
+
+      function crearParticulas(tipo) {
+        if (!tipo) return null;
+        const N = tipo === "estrellas" ? 500 : 320;
+        const pos = new Float32Array(N * 3);
+        for (let i = 0; i < N; i++) {
+          pos[i * 3] = azar(-14, 14);
+          pos[i * 3 + 1] = tipo === "estrellas" ? azar(3, 25) : azar(0, 8);
+          pos[i * 3 + 2] = azar(-14, 14);
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        const color = { petalos: 0xffa8cf, nieve: 0xffffff, brasas: 0xff8a2a, estrellas: 0xe6e6ff }[tipo];
+        const p = new THREE.Points(
+          geo,
+          new THREE.PointsMaterial({ color, size: tipo === "estrellas" ? 0.12 : 0.09, map: TX.punto, transparent: true, depthWrite: false, blending: tipo === "petalos" ? THREE.NormalBlending : THREE.AdditiveBlending }),
+        );
+        p.userData.tipo = tipo;
+        return p;
+      }
+
+      function aplicarTema(mi) {
+        if (temaActual === mi) return;
+        temaActual = mi;
+        const t = MUNDOS[mi];
+        const r = recursosTema(mi);
+        escena.background = r.cielo;
+        escena.fog.color.set(t.niebla);
+        sol.color.set(t.sol[0]);
+        sol.intensity = t.sol[1];
+        hemi.color.set(t.hemi[0]);
+        hemi.groundColor.set(t.hemi[1]);
+        hemi.intensity = t.hemi[2];
+        alrededor.material = r.suelo;
+        mar.visible = !!t.mar;
+        if (t.mar) mar.material = MAT[t.mar];
+        if (decoracion) {
+          escena.remove(decoracion);
+          desechar(decoracion);
+        }
+        decoracion = crearDecoracion(t);
+        escena.add(decoracion);
+        if (particulas) {
+          escena.remove(particulas);
+          desechar(particulas);
+        }
+        particulas = crearParticulas(t.particulas);
+        if (particulas) escena.add(particulas);
       }
 
       // =========================================================
@@ -114,11 +798,17 @@
       mundoFisico.addContactMaterial(new CANNON.ContactMaterial(mBola, mPiso, { friction: 0.08, restitution: 0.15 }));
       mundoFisico.addContactMaterial(new CANNON.ContactMaterial(mBola, mPared, { friction: 0.05, restitution: 0.72 }));
 
-      const cuerpoBola = new CANNON.Body({ mass: 0.046, material: mBola, shape: new CANNON.Sphere(RADIO_BOLA), linearDamping: 0.45, angularDamping: 0.45 });
+      const AMORTIGUAR = 0.45;
+      const cuerpoBola = new CANNON.Body({ mass: 0.046, material: mBola, shape: new CANNON.Sphere(RADIO_BOLA), linearDamping: AMORTIGUAR, angularDamping: 0.45 });
       mundoFisico.addBody(cuerpoBola);
       let ultimoGolpe = 0;
+      let rebotePendiente = null;
       cuerpoBola.addEventListener("collide", (e) => {
         const v = Math.abs(e.contact.getImpactVelocityAlongNormal());
+        if (e.body.hongo) {
+          rebotePendiente = e.body;
+          return;
+        }
         if (e.body.material === mPared && v > 0.3 && performance.now() - ultimoGolpe > 60) {
           ultimoGolpe = performance.now();
           sonar("golpe", Math.min(0.6, v / 6));
@@ -138,11 +828,21 @@
           }
         }),
       );
-      const bola = new THREE.Mesh(new THREE.SphereGeometry(RADIO_BOLA, 24, 18), material(0xffffff, { map: texturasBola[0], roughness: 0.35 }));
+      const bola = new THREE.Mesh(new THREE.SphereGeometry(RADIO_BOLA, 24, 18), material(0xffffff, { map: texturasBola[0], roughness: 0.3, clearcoat: 0.6 }));
       bola.castShadow = true;
       escena.add(bola);
 
-      // Flecha para apuntar
+      // Estela de la bola
+      const LARGO_ESTELA = 26;
+      const geoEstela = new THREE.BufferGeometry();
+      geoEstela.setAttribute("position", new THREE.BufferAttribute(new Float32Array(LARGO_ESTELA * 3), 3));
+      const estela = new THREE.Line(geoEstela, new THREE.LineBasicMaterial({ color: COLORES[0], transparent: true, opacity: 0.55 }));
+      estela.frustumCulled = false;
+      estela.visible = false;
+      escena.add(estela);
+      const puntosEstela = [];
+
+      // Flecha y puntos para apuntar
       const flecha = new THREE.Group();
       const cuerpoFlecha = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 1), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }));
       cuerpoFlecha.position.z = 0.5;
@@ -152,6 +852,71 @@
       flecha.add(cuerpoFlecha, puntaFlecha);
       flecha.visible = false;
       escena.add(flecha);
+      const guias = [];
+      const geoGuia = new THREE.SphereGeometry(0.018, 8, 6);
+      const matGuia = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+      for (let i = 0; i < 14; i++) {
+        const p = new THREE.Mesh(geoGuia, matGuia);
+        p.visible = false;
+        guias.push(p);
+        escena.add(p);
+      }
+
+      // Efectos: confeti, salpicaduras, destellos
+      const efectos = [];
+      function confeti(x, z, cantidad = 90, colores = [0xff4f8b, 0x4fb3ff, 0xffd23f, 0x26de81, 0xb57bff]) {
+        const pos = new Float32Array(cantidad * 3),
+          col = new Float32Array(cantidad * 3),
+          vel = [];
+        for (let i = 0; i < cantidad; i++) {
+          pos.set([x, 0.1, z], i * 3);
+          const c = new THREE.Color(colores[i % colores.length]);
+          col.set([c.r, c.g, c.b], i * 3);
+          const a = Math.random() * Math.PI * 2,
+            s = azar(0.4, 1.6);
+          vel.push([Math.cos(a) * s, azar(1.5, 3.4), Math.sin(a) * s]);
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+        const p = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.07, vertexColors: true, map: TX.punto, transparent: true, depthWrite: false }));
+        escena.add(p);
+        efectos.push({ tipo: "confeti", obj: p, vel, vida: 1.8, t: 0 });
+      }
+      function onda(x, z, color = 0xbfeaff) {
+        const m = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.08, 32), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }));
+        m.rotation.x = -Math.PI / 2;
+        m.position.set(x, 0.02, z);
+        escena.add(m);
+        efectos.push({ tipo: "onda", obj: m, vida: 0.7, t: 0 });
+      }
+      function actualizarEfectos(dt) {
+        for (let i = efectos.length - 1; i >= 0; i--) {
+          const e = efectos[i];
+          e.t += dt;
+          const k = e.t / e.vida;
+          if (e.tipo === "confeti") {
+            const pos = e.obj.geometry.attributes.position;
+            for (let j = 0; j < e.vel.length; j++) {
+              e.vel[j][1] -= 6 * dt;
+              pos.array[j * 3] += e.vel[j][0] * dt;
+              pos.array[j * 3 + 1] = Math.max(0.01, pos.array[j * 3 + 1] + e.vel[j][1] * dt);
+              pos.array[j * 3 + 2] += e.vel[j][2] * dt;
+            }
+            pos.needsUpdate = true;
+            e.obj.material.opacity = 1 - k * k;
+          } else if (e.tipo === "onda") {
+            e.obj.scale.setScalar(1 + k * 5);
+            e.obj.material.opacity = 0.9 * (1 - k);
+          }
+          if (k >= 1) {
+            escena.remove(e.obj);
+            e.obj.geometry.dispose();
+            e.obj.material.dispose();
+            efectos.splice(i, 1);
+          }
+        }
+      }
 
       // =========================================================
       //  CONSTRUIR UN HOYO
@@ -159,16 +924,18 @@
       let hoyoActual = null;
       const objetosHoyo = [];
       const cuerposHoyo = [];
-      let molino = null;
 
       function limpiarHoyo() {
-        objetosHoyo.forEach((o) => escena.remove(o));
+        objetosHoyo.forEach((o) => {
+          escena.remove(o);
+          desechar(o);
+        });
         cuerposHoyo.forEach((c) => mundoFisico.removeBody(c));
         objetosHoyo.length = cuerposHoyo.length = 0;
-        molino = null;
       }
-      function agregar(malla) {
-        malla.castShadow = malla.receiveShadow = true;
+      function agregar(malla, sombra = true) {
+        malla.castShadow = sombra;
+        malla.receiveShadow = true;
         escena.add(malla);
         objetosHoyo.push(malla);
         return malla;
@@ -181,27 +948,56 @@
         cuerposHoyo.push(c);
         return c;
       }
-
-      const matMadera = material(0xffffff, {
-        map: M.textura(256, 64, (g, w, h) => Arcade.dibujarMadera(g, w, h, { tono: 28, sat: 45, luz: 45, tablas: 2, vertical: false })),
-        roughness: 0.7,
-      });
-      const matPiedra = material(0x9a9aa5, { roughness: 0.85 });
+      function cilindroFisico(radio, alto, x, z) {
+        const c = new CANNON.Body({ mass: 0, material: mPared });
+        const q = new CANNON.Quaternion();
+        q.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+        c.addShape(new CANNON.Cylinder(radio, radio, alto, 14), new CANNON.Vec3(), q);
+        c.position.set(x, alto / 2, z);
+        mundoFisico.addBody(c);
+        cuerposHoyo.push(c);
+        return c;
+      }
+      function losa(mat, p, y = 0.004, giro = 0) {
+        const m = agregar(new THREE.Mesh(GEO.losa, mat), false);
+        m.rotation.set(-Math.PI / 2, 0, giro);
+        m.position.set(p.x, y, p.z);
+        return m;
+      }
+      function letrero(texto1, texto2, color) {
+        return material(0xffffff, {
+          map: M.textura(256, 128, (g, w, h) => {
+            g.fillStyle = "#2b1d63";
+            g.fillRect(0, 0, w, h);
+            g.fillStyle = color;
+            g.fillRect(0, h - 10, w, 10);
+            g.fillStyle = "#fff";
+            g.font = "900 40px Nunito, Arial Black, sans-serif";
+            g.textAlign = "center";
+            g.fillText(texto1, w / 2, 52);
+            g.font = "800 32px Nunito, Arial, sans-serif";
+            g.fillStyle = "#ffd84f";
+            g.fillText(texto2, w / 2, 98);
+          }),
+        });
+      }
 
       function construirHoyo(n) {
         limpiarHoyo();
         const datos = HOYOS[n];
+        aplicarTema(datos.mundo);
+        const tema = MUNDOS[datos.mundo];
+        const rec = recursosTema(datos.mundo);
         const mapa = datos.mapa;
         const filas = mapa.length,
           cols = mapa[0].length;
         const esPiso = (f, c) => f >= 0 && f < filas && c >= 0 && c < cols && mapa[f][c] !== "#";
+        const esLibre = (f, c) => esPiso(f, c) && !"XO".includes(mapa[f][c]);
         const centro = (f, c) => ({ x: (c - (cols - 1) / 2) * CELDA, z: (f - (filas - 1) / 2) * CELDA });
-        const info = { salida: null, hoyo: null, agua: [], puntos: {}, filas, cols, par: datos.par };
-        const texturaVerde = texturaPasto.clone();
-        texturaVerde.needsUpdate = true;
+        const info = { n, salida: null, hoyo: null, puntos: {}, filas, cols, par: datos.par, mapa, portal: null, destino: null, estrella: null, hongos: [], moviles: [], molinos: [], portales: [] };
 
         for (let f = 0; f < filas; f++) {
-          // piso: une celdas seguidas de cada fila
+          // piso: une celdas seguidas de cada fila (la textura mide 1 m)
           let c = 0;
           while (c < cols) {
             if (!esPiso(f, c)) {
@@ -214,12 +1010,11 @@
             const p0 = centro(f, c),
               p1 = centro(f, fin);
             const x = (p0.x + p1.x) / 2;
-            const t = texturaVerde.clone();
-            t.needsUpdate = true;
-            t.repeat.set(largo, CELDA);
-            const piso = agregar(new THREE.Mesh(new THREE.BoxGeometry(largo, 0.1, CELDA), material(0xffffff, { map: t, roughness: 0.95 })));
+            const geo = new THREE.BoxGeometry(largo, 0.1, CELDA);
+            const uv = geo.attributes.uv;
+            for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * largo + p0.x, uv.getY(i) * CELDA - p0.z);
+            const piso = agregar(new THREE.Mesh(geo, rec.pasto), false);
             piso.position.set(x, -0.05, p0.z);
-            piso.castShadow = false;
             cajaFisica(largo / 2, 0.05, CELDA / 2, x, -0.05, p0.z, mPiso);
             c = fin + 1;
           }
@@ -227,7 +1022,7 @@
             const letra = mapa[f][c2];
             if (letra === "#") continue;
             const p = centro(f, c2);
-            // paredes en las orillas
+            // paredes en las orillas, con un tope de color
             [
               [-1, 0],
               [1, 0],
@@ -240,100 +1035,217 @@
                 fondo = horizontal ? 0.1 : CELDA + 0.1;
               const x = p.x + dc * (CELDA / 2 + 0.05),
                 z = p.z + df * (CELDA / 2 + 0.05);
-              const pared = agregar(new THREE.Mesh(new THREE.BoxGeometry(ancho, 0.16, fondo), matMadera));
+              const pared = agregar(new THREE.Mesh(horizontal ? GEO.paredH : GEO.paredV, rec.pared));
               pared.position.set(x, 0.08, z);
+              const tope = agregar(new THREE.Mesh(horizontal ? GEO.topeH : GEO.topeV, rec.tope), false);
+              tope.position.set(x, 0.172, z);
               cajaFisica(ancho / 2, 0.15, fondo / 2, x, 0.08, z, mPared);
             });
             if (letra === "S") info.salida = p;
             if (letra === "H") info.hoyo = p;
             if (/[1-9]/.test(letra)) info.puntos[letra] = p;
+            if (letra === "A") losa(MAT.arena, p);
+            if (letra === "I") losa(MAT.hielo, p);
+            if (letra === "W") losa(MAT.agua, p, 0.006);
+            if (letra === "L") losa(MAT.lava, p, 0.006);
+            if (DIRECCIONES[letra]) {
+              const giro = { "^": 0, ">": -Math.PI / 2, "<": Math.PI / 2, v: Math.PI }[letra];
+              losa(MAT.impulso, p, 0.005, giro);
+            }
+            if (letra === "T" || letra === "U") {
+              const d = agregar(new THREE.Mesh(GEO.disco, letra === "T" ? MAT.portalT : MAT.portalU), false);
+              d.rotation.x = -Math.PI / 2;
+              d.position.set(p.x, 0.007, p.z);
+              const a = agregar(new THREE.Mesh(GEO.anillo, new THREE.MeshBasicMaterial({ color: letra === "T" ? 0xff4fd8 : 0x00f0ff, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })), false);
+              a.position.set(p.x, 0.12, p.z);
+              info.portales.push({ disco: d, anillo: a, signo: letra === "T" ? 1 : -1 });
+              if (letra === "T") info.portal = p;
+              else info.destino = p;
+            }
             if (letra === "X") {
-              const bloque = agregar(new THREE.Mesh(new THREE.BoxGeometry(CELDA, 0.25, CELDA), matPiedra));
+              const bloque = agregar(new THREE.Mesh(GEO.bloque, rec.bloque));
               bloque.position.set(p.x, 0.125, p.z);
               cajaFisica(CELDA / 2, 0.15, CELDA / 2, p.x, 0.125, p.z, mPared);
             }
             if (letra === "O") {
-              const poste = agregar(new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.22, 20), material(0xff4f8b, { roughness: 0.3 })));
+              const poste = agregar(new THREE.Mesh(GEO.poste, rec.poste));
               poste.position.set(p.x, 0.11, p.z);
-              const c = new CANNON.Body({ mass: 0, material: mPared });
-              const q = new CANNON.Quaternion();
-              q.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-              c.addShape(new CANNON.Cylinder(0.11, 0.11, 0.22, 12), new CANNON.Vec3(), q);
-              c.position.set(p.x, 0.11, p.z);
-              mundoFisico.addBody(c);
-              cuerposHoyo.push(c);
+              cilindroFisico(0.11, 0.22, p.x, p.z);
             }
-            if (letra === "W") {
-              info.agua.push(p);
-              const agua = agregar(new THREE.Mesh(new THREE.BoxGeometry(CELDA, 0.02, CELDA), material(0x2e8fe0, { roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.85 })));
-              agua.position.set(p.x, 0.005, p.z);
-              agua.receiveShadow = false;
+            if (letra === "P") {
+              const hongo = new THREE.Group();
+              const tallo = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.14, 20), MAT.hongoTapa);
+              tallo.position.y = 0.07;
+              const tapa = new THREE.Mesh(new THREE.SphereGeometry(0.15, 22, 12, 0, Math.PI * 2, 0, Math.PI / 2), MAT.hongo);
+              tapa.position.y = 0.13;
+              tapa.castShadow = tallo.castShadow = true;
+              hongo.add(tallo, tapa);
+              hongo.position.set(p.x, 0, p.z);
+              agregar(hongo);
+              const c = cilindroFisico(0.12, 0.22, p.x, p.z);
+              c.hongo = hongo;
+              info.hongos.push({ grupo: hongo, cuerpo: c, pulso: 0 });
+            }
+            if (letra === "D" || letra === "E") {
+              const eje = letra === "D" ? [0, 1] : [1, 0];
+              const contar = (s) => {
+                let k = 0;
+                while (k < 2 && esLibre(f + eje[0] * s * (k + 1), c2 + eje[1] * s * (k + 1))) k++;
+                return k;
+              };
+              const amp = Math.min(contar(1), contar(-1)) * CELDA;
+              const malla = agregar(new THREE.Mesh(GEO.movil, MAT.peligro));
+              malla.position.set(p.x, 0.1, p.z);
+              const cuerpo = cajaFisica(CELDA * 0.46, 0.12, CELDA * 0.46, p.x, 0.1, p.z, mPared, CANNON.Body.KINEMATIC);
+              info.moviles.push({ malla, cuerpo, base: p, eje: letra === "D" ? "x" : "z", amp, w: tema.neon ? 2.2 : 1.6, fase: Math.random() * 6 });
             }
             if (letra === "M") {
-              const torre = agregar(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.5, 12), material(0xffffff)));
+              const contar = (s) => {
+                let k = 0;
+                while (k < 3 && esPiso(f, c2 + s * (k + 1))) k++;
+                return k;
+              };
+              const largo = Math.min(1.7, (2 * Math.min(contar(1), contar(-1)) + 1) * CELDA - 0.06);
+              const torre = agregar(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.11, 0.5, 14), material(0xffffff)));
               torre.position.set(p.x, 0.25, p.z);
-              const aspa = agregar(new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.1, 0.09), material(0xff4f4f, { roughness: 0.4 })));
+              const techo = agregar(new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.18, 14), material(0xc0392b)));
+              techo.position.set(p.x, 0.59, p.z);
+              const helice = new THREE.Group();
+              for (let k = 0; k < 4; k++) {
+                const a = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.3, 0.012), material(0xffffff));
+                a.position.y = 0.15;
+                const piv = new THREE.Group();
+                piv.rotation.z = (k * Math.PI) / 2;
+                piv.add(a);
+                helice.add(piv);
+              }
+              helice.position.set(p.x, 0.42, p.z + 0.12);
+              agregar(helice);
+              const aspa = agregar(new THREE.Mesh(new THREE.BoxGeometry(largo, 0.1, 0.09), MAT.rayas));
               aspa.position.set(p.x, 0.09, p.z);
-              const cuerpo = cajaFisica(0.85, 0.06, 0.045, p.x, 0.09, p.z, mPared, CANNON.Body.KINEMATIC);
-              cuerpo.angularVelocity.set(0, 1.3, 0);
-              molino = { aspa, cuerpo };
+              const cuerpo = cajaFisica(largo / 2, 0.06, 0.045, p.x, 0.09, p.z, mPared, CANNON.Body.KINEMATIC);
+              cuerpo.angularVelocity.set(0, tema.molino, 0);
+              info.molinos.push({ aspa, cuerpo, helice });
+            }
+            if (letra === "*") {
+              const e = agregar(new THREE.Mesh(GEO.estrella, MAT.estrella));
+              e.position.set(p.x, 0.13, p.z);
+              info.estrella = { malla: e, p };
             }
           }
         }
-        // hoyo con bandera
-        const hoyo = agregar(new THREE.Mesh(new THREE.CircleGeometry(RADIO_HOYO, 32), new THREE.MeshBasicMaterial({ color: 0x0a0a0a })));
+        // hoyo con labio blanco y bandera que ondea
+        const hoyo = agregar(new THREE.Mesh(new THREE.CircleGeometry(RADIO_HOYO, 32), MAT.hoyo), false);
         hoyo.rotation.x = -Math.PI / 2;
-        hoyo.position.set(info.hoyo.x, 0.002, info.hoyo.z);
-        const asta = agregar(new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.9, 8), material(0xeeeeee, { metalness: 0.6 })));
+        hoyo.position.set(info.hoyo.x, 0.003, info.hoyo.z);
+        const labio = agregar(new THREE.Mesh(new THREE.RingGeometry(RADIO_HOYO, RADIO_HOYO + 0.018, 40), MAT.labio), false);
+        labio.rotation.x = -Math.PI / 2;
+        labio.position.set(info.hoyo.x, 0.004, info.hoyo.z);
+        const asta = agregar(new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.9, 8), MAT.asta));
         asta.position.set(info.hoyo.x, 0.45, info.hoyo.z);
-        const bandera = agregar(new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.18), material(0xff3b3b, { side: THREE.DoubleSide })));
-        bandera.position.set(info.hoyo.x + 0.15, 0.8, info.hoyo.z);
-        info.bandera = bandera;
-        // número del hoyo
-        const letrero = agregar(
+        const geoBandera = new THREE.PlaneGeometry(0.32, 0.2, 12, 4);
+        geoBandera.translate(0.16, 0, 0);
+        geoBandera.userData.base = geoBandera.attributes.position.array.slice();
+        const bandera = agregar(
           new THREE.Mesh(
-            new THREE.PlaneGeometry(0.9, 0.45),
+            geoBandera,
             material(0xffffff, {
-              map: M.textura(256, 128, (g, w, h) => {
-                g.fillStyle = "#2b1d63";
+              side: THREE.DoubleSide,
+              map: M.textura(128, 80, (g, w, h) => {
+                g.fillStyle = tema.bandera;
                 g.fillRect(0, 0, w, h);
                 g.fillStyle = "#fff";
                 g.font = "900 46px Nunito, Arial Black, sans-serif";
                 g.textAlign = "center";
-                g.fillText(`HOYO ${n + 1}`, w / 2, 58);
-                g.font = "800 34px Nunito, Arial, sans-serif";
-                g.fillStyle = "#ffd84f";
-                g.fillText(`PAR ${datos.par}`, w / 2, 104);
+                g.fillText(String(datos.numMundo), w / 2, 58);
               }),
             }),
           ),
         );
-        letrero.position.set(info.salida.x - (cols / 2) * CELDA - 0.3, 0.4, info.salida.z);
-        letrero.rotation.y = Math.PI / 6;
-        letrero.castShadow = false;
+        bandera.position.set(info.hoyo.x, 0.79, info.hoyo.z);
+        info.bandera = bandera;
+        // letrero del hoyo
+        const cartel = agregar(new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.45), letrero(`${tema.emoji} HOYO ${datos.numMundo}`, `${tema.nombre.toUpperCase()} · PAR ${datos.par}`, tema.bandera)), false);
+        cartel.position.set(info.salida.x - (cols / 2) * CELDA - 0.3, 0.4, info.salida.z);
+        cartel.rotation.y = Math.PI / 6;
+        const ancho = cols * CELDA,
+          largoMapa = filas * CELDA;
+        Object.assign(sol.shadow.camera, { left: -ancho, right: ancho, top: largoMapa, bottom: -largoMapa });
+        sol.shadow.camera.updateProjectionMatrix();
         hoyoActual = info;
         sol.target.position.set(0, 0, 0);
+        if (!vistaMenu) introHasta = performance.now() + 1500;
         return info;
+      }
+
+      function letraEn(x, z) {
+        if (!hoyoActual) return "#";
+        const c = Math.round(x / CELDA + (hoyoActual.cols - 1) / 2),
+          f = Math.round(z / CELDA + (hoyoActual.filas - 1) / 2);
+        return (hoyoActual.mapa[f] || "")[c] || "#";
       }
 
       // =========================================================
       //  CÁMARA
       // =========================================================
       let vistaMenu = true;
-      function moverCamara(ahora) {
+      let introHasta = 0;
+      let preferenciaCamara = null; // null = automática · true = cerca · false = completa
+      try {
+        const v = localStorage.getItem("golf_camara");
+        if (v === "cerca") preferenciaCamara = true;
+        if (v === "completa") preferenciaCamara = false;
+      } catch (e) {}
+      const miraCamara = new THREE.Vector3();
+      const btnCamara = $("btn-camara");
+      function distanciaCompleta() {
         const aspecto = window.innerWidth / window.innerHeight;
-        const t = ahora / 1000;
-        if (!hoyoActual) return;
         const ancho = hoyoActual.cols * CELDA + 0.6,
           largo = hoyoActual.filas * CELDA + 0.6;
         const tanMitad = Math.tan((25 * Math.PI) / 180);
-        let d = Math.max(largo / 2 / tanMitad, ancho / 2 / (tanMitad * aspecto)) * 0.95 + 0.6;
+        return Math.max(largo / 2 / tanMitad, ancho / 2 / (tanMitad * aspecto)) * 0.95 + 0.6;
+      }
+      const seguirBola = () => (preferenciaCamara !== null ? preferenciaCamara : distanciaCompleta() > 8.5);
+      function textoCamara() {
+        btnCamara.textContent = seguirBola() ? "🎥 Vista: Cerca" : "🗺️ Vista: Completa";
+      }
+      btnCamara.addEventListener("click", () => {
+        preferenciaCamara = !seguirBola();
+        try {
+          localStorage.setItem("golf_camara", preferenciaCamara ? "cerca" : "completa");
+        } catch (e) {}
+        textoCamara();
+        sonar("click");
+      });
+      function moverCamara(ahora) {
+        if (!hoyoActual) return;
+        const aspecto = window.innerWidth / window.innerHeight;
+        const t = ahora / 1000;
+        const d = distanciaCompleta();
         camara.fov = 50;
-        let pos;
-        if (vistaMenu) pos = new THREE.Vector3(Math.sin(t * 0.2) * d * 0.6, d * 0.7, Math.cos(t * 0.2) * d * 0.6);
-        else pos = new THREE.Vector3(0, d * 0.86, d * 0.5);
+        let pos, mira;
+        btnCamara.classList.toggle("oculto", vistaMenu);
+        if (vistaMenu) {
+          pos = new THREE.Vector3(Math.sin(t * 0.2) * d * 0.6, d * 0.7, Math.cos(t * 0.2) * d * 0.6);
+          mira = new THREE.Vector3(0, 0, 0);
+        } else if (ahora < introHasta) {
+          const h = hoyoActual.hoyo;
+          mira = new THREE.Vector3(h.x, 0, h.z);
+          pos = new THREE.Vector3(h.x, 1.5, h.z + 1.2);
+        } else if (seguirBola()) {
+          const b = cuerpoBola.position,
+            h = hoyoActual.hoyo;
+          mira = new THREE.Vector3(b.x * 0.72 + h.x * 0.28, 0, b.z * 0.72 + h.z * 0.28);
+          const tanMitad = Math.tan((25 * Math.PI) / 180);
+          const dc = Math.max(2.8, 1.7 / (tanMitad * Math.min(aspecto, 1.3)));
+          pos = mira.clone().add(new THREE.Vector3(0, dc * 0.86, dc * 0.5));
+        } else {
+          pos = new THREE.Vector3(0, d * 0.86, d * 0.5);
+          mira = new THREE.Vector3(0, 0, -0.15);
+        }
         camara.position.lerp(pos, 0.06);
-        camara.lookAt(0, 0, vistaMenu ? 0 : -0.15);
+        miraCamara.lerp(mira, 0.08);
+        camara.lookAt(miraCamara);
         camara.updateProjectionMatrix();
       }
 
@@ -344,37 +1256,185 @@
       let tiempoQuieta = 0;
       let enHoyo = false;
       let cayoAgua = false;
+      let tipoCaida = "W";
+      let estrellaTomada = false;
+      let ultimoPortal = 0;
+      let ultimaCeldaImpulso = "";
+      const medidor = $("medidor-fuerza");
+
+      function tomarEstrella() {
+        const e = hoyoActual.estrella;
+        if (!e || estrellaTomada) return;
+        estrellaTomada = true;
+        e.malla.visible = false;
+        confeti(e.p.x, e.p.z, 40, [0xffd23f, 0xffffff, 0xffa000]);
+        sonar("perfecto", 1.5);
+        ui.avisar("⭐ ¡Estrella!<small>-1 golpe en este hoyo</small>", "#ffd23f");
+      }
 
       M.alCuadro((dt, ahora) => {
-        if (molino) molino.aspa.quaternion.copy(molino.cuerpo.quaternion);
+        const t = ahora / 1000;
+        const info = hoyoActual;
+        if (info) {
+          for (const mv of info.moviles) {
+            const fase = t * mv.w + mv.fase;
+            const s = Math.sin(fase) * mv.amp,
+              vel = Math.cos(fase) * mv.amp * mv.w;
+            if (mv.eje === "x") {
+              mv.cuerpo.position.set(mv.base.x + s, 0.1, mv.base.z);
+              mv.cuerpo.velocity.set(vel, 0, 0);
+            } else {
+              mv.cuerpo.position.set(mv.base.x, 0.1, mv.base.z + s);
+              mv.cuerpo.velocity.set(0, 0, vel);
+            }
+          }
+        }
         mundoFisico.step(1 / 120, dt, 10);
-        if (hoyoActual) hoyoActual.bandera.rotation.y = Math.sin(ahora / 400) * 0.25;
-        if (!quieta && !enHoyo) {
+        if (info) {
+          for (const m of info.molinos) {
+            m.aspa.quaternion.copy(m.cuerpo.quaternion);
+            m.helice.rotation.z += dt * 4;
+          }
+          for (const mv of info.moviles) mv.malla.position.set(mv.cuerpo.position.x, 0.1, mv.cuerpo.position.z);
+          for (const h of info.hongos) {
+            h.pulso = Math.max(0, h.pulso - dt * 4);
+            const s = 1 + h.pulso * 0.35;
+            h.grupo.scale.set(s, 1 + h.pulso * 0.2, s);
+          }
+          for (const pt of info.portales) {
+            pt.disco.rotation.z += dt * 3 * pt.signo;
+            pt.anillo.rotation.x = Math.PI / 2 + Math.sin(t * 2) * 0.1;
+            pt.anillo.position.y = 0.1 + Math.sin(t * 3) * 0.03;
+          }
+          if (info.estrella && info.estrella.malla.visible) {
+            info.estrella.malla.rotation.y += dt * 2.5;
+            info.estrella.malla.position.y = 0.13 + Math.sin(t * 3) * 0.025;
+          }
+          // bandera que ondea
+          const pb = info.bandera.geometry.attributes.position,
+            base = info.bandera.geometry.userData.base;
+          for (let i = 0; i < pb.count; i++) {
+            const x = base[i * 3];
+            pb.array[i * 3 + 2] = Math.sin(x * 22 - t * 6) * 0.03 * (x / 0.32);
+          }
+          pb.needsUpdate = true;
+        }
+        // texturas animadas
+        TX.agua.offset.x = (TX.agua.offset.x + dt * 0.05) % 1;
+        TX.agua.offset.y = (TX.agua.offset.y + dt * 0.03) % 1;
+        TX.lava.offset.x = (TX.lava.offset.x + dt * 0.02) % 1;
+        TX.lava.offset.y = (TX.lava.offset.y + dt * 0.035) % 1;
+        MAT.lava.emissiveIntensity = 0.8 + Math.sin(t * 2.5) * 0.2;
+        TX.impulso.offset.y = (TX.impulso.offset.y - dt * 1.3) % 1;
+        if (decoracion) {
+          if (decoracion.userData.aspas) decoracion.userData.aspas.rotation.z += dt * 0.6;
+          if (decoracion.userData.crater) decoracion.userData.crater.material.color.setHSL(0.06, 1, 0.5 + Math.sin(t * 2) * 0.08);
+          if (decoracion.userData.flotantes)
+            for (const f of decoracion.userData.flotantes) {
+              f.rotation.y += dt * 0.6;
+              f.rotation.x += dt * 0.3;
+              f.position.y = f.userData.base + Math.sin(t + f.userData.fase) * 0.25;
+            }
+        }
+        if (particulas) {
+          const tipo = particulas.userData.tipo;
+          if (tipo === "estrellas") particulas.rotation.y += dt * 0.01;
+          else {
+            const a = particulas.geometry.attributes.position.array;
+            for (let i = 0; i < a.length; i += 3) {
+              if (tipo === "brasas") {
+                a[i + 1] += dt * (0.5 + (i % 7) * 0.08);
+                if (a[i + 1] > 8) a[i + 1] = 0;
+              } else {
+                a[i + 1] -= dt * (tipo === "nieve" ? 0.6 : 0.35);
+                a[i] += Math.sin(t + i) * dt * 0.25;
+                if (a[i + 1] < 0) a[i + 1] = 8;
+              }
+            }
+            particulas.geometry.attributes.position.needsUpdate = true;
+          }
+        }
+        actualizarEfectos(dt);
+
+        if (!quieta && !enHoyo && info) {
           const p = cuerpoBola.position,
             v = cuerpoBola.velocity;
+          // rebote de hongo (se aplica después del paso de física)
+          if (rebotePendiente) {
+            const c = rebotePendiente;
+            rebotePendiente = null;
+            let dx = p.x - c.position.x,
+              dz = p.z - c.position.z;
+            const l = Math.hypot(dx, dz) || 1;
+            const fuerza = Math.max(2.6, Math.hypot(v.x, v.z) * 1.15);
+            v.set((dx / l) * fuerza, 0, (dz / l) * fuerza);
+            const h = info.hongos.find((x) => x.cuerpo === c);
+            if (h) h.pulso = 1;
+            sonar("rebote", 0.7);
+            sonar("ping", 0.6);
+          }
+          const letra = letraEn(p.x, p.z);
+          cuerpoBola.linearDamping = letra === "A" ? 0.93 : letra === "I" ? 0.05 : AMORTIGUAR;
+          const dir = DIRECCIONES[letra];
+          if (dir) {
+            const comp = v.x * dir[0] + v.z * dir[1];
+            const meta = 3.3;
+            if (comp < meta) {
+              v.x += dir[0] * Math.min(meta - comp, 18 * dt);
+              v.z += dir[1] * Math.min(meta - comp, 18 * dt);
+            }
+            const clave = `${Math.round(p.x / CELDA)},${Math.round(p.z / CELDA)}`;
+            if (clave !== ultimaCeldaImpulso) {
+              ultimaCeldaImpulso = clave;
+              sonar("salto");
+            }
+          } else ultimaCeldaImpulso = "";
+          if (letra === "T" && info.destino && t - ultimoPortal > 0.8) {
+            ultimoPortal = t;
+            onda(p.x, p.z, 0xff4fd8);
+            cuerpoBola.position.set(info.destino.x, RADIO_BOLA + 0.002, info.destino.z);
+            onda(info.destino.x, info.destino.z, 0x00f0ff);
+            puntosEstela.length = 0;
+            sonar("swoosh", 1.2);
+            sonar("aro", 0.4);
+          }
+          const h = info.hoyo;
           const rapidez = Math.hypot(v.x, v.z);
-          const h = hoyoActual.hoyo;
           if (Math.hypot(p.x - h.x, p.z - h.z) < RADIO_HOYO && rapidez < 2.4) {
             enHoyo = true;
             cuerpoBola.velocity.setZero();
             cuerpoBola.type = CANNON.Body.KINEMATIC;
             const desde = new THREE.Vector3(p.x, p.y, p.z);
-            M.animar(260, (t) => {
-              cuerpoBola.position.set(desde.x + (h.x - desde.x) * t, RADIO_BOLA - t * 0.12, desde.z + (h.z - desde.z) * t);
+            M.animar(260, (k) => {
+              cuerpoBola.position.set(desde.x + (h.x - desde.x) * k, RADIO_BOLA - k * 0.12, desde.z + (h.z - desde.z) * k);
             });
             sonar("aro", 0.6);
+            confeti(h.x, h.z);
           }
-          for (const w of hoyoActual.agua)
-            if (Math.abs(p.x - w.x) < CELDA / 2 && Math.abs(p.z - w.z) < CELDA / 2 && !cayoAgua) {
-              cayoAgua = true;
-              sonar("agua");
-            }
+          if (info.estrella && !estrellaTomada && Math.hypot(p.x - info.estrella.p.x, p.z - info.estrella.p.z) < 0.14) tomarEstrella();
+          if ((letra === "W" || letra === "L") && !cayoAgua) {
+            cayoAgua = true;
+            tipoCaida = letra;
+            onda(p.x, p.z, letra === "L" ? 0xff7a1a : 0xbfeaff);
+            confeti(p.x, p.z, 30, letra === "L" ? [0xff5a10, 0xffbe0b, 0x222222] : [0xbfeaff, 0xffffff, 0x4fb3ff]);
+            sonar(letra === "L" ? "choque" : "agua");
+            bola.visible = false;
+          }
           if (rapidez < 0.06 && Math.abs(v.y) < 0.05) tiempoQuieta += dt;
           else tiempoQuieta = 0;
           if (tiempoQuieta > 0.25) {
             cuerpoBola.velocity.setZero();
             cuerpoBola.angularVelocity.setZero();
           }
+          // estela
+          puntosEstela.unshift([p.x, 0.03, p.z]);
+          if (puntosEstela.length > LARGO_ESTELA) puntosEstela.pop();
+        } else if (puntosEstela.length) puntosEstela.pop();
+        estela.visible = puntosEstela.length > 1;
+        if (estela.visible) {
+          const arr = geoEstela.attributes.position.array;
+          for (let i = 0; i < LARGO_ESTELA; i++) arr.set(puntosEstela[Math.min(i, puntosEstela.length - 1)], i * 3);
+          geoEstela.attributes.position.needsUpdate = true;
         }
         bola.position.copy(cuerpoBola.position);
         bola.quaternion.copy(cuerpoBola.quaternion);
@@ -382,13 +1442,19 @@
       });
 
       function ponerBola(x, z, jugador) {
-        cuerpoBola.type = CANNON.Body.DYNAMIC;
+        cuerpoBola.type = CANNON.Body.KINEMATIC;
         cuerpoBola.position.set(x, RADIO_BOLA + 0.001, z);
         cuerpoBola.velocity.setZero();
         cuerpoBola.angularVelocity.setZero();
         bola.material.map = texturasBola[jugador];
         bola.material.needsUpdate = true;
+        estela.material.color.set(COLORES[jugador]);
         bola.visible = true;
+        puntosEstela.length = 0;
+      }
+      function reiniciarEstrella() {
+        estrellaTomada = false;
+        if (hoyoActual && hoyoActual.estrella) hoyoActual.estrella.malla.visible = true;
       }
 
       async function simularGolpe(golpe) {
@@ -397,12 +1463,15 @@
         cayoAgua = false;
         quieta = false;
         tiempoQuieta = 0;
+        rebotePendiente = null;
+        ultimaCeldaImpulso = "";
+        cuerpoBola.type = CANNON.Body.DYNAMIC;
         cuerpoBola.velocity.set(golpe.vx, 0, golpe.vz);
         sonar("patada", 0.25 + Math.hypot(golpe.vx, golpe.vz) / 14);
         const inicio = performance.now();
         await new Promise((r) => {
           const revisar = setInterval(() => {
-            if (enHoyo || cayoAgua || tiempoQuieta > 0.3 || performance.now() - inicio > 12000 || cuerpoBola.position.y < -1) {
+            if (enHoyo || cayoAgua || tiempoQuieta > 0.3 || performance.now() - inicio > 14000 || cuerpoBola.position.y < -1) {
               clearInterval(revisar);
               r();
             }
@@ -411,12 +1480,18 @@
         if (enHoyo) await esperar(300);
         quieta = true;
         cuerpoBola.velocity.setZero();
+        cuerpoBola.linearDamping = AMORTIGUAR;
         let final = { x: cuerpoBola.position.x, z: cuerpoBola.position.z };
         if (cayoAgua || cuerpoBola.position.y < -1) {
           final = desde;
           await esperar(600);
         }
-        return { x: +final.x.toFixed(4), z: +final.z.toFixed(4), enHoyo, agua: cayoAgua };
+        if (!enHoyo) {
+          cuerpoBola.type = CANNON.Body.KINEMATIC;
+          cuerpoBola.position.set(final.x, RADIO_BOLA + 0.001, final.z);
+          bola.visible = true;
+        }
+        return { x: +final.x.toFixed(4), z: +final.z.toFixed(4), enHoyo, agua: cayoAgua, lava: cayoAgua && tipoCaida === "L", estrella: estrellaTomada };
       }
 
       // Apuntar: jalas desde cualquier parte, como resortera
@@ -437,57 +1512,95 @@
         const v = 0.4 + fuerza * 6.2;
         return { vx: (dx / largo) * v, vz: (dz / largo) * v, fuerza };
       }
+      function ocultarGuia() {
+        flecha.visible = false;
+        guias.forEach((g) => (g.visible = false));
+        medidor.classList.remove("visible");
+      }
       Arcade.deslizar(M.lienzo, {
         puede: () => !!esperandoGolpe,
         inicio: (p) => (inicioJalon = puntoEnPiso(p.x, p.y)),
         mover: (p) => {
           const g = golpeDesdePuntos(inicioJalon, puntoEnPiso(p.x, p.y));
-          flecha.visible = !!g;
-          if (!g) return;
-          flecha.position.copy(cuerpoBola.position).setY(0.03);
+          if (!g) return ocultarGuia();
+          flecha.visible = true;
+          const b = cuerpoBola.position;
+          flecha.position.copy(b).setY(0.03);
           flecha.rotation.y = Math.atan2(g.vx, g.vz);
           flecha.scale.set(1, 1, 0.25 + g.fuerza * 1.6);
           cuerpoFlecha.material.color.setHSL(0.33 - g.fuerza * 0.33, 1, 0.55);
+          const l = Math.hypot(g.vx, g.vz),
+            ux = g.vx / l,
+            uz = g.vz / l;
+          const alcance = 0.4 + g.fuerza * 2.4;
+          guias.forEach((gp, i) => {
+            const d = 0.3 + (i / guias.length) * alcance;
+            gp.position.set(b.x + ux * d, 0.03, b.z + uz * d);
+            gp.visible = true;
+          });
+          matGuia.color.copy(cuerpoFlecha.material.color);
+          medidor.classList.add("visible");
+          medidor.firstElementChild.style.width = Math.round(g.fuerza * 100) + "%";
         },
         soltar: (gesto) => {
-          flecha.visible = false;
+          ocultarGuia();
           const g = golpeDesdePuntos(inicioJalon, puntoEnPiso(gesto.fin.x, gesto.fin.y));
           if (!g || !esperandoGolpe) return;
           const r = esperandoGolpe;
           esperandoGolpe = null;
           r({ vx: +g.vx.toFixed(4), vz: +g.vz.toFixed(4) });
         },
-        cancelar: () => (flecha.visible = false),
+        cancelar: ocultarGuia,
       });
 
-      // Bot: busca el punto más lejano del camino que pueda ver y le tira
+      // Bot: busca el punto más lejano del camino que pueda ver (sin agua ni lava en medio) y le tira
       const ERROR_BOT = { facil: 0.22, normal: 0.11, pro: 0.05 };
+      function caminoLibre(p, destino) {
+        const dir = new CANNON.Vec3(destino.x - p.x, 0, destino.z - p.z);
+        const dist = dir.length();
+        if (dist < 0.01) return { libre: true, hielo: 0 };
+        dir.normalize();
+        const resultado = new CANNON.RaycastResult();
+        const desde = new CANNON.Vec3(p.x + dir.x * (RADIO_BOLA + 0.02), RADIO_BOLA, p.z + dir.z * (RADIO_BOLA + 0.02));
+        mundoFisico.raycastClosest(desde, new CANNON.Vec3(destino.x, RADIO_BOLA, destino.z), { skipBackfaces: true }, resultado);
+        if (resultado.hasHit) return { libre: false };
+        let hielo = 0,
+          muestras = 0;
+        for (let d = 0.05; d < dist; d += 0.06) {
+          const l = letraEn(p.x + dir.x * d, p.z + dir.z * d);
+          if (l === "W" || l === "L" || l === "#") return { libre: false };
+          if (l === "I") hielo++;
+          muestras++;
+        }
+        return { libre: true, hielo: muestras ? hielo / muestras : 0 };
+      }
       function golpeBot() {
         const p = cuerpoBola.position;
         const camino = Object.keys(hoyoActual.puntos)
           .sort()
           .map((k) => hoyoActual.puntos[k])
           .concat([hoyoActual.hoyo]);
-        let objetivo = camino[0];
+        let objetivo = null,
+          hielo = 0;
         for (let i = camino.length - 1; i >= 0; i--) {
-          const destino = new CANNON.Vec3(camino[i].x, RADIO_BOLA, camino[i].z);
-          const resultado = new CANNON.RaycastResult();
-          // el rayo sale justo afuera de la bola para no chocar con ella misma
-          const dir = new CANNON.Vec3(destino.x - p.x, 0, destino.z - p.z);
-          dir.normalize();
-          const desde = new CANNON.Vec3(p.x + dir.x * (RADIO_BOLA + 0.02), RADIO_BOLA, p.z + dir.z * (RADIO_BOLA + 0.02));
-          mundoFisico.raycastClosest(desde, destino, { skipBackfaces: true }, resultado);
-          const libre = !resultado.hasHit;
-          if (libre) {
+          const r = caminoLibre(p, camino[i]);
+          if (r.libre) {
             objetivo = camino[i];
+            hielo = r.hielo;
             break;
           }
         }
+        if (!objetivo && hoyoActual.portal) {
+          const r = caminoLibre(p, hoyoActual.portal);
+          if (r.libre) objetivo = hoyoActual.portal;
+        }
+        if (!objetivo) objetivo = camino[0];
         const dx = objetivo.x - p.x,
           dz = objetivo.z - p.z;
         const dist = Math.hypot(dx, dz);
         const alHoyo = objetivo === hoyoActual.hoyo;
-        const v = limitar((alHoyo ? 0.55 + dist * 1.05 : 1.2 + dist * 1.25) * (1 + gauss() * ERROR_BOT[J.dificultad] * 0.5), 0.4, 6.6);
+        const base = alHoyo ? 0.55 + dist * 1.05 : 1.2 + dist * 1.25;
+        const v = limitar(base * (1 - hielo * 0.45) * (1 + gauss() * ERROR_BOT[J.dificultad] * 0.5), 0.4, 6.6);
         const ang = Math.atan2(dx, dz) + gauss() * ERROR_BOT[J.dificultad] * 0.35;
         return { vx: Math.sin(ang) * v, vz: Math.cos(ang) * v };
       }
@@ -495,28 +1608,38 @@
       // =========================================================
       //  PARTIDA
       // =========================================================
-      const J = { modo: null, nombres: [], golpes: [[], []], hoyo: 0, activa: false, dificultad: "normal", recibido: {}, orden: [0] };
+      const J = { modo: null, nombres: [], golpes: [[], []], hoyo: 0, paso: 0, ruta: [], rutaId: "pradera", activa: false, dificultad: "normal", recibido: {}, orden: [0] };
+      let rutaElegida = "pradera";
+      try {
+        const g = localStorage.getItem("golf_ruta");
+        if (RUTAS.some((r) => r.id === g)) rutaElegida = g;
+      } catch (e) {}
 
       const ui = Arcade.ui({
         juego: "mini_golf",
         titulo: "Mini Golf 3D",
         emoji: "⛳",
-        subtitulo: `${HOYOS.length} hoyos · gana quien use menos golpes`,
+        subtitulo: `${HOYOS.length} hoyos · ${MUNDOS.length} mundos · gana quien use menos golpes`,
         modos: ["solo", "bot", "online", "local"],
         dificultad: true,
         records: true,
         unidadRecord: "golpes",
         reglas: [
           "Pon el dedo en cualquier lado y jala hacia atrás, como resortera.",
-          "La flecha te dice a dónde va y qué tan fuerte (verde suave · rojo fuerte).",
-          "Si caes al agua 💦 regresas a donde estabas y cuenta el golpe.",
-          `Máximo ${MAX_GOLPES} golpes por hoyo. Gana quien use menos en total.`,
+          "La flecha y los puntitos te dicen a dónde va y qué tan fuerte.",
+          "💦 Agua o 🔥 lava: regresas a donde estabas y cuenta el golpe.",
+          "🏖️ La arena frena · ❄️ el hielo resbala · ⏩ los impulsores aceleran.",
+          "🌀 Los portales te teletransportan · 🍄 los hongos te rebotan · 🟨 cuidado con los bloques que se mueven.",
+          "⭐ Si agarras la estrella del hoyo te quita 1 golpe.",
+          "🎥 Cambia la cámara entre vista completa y cerca con el botón de abajo.",
+          "Online se juegan 9 hoyos sorpresa. El récord cuenta en la Pradera.",
         ],
         alEmpezar: empezar,
         alSalir: () => {
           J.activa = false;
           vistaMenu = true;
           esperandoGolpe = null;
+          ocultarGuia();
         },
       });
       ui.alEvento = (tipo, datos) => {
@@ -529,20 +1652,63 @@
         }
       };
 
-      construirHoyo(0);
+      // Selector de recorrido dentro del menú
+      (() => {
+        const campo = $("nombre");
+        if (!campo) return;
+        campo.insertAdjacentHTML(
+          "afterend",
+          `<div class="etiqueta">🗺️ Recorrido</div>
+           <div class="chips" id="chips-ruta">${RUTAS.map((r) => `<button class="chip${r.id === rutaElegida ? " activo" : ""}" data-ruta="${r.id}">${r.texto}</button>`).join("")}</div>
+           <p class="nota" id="nota-ruta"></p>`,
+        );
+        const pintarNota = () => {
+          const r = RUTAS.find((x) => x.id === rutaElegida);
+          let mejor = null;
+          try {
+            mejor = localStorage.getItem("golf_mejor_" + rutaElegida);
+          } catch (e) {}
+          $("nota-ruta").textContent = r.nota + (mejor ? ` · Tu mejor: ${mejor} golpes` : "");
+        };
+        pintarNota();
+        $("chips-ruta").addEventListener("click", (e) => {
+          const b = e.target.closest("[data-ruta]");
+          if (!b) return;
+          rutaElegida = b.dataset.ruta;
+          try {
+            localStorage.setItem("golf_ruta", rutaElegida);
+          } catch (e2) {}
+          document.querySelectorAll("#chips-ruta .chip").forEach((c) => c.classList.toggle("activo", c === b));
+          pintarNota();
+          sonar("click");
+          const lista = hoyosDeRuta(rutaElegida, Math.random);
+          construirHoyo(lista[0]);
+          ponerBola(hoyoActual.salida.x, hoyoActual.salida.z, 0);
+        });
+      })();
+
+      construirHoyo(hoyosDeRuta(rutaElegida, Math.random)[0]);
       ponerBola(hoyoActual.salida.x, hoyoActual.salida.z, 0);
+      // En el menú se van mostrando hoyos de todos los mundos
+      setInterval(() => {
+        if (J.activa || !vistaMenu || document.hidden) return;
+        construirHoyo(Math.floor(Math.random() * HOYOS.length));
+        ponerBola(hoyoActual.salida.x, hoyoActual.salida.z, 0);
+      }, 9000);
 
       function soyYo(i) {
         if (J.modo === "online") return i === ui.yo;
         if (J.modo === "bot") return i === 0;
         return true;
       }
-      const suma = (l) => l.reduce((s, x) => s + x, 0);
+      const suma = (l) => l.reduce((s, x) => s + (x || 0), 0);
       function marcador(jugador, golpe) {
+        const h = HOYOS[J.hoyo];
+        const m = MUNDOS[h.mundo];
         const paneles = [0, 1].map((i) => ({
           nombre: J.nombres[i],
           valor: `${suma(J.golpes[i])}`,
-          detalle: i === jugador ? `Hoyo ${J.hoyo + 1}/${HOYOS.length} · golpe ${golpe} · par ${HOYOS[J.hoyo].par}` : `Hoyo ${J.hoyo + 1}/${HOYOS.length}`,
+          detalle: i === jugador ? `${m.emoji} Hoyo ${J.paso + 1}/${J.ruta.length} · golpe ${golpe} · par ${h.par}` : `Hoyo ${J.paso + 1}/${J.ruta.length}`,
           activo: i === jugador,
         }));
         ui.marcador(J.modo === "solo" ? [paneles[0], null] : paneles);
@@ -558,24 +1724,38 @@
         J.activa = true;
         const r = Arcade.rng(info.semilla);
         J.orden = modo === "solo" ? [0] : modo === "bot" ? [0, 1] : r() < 0.5 ? [0, 1] : [1, 0];
+        J.rutaId = modo === "online" ? "mix" : rutaElegida;
+        J.ruta = hoyosDeRuta(J.rutaId, modo === "online" ? r : Math.random);
         vistaMenu = false;
+        textoCamara();
         jugar(info.partida);
       }
 
       async function jugar(partida) {
-        for (let h = 0; h < HOYOS.length; h++) {
+        for (let k = 0; k < J.ruta.length; k++) {
+          const h = J.ruta[k];
           J.hoyo = h;
+          J.paso = k;
           construirHoyo(h);
+          textoCamara();
+          const m = MUNDOS[HOYOS[h].mundo];
+          ui.avisar(`${m.emoji} ${m.nombre} · Hoyo ${HOYOS[h].numMundo}<small>Par ${HOYOS[h].par} · ${k + 1} de ${J.ruta.length}</small>`, MUNDOS[HOYOS[h].mundo].bandera);
+          await esperar(1300);
+          if (!J.activa || partida !== J.partida) return;
           for (const p of J.orden) {
-            const golpes = await jugarHoyo(p, h);
+            const res = await jugarHoyo(p, h);
             if (!J.activa || partida !== J.partida) return;
-            J.golpes[p][h] = golpes;
+            const golpes = res.estrella && res.golpes <= maxGolpes(h) ? Math.max(1, res.golpes - 1) : res.golpes;
+            J.golpes[p][k] = golpes;
             marcador(p, golpes);
             const dif = golpes - HOYOS[h].par;
-            const nombre = golpes === 1 ? "⛳ ¡HOYO EN UNO!" : dif <= -2 ? "🦅 ¡Águila!" : dif === -1 ? "🐦 ¡Birdie!" : dif === 0 ? "👍 Par" : dif === 1 ? "Bogey" : `+${dif}`;
-            ui.avisar(`${nombre}<small>${golpes} golpe${golpes === 1 ? "" : "s"}${J.modo === "solo" ? "" : " · " + J.nombres[p]}</small>`, dif < 0 ? "#26de81" : dif === 0 ? "#4fb3ff" : "#ffb84f");
-            if (golpes === 1 || dif < 0) sonar("publico");
-            if (golpes === 1 && soyYo(p) && J.modo !== "local") window.Perfil && Perfil.evento("mini_golf", "hoyo_en_uno");
+            const nombre = res.golpes === 1 ? "⛳ ¡HOYO EN UNO!" : dif <= -2 ? "🦅 ¡Águila!" : dif === -1 ? "🐦 ¡Birdie!" : dif === 0 ? "👍 Par" : dif === 1 ? "Bogey" : `+${dif}`;
+            ui.avisar(
+              `${nombre}<small>${golpes} golpe${golpes === 1 ? "" : "s"}${res.estrella ? " · ⭐ -1" : ""}${J.modo === "solo" ? "" : " · " + J.nombres[p]}</small>`,
+              dif < 0 ? "#26de81" : dif === 0 ? "#4fb3ff" : "#ffb84f",
+            );
+            if (res.golpes === 1 || dif < 0) sonar("publico");
+            if (res.golpes === 1 && soyYo(p) && J.modo !== "local") window.Perfil && Perfil.evento("mini_golf", "hoyo_en_uno");
             await esperar(1800);
           }
         }
@@ -585,10 +1765,13 @@
       async function jugarHoyo(p, h) {
         const s = hoyoActual.salida;
         ponerBola(s.x, s.z, p);
+        reiniciarEstrella();
         if (J.modo !== "solo") ui.avisar(soyYo(p) && J.modo !== "local" ? "¡Tu turno!" : `Turno de ${J.nombres[p]}`, p ? "#4fb3ff" : "#ff4f8b");
-        for (let golpe = 1; golpe <= MAX_GOLPES; golpe++) {
+        let estrella = false;
+        const maximo = maxGolpes(h);
+        for (let golpe = 1; golpe <= maximo; golpe++) {
           marcador(p, golpe);
-          const clave = `${h}-${p}-${golpe}`;
+          const clave = `${J.paso}-${h}-${p}-${golpe}`;
           let tiro,
             rival = null;
           if (soyYo(p)) {
@@ -604,22 +1787,28 @@
             ui.ayuda("");
             tiro = rival.tiro;
           }
-          if (!J.activa) return 0;
+          if (!J.activa) return { golpes: 0, estrella: false };
           let fin = await simularGolpe(tiro);
           if (rival) fin = rival.fin;
           else if (J.modo === "online") ui.enviar("golpe", { partida: J.partida, clave, tiro, fin });
-          if (fin.agua) ui.avisar("💦 ¡Al agua!<small>+1 golpe</small>", "#2e8fe0");
+          if (fin.estrella && !estrella) {
+            estrella = true;
+            if (hoyoActual.estrella) hoyoActual.estrella.malla.visible = false;
+            estrellaTomada = true;
+          }
+          if (fin.agua) ui.avisar(fin.lava ? "🔥 ¡A la lava!<small>+1 golpe</small>" : "💦 ¡Al agua!<small>+1 golpe</small>", fin.lava ? "#ff5a10" : "#2e8fe0");
           if (fin.enHoyo) {
             bola.visible = false;
-            return golpe;
+            return { golpes: golpe, estrella };
           }
           // deja la bola exactamente donde quedó en el celular que tiró
-          cuerpoBola.type = CANNON.Body.DYNAMIC;
+          cuerpoBola.type = CANNON.Body.KINEMATIC;
           cuerpoBola.position.set(fin.x, RADIO_BOLA + 0.001, fin.z);
           cuerpoBola.velocity.setZero();
+          bola.visible = true;
         }
         ui.avisar("😅 Máximo de golpes", "#888");
-        return MAX_GOLPES + 1;
+        return { golpes: maximo + 1, estrella: false };
       }
 
       function terminar() {
@@ -627,11 +1816,23 @@
         vistaMenu = true;
         const a = suma(J.golpes[0]),
           b = suma(J.golpes[1]);
-        const par = HOYOS.reduce((s, x) => s + x.par, 0);
+        const par = J.ruta.reduce((s, h) => s + HOYOS[h].par, 0);
         if (J.modo === "solo") {
           sonar("ganar");
           const vsPar = a - par;
-          return ui.terminar({ emoji: "⛳", texto: `${a} golpes`, nota: vsPar === 0 ? "¡Justo en par!" : vsPar < 0 ? `${vsPar} bajo par 🔥` : `+${vsPar} sobre par`, record: a });
+          let mejorAntes = null;
+          try {
+            mejorAntes = +localStorage.getItem("golf_mejor_" + J.rutaId) || null;
+            if (!mejorAntes || a < mejorAntes) localStorage.setItem("golf_mejor_" + J.rutaId, a);
+          } catch (e) {}
+          const ruta = RUTAS.find((r) => r.id === J.rutaId);
+          const notaMejor = mejorAntes && a >= mejorAntes ? ` · Tu mejor: ${mejorAntes}` : mejorAntes ? " · ¡Mejoraste tu marca!" : "";
+          return ui.terminar({
+            emoji: "⛳",
+            texto: `${a} golpes`,
+            nota: `${ruta.texto} · ` + (vsPar === 0 ? "¡Justo en par!" : vsPar < 0 ? `${vsPar} bajo par 🔥` : `+${vsPar} sobre par`) + notaMejor,
+            record: J.rutaId === "pradera" ? a : null,
+          });
         }
         const empate = a === b,
           gana0 = a < b;

@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <meta name="theme-color" content="#cfe8ff" />
-    <title>Bolos de Nieve · Arcade</title>
+    <title>Bolos de Nieve 3D · Arcade</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
       rel="stylesheet"
@@ -16,9 +16,97 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='juegos3d.css') }}"
     />
+    <style>
+      #chips-estilo,
+      #chips-modo-juego {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      #chips-estilo .chip,
+      #chips-modo-juego .chip {
+        flex: 1 1 28%;
+        font-size: 0.82rem;
+        padding: 8px 4px;
+      }
+      #btn-estilo-rapido {
+        position: fixed;
+        left: 14px;
+        bottom: calc(16px + env(safe-area-inset-bottom));
+        z-index: 20;
+        border: 2px solid rgba(255, 255, 255, 0.45);
+        background: rgba(20, 16, 40, 0.7);
+        color: #fff;
+        font: 800 0.85rem Nunito, sans-serif;
+        border-radius: 999px;
+        padding: 9px 14px;
+        cursor: pointer;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        transition: transform 0.15s, background 0.15s;
+      }
+      #btn-estilo-rapido:active {
+        transform: scale(0.95);
+      }
+      #btn-camara-bolos {
+        position: fixed;
+        right: 14px;
+        bottom: calc(16px + env(safe-area-inset-bottom));
+        z-index: 20;
+        border: 2px solid rgba(255, 255, 255, 0.45);
+        background: rgba(20, 16, 40, 0.7);
+        color: #fff;
+        font: 800 0.85rem Nunito, sans-serif;
+        border-radius: 999px;
+        padding: 9px 14px;
+        cursor: pointer;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      }
+      #btn-estilo-rapido.oculto,
+      #btn-camara-bolos.oculto {
+        display: none;
+      }
+      #medidor-tiro {
+        position: fixed;
+        left: 50%;
+        bottom: calc(20px + env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        width: min(280px, 64vw);
+        height: 16px;
+        border-radius: 999px;
+        background: rgba(10, 8, 25, 0.55);
+        border: 2px solid rgba(255, 255, 255, 0.7);
+        overflow: hidden;
+        z-index: 20;
+        opacity: 0;
+        transition: opacity 0.15s;
+        pointer-events: none;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      }
+      #medidor-tiro.visible {
+        opacity: 1;
+      }
+      #medidor-tiro div {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #26de81 0%, #fed330 65%, #ff3838 100%);
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      }
+      .badge-especial {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 900;
+        margin-left: 4px;
+      }
+    </style>
   </head>
   <body>
     <canvas id="lienzo"></canvas>
+    <button id="btn-estilo-rapido" class="oculto">🎨 Estilo</button>
+    <button id="btn-camara-bolos" class="oculto">🎥 Cámara: Dinámica</button>
+    <div id="medidor-tiro"><div></div></div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
@@ -33,13 +121,112 @@
         PASO = 1 / 120;
 
       // =========================================================
-      //  ESCENA: valle nevado
+      //  PALETAS Y ESTILOS DE BOLOS
+      // =========================================================
+      const ESTILOS = {
+        polar: {
+          id: "polar",
+          nombre: "Nieve Polar",
+          emoji: "⛄",
+          cuerpo: 0xf5faff,
+          cuerpoEmisivo: 0x000000,
+          roughness: 0.88,
+          metalness: 0.02,
+          sombrero: 0x222226,
+          cinta: 0xe63946,
+          bufanda: 0xd90429,
+          nariz: 0xff8c1a,
+          bola: 0xebf5ff,
+          bolaColorSec: 0x4fb3ff,
+          particulas: 0xffffff,
+        },
+        kawaii: {
+          id: "kawaii",
+          nombre: "Fresa Kawaii",
+          emoji: "🌸",
+          cuerpo: 0xffe2ee,
+          cuerpoEmisivo: 0x220512,
+          roughness: 0.45,
+          metalness: 0.08,
+          sombrero: 0xff2a7a,
+          cinta: 0xffd166,
+          bufanda: 0x06d6a0,
+          nariz: 0xff70a6,
+          bola: 0xff66b2,
+          bolaColorSec: 0xffffff,
+          particulas: 0xff99cc,
+        },
+        cyber: {
+          id: "cyber",
+          nombre: "Cíber Neón",
+          emoji: "💎",
+          cuerpo: 0x00f0ff,
+          cuerpoEmisivo: 0x002e40,
+          roughness: 0.15,
+          metalness: 0.65,
+          sombrero: 0x1b003a,
+          cinta: 0x00f0ff,
+          bufanda: 0xff007f,
+          nariz: 0x00f0ff,
+          bola: 0x8a2be2,
+          bolaColorSec: 0x00f0ff,
+          particulas: 0x00f0ff,
+        },
+        oro: {
+          id: "oro",
+          nombre: "Oro & Ónix",
+          emoji: "👑",
+          cuerpo: 0xffd700,
+          cuerpoEmisivo: 0x3a2800,
+          roughness: 0.22,
+          metalness: 0.88,
+          sombrero: 0x111115,
+          cinta: 0xffd700,
+          bufanda: 0x00a86b,
+          nariz: 0xffa500,
+          bola: 0x18181c,
+          bolaColorSec: 0xffd700,
+          particulas: 0xffe066,
+        },
+        lava: {
+          id: "lava",
+          nombre: "Magma & Fuego",
+          emoji: "🔥",
+          cuerpo: 0x2d1712,
+          cuerpoEmisivo: 0xff4500,
+          roughness: 0.65,
+          metalness: 0.25,
+          sombrero: 0x1a1210,
+          cinta: 0xff5a10,
+          bufanda: 0xffaa00,
+          nariz: 0xff3b00,
+          bola: 0xff4500,
+          bolaColorSec: 0xffd000,
+          particulas: 0xff5a10,
+        },
+      };
+
+      let estiloActual = "polar";
+      try {
+        const estGuardado = localStorage.getItem("bolos_estilo");
+        if (estGuardado && ESTILOS[estGuardado]) estiloActual = estGuardado;
+      } catch (e) {}
+
+      let modalidadJuego = "dinamico"; // 'clasico' | 'dinamico'
+      try {
+        const modGuardado = localStorage.getItem("bolos_modalidad");
+        if (modGuardado === "clasico" || modGuardado === "dinamico")
+          modalidadJuego = modGuardado;
+      } catch (e) {}
+
+      // =========================================================
+      //  ESCENA Y RENDER 3D
       // =========================================================
       const M = Arcade.mundo({
         fondo: 0xcfe8ff,
         fov: 55,
         niebla: [25, 80],
-        exposicion: 1.05,
+        exposicion: 1.1,
         colorAmbiente: 0xe8f4ff,
       });
       const { escena, camara } = M;
@@ -50,9 +237,10 @@
           roughness: 0.85,
           ...x,
         });
-      escena.add(new THREE.HemisphereLight(0xffffff, 0xaabbcc, 0.85));
-      const sol = new THREE.DirectionalLight(0xfff6e8, 1.0);
-      sol.position.set(4, 12, 8);
+
+      escena.add(new THREE.HemisphereLight(0xffffff, 0x99bbdd, 0.85));
+      const sol = new THREE.DirectionalLight(0xfff6e8, 1.25);
+      sol.position.set(4, 14, 8);
       sol.castShadow = true;
       sol.shadow.mapSize.set(2048, 2048);
       Object.assign(sol.shadow.camera, {
@@ -64,6 +252,17 @@
         far: 40,
       });
       escena.add(sol);
+
+      // Foco spotlight enfocado dramáticamente sobre los bolos
+      const luzPinos = new THREE.SpotLight(0xfff8ee, 2.2, 20, Math.PI / 4, 0.45, 1.2);
+      luzPinos.position.set(0, 6.5, 2.5);
+      luzPinos.target.position.set(0, 0, -1);
+      luzPinos.castShadow = true;
+      luzPinos.shadow.mapSize.set(1024, 1024);
+      luzPinos.shadow.bias = -0.0005;
+      escena.add(luzPinos, luzPinos.target);
+
+      // Suelo nevado exterior
       const nieve = new THREE.Mesh(
         new THREE.PlaneGeometry(120, 120),
         mat(0xf4f9ff, { roughness: 1 }),
@@ -72,112 +271,507 @@
       nieve.receiveShadow = true;
       escena.add(nieve);
       acabado3D.superficie(nieve, "nieve", { repetir: 24 });
+
+      // =========================================================
+      //  PISTA DE BOLOS PROFESIONAL (TEXTURAS Y MARCAS)
+      // =========================================================
+      function crearTexturaCarril() {
+        const c = document.createElement("canvas");
+        c.width = 512;
+        c.height = 1024;
+        const g = c.getContext("2d");
+
+        // Fondo de duelas de madera de boliche barnizada
+        const numDuelas = 39;
+        const anchoDuela = 512 / numDuelas;
+        for (let i = 0; i < numDuelas; i++) {
+          const tono = (i % 2 === 0) ? "#f1d4a3" : "#ebd09b";
+          g.fillStyle = tono;
+          g.fillRect(i * anchoDuela, 0, anchoDuela, 1024);
+          g.fillStyle = "rgba(100, 60, 20, 0.08)";
+          g.fillRect(i * anchoDuela, 0, 1, 1024);
+        }
+
+        // Línea de falta al inicio del carril (roja)
+        g.fillStyle = "#e63946";
+        g.fillRect(0, 990, 512, 10);
+
+        // Puntos guía de salida (dots)
+        g.fillStyle = "#2b2b2b";
+        for (let i = 1; i <= 7; i++) {
+          g.beginPath();
+          g.arc((i * 512) / 8, 940, 5, 0, Math.PI * 2);
+          g.fill();
+        }
+
+        // Las 7 clásicas flechas de boliche (apuntado profesional a 1/3 de pista)
+        const yFlechas = 660;
+        const espaciado = 512 / 8;
+        for (let i = 1; i <= 7; i++) {
+          const x = i * espaciado;
+          const y = yFlechas - Math.abs(i - 4) * 26; // flecha central más adelantada
+          g.fillStyle = "#332211";
+          g.beginPath();
+          g.moveTo(x, y - 24);
+          g.lineTo(x + 10, y + 8);
+          g.lineTo(x - 10, y + 8);
+          g.closePath();
+          g.fill();
+        }
+
+        // Zona del Pin Deck (madera reforzada con tono más cálido)
+        g.fillStyle = "rgba(180, 100, 40, 0.18)";
+        g.fillRect(0, 0, 512, 280);
+
+        const tex = new THREE.CanvasTexture(c);
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+        return tex;
+      }
+
+      const texCarril = crearTexturaCarril();
       const carril = new THREE.Mesh(
         new THREE.PlaneGeometry(ANCHO * 2, 22),
-        mat(0xe3f0ff, { roughness: 0.4 }),
+        mat(0xffffff, {
+          map: texCarril,
+          roughness: 0.18,
+          metalness: 0.05,
+        }),
       );
       carril.rotation.x = -Math.PI / 2;
-      carril.position.set(0, 0.01, 5);
+      carril.position.set(0, 0.015, 5);
       carril.receiveShadow = true;
       escena.add(carril);
-      acabado3D.superficie(carril, "hielo", { repetir: 5 });
-      [-1, 1].forEach((l) => {
-        const borde = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.25, 0.25, 22, 10),
-          mat(0xffffff),
+
+      // Canaletas laterales 3D biseladas
+      [-1, 1].forEach((lado) => {
+        const canaleta = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.24, 0.24, 22, 16, 1, false, Math.PI, Math.PI),
+          mat(0x9aa8b6, { roughness: 0.35, metalness: 0.25 }),
         );
-        borde.rotation.x = Math.PI / 2;
-        borde.position.set(l * (ANCHO + 0.25), 0.1, 5);
-        borde.castShadow = true;
-        escena.add(borde);
+        canaleta.rotation.x = Math.PI / 2;
+        canaleta.rotation.y = lado === -1 ? 0 : Math.PI;
+        canaleta.position.set(lado * (ANCHO + 0.18), 0.06, 5);
+        canaleta.receiveShadow = true;
+        escena.add(canaleta);
+
+        const bordeNieve = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.22, 0.22, 22, 12),
+          mat(0xffffff, { roughness: 0.95 }),
+        );
+        bordeNieve.rotation.x = Math.PI / 2;
+        bordeNieve.position.set(lado * (ANCHO + 0.44), 0.14, 5);
+        bordeNieve.castShadow = true;
+        escena.add(bordeNieve);
       });
-      for (let i = 0; i < 40; i++) {
+
+      // Fondo decorativo con pinos nevados y cabañas
+      for (let i = 0; i < 48; i++) {
         const pino = new THREE.Group();
-        const h = azar(3, 6);
+        const h = azar(3, 6.5);
         const copa = new THREE.Mesh(
-          new THREE.ConeGeometry(h * 0.35, h, 7),
-          mat(0x2e6b4a),
+          new THREE.ConeGeometry(h * 0.35, h, 8),
+          mat(0x1f5c3e, { roughness: 0.9 }),
         );
         copa.position.y = h / 2 + 0.5;
         const nevado = new THREE.Mesh(
-          new THREE.ConeGeometry(h * 0.2, h * 0.35, 7),
-          mat(0xffffff),
+          new THREE.ConeGeometry(h * 0.22, h * 0.35, 8),
+          mat(0xffffff, { roughness: 1 }),
         );
         nevado.position.y = h + 0.3;
         pino.add(copa, nevado);
         const l = Math.random() < 0.5 ? -1 : 1;
-        pino.position.set(l * azar(4, 20), 0, azar(-20, 20));
+        pino.position.set(l * azar(4, 22), 0, azar(-24, 22));
         escena.add(pino);
       }
-      // copos que caen
+
+      // Copos de nieve flotantes
       const copos = new THREE.Points(
         new THREE.BufferGeometry().setAttribute(
           "position",
           new THREE.Float32BufferAttribute(
-            Array.from({ length: 1500 }, (_, i) =>
-              i % 3 === 1 ? azar(0, 15) : azar(-15, 20),
+            Array.from({ length: 1600 }, (_, i) =>
+              i % 3 === 1 ? azar(0, 16) : azar(-16, 22),
             ),
             3,
           ),
         ),
-        new THREE.PointsMaterial({ color: 0xffffff, size: 0.08 }),
+        new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.85 }),
       );
       escena.add(copos);
 
-      function crearMono() {
+      // =========================================================
+      //  SISTEMA DE PARTÍCULAS Y EFECTOS VISUALES 3D
+      // =========================================================
+      const particulasEfectos = [];
+
+      function emitirChispas(x, y, z, colorHex = 0xffffff, cantidad = 20) {
+        const pos = new Float32Array(cantidad * 3);
+        const vel = [];
+        for (let i = 0; i < cantidad; i++) {
+          pos[i * 3] = x;
+          pos[i * 3 + 1] = y;
+          pos[i * 3 + 2] = z;
+          const ang = Math.random() * Math.PI * 2;
+          const spd = azar(0.6, 2.8);
+          vel.push([Math.cos(ang) * spd, azar(1.2, 3.8), Math.sin(ang) * spd]);
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        const p = new THREE.Points(
+          geo,
+          new THREE.PointsMaterial({
+            color: colorHex,
+            size: 0.09,
+            transparent: true,
+            opacity: 1,
+            depthWrite: false,
+          }),
+        );
+        escena.add(p);
+        particulasEfectos.push({ p, vel, vida: 1.2, edad: 0 });
+      }
+
+      function emitirExplosionBomba(x, z) {
+        emitirChispas(x, 0.4, z, 0xff5a10, 60);
+        emitirChispas(x, 0.5, z, 0xffd000, 40);
+
+        // Onda expansiva en el suelo
+        const anillo = new THREE.Mesh(
+          new THREE.RingGeometry(0.1, 0.25, 32),
+          new THREE.MeshBasicMaterial({ color: 0xff4500, side: THREE.DoubleSide, transparent: true, opacity: 0.95 }),
+        );
+        anillo.rotation.x = -Math.PI / 2;
+        anillo.position.set(x, 0.05, z);
+        escena.add(anillo);
+        particulasEfectos.push({ malla: anillo, tipo: "onda", vida: 0.6, edad: 0 });
+
+        sonar("choque", 1.5);
+      }
+
+      function fuegosArtificialesStrike() {
+        const colores = [0xffd700, 0xff3b8b, 0x00f0ff, 0x26de81, 0xffffff];
+        for (let i = 0; i < 4; i++) {
+          setTimeout(() => {
+            const x = azar(-1.8, 1.8);
+            const y = azar(2.5, 4.5);
+            const z = azar(-2, 1);
+            emitirChispas(x, y, z, colores[i % colores.length], 45);
+          }, i * 160);
+        }
+      }
+
+      function actualizarParticulas(dt) {
+        for (let i = particulasEfectos.length - 1; i >= 0; i--) {
+          const ef = particulasEfectos[i];
+          ef.edad += dt;
+          const k = ef.edad / ef.vida;
+
+          if (ef.malla && ef.tipo === "onda") {
+            const s = 1 + k * 8;
+            ef.malla.scale.set(s, s, s);
+            ef.malla.material.opacity = Math.max(0, 1 - k);
+          } else if (ef.p) {
+            const pos = ef.p.geometry.attributes.position;
+            for (let j = 0; j < ef.vel.length; j++) {
+              ef.vel[j][1] -= 7.5 * dt; // gravedad
+              pos.array[j * 3] += ef.vel[j][0] * dt;
+              pos.array[j * 3 + 1] = Math.max(0.02, pos.array[j * 3 + 1] + ef.vel[j][1] * dt);
+              pos.array[j * 3 + 2] += ef.vel[j][2] * dt;
+            }
+            pos.needsUpdate = true;
+            ef.p.material.opacity = Math.max(0, 1 - k);
+          }
+
+          if (k >= 1) {
+            if (ef.p) {
+              escena.remove(ef.p);
+              ef.p.geometry.dispose();
+              ef.p.material.dispose();
+            }
+            if (ef.malla) {
+              escena.remove(ef.malla);
+              ef.malla.geometry.dispose();
+              ef.malla.material.dispose();
+            }
+            particulasEfectos.splice(i, 1);
+          }
+        }
+      }
+
+      // =========================================================
+      //  MODELO 3D DE BOLOS (DETALLADO Y PERSONALIZABLE)
+      // =========================================================
+      function crearMono(tipoEspecial = "normal") {
         const g = new THREE.Group();
-        const blanco = mat(0xffffff, { roughness: 0.9 });
-        const base = new THREE.Mesh(
-          new THREE.SphereGeometry(R_MONO, 16, 12),
-          blanco,
-        );
+        const cfg = ESTILOS[estiloActual] || ESTILOS.polar;
+
+        // Material del cuerpo del muñeco
+        const matCuerpo = mat(cfg.cuerpo, {
+          roughness: cfg.roughness,
+          metalness: cfg.metalness,
+          emissive: lin(cfg.cuerpoEmisivo || 0x000000),
+          emissiveIntensity: cfg.cuerpoEmisivo ? 0.35 : 0,
+        });
+
+        // 3 bolas de nieve
+        const base = new THREE.Mesh(new THREE.SphereGeometry(R_MONO, 16, 12), matCuerpo);
         base.position.y = R_MONO;
-        const cuerpo = new THREE.Mesh(
-          new THREE.SphereGeometry(R_MONO * 0.75, 16, 12),
-          blanco,
-        );
+        const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(R_MONO * 0.75, 16, 12), matCuerpo);
         cuerpo.position.y = R_MONO * 2.2;
-        const cabeza = new THREE.Mesh(
-          new THREE.SphereGeometry(R_MONO * 0.55, 16, 12),
-          blanco,
-        );
+        const cabeza = new THREE.Mesh(new THREE.SphereGeometry(R_MONO * 0.55, 16, 12), matCuerpo);
         cabeza.position.y = R_MONO * 3.4;
+
+        // Ojos de carbón 3D
+        const matCarbon = mat(0x1a1a1a, { roughness: 0.9 });
+        [-0.045, 0.045].forEach((ox) => {
+          const ojo = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 6), matCarbon);
+          ojo.position.set(ox, R_MONO * 3.46, R_MONO * 0.52);
+          g.add(ojo);
+        });
+
+        // Sonrisa de piedritas
+        for (let i = -2; i <= 2; i++) {
+          const bocaP = new THREE.Mesh(new THREE.SphereGeometry(0.01, 6, 6), matCarbon);
+          bocaP.position.set(i * 0.024, R_MONO * 3.32 - Math.abs(i) * 0.008, R_MONO * 0.5);
+          g.add(bocaP);
+        }
+
+        // Botones en el pecho
+        [R_MONO * 2.4, R_MONO * 2.1, R_MONO * 1.8].forEach((oy) => {
+          const boton = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), matCarbon);
+          boton.position.set(0, oy, R_MONO * 0.72);
+          g.add(boton);
+        });
+
+        // Nariz de zanahoria 3D
         const nariz = new THREE.Mesh(
           new THREE.ConeGeometry(0.035, 0.16, 8),
-          mat(0xff8c1a),
+          mat(cfg.nariz, { roughness: 0.6 }),
         );
         nariz.rotation.x = Math.PI / 2;
         nariz.position.set(0, R_MONO * 3.4, R_MONO * 0.6);
-        const sombrero = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.1, 0.1, 0.16, 12),
-          mat(0x222222),
+
+        // Sombrero de copa con ala y cinta decorativa
+        const matSombrero = mat(cfg.sombrero, { roughness: 0.5, metalness: 0.1 });
+        const copaSombrero = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.1, 0.105, 0.18, 14),
+          matSombrero,
         );
-        sombrero.position.y = R_MONO * 3.4 + 0.18;
-        const ala = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.16, 0.16, 0.02, 14),
-          mat(0x222222),
+        copaSombrero.position.y = R_MONO * 3.4 + 0.18;
+        const alaSombrero = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.16, 0.16, 0.02, 16),
+          matSombrero,
         );
-        ala.position.y = R_MONO * 3.4 + 0.1;
+        alaSombrero.position.y = R_MONO * 3.4 + 0.09;
+        const cintaSombrero = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.102, 0.102, 0.04, 14),
+          mat(cfg.cinta, { roughness: 0.4 }),
+        );
+        cintaSombrero.position.y = R_MONO * 3.4 + 0.12;
+
+        // Bufanda con textura envolvente y nudo colgante
+        const matBufanda = mat(cfg.bufanda, { roughness: 0.65 });
         const bufanda = new THREE.Mesh(
-          new THREE.TorusGeometry(R_MONO * 0.5, 0.04, 6, 14),
-          mat(0xe0323c),
+          new THREE.TorusGeometry(R_MONO * 0.5, 0.045, 8, 16),
+          matBufanda,
         );
         bufanda.rotation.x = Math.PI / 2;
         bufanda.position.y = R_MONO * 2.9;
-        [base, cuerpo, cabeza, sombrero].forEach((m) => (m.castShadow = true));
-        g.add(base, cuerpo, cabeza, nariz, sombrero, ala, bufanda);
+
+        const colaBufanda = new THREE.Mesh(
+          new THREE.BoxGeometry(0.06, 0.16, 0.025),
+          matBufanda,
+        );
+        colaBufanda.position.set(0.08, R_MONO * 2.78, R_MONO * 0.5);
+        colaBufanda.rotation.z = -0.25;
+
+        // Decoraciones especiales por modalidad dinámica
+        if (tipoEspecial === "bomba") {
+          // Mecha encendida en el sombrero
+          const mecha = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.01, 0.01, 0.1, 6),
+            mat(0x222222),
+          );
+          mecha.position.set(0, R_MONO * 3.4 + 0.3, 0);
+          const fuego = new THREE.Mesh(
+            new THREE.SphereGeometry(0.035, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0xff3b00 }),
+          );
+          fuego.position.set(0, R_MONO * 3.4 + 0.36, 0);
+          g.add(mecha, fuego);
+          g.userData.fuego = fuego;
+        } else if (tipoEspecial === "rey") {
+          // Corona dorada sobre la cabeza
+          const corona = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.13, 0.09, 0.1, 5, 1, true),
+            mat(0xffd700, { metalness: 0.9, roughness: 0.2 }),
+          );
+          corona.position.y = R_MONO * 3.4 + 0.18;
+          g.add(corona);
+        }
+
+        [base, cuerpo, cabeza, copaSombrero, alaSombrero].forEach(
+          (m) => (m.castShadow = true),
+        );
+        g.add(base, cuerpo, cabeza, nariz, copaSombrero, alaSombrero, cintaSombrero, bufanda, colaBufanda);
         escena.add(g);
         return g;
       }
+
+      // =========================================================
+      //  BOLA DE BOLICHE (CON 3 ORIFICIOS Y ESTELA)
+      // =========================================================
+      function crearTexturaBola(cfg) {
+        const c = document.createElement("canvas");
+        c.width = 256;
+        c.height = 256;
+        const g = c.getContext("2d");
+
+        // Fondo marmoleado de boliche
+        g.fillStyle = "#" + new THREE.Color(cfg.bola).getHexString();
+        g.fillRect(0, 0, 256, 256);
+
+        // Vetas marmoladas
+        const sec = "#" + new THREE.Color(cfg.bolaColorSec).getHexString();
+        g.strokeStyle = sec;
+        for (let i = 0; i < 8; i++) {
+          g.lineWidth = azar(4, 18);
+          g.beginPath();
+          g.moveTo(0, azar(0, 256));
+          g.bezierCurveTo(azar(50, 100), azar(0, 256), azar(150, 200), azar(0, 256), 256, azar(0, 256));
+          g.stroke();
+        }
+
+        // 3 Orificios clásicos para dedos en un lado de la bola
+        g.fillStyle = "#0c0a10";
+        g.beginPath();
+        g.arc(128, 90, 16, 0, Math.PI * 2); // pulgar
+        g.fill();
+        g.beginPath();
+        g.arc(106, 138, 12, 0, Math.PI * 2); // índice
+        g.fill();
+        g.beginPath();
+        g.arc(150, 138, 12, 0, Math.PI * 2); // medio
+        g.fill();
+
+        const tex = new THREE.CanvasTexture(c);
+        return tex;
+      }
+
+      let texBolaActual = crearTexturaBola(ESTILOS[estiloActual]);
+      const matBola = mat(0xffffff, {
+        map: texBolaActual,
+        roughness: 0.18,
+        metalness: 0.12,
+        clearcoat: 0.8,
+      });
+
       const bola = new THREE.Mesh(
-        new THREE.SphereGeometry(R_BOLA, 20, 16),
-        mat(0xffffff, { roughness: 0.95 }),
+        new THREE.SphereGeometry(R_BOLA, 24, 20),
+        matBola,
       );
       bola.castShadow = true;
       escena.add(bola);
 
+      function actualizarEstiloBola() {
+        const cfg = ESTILOS[estiloActual];
+        if (texBolaActual) texBolaActual.dispose();
+        texBolaActual = crearTexturaBola(cfg);
+        bola.material.map = texBolaActual;
+        bola.material.needsUpdate = true;
+      }
+
+      // Estela de rodamiento de la bola
+      const N_ESTELA = 20;
+      const geoEstela = new THREE.BufferGeometry();
+      geoEstela.setAttribute(
+        "position",
+        new THREE.BufferAttribute(new Float32Array(N_ESTELA * 3), 3),
+      );
+      const estela = new THREE.Line(
+        geoEstela,
+        new THREE.LineBasicMaterial({
+          color: ESTILOS[estiloActual].particulas,
+          transparent: true,
+          opacity: 0.55,
+        }),
+      );
+      estela.frustumCulled = false;
+      estela.visible = false;
+      escena.add(estela);
+      const puntosEstela = [];
+
       // =========================================================
-      //  FÍSICA (determinista: mismos números en los dos celulares)
+      //  GUÍA DE PUNTERÍA INTERACTIVA (PREDICCIÓN DE TRAYECTORIA)
+      // =========================================================
+      const N_GUIAS = 18;
+      const guias = [];
+      const matGuia = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+      for (let i = 0; i < N_GUIAS; i++) {
+        const p = new THREE.Mesh(new THREE.SphereGeometry(0.024, 6, 6), matGuia);
+        p.visible = false;
+        guias.push(p);
+        escena.add(p);
+      }
+
+      function mostrarGuiaPunteria(x0, vx, vz, efecto) {
+        let simX = x0, simZ = Z_TIRO, simVx = vx, simVz = vz;
+        for (let i = 0; i < N_GUIAS; i++) {
+          for (let step = 0; step < 4; step++) {
+            simVx += efecto * 0.025 * (simZ < 6 ? 1.2 : 0.2);
+            simX += simVx * 0.025;
+            simZ += simVz * 0.025;
+            if (Math.abs(simX) > ANCHO - R_BOLA) {
+              simX = Math.sign(simX) * (ANCHO - R_BOLA);
+              simVx *= -0.3;
+            }
+          }
+          guias[i].position.set(simX, 0.03, simZ);
+          guias[i].visible = simZ > -3;
+        }
+      }
+
+      function ocultarGuiaPunteria() {
+        guias.forEach((g) => (g.visible = false));
+      }
+
+      // =========================================================
+      //  OBSTÁCULO MÓVIL (MODO DINÁMICO)
+      // =========================================================
+      const obstaculoPinguino = new THREE.Group();
+      (() => {
+        // Pingüinito patinador 3D sobre bloque de hielo
+        const trineo = new THREE.Mesh(
+          new THREE.BoxGeometry(0.42, 0.08, 0.32),
+          mat(0xa6d8f8, { roughness: 0.1, metalness: 0.2 }),
+        );
+        trineo.position.y = 0.04;
+        const cuerpoP = new THREE.Mesh(
+          new THREE.SphereGeometry(0.18, 12, 10),
+          mat(0x1a1a24, { roughness: 0.6 }),
+        );
+        cuerpoP.position.y = 0.22;
+        const panza = new THREE.Mesh(
+          new THREE.SphereGeometry(0.13, 10, 8),
+          mat(0xffffff),
+        );
+        panza.position.set(0, 0.2, 0.08);
+        const pico = new THREE.Mesh(
+          new THREE.ConeGeometry(0.04, 0.12, 6),
+          mat(0xff9900),
+        );
+        pico.rotation.x = Math.PI / 2;
+        pico.position.set(0, 0.28, 0.18);
+        obstaculoPinguino.add(trineo, cuerpoP, panza, pico);
+        obstaculoPinguino.position.set(0, 0, 6);
+        obstaculoPinguino.visible = false;
+        escena.add(obstaculoPinguino);
+      })();
+
+      const Obs = { x: 0, z: 6, vx: 1.25, activo: false, r: 0.28 };
+
+      // =========================================================
+      //  FÍSICA DETERMINISTA
       // =========================================================
       const POS_MONOS = [];
       [
@@ -188,41 +782,97 @@
       ].forEach((fila, r) =>
         fila.forEach((x) => POS_MONOS.push([x, -r * 0.55])),
       );
+
       let monos = [];
       const B = { x: 0, z: Z_TIRO, vx: 0, vz: 0, efecto: 0, viva: false };
+
       function ponerMonos(todos) {
-        monos.forEach((m) => escena.remove(m.malla));
-        monos = POS_MONOS.map(([x, z], i) => ({
-          i,
-          x,
-          z,
-          vx: 0,
-          vz: 0,
-          caido: false,
-          inclina: 0,
-          malla: crearMono(),
-          parado: todos || !J.tumbados.includes(i),
-        }));
+        monos.forEach((m) => {
+          escena.remove(m.malla);
+          m.malla.traverse((child) => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+          });
+        });
+
+        // Asignación determinista de bolo bomba y rey según la ronda
+        const idxBomba = modalidadJuego === "dinamico" ? (J.ronda * 3 + 1) % 10 : -1;
+        const idxRey = modalidadJuego === "dinamico" ? (J.ronda * 7 + 4) % 10 : -1;
+
+        monos = POS_MONOS.map(([x, z], i) => {
+          let tipo = "normal";
+          if (i === idxBomba) tipo = "bomba";
+          else if (i === idxRey) tipo = "rey";
+
+          return {
+            i,
+            x,
+            z,
+            vx: 0,
+            vz: 0,
+            caido: false,
+            inclina: 0,
+            tipo,
+            malla: crearMono(tipo),
+            parado: todos || !J.tumbados.includes(i),
+          };
+        });
+
         monos.forEach((m) => {
           m.malla.visible = m.parado;
           m.malla.position.set(m.x, 0, m.z);
         });
+
+        // Configurar obstáculo móvil
+        Obs.activo = modalidadJuego === "dinamico" && J.ronda >= 2;
+        Obs.x = azar(-0.8, 0.8);
+        Obs.vx = (Math.random() < 0.5 ? -1 : 1) * (1.1 + J.ronda * 0.2);
+        obstaculoPinguino.visible = Obs.activo;
+        obstaculoPinguino.position.set(Obs.x, 0, Obs.z);
       }
+
       function pasoFisica() {
+        // Mover obstáculo móvil
+        if (Obs.activo) {
+          Obs.x += Obs.vx * PASO;
+          if (Obs.x > ANCHO - 0.35) {
+            Obs.x = ANCHO - 0.35;
+            Obs.vx = -Math.abs(Obs.vx);
+          } else if (Obs.x < -ANCHO + 0.35) {
+            Obs.x = -ANCHO + 0.35;
+            Obs.vx = Math.abs(Obs.vx);
+          }
+          obstaculoPinguino.position.x = Obs.x;
+        }
+
         if (B.viva) {
-          B.vx += B.efecto * PASO * (B.z < 6 ? 1.2 : 0.2); // la curva se nota al final
+          B.vx += B.efecto * PASO * (B.z < 6 ? 1.2 : 0.2);
           B.x += B.vx * PASO;
           B.z += B.vz * PASO;
+
+          // Colisión con canaletas / bordes
           if (Math.abs(B.x) > ANCHO - R_BOLA) {
             B.x = Math.sign(B.x) * (ANCHO - R_BOLA);
-            B.vx *= -0.3;
-            B.vz *= 0.85;
+            B.vx *= -0.32;
+            B.vz *= 0.88;
+            emitirChispas(B.x, 0.15, B.z, 0xffffff, 8);
           }
+
+          // Colisión con obstáculo pingüino en modo dinámico
+          if (Obs.activo && Math.hypot(B.x - Obs.x, B.z - Obs.z) < R_BOLA + Obs.r) {
+            const dx = B.x - Obs.x, dz = B.z - Obs.z;
+            const dist = Math.hypot(dx, dz) || 1;
+            B.vx = (dx / dist) * Math.max(3.5, Math.abs(B.vx) * 1.2);
+            B.vz *= 0.6;
+            emitirChispas(B.x, 0.2, B.z, 0x00f0ff, 25);
+            sonar("rebote", 1.2);
+          }
+
           if (B.z < -4) B.viva = false;
         }
+
         const cuerpos = monos.filter((m) => m.parado || m.caido);
         for (const m of cuerpos) {
-          // la bola contra el mono
           if (B.viva) {
             const dx = m.x - B.x,
               dz = m.z - B.z,
@@ -232,11 +882,29 @@
                 nz = dz / d;
               const rv = B.vx * nx + B.vz * nz;
               if (rv > 0) {
-                m.vx += nx * rv * 1.3;
-                m.vz += nz * rv * 1.3;
+                m.vx += nx * rv * 1.35;
+                m.vz += nz * rv * 1.35;
                 B.vx -= nx * rv * 0.25;
                 B.vz -= nz * rv * 0.25;
                 golpe(m, rv);
+
+                // Si es un bolo bomba, ¡detona onda expansiva derribando bolos vecinos!
+                if (m.tipo === "bomba" && !m.explotado) {
+                  m.explotado = true;
+                  emitirExplosionBomba(m.x, m.z);
+                  for (const vecino of cuerpos) {
+                    if (vecino !== m && vecino.parado) {
+                      const vdx = vecino.x - m.x, vdz = vecino.z - m.z;
+                      const vdist = Math.hypot(vdx, vdz);
+                      if (vdist < 1.15 && vdist > 1e-4) {
+                        const fuerzaExp = (1.15 - vdist) * 8.5;
+                        vecino.vx += (vdx / vdist) * fuerzaExp;
+                        vecino.vz += (vdz / vdist) * fuerzaExp;
+                        golpe(vecino, fuerzaExp);
+                      }
+                    }
+                  }
+                }
               }
               m.x = B.x + nx * (R_BOLA + R_MONO);
               m.z = B.z + nz * (R_BOLA + R_MONO);
@@ -247,8 +915,9 @@
           m.vx *= 1 - 2.2 * PASO;
           m.vz *= 1 - 2.2 * PASO;
         }
-        // monos entre ellos
-        for (let i = 0; i < cuerpos.length; i++)
+
+        // Interacción entre muñecos
+        for (let i = 0; i < cuerpos.length; i++) {
           for (let j = i + 1; j < cuerpos.length; j++) {
             const a = cuerpos[i],
               b = cuerpos[j];
@@ -260,7 +929,7 @@
               nz = dz / d;
             const rv = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz;
             if (rv > 0) {
-              const imp = rv * 0.8;
+              const imp = rv * 0.85;
               a.vx -= imp * nx;
               a.vz -= imp * nz;
               b.vx += imp * nx;
@@ -274,23 +943,37 @@
             b.x += nx * sobra;
             b.z += nz * sobra;
           }
+        }
       }
+
       function golpe(m, fuerza) {
-        if (m.caido || fuerza < 0.6) return;
+        if (m.caido || fuerza < 0.55) return;
         m.caido = true;
         m.dir = Math.atan2(m.vx, m.vz);
-        sonar("golpe", Math.min(1, fuerza / 6));
+        const cfg = ESTILOS[estiloActual];
+        emitirChispas(m.x, 0.35, m.z, cfg.particulas, Math.min(24, Math.floor(fuerza * 6)));
+        sonar("golpe", Math.min(1, fuerza / 5.5));
       }
+
+      // =========================================================
+      //  BUCLE DE RENDER Y CÁMARA
+      // =========================================================
       let acumulado = 0;
+      let camaraCerca = false;
+
       M.alCuadro((dt, ahora) => {
-        // copos
+        // Nieve cayendo
         const p = copos.geometry.attributes.position;
         for (let i = 0; i < p.count; i++) {
-          let y = p.getY(i) - dt * 1.2;
-          if (y < 0) y = 15;
+          let y = p.getY(i) - dt * 1.25;
+          if (y < 0) y = 16;
           p.setY(i, y);
         }
         p.needsUpdate = true;
+
+        // Actualizar partículas dinámicas
+        actualizarParticulas(dt);
+
         if (J.simulando) {
           acumulado += dt;
           while (acumulado >= PASO) {
@@ -299,59 +982,93 @@
             J.tiempo += PASO;
           }
         }
+
+        // Posición y rotación de la bola
         bola.position.set(B.x, R_BOLA, B.z);
-        if (B.viva) bola.rotation.x -= (B.vz * dt) / R_BOLA;
+        if (B.viva) {
+          bola.rotation.x -= (B.vz * dt) / R_BOLA;
+          bola.rotation.z += (B.vx * dt) / R_BOLA;
+
+          // Registrar estela
+          puntosEstela.unshift([B.x, 0.04, B.z]);
+          if (puntosEstela.length > N_ESTELA) puntosEstela.pop();
+        } else if (puntosEstela.length > 0) {
+          puntosEstela.pop();
+        }
+
+        estela.visible = puntosEstela.length > 1;
+        if (estela.visible) {
+          const arr = geoEstela.attributes.position.array;
+          for (let i = 0; i < N_ESTELA; i++) {
+            arr.set(puntosEstela[Math.min(i, puntosEstela.length - 1)], i * 3);
+          }
+          geoEstela.attributes.position.needsUpdate = true;
+        }
+
+        // Movimiento e inclinación de los bolos
         monos.forEach((m) => {
           m.malla.position.set(m.x, 0, m.z);
           if (m.caido) {
-            m.inclina = Math.min(Math.PI / 2, m.inclina + dt * 5);
+            m.inclina = Math.min(Math.PI / 2, m.inclina + dt * 6);
             m.malla.rotation.set(0, 0, 0);
             m.malla.rotateY(m.dir);
             m.malla.rotateX(m.inclina);
           }
+          if (m.malla.userData.fuego) {
+            m.malla.userData.fuego.scale.setScalar(0.9 + Math.sin(ahora / 80) * 0.25);
+          }
         });
-        // cámara
+
+        // Control y animación de cámara cinematográfica
         const aspecto = window.innerWidth / window.innerHeight;
         camara.fov = aspecto < 1 ? 62 : 52;
         camara.updateProjectionMatrix();
+
         if (!J.modo) {
-          camara.position.set(Math.sin(ahora / 4000) * 3, 3, 8);
+          camara.position.set(Math.sin(ahora / 3800) * 3.5, 3.2, 9);
           camara.lookAt(0, 0.5, 0);
-        } else if (B.viva && B.z < Z_TIRO - 1) {
+        } else if (B.viva && B.z < Z_TIRO - 0.5) {
+          // Cámara de acción de seguimiento
+          const altCam = camaraCerca ? 1.6 : 2.4;
+          const distZ = camaraCerca ? 2.8 : Math.max(B.z + 4.8, 3.2);
           camara.position.lerp(
-            new THREE.Vector3(B.x * 0.4, 2.2, Math.max(B.z + 4.5, 3.5)),
-            Math.min(1, dt * 3),
+            new THREE.Vector3(B.x * 0.45, altCam, distZ),
+            Math.min(1, dt * 4.2),
           );
-          camara.lookAt(0, 0.4, -0.5);
+          camara.lookAt(B.x * 0.2, 0.45, -0.8);
         } else {
+          // Posición de preparación
           camara.position.lerp(
-            new THREE.Vector3(0, aspecto < 1 ? 3.2 : 2.6, Z_TIRO + 3.4),
-            Math.min(1, dt * 3),
+            new THREE.Vector3(0, aspecto < 1 ? 3.4 : 2.7, Z_TIRO + 3.6),
+            Math.min(1, dt * 3.5),
           );
-          camara.lookAt(0, 0.4, 0);
+          camara.lookAt(0, 0.45, 0);
         }
       });
 
       // =========================================================
-      //  PARTIDA
+      //  PARTIDA Y LÓGICA DE JUEGO
       // =========================================================
-      const J = { modo: null, activa: false, tumbados: [] };
+      const J = { modo: null, activa: false, tumbados: [], bonusRonda: 0 };
       const ciclo = Arcade.ciclo(J, { animar: (...args) => M.animar(...args) });
+
       const ui = Arcade.ui({
         juego: "nieve",
-        titulo: "Bolos de Nieve",
+        titulo: "Bolos de Nieve 3D",
         emoji: "⛄",
-        subtitulo: "Tumba a los muñecos de nieve",
+        subtitulo: "Boliche de invierno con efectos y bolos especiales",
         modos: ["solo", "bot", "online", "local"],
         dificultad: true,
         records: true,
         unidadRecord: "pts",
         reglas: [
-          "Desliza hacia arriba para aventar la bola de nieve. Más rápido = más fuerte.",
-          "Si terminas tu deslizamiento torcido, la bola hace curva ↪️.",
-          "Tienes 2 tiros por ronda para tumbar los 10 muñecos.",
-          "Chuza (todos al primer tiro) = 15 · Semi (en 2 tiros) = 12 · si no, 1 por muñeco.",
-          `Son ${RONDAS} rondas.`,
+          "Desliza hacia arriba para lanzar la bola. Más rápido = más potencia.",
+          "Si desvías el dedo al final, imprimes un efecto curvo a la bola ↪️.",
+          "¡Mira los puntitos en el carril! Te anticipan la trayectoria antes de soltar.",
+          "Modo Dinámico: 💣 Bolo Bomba (explota derribando a sus vecinos) · 👑 Bolo Rey (+5 pts).",
+          "A partir de la ronda 2, esquiva al pingüino patinador con curvas maestras.",
+          "Chuza (Strike) = 15 pts · Semi (Spare) = 12 pts · si no, 1 pt por muñeco derribado.",
+          `Son ${RONDAS} rondas. ¡Personaliza los colores de los bolos a tu gusto!`,
         ],
         alEmpezar: empezar,
         alSalir: () => {
@@ -359,8 +1076,91 @@
           J.activa = false;
           J.modo = null;
           J.simulando = false;
+          btnEstilo.classList.add("oculto");
+          btnCamara.classList.add("oculto");
+          ocultarGuiaPunteria();
         },
       });
+
+      // Inyección de chips personalizados en el menú de Arcade.ui
+      const btnEstilo = $("btn-estilo-rapido");
+      const btnCamara = $("btn-camara-bolos");
+      const medidorTiro = $("medidor-tiro");
+
+      (() => {
+        const campo = $("nombre");
+        if (!campo) return;
+
+        const htmlConfig = `
+          <div class="etiqueta">🎨 Estilo de Bolos</div>
+          <div class="chips" id="chips-estilo">
+            ${Object.values(ESTILOS)
+              .map(
+                (e) =>
+                  `<button class="chip${e.id === estiloActual ? " activo" : ""}" data-estilo="${e.id}">${e.emoji} ${e.nombre}</button>`,
+              )
+              .join("")}
+          </div>
+          <div class="etiqueta">⚡ Modo de Boliche</div>
+          <div class="chips" id="chips-modo-juego">
+            <button class="chip${modalidadJuego === "dinamico" ? " activo" : ""}" data-modo-juego="dinamico">⚡ Dinámico (Caos 💣👑)</button>
+            <button class="chip${modalidadJuego === "clasico" ? " activo" : ""}" data-modo-juego="clasico">🎳 Tradicional (Limpio)</button>
+          </div>
+        `;
+
+        campo.insertAdjacentHTML("afterend", htmlConfig);
+
+        $("chips-estilo").addEventListener("click", (e) => {
+          const btn = e.target.closest("[data-estilo]");
+          if (!btn) return;
+          cambiarEstilo(btn.dataset.estilo);
+          document
+            .querySelectorAll("#chips-estilo .chip")
+            .forEach((c) => c.classList.toggle("activo", c === btn));
+          sonar("click");
+        });
+
+        $("chips-modo-juego").addEventListener("click", (e) => {
+          const btn = e.target.closest("[data-modo-juego]");
+          if (!btn) return;
+          modalidadJuego = btn.dataset.modo-juego;
+          try {
+            localStorage.setItem("bolos_modalidad", modalidadJuego);
+          } catch (err) {}
+          document
+            .querySelectorAll("#chips-modo-juego .chip")
+            .forEach((c) => c.classList.toggle("activo", c === btn));
+          sonar("click");
+        });
+      })();
+
+      function cambiarEstilo(nuevoId) {
+        if (!ESTILOS[nuevoId]) return;
+        estiloActual = nuevoId;
+        try {
+          localStorage.setItem("bolos_estilo", estiloActual);
+        } catch (e) {}
+
+        actualizarEstiloBola();
+        estela.material.color.set(ESTILOS[estiloActual].particulas);
+        ponerMonos(J.tiro === 0);
+        btnEstilo.textContent = `${ESTILOS[estiloActual].emoji} ${ESTILOS[estiloActual].nombre}`;
+      }
+
+      btnEstilo.addEventListener("click", () => {
+        const claves = Object.keys(ESTILOS);
+        const sig = claves[(claves.indexOf(estiloActual) + 1) % claves.length];
+        cambiarEstilo(sig);
+        sonar("click");
+        ui.avisar(`Estilo: ${ESTILOS[sig].nombre}`, ESTILOS[sig].cinta || "#4fb3ff");
+      });
+
+      btnCamara.addEventListener("click", () => {
+        camaraCerca = !camaraCerca;
+        btnCamara.textContent = camaraCerca ? "🎥 Cámara: Cerca" : "🎥 Cámara: Dinámica";
+        sonar("click");
+      });
+
       const pendientes = {};
       ui.alEvento = (tipo, d) => {
         if (tipo === "tiro" && d && d.partida === J.partida) {
@@ -368,6 +1168,7 @@
           siguientePendiente();
         }
       };
+
       function siguientePendiente() {
         if (J.ocupado || !pendientes[J.n]) return;
         const d = pendientes[J.n];
@@ -388,21 +1189,33 @@
           turno: 0,
           puntos: [0, 0],
           tumbados: [],
+          bonusRonda: 0,
           n: 0,
           activa: true,
           ocupado: false,
           simulando: false,
         });
         J.yo = modo === "online" ? ui.yo : 0;
+
+        btnEstilo.classList.remove("oculto");
+        btnCamara.classList.remove("oculto");
+        btnEstilo.textContent = `${ESTILOS[estiloActual].emoji} ${ESTILOS[estiloActual].nombre}`;
+
         prepararTurno();
       }
+
       const miTurno = () =>
         J.activa &&
         !J.ocupado &&
         (J.modo === "solo" || J.modo === "local" || J.turno === J.yo);
+
       function prepararTurno() {
         J.ocupado = false;
-        if (J.tiro === 0) J.tumbados = [];
+        if (J.tiro === 0) {
+          J.tumbados = [];
+          J.bonusRonda = 0;
+        }
+
         ponerMonos(J.tiro === 0);
         Object.assign(B, {
           x: 0,
@@ -412,65 +1225,103 @@
           efecto: 0,
           viva: false,
         });
+
         marcador();
-        if (J.modo === "local" && J.tiro === 0)
+        if (J.modo === "local" && J.tiro === 0) {
           ui.avisar(
             `Tira ${J.nombres[J.turno]}`,
             J.turno ? "#4fb3ff" : "#ff4f8b",
           );
-        ui.ayuda(
-          miTurno()
-            ? "👆 Desliza hacia arriba para aventar"
-            : `Tira ${J.nombres[J.turno]}…`,
-        );
-        if (J.modo === "bot" && J.turno === 1)
+        }
+
+        const ayudaTxt = miTurno()
+          ? (modalidadJuego === "dinamico"
+              ? "👆 Desliza hacia arriba · ¡Atento al Bolo Bomba 💣 y Rey 👑!"
+              : "👆 Desliza hacia arriba para tirar · Dobla el dedo para dar curva")
+          : `Tira ${J.nombres[J.turno]}…`;
+        ui.ayuda(ayudaTxt);
+
+        if (J.modo === "bot" && J.turno === 1) {
           ciclo.despues(
             () => J.activa && J.turno === 1 && !J.ocupado && tiroBot(),
             1100,
           );
+        }
         siguientePendiente();
       }
 
+      // =========================================================
+      //  GESTO TÁCTIL Y TIRO
+      // =========================================================
       let gesto = null;
+
       M.lienzo.addEventListener("pointerdown", (e) => {
         if (!miTurno()) return;
         gesto = {
           puntos: [{ x: e.clientX, y: e.clientY, t: performance.now() }],
         };
       });
+
       M.lienzo.addEventListener("pointermove", (e) => {
-        if (!gesto) return;
+        if (!gesto || !miTurno()) return;
         gesto.puntos.push({ x: e.clientX, y: e.clientY, t: performance.now() });
-        // la bola sigue al dedo de lado antes de soltar
+
+        // Posicionamiento de la bola a los lados
         B.x = limitar(
-          ((e.clientX - window.innerWidth / 2) / window.innerWidth) * 3,
-          -ANCHO + R_BOLA,
-          ANCHO - R_BOLA,
+          ((e.clientX - window.innerWidth / 2) / window.innerWidth) * 2.8,
+          -ANCHO + R_BOLA + 0.05,
+          ANCHO - R_BOLA - 0.05,
         );
+
+        // Previsualizar tiro y fuerza
+        const a = gesto.puntos[0], b = gesto.puntos[gesto.puntos.length - 1];
+        const dy = a.y - b.y;
+        if (dy > 20) {
+          const ult = gesto.puntos.filter((p) => p.t > b.t - 120);
+          const v0 = ult[0] || a;
+          const velPx = Math.hypot(b.x - v0.x, b.y - v0.y) / Math.max(30, b.t - v0.t);
+          const fuerza = limitar(velPx * 5.5, 5, 13);
+          const dir = limitar((b.x - a.x) / Math.max(dy, 1), -0.38, 0.38);
+          const medio = gesto.puntos[Math.floor(gesto.puntos.length / 2)];
+          const efecto = limitar((b.x - medio.x - (medio.x - a.x)) / 60, -1.6, 1.6);
+          const vx = dir * fuerza * 0.35, vz = -fuerza;
+
+          mostrarGuiaPunteria(B.x, vx, vz, efecto);
+          medidorTiro.classList.add("visible");
+          medidorTiro.firstElementChild.style.width = Math.min(100, ((fuerza - 5) / 8) * 100) + "%";
+        } else {
+          ocultarGuiaPunteria();
+          medidorTiro.classList.remove("visible");
+        }
       });
+
       M.lienzo.addEventListener("pointerup", (e) => {
+        ocultarGuiaPunteria();
+        medidorTiro.classList.remove("visible");
+
         if (!gesto || !miTurno()) return (gesto = null);
         const pts = gesto.puntos;
         gesto = null;
         const a = pts[0],
           b = pts[pts.length - 1];
         const dy = a.y - b.y;
-        if (dy < 50) return;
+        if (dy < 40) return;
+
         const ult = pts.filter((p) => p.t > b.t - 120);
         const v0 = ult[0] || a;
         const velPx =
           Math.hypot(b.x - v0.x, b.y - v0.y) / Math.max(30, b.t - v0.t);
         const fuerza = limitar(velPx * 5.5, 5, 13);
-        const dir = limitar((b.x - a.x) / Math.max(dy, 1), -0.35, 0.35);
-        // curva: lo que se torció el dedo al final
+        const dir = limitar((b.x - a.x) / Math.max(dy, 1), -0.38, 0.38);
         const medio = pts[Math.floor(pts.length / 2)];
         const efecto = limitar(
           (b.x - medio.x - (medio.x - a.x)) / 60,
-          -1.5,
-          1.5,
+          -1.6,
+          1.6,
         );
         const vx = dir * fuerza * 0.35,
           vz = -fuerza;
+
         if (J.modo === "online")
           ui.enviar("tiro", {
             partida: J.partida,
@@ -480,6 +1331,7 @@
             vz,
             efecto,
           });
+
         tirar(B.x, vx, vz, efecto);
       });
 
@@ -488,54 +1340,78 @@
         J.ocupado = true;
         J.n++;
         ui.ayuda("");
+        ocultarGuiaPunteria();
+        medidorTiro.classList.remove("visible");
+
         Object.assign(B, { x, z: Z_TIRO, vx, vz, efecto, viva: true });
+        puntosEstela.length = 0;
         J.simulando = true;
         J.tiempo = 0;
         acumulado = 0;
-        sonar("rodar", 0.6);
+        sonar("rodar", 0.7);
+
         const partida = J.partida;
-        // se espera a que todo se detenga
         while (sesionTarea === (J.sesion || 0) && partida === J.partida) {
           await esperar(150);
           if (sesionTarea !== (J.sesion || 0)) return;
           const quietos = monos.every((m) => Math.hypot(m.vx, m.vz) < 0.05);
           if ((!B.viva && quietos) || J.tiempo > 8) break;
         }
+
         if (partida !== J.partida) return;
-        await esperar(700);
+        await esperar(650);
         if (sesionTarea !== (J.sesion || 0)) return;
+
         J.simulando = false;
         B.viva = false;
+
         const nuevos = monos
           .filter((m) => m.parado && m.caido && !J.tumbados.includes(m.i))
           .map((m) => m.i);
+
+        // Bonificación por Bolo Rey derribado
+        const tumbadosAhora = monos.filter((m) => nuevos.includes(m.i));
+        const tiroAlRey = tumbadosAhora.some((m) => m.tipo === "rey");
+        if (tiroAlRey) {
+          J.bonusRonda += 5;
+          ui.avisar("👑 ¡BOLO REY DERRIBADO! +5 pts", "#ffd700");
+          sonar("perfecto", 1.4);
+          await esperar(1000);
+        }
+
         J.tumbados.push(...nuevos);
         anotar(nuevos.length);
       }
 
       function anotar(n) {
         const total = J.tumbados.length;
+
         if (J.tiro === 0 && total === 10) {
-          J.puntos[J.turno] += 15;
-          ui.avisar("⛄💥 ¡CHUZA! +15", "#ffd84f");
+          J.puntos[J.turno] += 15 + J.bonusRonda;
+          ui.avisar(`⛄💥 ¡CHUZA! +${15 + J.bonusRonda}`, "#ffd84f");
           sonar("publico");
+          fuegosArtificialesStrike();
           return siguienteTurno();
         }
+
         if (J.tiro === 1) {
           if (total === 10) {
-            J.puntos[J.turno] += 12;
-            ui.avisar("🎉 ¡Semi! +12", "#26de81");
+            J.puntos[J.turno] += 12 + J.bonusRonda;
+            ui.avisar(`🎉 ¡SEMI! +${12 + J.bonusRonda}`, "#26de81");
             sonar("ganar");
+            fuegosArtificialesStrike();
           } else {
-            J.puntos[J.turno] += total;
-            ui.avisar(`${total} muñecos`, "#4fb3ff");
+            J.puntos[J.turno] += total + J.bonusRonda;
+            ui.avisar(`${total} muñecos${J.bonusRonda ? ` (+${J.bonusRonda} 👑)` : ""}`, "#4fb3ff");
           }
           return siguienteTurno();
         }
-        ui.avisar(n ? `¡${n}!` : "Nada 😅", n ? "#4fb3ff" : "#9a90aa");
+
+        ui.avisar(n ? `¡${n} muñecos!` : "Nada 😅", n ? "#4fb3ff" : "#9a90aa");
         J.tiro = 1;
         ciclo.despues(prepararTurno, 900);
       }
+
       function siguienteTurno() {
         J.tiro = 0;
         marcador();
@@ -552,8 +1428,7 @@
       }
 
       function tiroBot() {
-        const err = { facil: 0.5, normal: 0.25, pro: 0.1 }[J.dificultad];
-        // apunta al primer muñeco que siga parado
+        const err = { facil: 0.48, normal: 0.22, pro: 0.08 }[J.dificultad];
         const quedan = monos.filter(
           (m) => m.parado && !J.tumbados.includes(m.i),
         );
@@ -561,19 +1436,20 @@
           ? quedan.reduce((a, b) => (a.z > b.z ? a : b))
           : { x: 0 };
         const x = limitar(meta.x * 0.4 + gauss() * err * 0.5, -1, 1);
-        const vz = -azar(9, 12);
+        const vz = -azar(9.5, 12.5);
         const vx =
-          ((meta.x - x) / (Z_TIRO - (meta.z || 0))) * -vz + gauss() * err * 0.4;
+          ((meta.x - x) / (Z_TIRO - (meta.z || 0))) * -vz + gauss() * err * 0.35;
         tirar(x, vx, vz, gauss() * err);
       }
 
       function marcador() {
+        const tagModo = modalidadJuego === "dinamico" ? "⚡ Caos" : "🎳";
         if (J.modo === "solo")
           return ui.marcador([
             {
               nombre: J.nombres[0],
               valor: J.puntos[0],
-              detalle: `Ronda ${J.ronda}/${RONDAS} · tiro ${J.tiro + 1}`,
+              detalle: `${tagModo} · Ronda ${J.ronda}/${RONDAS} · tiro ${J.tiro + 1}`,
               activo: true,
             },
             null,
@@ -585,23 +1461,29 @@
             valor: J.puntos[i],
             detalle:
               J.turno === i
-                ? `Ronda ${J.ronda}/${RONDAS} · tiro ${J.tiro + 1}`
+                ? `${tagModo} · Ronda ${J.ronda}/${RONDAS} · tiro ${J.tiro + 1}`
                 : "puntos",
             activo: J.activa && J.turno === i,
           })),
         );
       }
+
       function fin() {
         J.activa = false;
+        btnEstilo.classList.add("oculto");
+        btnCamara.classList.add("oculto");
+
         if (J.modo === "solo") {
           sonar("ganar");
+          fuegosArtificialesStrike();
           return ui.terminar({
             emoji: "⛄",
             texto: `¡${J.puntos[0]} puntos!`,
-            nota: `De ${RONDAS * 15} posibles`,
+            nota: `Modalidad ${modalidadJuego === "dinamico" ? "⚡ Dinámica" : "Clásica"} · ${RONDAS} rondas`,
             record: J.puntos[0],
           });
         }
+
         const [a, b] = J.puntos;
         const g = a === b ? null : a > b ? 0 : 1;
         const gane = g === J.yo;
@@ -612,6 +1494,8 @@
               ? "ganar"
               : "perder",
         );
+        if (gane) fuegosArtificialesStrike();
+
         ui.terminar({
           emoji: g == null ? "🤝" : J.modo === "local" || gane ? "🏆" : "😿",
           texto:
@@ -622,11 +1506,12 @@
                 : gane
                   ? "¡Ganaste!"
                   : `Ganó ${J.nombres[g]}`,
-          nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}`,
+          nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]} (${modalidadJuego === "dinamico" ? "Caos ⚡" : "Clásico"})`,
           record: J.modo !== "local" ? J.puntos[J.yo] : null,
           gano: J.modo !== "local" && gane,
         });
       }
+
       ponerMonos(true);
     </script>
   </body>
