@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#080717">
+  <title>Neon Squish · Chris Arcade</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='squish.css') }}">
+</head>
+<body>
+  <header><a href="/secreto">← ARCADE</a><strong>NEON <span>SQUISH</span></strong><button id="mute" type="button" aria-label="Activar o silenciar sonido">♫</button></header>
+  <main>
+    <section class="hud" aria-label="Progreso">
+      <div><small>OBJETOS</small><b id="total">0</b></div><div><small>CADENA</small><b id="combo">0</b></div>
+      <div><small>TIEMPO</small><b id="timer">60</b></div><div><small>COLECCIÓN</small><b id="found">1/12</b></div>
+    </section>
+    <div class="stage"><canvas id="game" width="720" height="720" aria-label="Aro de Neon Squish: toca para comprimir"></canvas><div id="toast" role="status"></div></div>
+    <p class="hint">TOCA PARA COMPRIMIR · ATINA CUANDO LA CHISPA CRUZA LA ZONA BLANCA</p>
+    <section class="collection"><div class="collection-heading"><h2>Tu colección</h2><button id="collectionToggle" type="button" aria-expanded="false">Ver objetos ↓</button></div><div id="items" class="items" hidden></div></section>
+  </main>
+  <dialog id="intro"><section class="card"><span>UN ARO · MIL SORPRESAS</span><h1>NEON<br><em>SQUISH</em></h1><p>Cada toque comprime la figura y crea un objeto. Encadena toques precisos para descubrir nuevas sorpresas.</p><button id="start" type="button">¡JUGAR!</button><small>PC: clic o espacio · Móvil: toque</small></section></dialog>
+  <dialog id="end"><section class="card"><span>RONDA COMPLETADA</span><h2 id="endTitle">¡Gran colección!</h2><p id="summary"></p><button id="again" type="button">OTRA RONDA</button><a href="/secreto">Volver al arcade</a></section></dialog>
+  <script src="{{ url_for('static', filename='js/squish.js') }}"></script>
+</body>
+</html>

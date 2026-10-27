@@ -35,6 +35,17 @@ class PerfilTest(unittest.TestCase):
             'pid': 'p0', 'juego': game, 'tipo': event, 'evento': 'evento-1',
             'partida': token, 'datos': data})
 
+    def test_squish_collection_persists_and_validates_counts(self):
+        self.assertEqual(self.client.get('/api/perfil/squish?pid=p0').json['total'], 0)
+        for amount in (3, 5):
+            response = self.client.post('/api/perfil/squish', json={'pid':'p0','cantidad':amount})
+            self.assertEqual(response.status_code, 200)
+        self.assertEqual(app.test_client().get('/api/perfil/squish?pid=p0').json['total'], 8)
+        for amount in (0, 51, True, '3'):
+            self.assertEqual(self.client.post('/api/perfil/squish',
+                json={'pid':'p0','cantidad':amount}).status_code, 400)
+        self.assertEqual(self.client.get('/api/perfil/squish?pid=p0').json['total'], 8)
+
     def test_finish_is_persistent_and_one_per_game(self):
         token = self.start()
         r = self.event(token, gano=True, intentos=1)

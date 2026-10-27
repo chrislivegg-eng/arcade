@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07101f"><title>Cascada de Canicas · Chris Arcade</title><link rel="stylesheet" href="{{ url_for('static', filename='canicas.css') }}"></head>
+<body><header><a href="/secreto">← ARCADE</a><b>🔮 CASCADA DE CANICAS</b><button id="mute" type="button" aria-label="Activar o silenciar sonido">♫</button></header>
+<main><section class="hud"><div><small>PUNTOS</small><strong id="score">0</strong></div><div><small>RONDA</small><strong id="wave">1/3</strong></div><div><small>RESERVA</small><strong id="reserve">8</strong></div><div><small>RÉCORD</small><strong id="best">0</strong></div></section>
+<div class="board"><canvas id="game" width="480" height="780" aria-label="Tablero de canicas con barras multiplicadoras"></canvas><div id="callout" role="status"></div></div>
+<div class="controls"><button id="launch" type="button">SOLTAR CANICAS</button><span>Desliza arriba para apuntar y abajo para mover el recipiente</span></div></main>
+<dialog id="intro"><section class="card"><span>UNA CANICA PUEDE VALER MILES</span><h1>CASCADA<br><em>DE CANICAS</em></h1><p>Elige dónde soltar las canicas, atraviesa los multiplicadores y mueve el recipiente para atraparlas. Tienes tres rondas.</p><button id="start" type="button">JUGAR</button><small>PC: ratón · Móvil: dedo</small></section></dialog>
+<dialog id="end"><section class="card"><span>PARTIDA TERMINADA</span><h2 id="result">0 puntos</h2><p id="save"></p><button id="again" type="button">OTRA PARTIDA</button><a href="/records">Ver récords</a></section></dialog>
+<script src="{{ url_for('static', filename='js/canicas.js') }}"></script></body></html>
