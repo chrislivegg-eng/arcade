@@ -543,7 +543,8 @@
             crearChispasImpacto(c.position);
           }
           // Si el bolo golpeado es el Bolo Bomba en modo dinámico, ¡detona!
-          if (modalidadJuego === "dinamico" && idx === boloBombaIndex && !bombaDetonada) {
+          const golpeEspecial = e.body === cuerpoBola || cuerposPino.includes(e.body);
+          if (modalidadJuego === "dinamico" && idx === boloBombaIndex && !bombaDetonada && golpeEspecial && v > 1.15) {
             detonarBomba();
           }
         }),
@@ -842,7 +843,7 @@
         }
 
         // Movimiento de obstáculo móvil en Modo Dinámico
-        if (modalidadJuego === "dinamico" && J.cuadro >= 1 && J.activa) {
+        if (modalidadJuego === "dinamico" && J.activa) {
           const tObs = ahora * 0.0022;
           const xObs = Math.sin(tObs) * (MEDIO - 0.22);
           cuerpoObstaculo.position.set(xObs, 0.1, -LARGO * 0.52);
@@ -1263,6 +1264,13 @@
       }
 
       function empezar(modo, info) {
+        // Los eventos especiales cambian la física local; mientras no se transmitan
+        // con el protocolo online, las salas usan reglas idénticas tradicionales.
+        if (modo === "online" && modalidadJuego === "dinamico") {
+          modalidadJuego = "clasico";
+          try { localStorage.setItem("boliche_modalidad", modalidadJuego); } catch (e) {}
+          ui.avisar("🌐 Online usa modo Tradicional para sincronizar ambos tableros", "#4fdcff");
+        }
         J.modo = modo;
         J.nombres = info.nombres;
         J.dificultad = info.dificultad;
