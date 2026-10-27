@@ -2,11 +2,20 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#0e0a18" />
     <title>Boliche 3D · Arcade</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='juegos3d.css') }}"
+    />
     <style>
       #cuadros {
         position: fixed;
@@ -46,11 +55,89 @@
       .cuadro.actual {
         outline: 2px solid #ffd84f;
       }
+
+      /* Controles flotantes en pantalla */
+      #btn-estilo-rapido,
+      #btn-camara-boliche {
+        position: fixed;
+        bottom: calc(16px + env(safe-area-inset-bottom));
+        z-index: 20;
+        border: 2px solid rgba(255, 255, 255, 0.45);
+        background: rgba(20, 12, 32, 0.78);
+        color: #fff;
+        font: 800 0.85rem Nunito, sans-serif;
+        border-radius: 999px;
+        padding: 9px 14px;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+        transition: transform 0.15s, background 0.15s, border-color 0.15s;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      #btn-estilo-rapido {
+        left: 14px;
+      }
+      #btn-camara-boliche {
+        right: 14px;
+      }
+      #btn-estilo-rapido:active,
+      #btn-camara-boliche:active {
+        transform: scale(0.94);
+      }
+      #btn-estilo-rapido.oculto,
+      #btn-camara-boliche.oculto {
+        display: none !important;
+      }
+
+      /* Medidor de tiro visual */
+      #medidor-tiro {
+        position: fixed;
+        left: 50%;
+        bottom: calc(20px + env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        width: min(280px, 64vw);
+        height: 16px;
+        border-radius: 999px;
+        background: rgba(10, 8, 25, 0.65);
+        border: 2px solid rgba(255, 255, 255, 0.7);
+        overflow: hidden;
+        z-index: 20;
+        opacity: 0;
+        transition: opacity 0.15s;
+        pointer-events: none;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+      }
+      #medidor-tiro.visible {
+        opacity: 1;
+      }
+      #medidor-tiro div {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #26de81 0%, #fed330 60%, #ff3838 100%);
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      }
+
+      /* Chips de selección en el menú de Arcade.ui */
+      #chips-estilo,
+      #chips-modo-juego {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      #chips-estilo .chip,
+      #chips-modo-juego .chip {
+        flex: 1 1 28%;
+        font-size: 0.82rem;
+        padding: 8px 4px;
+      }
     </style>
   </head>
   <body>
     <canvas id="lienzo"></canvas>
     <div id="cuadros" class="oculto"></div>
+    <button id="btn-estilo-rapido" class="oculto">🎨 Estilo</button>
+    <button id="btn-camara-boliche" class="oculto">🎥 Cámara: Auto</button>
+    <div id="medidor-tiro"><div></div></div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/cannon.min.js') }}"></script>
@@ -64,15 +151,112 @@
         MEDIO = ANCHO / 2,
         LARGO = 18.29,
         RADIO_BOLA = 0.109;
-      const COLORES = [0xff4f8b, 0x4fb3ff];
 
-      // Posición de los 10 pinos (triángulo)
+      // =========================================================
+      //  PALETAS Y ESTILOS DE BOLOS / PINOS
+      // =========================================================
+      const ESTILOS = {
+        clasico: {
+          id: "clasico",
+          nombre: "Clásico Pro",
+          emoji: "🎳",
+          pinoBase: "#fafafa",
+          pinoFranja: "#d4202f",
+          pinoBanda2: "#d4202f",
+          roughness: 0.22,
+          metalness: 0.05,
+          emissive: 0x000000,
+          emissiveIntensity: 0.0,
+          bolaColores: [0x1d3557, 0xc1121f],
+          bolaSec: 0x457b9d,
+          colorPistaMadera: { tono: 34, sat: 52, luz: 62 },
+          luzColor: 0xffffff,
+        },
+        cyber: {
+          id: "cyber",
+          nombre: "Cíber Neón",
+          emoji: "💎",
+          pinoBase: "#081b29",
+          pinoFranja: "#00f0ff",
+          pinoBanda2: "#ff007f",
+          roughness: 0.12,
+          metalness: 0.65,
+          emissive: 0x002e40,
+          emissiveIntensity: 0.55,
+          bolaColores: [0x8a2be2, 0x00f0ff],
+          bolaSec: 0xff007f,
+          colorPistaMadera: { tono: 260, sat: 40, luz: 32 },
+          luzColor: 0x00f0ff,
+        },
+        oro: {
+          id: "oro",
+          nombre: "Oro & Ónix",
+          emoji: "👑",
+          pinoBase: "#ffd700",
+          pinoFranja: "#151515",
+          pinoBanda2: "#ffd700",
+          roughness: 0.16,
+          metalness: 0.85,
+          emissive: 0x3d2c00,
+          emissiveIntensity: 0.35,
+          bolaColores: [0x181818, 0x2e2200],
+          bolaSec: 0xffd700,
+          colorPistaMadera: { tono: 24, sat: 65, luz: 38 },
+          luzColor: 0xfff4cc,
+        },
+        magma: {
+          id: "magma",
+          nombre: "Magma & Fuego",
+          emoji: "🔥",
+          pinoBase: "#241818",
+          pinoFranja: "#ff4500",
+          pinoBanda2: "#ffaa00",
+          roughness: 0.45,
+          metalness: 0.2,
+          emissive: 0x441100,
+          emissiveIntensity: 0.45,
+          bolaColores: [0x800c0c, 0x1f0606],
+          bolaSec: 0xff6600,
+          colorPistaMadera: { tono: 10, sat: 55, luz: 30 },
+          luzColor: 0xff8844,
+        },
+        kawaii: {
+          id: "kawaii",
+          nombre: "Fresa Pastel",
+          emoji: "🌸",
+          pinoBase: "#ffe3ee",
+          pinoFranja: "#06d6a0",
+          pinoBanda2: "#ff70a6",
+          roughness: 0.32,
+          metalness: 0.08,
+          emissive: 0x220512,
+          emissiveIntensity: 0.15,
+          bolaColores: [0xff4f8b, 0x9381ff],
+          bolaSec: 0xffffff,
+          colorPistaMadera: { tono: 40, sat: 35, luz: 78 },
+          luzColor: 0xffe6f2,
+        },
+      };
+
+      let estiloActual = "clasico";
+      try {
+        const guardado = localStorage.getItem("boliche_estilo");
+        if (guardado && ESTILOS[guardado]) estiloActual = guardado;
+      } catch (e) {}
+
+      let modalidadJuego = "clasico";
+      try {
+        const modGuardado = localStorage.getItem("boliche_modalidad");
+        if (modGuardado === "dinamico" || modGuardado === "clasico") modalidadJuego = modGuardado;
+      } catch (e) {}
+
+      // Posición de los 10 pinos (triángulo reglamentario)
       const POS_PINOS = [];
       for (let fila = 0; fila < 4; fila++)
         for (let k = 0; k <= fila; k++) POS_PINOS.push([(k - fila / 2) * 0.3048, -LARGO - fila * 0.2639]);
 
       // =========================================================
-      //  ESCENA
+      //  ESCENA Y MUNDO 3D
       // =========================================================
       const M = Arcade.mundo({
         fondo: 0x0e0a18,
@@ -88,44 +272,52 @@
       const { escena, camara } = M;
       const acabado3D = Graficos3D.configurar(M, "interior");
 
-      // Pista de madera con flechas
+      // Pista de madera de boliche barnizada en alta resolución con marcas
       const PXM = 200;
-      const texturaPista = M.textura(Math.round(ANCHO * PXM), 2048, (g, w, h) => {
-        Arcade.dibujarMadera(g, w, h, { tono: 34, sat: 50, luz: 60, tablas: 39, vertical: true });
-        g.fillStyle = "rgba(255,255,255,0.08)";
-        g.fillRect(0, 0, w, h);
-        // flechas a 4.5 m y puntos a 2 m (de 20 m de pista)
-        const Z = (z) => h - (z / 20) * h;
-        g.fillStyle = "#b8202f";
-        for (let i = -3; i <= 3; i++) {
-          const x = w / 2 + i * w * 0.13,
-            z = Z(4.5 + Math.abs(i) * 0.3);
-          g.beginPath();
-          g.moveTo(x, z - 30);
-          g.lineTo(x - 9, z + 14);
-          g.lineTo(x + 9, z + 14);
-          g.fill();
-          g.beginPath();
-          g.arc(x, Z(2), 5, 0, Math.PI * 2);
-          g.fill();
-        }
-        g.fillStyle = "rgba(20,20,30,0.6)";
-        g.fillRect(0, Z(0) - 4, w, 8);
-      });
-      const pista = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO, 20), material(0xffffff, { map: texturaPista, roughness: 0.18, metalness: 0.05 }));
+      function crearTexturaPista(estilo) {
+        return M.textura(Math.round(ANCHO * PXM), 2048, (g, w, h) => {
+          Arcade.dibujarMadera(g, w, h, { ...estilo.colorPistaMadera, tablas: 39, vertical: true });
+          g.fillStyle = "rgba(255,255,255,0.08)";
+          g.fillRect(0, 0, w, h);
+
+          // Flechas a 4.5 m y puntos guía a 2 m
+          const Z = (z) => h - (z / 20) * h;
+          g.fillStyle = estilo.id === "cyber" ? "#00f0ff" : estilo.id === "magma" ? "#ff4500" : "#b8202f";
+          for (let i = -3; i <= 3; i++) {
+            const x = w / 2 + i * w * 0.13,
+              z = Z(4.5 + Math.abs(i) * 0.3);
+            g.beginPath();
+            g.moveTo(x, z - 30);
+            g.lineTo(x - 9, z + 14);
+            g.lineTo(x + 9, z + 14);
+            g.fill();
+            g.beginPath();
+            g.arc(x, Z(2), 5, 0, Math.PI * 2);
+            g.fill();
+          }
+          // Línea de falta
+          g.fillStyle = "rgba(20,20,30,0.75)";
+          g.fillRect(0, Z(0) - 4, w, 8);
+        });
+      }
+
+      let texturaPista = crearTexturaPista(ESTILOS[estiloActual]);
+      const matPista = material(0xffffff, { map: texturaPista, roughness: 0.18, metalness: 0.05 });
+      const pista = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO, 20), matPista);
       pista.rotation.x = -Math.PI / 2;
       pista.position.set(0, 0, -10);
       pista.receiveShadow = true;
       escena.add(pista);
       acabado3D.superficie(pista, "madera", { repetir: 5 });
-      // zona de tiro
-      const aproximacion = new THREE.Mesh(new THREE.PlaneGeometry(3, 5), material(0x6b4a2e, { roughness: 0.5 }));
+
+      // Zona de tiro (Approach)
+      const aproximacion = new THREE.Mesh(new THREE.PlaneGeometry(3, 5), material(0x563820, { roughness: 0.5 }));
       aproximacion.rotation.x = -Math.PI / 2;
       aproximacion.position.set(0, -0.001, 2.5);
       escena.add(aproximacion);
 
-      // Canales
-      const matCanal = material(0x9aa3ad, { metalness: 0.8, roughness: 0.3 });
+      // Canales biselados
+      const matCanal = material(0x8a939d, { metalness: 0.8, roughness: 0.3 });
       [-1, 1].forEach((lado) => {
         const canal = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 21, 16, 1, true, Math.PI / 2, Math.PI), matCanal);
         canal.rotation.x = Math.PI / 2;
@@ -137,7 +329,8 @@
         muro.position.set(lado * (MEDIO + 0.27), 0.2, -9.5);
         escena.add(muro);
       });
-      // Fondo y cortina de los pinos
+
+      // Fondo y cortina con pantalla LED
       const fondo = new THREE.Mesh(new THREE.PlaneGeometry(3, 1.4), material(0x050308, { roughness: 1 }));
       fondo.position.set(0, 0.5, -LARGO - 1.6);
       escena.add(fondo);
@@ -164,23 +357,26 @@
       );
       cortina.position.set(0, 1.25, -LARGO - 0.5);
       escena.add(cortina);
-      // Pistas vecinas (decoración)
+
+      // Pistas vecinas ambientales
       [-1, 1].forEach((lado) => {
         const vecina = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO, 20), pista.material);
         vecina.rotation.x = -Math.PI / 2;
         vecina.position.set(lado * 1.75, 0, -10);
         escena.add(vecina);
       });
-      // Neón en el piso
-      [-1, 1].forEach((lado) => {
+
+      // Luces de neón en los canales
+      const neonLados = [-1, 1].map((lado) => {
         const neon = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 22), new THREE.MeshBasicMaterial({ color: lado < 0 ? 0xb84fff : 0x4fdcff }));
         neon.position.set(lado * (MEDIO + 0.31), 0.46, -9.5);
         escena.add(neon);
+        return neon;
       });
 
       escena.add(new THREE.HemisphereLight(0xe8dcff, 0x20142e, 0.45));
-      const luzPinos = new THREE.SpotLight(0xffffff, 2.4, 0, 0.45, 0.5, 1);
-      luzPinos.position.set(0, 3.2, -LARGO + 2.5);
+      const luzPinos = new THREE.SpotLight(0xffffff, 2.8, 0, 0.48, 0.4, 1);
+      luzPinos.position.set(0, 3.4, -LARGO + 2.5);
       luzPinos.target.position.set(0, 0, -LARGO - 0.4);
       luzPinos.castShadow = true;
       luzPinos.shadow.mapSize.set(1024, 1024);
@@ -190,7 +386,7 @@
       escena.add(luzPista);
 
       // =========================================================
-      //  PINOS Y BOLA
+      //  PINOS Y BOLA (FÍSICA + GEOMETRÍA DETALLADA)
       // =========================================================
       const perfil = [
         [0.0, 0.0],
@@ -208,17 +404,76 @@
         [0.0, 0.381],
       ].map(([r, y]) => new THREE.Vector2(r, y - 0.15));
       const geoPino = new THREE.LatheGeometry(perfil, 28);
-      const texturaPino = M.textura(64, 256, (g, w, h) => {
-        g.fillStyle = "#fafafa";
-        g.fillRect(0, 0, w, h);
-        g.fillStyle = "#d4202f";
-        // en la textura del torno, v=0 es la base
-        const banda = (y, alto) => g.fillRect(0, h - y * h - alto, w, alto);
-        banda(0.79, 8);
-        banda(0.74, 8);
-      });
-      const matPino = material(0xffffff, { map: texturaPino, roughness: 0.25 });
 
+      function crearTexturaPino(estilo, tipoEspecial) {
+        return M.textura(128, 512, (g, w, h) => {
+          g.fillStyle = estilo.pinoBase;
+          g.fillRect(0, 0, w, h);
+
+          const banda = (y, alto, col) => {
+            g.fillStyle = col;
+            g.fillRect(0, h - y * h - alto, w, alto);
+          };
+
+          if (tipoEspecial === "bomba") {
+            // Textura ardiente de dinamita
+            g.fillStyle = "#ff1e27";
+            g.fillRect(0, 0, w, h);
+            banda(0.79, 18, "#111111");
+            banda(0.72, 18, "#ffd700");
+            g.fillStyle = "#111";
+            g.font = "bold 28px sans-serif";
+            g.textAlign = "center";
+            g.fillText("💣", w / 2, h * 0.45);
+          } else if (tipoEspecial === "rey") {
+            // Textura dorada real con corona
+            g.fillStyle = "#ffcc00";
+            g.fillRect(0, 0, w, h);
+            banda(0.8, 16, "#ffffff");
+            banda(0.72, 16, "#ffffff");
+            g.fillStyle = "#111";
+            g.font = "bold 32px sans-serif";
+            g.textAlign = "center";
+            g.fillText("👑", w / 2, h * 0.45);
+          } else {
+            // Franjas de estilo
+            banda(0.79, 16, estilo.pinoFranja);
+            banda(0.73, 16, estilo.pinoBanda2 || estilo.pinoFranja);
+          }
+        });
+      }
+
+      // Materiales por estilo
+      const materialesPinoNormal = {};
+      const materialesPinoBomba = {};
+      const materialesPinoRey = {};
+
+      Object.keys(ESTILOS).forEach((key) => {
+        const est = ESTILOS[key];
+        materialesPinoNormal[key] = material(0xffffff, {
+          map: crearTexturaPino(est, "normal"),
+          roughness: est.roughness,
+          metalness: est.metalness,
+          emissive: lin(est.emissive || 0x000000),
+          emissiveIntensity: est.emissiveIntensity || 0,
+        });
+        materialesPinoBomba[key] = material(0xffffff, {
+          map: crearTexturaPino(est, "bomba"),
+          roughness: 0.3,
+          metalness: 0.1,
+          emissive: lin(0xff2200),
+          emissiveIntensity: 0.4,
+        });
+        materialesPinoRey[key] = material(0xffffff, {
+          map: crearTexturaPino(est, "rey"),
+          roughness: 0.15,
+          metalness: 0.8,
+          emissive: lin(0xffee33),
+          emissiveIntensity: 0.3,
+        });
+      });
+
+      // CANNON.js Mundo Físico
       const mundoFisico = new CANNON.World();
       mundoFisico.gravity.set(0, -9.82, 0);
       mundoFisico.broadphase = new CANNON.SAPBroadphase(mundoFisico);
@@ -241,17 +496,20 @@
       caja(MEDIO, 0.05, 11, 0, -0.05, -9); // pista
       caja(0.6, 0.05, 1.2, 0, -0.05, -LARGO - 0.6); // cubierta de pinos
       [-1, 1].forEach((lado) => {
-        caja(0.12, 0.05, 11, lado * (MEDIO + 0.12), -0.12, -9); // canales (más bajos)
+        caja(0.12, 0.05, 11, lado * (MEDIO + 0.12), -0.12, -9); // canales
         caja(0.04, 0.4, 11, lado * (MEDIO + 0.28), 0.3, -9); // muros
-        caja(0.04, 0.4, 1.5, lado * 0.72, 0.3, -LARGO - 0.5); // laterales de los pinos
+        caja(0.04, 0.4, 1.5, lado * 0.72, 0.3, -LARGO - 0.5); // laterales
       });
       caja(1, 0.05, 1, 0, -0.45, -LARGO - 2.0); // fosa
-      caja(1, 0.6, 0.05, 0, 0.2, -LARGO - 1.65); // cojín del fondo
+      caja(1, 0.6, 0.05, 0, 0.2, -LARGO - 1.65); // amortiguador fondo
 
+      // Cuerpos y mallas de los pinos
       const cuerposPino = [];
       const mallasPino = [];
+      const aurasEspeciales = [];
       const ejeY = new CANNON.Quaternion();
       ejeY.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+
       POS_PINOS.forEach(() => {
         const cuerpo = new CANNON.Body({ mass: 1.5, material: mPino, linearDamping: 0.05, angularDamping: 0.12 });
         cuerpo.addShape(new CANNON.Cylinder(0.05, 0.058, 0.2, 10), new CANNON.Vec3(0, -0.05, 0), ejeY);
@@ -259,22 +517,63 @@
         cuerpo.addShape(new CANNON.Sphere(0.032), new CANNON.Vec3(0, 0.2, 0));
         mundoFisico.addBody(cuerpo);
         cuerposPino.push(cuerpo);
-        const malla = new THREE.Mesh(geoPino, matPino);
+
+        const malla = new THREE.Mesh(geoPino, materialesPinoNormal[estiloActual]);
         malla.castShadow = true;
         escena.add(malla);
         mallasPino.push(malla);
+
+        // Anillo / aura para pinos especiales en modo Dinámico
+        const geoAura = new THREE.RingGeometry(0.09, 0.13, 24);
+        geoAura.rotateX(-Math.PI / 2);
+        const matAura = new THREE.MeshBasicMaterial({ color: 0xff3838, side: THREE.DoubleSide, transparent: true, opacity: 0 });
+        const aura = new THREE.Mesh(geoAura, matAura);
+        aura.position.y = 0.01;
+        escena.add(aura);
+        aurasEspeciales.push(aura);
       });
-      cuerposPino.forEach((c) =>
+
+      let ultimoRuido = 0;
+      cuerposPino.forEach((c, idx) =>
         c.addEventListener("collide", (e) => {
           const v = Math.abs(e.contact.getImpactVelocityAlongNormal());
           if (v > 1 && performance.now() - ultimoRuido > 60) {
             ultimoRuido = performance.now();
             sonar("pinos", Math.min(1, v / 5));
+            crearChispasImpacto(c.position);
+          }
+          // Si el bolo golpeado es el Bolo Bomba en modo dinámico, ¡detona!
+          if (modalidadJuego === "dinamico" && idx === boloBombaIndex && !bombaDetonada) {
+            detonarBomba();
           }
         }),
       );
-      let ultimoRuido = 0;
+
       let enPie = POS_PINOS.map(() => true);
+      let tipoPino = POS_PINOS.map(() => "normal");
+      let boloBombaIndex = -1;
+      let boloReyIndex = -1;
+      let bombaDetonada = false;
+      let bonusReySumado = false;
+
+      function actualizarMaterialesPinos() {
+        const est = ESTILOS[estiloActual];
+        mallasPino.forEach((malla, i) => {
+          const tipo = tipoPino[i];
+          if (tipo === "bomba") {
+            malla.material = materialesPinoBomba[estiloActual];
+            aurasEspeciales[i].material.color.setHex(0xff2200);
+            aurasEspeciales[i].material.opacity = enPie[i] ? 0.8 : 0;
+          } else if (tipo === "rey") {
+            malla.material = materialesPinoRey[estiloActual];
+            aurasEspeciales[i].material.color.setHex(0xffd700);
+            aurasEspeciales[i].material.opacity = enPie[i] ? 0.85 : 0;
+          } else {
+            malla.material = materialesPinoNormal[estiloActual];
+            aurasEspeciales[i].material.opacity = 0;
+          }
+        });
+      }
 
       function pararPino(i, x, z) {
         const c = cuerposPino[i];
@@ -287,6 +586,7 @@
         mallasPino[i].visible = true;
         c.sleep && c.wakeUp();
       }
+
       function quitarPino(i) {
         const c = cuerposPino[i];
         c.position.set(5 + i, -5, 5);
@@ -294,46 +594,86 @@
         c.angularVelocity.setZero();
         c.type = CANNON.Body.STATIC;
         mallasPino[i].visible = false;
+        aurasEspeciales[i].material.opacity = 0;
       }
-      function ponerTodos() {
-        POS_PINOS.forEach(([x, z], i) => pararPino(i, x, z));
+
+      function ponerTodos(f = 0) {
+        bombaDetonada = false;
+        bonusReySumado = false;
+        boloBombaIndex = -1;
+        boloReyIndex = -1;
+
+        if (modalidadJuego === "dinamico") {
+          // Asigna aleatoriamente o por cuadro un bolo bomba y un bolo rey
+          boloBombaIndex = (f * 3 + 1) % POS_PINOS.length;
+          boloReyIndex = (boloBombaIndex + 4) % POS_PINOS.length;
+        }
+
+        POS_PINOS.forEach(([x, z], i) => {
+          tipoPino[i] = i === boloBombaIndex ? "bomba" : i === boloReyIndex ? "rey" : "normal";
+          pararPino(i, x, z);
+        });
         enPie = POS_PINOS.map(() => true);
+        actualizarMaterialesPinos();
       }
       ponerTodos();
 
-      // bola
-      const texturaBola = (color) =>
-        M.textura(256, 128, (g, w, h) => {
-          const c = new THREE.Color(color);
+      // =========================================================
+      //  BOLA DE BOLICHE
+      // =========================================================
+      function crearTexturaBola(colorPrincipal, colorSecundario) {
+        return M.textura(512, 256, (g, w, h) => {
+          const c = new THREE.Color(colorPrincipal);
           g.fillStyle = `#${c.getHexString()}`;
           g.fillRect(0, 0, w, h);
-          for (let i = 0; i < 40; i++) {
-            g.strokeStyle = `rgba(255,255,255,${azar(0.05, 0.2)})`;
-            g.lineWidth = azar(2, 8);
+
+          // Veteado marmoleado elegante
+          const cSec = new THREE.Color(colorSecundario);
+          for (let i = 0; i < 48; i++) {
+            g.strokeStyle = `rgba(${Math.round(cSec.r * 255)},${Math.round(cSec.g * 255)},${Math.round(cSec.b * 255)},${azar(0.08, 0.26)})`;
+            g.lineWidth = azar(3, 10);
             g.beginPath();
             g.moveTo(Math.random() * w, Math.random() * h);
             g.bezierCurveTo(Math.random() * w, Math.random() * h, Math.random() * w, Math.random() * h, Math.random() * w, Math.random() * h);
             g.stroke();
           }
-          g.fillStyle = "#111";
+
+          // Los 3 orificios para dedos con sombra interior y bisel
+          g.fillStyle = "#0c0812";
           [
-            [0.25, 0.42],
-            [0.29, 0.42],
-            [0.27, 0.55],
-          ].forEach(([u, v]) => {
+            [0.25, 0.40, 8],
+            [0.29, 0.40, 8],
+            [0.27, 0.54, 9],
+          ].forEach(([u, v, r]) => {
             g.beginPath();
-            g.arc(u * w, v * h, 6, 0, Math.PI * 2);
+            g.arc(u * w, v * h, r + 1, 0, Math.PI * 2);
+            g.fillStyle = "rgba(255,255,255,0.2)";
+            g.fill();
+
+            g.beginPath();
+            g.arc(u * w, v * h, r, 0, Math.PI * 2);
+            g.fillStyle = "#09060e";
             g.fill();
           });
         });
-      const mallaBola = new THREE.Mesh(new THREE.SphereGeometry(RADIO_BOLA, 40, 30), material(0xffffff, { roughness: 0.08, metalness: 0.1 }));
+      }
+
+      const mallaBola = new THREE.Mesh(new THREE.SphereGeometry(RADIO_BOLA, 40, 30), material(0xffffff, { roughness: 0.08, metalness: 0.12 }));
       mallaBola.castShadow = true;
       escena.add(mallaBola);
-      const texturasBola = COLORES.map(texturaBola);
+
       const cuerpoBola = new CANNON.Body({ mass: 6.5, material: mBola, shape: new CANNON.Sphere(RADIO_BOLA), linearDamping: 0.01, angularDamping: 0.01 });
       mundoFisico.addBody(cuerpoBola);
+
+      let texturasBolaActuales = [];
+      function actualizarTexturasBola() {
+        const est = ESTILOS[estiloActual];
+        texturasBolaActuales = est.bolaColores.map((c) => crearTexturaBola(c, est.bolaSec));
+      }
+      actualizarTexturasBola();
+
       function bolaEnMano(x, jugador) {
-        mallaBola.material.map = texturasBola[jugador];
+        mallaBola.material.map = texturasBolaActuales[jugador % texturasBolaActuales.length];
         mallaBola.material.needsUpdate = true;
         cuerpoBola.type = CANNON.Body.KINEMATIC;
         cuerpoBola.position.set(x, RADIO_BOLA, 0.4);
@@ -343,21 +683,210 @@
       }
 
       // =========================================================
-      //  SIMULACIÓN DEL TIRO
+      //  OBSTÁCULO MÓVIL (MODO DINÁMICO / CAOS)
       // =========================================================
-      let gancho = 0; // aceleración de lado (efecto)
+      const geoObs = new THREE.BoxGeometry(0.32, 0.18, 0.18);
+      const matObs = material(0xffd700, { roughness: 0.2, metalness: 0.8, emissive: lin(0x443300), emissiveIntensity: 0.4 });
+      const mallaObstaculo = new THREE.Mesh(geoObs, matObs);
+      mallaObstaculo.castShadow = true;
+      mallaObstaculo.position.set(0, -5, -9.0);
+      escena.add(mallaObstaculo);
+
+      const cuerpoObstaculo = new CANNON.Body({ mass: 0, material: mPista, type: CANNON.Body.KINEMATIC });
+      cuerpoObstaculo.addShape(new CANNON.Box(new CANNON.Vec3(0.16, 0.09, 0.09)));
+      cuerpoObstaculo.position.set(0, -5, -9.0);
+      mundoFisico.addBody(cuerpoObstaculo);
+
+      // =========================================================
+      //  GUÍA DE PUNTERÍA Y PUNTOS DE TRAYECTORIA
+      // =========================================================
+      const NUM_PUNTOS_GUIA = 16;
+      const puntosGuia = [];
+      const matGuia = new THREE.MeshBasicMaterial({ color: 0x4fdcff, transparent: true, opacity: 0.75 });
+      for (let i = 0; i < NUM_PUNTOS_GUIA; i++) {
+        const p = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 10), matGuia);
+        p.position.set(0, -5, 0);
+        escena.add(p);
+        puntosGuia.push(p);
+      }
+
+      function actualizarGuiaPunteria(x0, angulo, ganchoProvisional) {
+        for (let i = 0; i < NUM_PUNTOS_GUIA; i++) {
+          const t = (i + 1) / NUM_PUNTOS_GUIA;
+          const z = 0.4 - t * (LARGO + 0.5);
+          const xAvance = Math.sin(angulo) * (0.4 - z);
+          const tEfecto = Math.max(0, (-z - LARGO * 0.45) / (LARGO * 0.55));
+          const xCurva = ganchoProvisional * tEfecto * tEfecto * 0.8;
+          const x = limitar(x0 + xAvance + xCurva, -MEDIO + 0.05, MEDIO - 0.05);
+          puntosGuia[i].position.set(x, 0.02, z);
+          puntosGuia[i].visible = true;
+        }
+      }
+
+      function ocultarGuiaPunteria() {
+        puntosGuia.forEach((p) => (p.visible = false));
+      }
+      ocultarGuiaPunteria();
+
+      // =========================================================
+      //  SISTEMA DE PARTÍCULAS (EXPLOSIONES, CHISPAS Y FUEGOS ARTIFICIALES)
+      // =========================================================
+      const MAX_PARTICULAS = 180;
+      const geoParticulas = new THREE.BufferGeometry();
+      const posParticulas = new Float32Array(MAX_PARTICULAS * 3);
+      const colParticulas = new Float32Array(MAX_PARTICULAS * 3);
+      geoParticulas.setAttribute("position", new THREE.BufferAttribute(posParticulas, 3));
+      geoParticulas.setAttribute("color", new THREE.BufferAttribute(colParticulas, 3));
+      const matParticulas = new THREE.PointsMaterial({
+        size: 0.16,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending,
+      });
+      const sistemaParticulas = new THREE.Points(geoParticulas, matParticulas);
+      escena.add(sistemaParticulas);
+
+      const datosParticulas = [];
+      for (let i = 0; i < MAX_PARTICULAS; i++) {
+        datosParticulas.push({
+          x: 0,
+          y: -10,
+          z: 0,
+          vx: 0,
+          vy: 0,
+          vz: 0,
+          vida: 0,
+          vidaMax: 1,
+          r: 1,
+          g: 1,
+          b: 1,
+        });
+      }
+
+      function crearChispasImpacto(pos) {
+        const est = ESTILOS[estiloActual];
+        const col = new THREE.Color(est.luzColor || 0xffd84f);
+        for (let i = 0; i < 24; i++) {
+          const p = datosParticulas[i % MAX_PARTICULAS];
+          p.x = pos.x;
+          p.y = pos.y + 0.1;
+          p.z = pos.z;
+          p.vx = (Math.random() - 0.5) * 3.5;
+          p.vy = Math.random() * 3.5 + 1.0;
+          p.vz = (Math.random() - 0.5) * 3.5;
+          p.vida = 1.0;
+          p.vidaMax = azar(0.4, 0.8);
+          p.r = col.r;
+          p.g = col.g;
+          p.b = col.b;
+        }
+      }
+
+      function fuegosArtificialesStrike() {
+        const colores = [0xff3838, 0xffd700, 0x00f0ff, 0xff00ff, 0x26de81];
+        for (let i = 0; i < MAX_PARTICULAS; i++) {
+          const p = datosParticulas[i];
+          const col = new THREE.Color(colores[i % colores.length]);
+          p.x = azar(-0.6, 0.6);
+          p.y = azar(1.2, 3.2);
+          p.z = -LARGO - azar(0.2, 1.2);
+          p.vx = (Math.random() - 0.5) * 6;
+          p.vy = (Math.random() - 0.3) * 6;
+          p.vz = (Math.random() - 0.5) * 6;
+          p.vida = 1.0;
+          p.vidaMax = azar(1.0, 2.0);
+          p.r = col.r;
+          p.g = col.g;
+          p.b = col.b;
+        }
+      }
+
+      function detonarBomba() {
+        if (bombaDetonada || boloBombaIndex < 0) return;
+        bombaDetonada = true;
+        sonar("golpe", 1);
+        ui.avisar("💣 ¡BOLO BOMBA DETONADO!", "#ff3838");
+
+        const posB = cuerposPino[boloBombaIndex].position;
+        crearChispasImpacto(posB);
+
+        // Fuerza expansiva radial que empuja fuertemente a los bolos cercanos
+        cuerposPino.forEach((c, idx) => {
+          if (idx === boloBombaIndex || !enPie[idx]) return;
+          const dx = c.position.x - posB.x;
+          const dz = c.position.z - posB.z;
+          const dist = Math.hypot(dx, dz);
+          if (dist < 1.3) {
+            const factor = (1.3 - dist) * 10;
+            c.wakeUp && c.wakeUp();
+            c.velocity.x += (dx / (dist + 0.04)) * factor;
+            c.velocity.y += factor * 0.5;
+            c.velocity.z += (dz / (dist + 0.04)) * factor;
+            c.angularVelocity.x += azar(-8, 8);
+            c.angularVelocity.z += azar(-8, 8);
+          }
+        });
+      }
+
+      // =========================================================
+      //  SIMULACIÓN DEL TIRO Y BUCLE PRINCIPAL
+      // =========================================================
+      let gancho = 0;
       let rodando = false;
+
       M.alCuadro((dt, ahora) => {
+        // Efecto lateral de curva al entrar al tramo final de la pista
         if (rodando && cuerpoBola.position.z < -LARGO * 0.45 && cuerpoBola.position.z > -LARGO) {
           cuerpoBola.velocity.x += gancho * dt;
         }
+
+        // Movimiento de obstáculo móvil en Modo Dinámico
+        if (modalidadJuego === "dinamico" && J.cuadro >= 1 && J.activa) {
+          const tObs = ahora * 0.0022;
+          const xObs = Math.sin(tObs) * (MEDIO - 0.22);
+          cuerpoObstaculo.position.set(xObs, 0.1, -LARGO * 0.52);
+          mallaObstaculo.position.copy(cuerpoObstaculo.position);
+          mallaObstaculo.rotation.y = tObs * 2;
+        } else {
+          cuerpoObstaculo.position.set(0, -5, -9.0);
+          mallaObstaculo.position.set(0, -5, -9.0);
+        }
+
         mundoFisico.step(1 / 120, dt, 10);
         mallaBola.position.copy(cuerpoBola.position);
         mallaBola.quaternion.copy(cuerpoBola.quaternion);
+
         cuerposPino.forEach((c, i) => {
           mallasPino[i].position.copy(c.position);
           mallasPino[i].quaternion.copy(c.quaternion);
+          aurasEspeciales[i].position.set(c.position.x, 0.015, c.position.z);
         });
+
+        // Actualizar partículas
+        const posArr = geoParticulas.attributes.position.array;
+        const colArr = geoParticulas.attributes.color.array;
+        for (let i = 0; i < MAX_PARTICULAS; i++) {
+          const p = datosParticulas[i];
+          if (p.vida > 0) {
+            p.vida -= dt / p.vidaMax;
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.z += p.vz * dt;
+            p.vy -= 9.8 * dt * 0.5; // gravedad
+          } else {
+            p.y = -10;
+          }
+          posArr[i * 3] = p.x;
+          posArr[i * 3 + 1] = p.y;
+          posArr[i * 3 + 2] = p.z;
+          colArr[i * 3] = p.r * Math.max(0, p.vida);
+          colArr[i * 3 + 1] = p.g * Math.max(0, p.vida);
+          colArr[i * 3 + 2] = p.b * Math.max(0, p.vida);
+        }
+        geoParticulas.attributes.position.needsUpdate = true;
+        geoParticulas.attributes.color.needsUpdate = true;
+
         moverCamara(ahora);
       });
 
@@ -379,6 +908,7 @@
         gancho = tiro.gancho;
         rodando = true;
         sonar("rodar", 0.8);
+
         const ruido = setInterval(() => cuerpoBola.position.z > -LARGO && sonar("rodar", 0.5), 800);
         const inicio = performance.now();
         await new Promise((r) => {
@@ -390,7 +920,7 @@
           }, 100);
         });
         clearInterval(ruido);
-        await esperar(2200); // que terminen de caer
+        await esperar(2200);
         rodando = false;
         return POS_PINOS.map((_, i) => enPie[i] && pinoCaido(i));
       }
@@ -399,11 +929,17 @@
       //  CÁMARA
       // =========================================================
       let modoCamara = "menu";
+      let preferenciaCamara = "auto"; // "auto", "fija", "cenital"
+
       function moverCamara(ahora) {
         const aspecto = window.innerWidth / window.innerHeight;
         camara.fov = aspecto < 1 ? 62 : 45;
         let pos, mira;
-        if (modoCamara === "tiro") {
+
+        if (preferenciaCamara === "cenital") {
+          pos = new THREE.Vector3(0, 7.8, -LARGO * 0.45);
+          mira = new THREE.Vector3(0, 0.1, -LARGO * 0.55);
+        } else if (preferenciaCamara === "fija" || modoCamara === "tiro") {
           pos = new THREE.Vector3(0, 0.95, 2.6);
           mira = new THREE.Vector3(0, 0.1, -10);
         } else if (modoCamara === "sigue") {
@@ -424,19 +960,43 @@
       }
 
       // =========================================================
-      //  CONTROLES
+      //  CONTROLES TÁCTILES MEJORADOS (ARRASTRE Y MEDIDOR)
       // =========================================================
       let esperandoTiro = null;
       let jugadorEnTurno = 0;
+      const medidorTiro = $("medidor-tiro");
+
       Arcade.deslizar(M.lienzo, {
         puede: () => !!esperandoTiro,
-        inicio: (p) => moverBolaConDedo(p.x),
+        inicio: (p) => {
+          moverBolaConDedo(p.x);
+          ocultarGuiaPunteria();
+          medidorTiro.classList.remove("visible");
+        },
         mover: (p, puntos) => {
-          // mientras el dedo no suba mucho, se acomoda la bola de lado
-          if (puntos[0].y - p.y < 40) moverBolaConDedo(p.x);
+          const dy = puntos[0].y - p.y;
+          if (dy < 35) {
+            moverBolaConDedo(p.x);
+            ocultarGuiaPunteria();
+            medidorTiro.classList.remove("visible");
+          } else {
+            // Previsualización de fuerza y trayectoria en tiempo real
+            const dx = p.x - puntos[0].x;
+            const angulo = limitar((dx / Math.max(80, dy)) * 0.09, -0.07, 0.07);
+            const curva = limitar(Arcade.curvaGesto(puntos) / (window.innerHeight * 0.05), -1, 1);
+            const ganchoEst = curva * 1.1;
+
+            actualizarGuiaPunteria(cuerpoBola.position.x, angulo, ganchoEst);
+            medidorTiro.classList.add("visible");
+            const frz = limitar(dy / (window.innerHeight * 0.35), 0, 1);
+            medidorTiro.firstElementChild.style.width = Math.round(frz * 100) + "%";
+          }
         },
         soltar: (g) => {
+          ocultarGuiaPunteria();
+          medidorTiro.classList.remove("visible");
           if (!esperandoTiro) return;
+
           const H = window.innerHeight;
           if (g.dy > -H * 0.08) return;
           const velocidad = Math.hypot(g.vx, g.vy) / H;
@@ -452,6 +1012,7 @@
           r(tiro);
         },
       });
+
       function moverBolaConDedo(px) {
         const x = limitar(((px / window.innerWidth) * 2 - 1) * MEDIO * 1.3, -MEDIO + 0.12, MEDIO - 0.12);
         cuerpoBola.position.x = x;
@@ -459,7 +1020,6 @@
 
       const ERROR_BOT = { facil: 0.012, normal: 0.0065, pro: 0.0032 };
       function tiroBot(pinosDePie) {
-        // apunta al "pocket" (entre el 1 y el 3) o al centro de los pinos que quedan
         let objetivo = 0.065;
         const quedan = POS_PINOS.filter((_, i) => pinosDePie[i]);
         if (quedan.length && quedan.length < 10) objetivo = quedan.reduce((s, p) => s + p[0], 0) / quedan.length;
@@ -474,7 +1034,7 @@
       }
 
       // =========================================================
-      //  PUNTUACIÓN
+      //  SISTEMA DE PUNTUACIÓN REGLAMENTARIA
       // =========================================================
       function calcular(tiros) {
         const cuadros = [];
@@ -519,32 +1079,89 @@
           return { ...c, total: c.puntos != null ? suma : null };
         });
       }
-      function total(tiros) {
+
+      function total(tiros, bonus = 0) {
         const c = calcular(tiros);
         let t = 0;
         c.forEach((x) => x.total != null && (t = x.total));
-        return t;
+        return t + bonus;
       }
 
       // =========================================================
-      //  PARTIDA
+      //  GESTIÓN DE PARTIDA Y UI
       // =========================================================
-      const J = { modo: null, nombres: [], tiros: [[], []], orden: [0, 1], activa: false, dificultad: "normal", cuadro: 0, recibido: {} };
+      const J = {
+        modo: null,
+        nombres: [],
+        tiros: [[], []],
+        bonus: [0, 0],
+        orden: [0, 1],
+        activa: false,
+        dificultad: "normal",
+        cuadro: 0,
+        recibido: {},
+      };
+
+      const btnEstilo = $("btn-estilo-rapido");
+      const btnCamara = $("btn-camara-boliche");
+
+      function cambiarEstilo(nuevoId) {
+        if (!ESTILOS[nuevoId]) return;
+        estiloActual = nuevoId;
+        try {
+          localStorage.setItem("boliche_estilo", estiloActual);
+        } catch (e) {}
+
+        const est = ESTILOS[estiloActual];
+        texturaPista = crearTexturaPista(est);
+        pista.material.map = texturaPista;
+        pista.material.needsUpdate = true;
+
+        actualizarMaterialesPinos();
+        actualizarTexturasBola();
+        mallaBola.material.map = texturasBolaActuales[jugadorEnTurno % texturasBolaActuales.length];
+        mallaBola.material.needsUpdate = true;
+
+        btnEstilo.textContent = `🎨 ${est.emoji} ${est.nombre}`;
+      }
+
+      btnEstilo.addEventListener("click", () => {
+        const keys = Object.keys(ESTILOS);
+        const idx = keys.indexOf(estiloActual);
+        const sig = keys[(idx + 1) % keys.length];
+        cambiarEstilo(sig);
+        sonar("click");
+        ui.avisar(`${ESTILOS[sig].emoji} Estilo: ${ESTILOS[sig].nombre}`, "#ffd84f");
+      });
+
+      btnCamara.addEventListener("click", () => {
+        const modos = ["auto", "fija", "cenital"];
+        const idx = modos.indexOf(preferenciaCamara);
+        preferenciaCamara = modos[(idx + 1) % modos.length];
+        btnCamara.textContent =
+          preferenciaCamara === "auto"
+            ? "🎥 Cámara: Auto"
+            : preferenciaCamara === "fija"
+              ? "🎥 Cámara: Fija"
+              : "🎥 Cámara: Cenital";
+        sonar("click");
+      });
 
       const ui = Arcade.ui({
         juego: "boliche",
         titulo: "Boliche 3D",
         emoji: "🎳",
-        subtitulo: `${CUADROS} cuadros · strikes, spares y pura física`,
+        subtitulo: `${CUADROS} cuadros · strikes, spares y física real`,
         modos: ["solo", "bot", "online", "local"],
         dificultad: true,
         records: true,
         unidadRecord: "pts",
         reglas: [
-          "Toca y mueve el dedo de lado para acomodar la bola.",
-          "Desliza hacia arriba para tirar: entre más rápido, más fuerte.",
-          "Si haces una curva con el dedo, la bola hace efecto al final 🌀",
-          "Strike (X) = tiras los 10 de una · Spare (/) = los tiras en 2 tiros.",
+          "Toca y acomoda la bola hacia los lados de la pista.",
+          "Desliza hacia arriba para tirar: más rápido = más potencia.",
+          "Curva el dedo al deslizar para darle efecto gancho al final 🌀",
+          "Strike (X) = los 10 pinos al primer tiro · Spare (/) = en dos tiros.",
+          "⚡ Modo Dinámico: incluye Bolo Bomba 💣, Bolo Rey 👑 (+5 pts) y obstáculo móvil.",
         ],
         alEmpezar: empezar,
         alSalir: () => {
@@ -552,8 +1169,13 @@
           modoCamara = "menu";
           esperandoTiro = null;
           $("cuadros").classList.add("oculto");
+          btnEstilo.classList.add("oculto");
+          btnCamara.classList.add("oculto");
+          ocultarGuiaPunteria();
+          medidorTiro.classList.remove("visible");
         },
       });
+
       ui.alEvento = (tipo, datos) => {
         if (tipo !== "tiro" || !datos || datos.partida !== J.partida) return;
         J.recibido[datos.clave] = datos;
@@ -563,6 +1185,50 @@
           r(datos);
         }
       };
+
+      // Inyección de chips de configuración en el menú
+      (() => {
+        const campo = $("nombre");
+        if (!campo) return;
+
+        const htmlConfig = `
+          <div class="etiqueta">🎨 Estilo de Bolos y Bola</div>
+          <div class="chips" id="chips-estilo">
+            ${Object.values(ESTILOS)
+              .map(
+                (e) =>
+                  `<button class="chip${e.id === estiloActual ? " activo" : ""}" data-estilo="${e.id}">${e.emoji} ${e.nombre}</button>`,
+              )
+              .join("")}
+          </div>
+          <div class="etiqueta">⚡ Modo de Boliche</div>
+          <div class="chips" id="chips-modo-juego">
+            <button class="chip${modalidadJuego === "clasico" ? " activo" : ""}" data-modo-juego="clasico">🎳 Tradicional (Oficial)</button>
+            <button class="chip${modalidadJuego === "dinamico" ? " activo" : ""}" data-modo-juego="dinamico">⚡ Dinámico (Caos 💣👑)</button>
+          </div>
+        `;
+
+        campo.insertAdjacentHTML("afterend", htmlConfig);
+
+        $("chips-estilo").addEventListener("click", (e) => {
+          const btn = e.target.closest("[data-estilo]");
+          if (!btn) return;
+          cambiarEstilo(btn.dataset.estilo);
+          document.querySelectorAll("#chips-estilo .chip").forEach((c) => c.classList.toggle("activo", c === btn));
+          sonar("click");
+        });
+
+        $("chips-modo-juego").addEventListener("click", (e) => {
+          const btn = e.target.closest("[data-modo-juego]");
+          if (!btn) return;
+          modalidadJuego = btn.dataset.modoJuego;
+          try {
+            localStorage.setItem("boliche_modalidad", modalidadJuego);
+          } catch (err) {}
+          document.querySelectorAll("#chips-modo-juego .chip").forEach((c) => c.classList.toggle("activo", c === btn));
+          sonar("click");
+        });
+      })();
 
       function soyYo(i) {
         if (J.modo === "online") return i === ui.yo;
@@ -579,7 +1245,7 @@
             for (let f = 0; f < CUADROS; f++) {
               const x = c[f];
               const actual = p === jugadorActual && f === J.cuadro;
-              html += `<div class="cuadro ${actual ? "actual" : ""}">${x ? x.marca : "&nbsp;"}<b>${x && x.total != null ? x.total : "&nbsp;"}</b></div>`;
+              html += `<div class="cuadro ${actual ? "actual" : ""}">${x ? x.marca : "&nbsp;"}<b>${x && x.total != null ? x.total + J.bonus[p] : "&nbsp;"}</b></div>`;
             }
             return html + "</div>";
           })
@@ -588,8 +1254,8 @@
           jugadores
             .map((p) => ({
               nombre: J.nombres[p],
-              valor: total(J.tiros[p]),
-              detalle: `Cuadro ${Math.min(J.cuadro + 1, CUADROS)} de ${CUADROS}`,
+              valor: total(J.tiros[p], J.bonus[p]),
+              detalle: `${modalidadJuego === "dinamico" ? "⚡ Dinámico · " : ""}Cuadro ${Math.min(J.cuadro + 1, CUADROS)} de ${CUADROS}`,
               activo: p === jugadorActual,
             }))
             .concat(J.modo === "solo" ? [null] : []),
@@ -602,12 +1268,19 @@
         J.dificultad = info.dificultad;
         J.partida = info.partida;
         J.tiros = [[], []];
+        J.bonus = [0, 0];
         J.cuadro = 0;
         J.recibido = {};
         J.activa = true;
+
         const r = Arcade.rng(info.semilla);
         J.orden = modo === "solo" ? [0] : modo === "bot" ? [0, 1] : r() < 0.5 ? [0, 1] : [1, 0];
+
         $("cuadros").classList.remove("oculto");
+        btnEstilo.classList.remove("oculto");
+        btnCamara.classList.remove("oculto");
+        btnEstilo.textContent = `🎨 ${ESTILOS[estiloActual].emoji} ${ESTILOS[estiloActual].nombre}`;
+
         jugarPartida(info.partida);
       }
 
@@ -624,27 +1297,34 @@
 
       async function jugarCuadro(p, f) {
         const ultimo = f === CUADROS - 1;
-        ponerTodos();
+        ponerTodos(f);
         let bola = 0;
+
         while (true) {
           if (!J.activa) return;
           const derribados = await unTiro(p, f, bola);
           if (!J.activa) return;
+
           J.tiros[p].push(derribados);
           dibujarCuadros(p);
           const t = J.tiros[p];
           const enCuadro = ultimo ? t.slice(t.length - bola - 1) : null;
           let mensaje = null;
+
           if (bola === 0 && derribados === 10) mensaje = ["🎳 ¡STRIKE!", "#ff4fd8"];
           else if (bola === 1 && !ultimo && t[t.length - 2] + derribados === 10) mensaje = ["✨ ¡SPARE!", "#4fdcff"];
           else if (ultimo && bola === 1 && enCuadro[0] !== 10 && enCuadro[0] + derribados === 10) mensaje = ["✨ ¡SPARE!", "#4fdcff"];
           else if (ultimo && bola > 0 && derribados === 10) mensaje = ["🎳 ¡STRIKE!", "#ff4fd8"];
           else if (derribados === 0) mensaje = ["😬 Nada…", "#888"];
           else mensaje = [`${derribados} pino${derribados === 1 ? "" : "s"}`, "#ffd84f"];
+
           ui.avisar(...mensaje);
           if (mensaje[0].includes("STRIKE")) {
             sonar("publico");
+            fuegosArtificialesStrike();
             if (soyYo(p) && J.modo !== "local") window.Perfil && Perfil.evento("boliche", "strike");
+          } else if (mensaje[0].includes("SPARE")) {
+            sonar("ganar", 0.8);
           }
           await esperar(1400);
 
@@ -654,11 +1334,11 @@
           } else {
             const [a, b] = enCuadro;
             if (bola === 0 && a === 10) {
-              ponerTodos();
+              ponerTodos(f);
             } else if (bola === 1) {
-              if (a === 10 && b === 10) ponerTodos();
+              if (a === 10 && b === 10) ponerTodos(f);
               else if (a === 10 || a + b === 10) {
-                if (a + b === 10 && a !== 10) ponerTodos();
+                if (a + b === 10 && a !== 10) ponerTodos(f);
               } else break;
             } else if (bola === 2) break;
           }
@@ -673,13 +1353,15 @@
         modoCamara = "tiro";
         const clave = `${f}-${p}-${bola}`;
         let tiro, resultadoRival = null;
+
         if (soyYo(p)) {
-          if (J.modo === "local" || (J.modo !== "solo" && bola === 0)) ui.avisar(J.modo === "local" ? `Tira ${J.nombres[p]}` : "¡Tu turno!", p ? "#4fb3ff" : "#ff4f8b");
-          ui.ayuda("👆 Acomoda la bola y desliza hacia arriba");
+          if (J.modo === "local" || (J.modo !== "solo" && bola === 0))
+            ui.avisar(J.modo === "local" ? `Tira ${J.nombres[p]}` : "¡Tu turno!", p ? "#4fb3ff" : "#ff4f8b");
+          ui.ayuda("👆 Acomoda la bola y desliza hacia arriba para tirar");
           tiro = await new Promise((r) => (esperandoTiro = r));
         } else if (J.modo === "bot") {
           ui.ayuda("");
-          await esperar(900);
+          await esperar(800);
           tiro = tiroBot(enPie);
           cuerpoBola.position.x = tiro.x;
           await esperar(400);
@@ -688,36 +1370,65 @@
           resultadoRival = J.recibido[clave] || (await new Promise((r) => (J.esperando = { clave, r })));
           tiro = resultadoRival.tiro;
         }
+
         ui.ayuda("");
         modoCamara = "sigue";
         let caidos = await simular(tiro);
-        if (resultadoRival) caidos = resultadoRival.caidos; // manda el celular de quien tiró
+
+        if (resultadoRival) caidos = resultadoRival.caidos;
         else if (J.modo === "online") ui.enviar("tiro", { partida: J.partida, clave, tiro, caidos });
+
         modoCamara = "pinos";
-        // barrer los caídos y volver a parar los que quedaron
+
+        // Revisar si el Bolo Rey fue derribado en Modo Dinámico
+        if (modalidadJuego === "dinamico" && boloReyIndex >= 0 && !bonusReySumado && caidos[boloReyIndex]) {
+          bonusReySumado = true;
+          J.bonus[p] += 5;
+          ui.avisar("👑 ¡BOLO REY DERRIBADO! +5 pts", "#ffd700");
+          sonar("perfecto", 1.2);
+          await esperar(900);
+        }
+
+        // Barrer los caídos y restablecer los que siguen en pie
         caidos.forEach((c, i) => c && (enPie[i] = false));
         cuerposPino.forEach((c, i) => (enPie[i] ? pararPino(i, posInicial[i][0], posInicial[i][1]) : quitarPino(i)));
+        actualizarMaterialesPinos();
+
         return caidos.filter(Boolean).length;
       }
 
       function terminar() {
         J.activa = false;
         modoCamara = "menu";
-        const a = total(J.tiros[0]),
-          b = total(J.tiros[1]);
+        btnEstilo.classList.add("oculto");
+        btnCamara.classList.add("oculto");
+        ocultarGuiaPunteria();
+
+        const a = total(J.tiros[0], J.bonus[0]),
+          b = total(J.tiros[1], J.bonus[1]);
+
         if (J.modo === "solo") {
           sonar("ganar");
-          return ui.terminar({ emoji: "🎳", texto: `¡${a} puntos!`, nota: `${J.tiros[0].filter((t, i) => t === 10).length} strikes`, record: a });
+          fuegosArtificialesStrike();
+          return ui.terminar({
+            emoji: "🎳",
+            texto: `¡${a} puntos!`,
+            nota: `${J.tiros[0].filter((t) => t === 10).length} strikes · ${modalidadJuego === "dinamico" ? "⚡ Dinámico" : "Clásico"}`,
+            record: a,
+          });
         }
+
         const empate = a === b,
           gana0 = a > b;
         const gane = J.modo === "online" ? (ui.yo === 0 ? gana0 : !gana0 && !empate) : gana0;
         sonar(gane || J.modo === "local" ? "ganar" : "perder");
+        if (gane) fuegosArtificialesStrike();
+
         let texto = empate ? "¡Empate!" : J.modo === "local" ? `¡Ganó ${J.nombres[gana0 ? 0 : 1]}!` : gane ? "¡Ganaste!" : `Ganó ${J.nombres[gana0 ? 0 : 1]}`;
         ui.terminar({
           emoji: empate ? "🤝" : gane || J.modo === "local" ? "🏆" : "😿",
           texto,
-          nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]}`,
+          nota: `${J.nombres[0]} ${a} - ${b} ${J.nombres[1]} (${modalidadJuego === "dinamico" ? "⚡ Dinámico" : "Clásico"})`,
           record: J.modo === "bot" ? a : null,
         });
       }
