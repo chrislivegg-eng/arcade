@@ -520,6 +520,7 @@ TABLAS = [
     ("record_nucleo.txt", "🌀 Círculo de Destrucción", "pts", False),
     ("record_squish.txt", "🌈 Neon Squish", "objetos", False),
     ("record_canicas.txt", "🔮 Cascada de Canicas", "pts", False),
+    ("record_beisbol.txt", "⚾ Home Run Infinito", "m", False),
     ("record_pinball.txt", "🪩 Pinball Nova", "pts", False),
     ("record_templo.txt", "🏛️ Umbra · Templo perdido", "s", True),
     ("record_mansion.txt", "👻 Nocturna · Mansión", "s", True),

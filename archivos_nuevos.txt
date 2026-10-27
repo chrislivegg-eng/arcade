@@ -139,3 +139,7 @@ static/js/squish.js
 templates/juego_canicas.html
 static/canicas.css
 static/js/canicas.js
+beisbol_progreso.py
+templates/juego_beisbol.html
+static/beisbol.css
+static/js/beisbol.js

@@ -76,6 +76,7 @@ JUEGOS = {
     'nucleo': 'juego_nucleo.html',
     'squish': 'juego_squish.html',
     'canicas': 'juego_canicas.html',
+    'beisbol': 'juego_beisbol.html',
 }
 # En estos juegos el récord es "menos es mejor" (golpes, milisegundos)
 RECORD_MENOR = {'mini_golf', 'reflejos', 'karts', 'sudoku', 'buscaminas', 'sopa', 'flow', 'parejas', 'nonograma', 'templo', 'mansion'}
@@ -217,6 +218,8 @@ def ver_records(juego):
 def guardar_record(juego):
     if juego not in JUEGOS:
         abort(404)
+    if juego == 'beisbol':
+        return jsonify({'error': 'El récord de béisbol se calcula al batear'}), 403
     datos = request.json or {}
     from records_cuenta import nombre_guardado
     nombre = nombre_guardado(_nombre(datos.get('nombre'), 'Invitado'))

@@ -105,6 +105,8 @@ class GamesTest(unittest.TestCase):
     def test_records_keep_best_and_roundtrip_names(self):
         with tempfile.TemporaryDirectory() as tmp, patch.object(duelo, '_archivo_record', side_effect=lambda j: str(Path(tmp) / (j + '.txt'))):
             for game in duelo.JUEGOS:
+                if game == 'beisbol':
+                    continue  # El servidor calcula este récord al batear.
                 url = '/api/records/' + game
                 self.post(url, nombre='José', puntos=100)
                 self.post(url, nombre='José', puntos=50)
