@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#062b39"><title>Home Run Infinito · Chris Arcade</title><link rel="stylesheet" href="{{ url_for('static', filename='beisbol.css') }}"></head>
+<body>
+<header><a href="/secreto">← ARCADE</a><strong>⚾ HOME RUN <span>INFINITO</span></strong><button id="mute" type="button" aria-label="Activar o silenciar sonido">♫</button></header>
+<main>
+  <section class="hud" aria-label="Marcadores"><div><small>DISTANCIA</small><b id="distance">0 m</b></div><div><small>MEJOR GOLPE</small><b id="record">0 m</b></div><div><small>MONEDAS</small><b id="coins">🪙 0</b></div></section>
+  <div class="layout">
+    <section class="game-panel">
+      <div class="stage"><canvas id="game" width="720" height="900" aria-label="Campo de béisbol y vuelo de la pelota"></canvas><div class="flight-caption" id="flightCaption" aria-live="polite"></div></div>
+      <div class="meter"><span>MUY PRONTO</span><div id="timing"><i id="sweet"></i><i id="needle"></i></div><span>MUY TARDE</span></div>
+      <div class="controls"><button id="pitch" type="button" disabled>PREPARAR LANZAMIENTO</button><button id="swing" type="button" disabled>¡BATEAR!</button></div>
+      <p id="status" role="status">Prepara un lanzamiento y batea cuando la aguja entre en la zona dorada.</p>
+      <section id="result" class="result" hidden><h2 id="resultTitle">¡Buen golpe!</h2><p id="resultText"></p><button id="again" type="button">OTRO LANZAMIENTO</button></section>
+    </section>
+    <aside class="shop"><div class="shop-title"><div><small>COLECCIÓN Y MEJORAS</small><h2>Tu equipo</h2></div><span id="shots">0 golpes</span></div>
+      <div class="tabs" role="tablist" aria-label="Equipo"><button type="button" class="active" data-tab="personajes">Personajes</button><button type="button" data-tab="bates">Bates</button><button type="button" data-tab="pelotas">Pelotas</button><button type="button" data-tab="mejoras">Mejoras</button></div>
+      <div id="shopItems" class="shop-items"></div><p class="shop-note">Los objetos y las mejoras se guardan en tu perfil. Inicia sesión para recuperarlos en otro dispositivo.</p>
+    </aside>
+  </div>
+</main>
+<script src="{{ url_for('static', filename='js/beisbol.js') }}"></script>
+</body></html>
