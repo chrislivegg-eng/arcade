@@ -7,9 +7,14 @@
     <title>Billar 8 · Arcade</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="{{ url_for('static', filename='juegos3d.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='billar.css') }}" />
   </head>
   <body>
     <canvas id="lienzo"></canvas>
+    <div id="billar-controles" class="oculto" aria-label="Controles de tiro">
+      <div class="billar-control-fila"><span>🎯 Toca la mesa para apuntar</span><span id="billar-potencia-valor">55%</span></div>
+      <div class="billar-control-fila"><label for="billar-potencia">Potencia</label><input id="billar-potencia" type="range" min="5" max="100" value="55" aria-label="Potencia del tiro" /><button id="billar-tirar" type="button">TIRAR</button></div>
+    </div>
 
     <script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/graficos3d.js') }}"></script>
@@ -22,8 +27,8 @@
         MZ = 1.12,
         R = 0.0286,
         R_BUCHACA = 0.062,
-        FRICCION = 0.75, // m/s² de frenado al rodar
-        VEL_MAX = 5.2;
+        FRICCION = 0.9, // m/s²: los turnos no se alargan tras un tiro fuerte
+        VEL_MAX = 3.4;
       const BUCHACAS = [
         [-MX, -MZ],
         [MX, -MZ],
@@ -37,11 +42,11 @@
       // =========================================================
       //  ESCENA
       // =========================================================
-      const M = Arcade.mundo({ fondo: 0x0d1a12, niebla: [6, 14], fov: 50, exposicion: 1.1, lamparas: [[0, 6, 0, 0xfff2d8, 4], [-5, 2, 3, 0xffd8a0, 1], [5, 2, -3, 0xffd8a0, 1]] });
+      const M = Arcade.mundo({ fondo: 0x0d1a12, niebla: [6, 14], fov: 50, exposicion: 1.05, lamparas: [[0, 6, 0, 0xfff2d8, 3.1], [-5, 2, 3, 0xffd8a0, 0.8], [5, 2, -3, 0xffd8a0, 0.8]] });
       const { escena, camara } = M;
       const acabado3D = Graficos3D.configurar(M, "interior");
       escena.add(new THREE.HemisphereLight(0xfff2e0, 0x1a1a10, 0.45));
-      const lampara = new THREE.SpotLight(0xfff0d0, 2.6, 0, 0.75, 0.55, 1);
+      const lampara = new THREE.SpotLight(0xfff0d0, 2.0, 0, 0.75, 0.55, 1);
       lampara.position.set(0, 2.6, 0);
       lampara.castShadow = true;
       lampara.shadow.mapSize.set(2048, 2048);
@@ -61,11 +66,11 @@
       acabado3D.superficie(pisoMadera, "madera", { repetir: 10 });
 
       const texturaPano = M.textura(512, 1024, (g, w, h) => {
-        g.fillStyle = "#1b7a3e";
+        g.fillStyle = "#116342";
         g.fillRect(0, 0, w, h);
         const img = g.getImageData(0, 0, w, h);
         for (let p = 0; p < img.data.length; p += 4) {
-          const r = (Math.random() - 0.5) * 18;
+          const r = (Math.random() - 0.5) * 12;
           img.data[p] += r * 0.4;
           img.data[p + 1] += r;
           img.data[p + 2] += r * 0.5;
@@ -85,23 +90,20 @@
         });
       });
       const pano = new THREE.Mesh(new THREE.BoxGeometry(MX * 2, 0.04, MZ * 2), [
-        material(0x1b7a3e),
-        material(0x1b7a3e),
-        material(0xffffff, { map: texturaPano, roughness: 0.95 }),
-        material(0x1b7a3e),
-        material(0x1b7a3e),
-        material(0x1b7a3e),
+        material(0x116342),
+        material(0x116342),
+        material(0xffffff, { map: texturaPano, roughness: 0.99 }),
+        material(0x116342),
+        material(0x116342),
+        material(0x116342),
       ]);
       pano.position.y = -0.02;
       pano.receiveShadow = true;
       escena.add(pano);
       acabado3D.superficie(pano, "tela", { repetir: 10 });
       // bandas y marco de madera
-      const matMadera = material(0xffffff, { map: M.textura(256, 64, (g, w, h) => Arcade.dibujarMadera(g, w, h, { tono: 20, sat: 55, luz: 30, tablas: 2, vertical: false })), roughness: 0.4 });
-      const matBanda = material(0x14612f, { roughness: 0.9 });
-      [
-        [MX * 2 + 0.24, MZ * 2 + 0.24, 0, 0],
-      ].forEach(() => {});
+      const matMadera = material(0xc48a61, { map: M.textura(256, 64, (g, w, h) => Arcade.dibujarMadera(g, w, h, { tono: 20, sat: 55, luz: 27, tablas: 2, vertical: false })), roughness: 0.48 });
+      const matBanda = material(0x0e4c35, { roughness: 0.95 });
       const marco = (w, d, x, z) => {
         const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.09, d), matMadera);
         m.position.set(x, 0.02, z);
@@ -112,6 +114,24 @@
       marco(0.12, MZ * 2 + 0.24, MX + 0.09, 0);
       marco(MX * 2 + 0.06, 0.12, 0, -MZ - 0.09);
       marco(MX * 2 + 0.06, 0.12, 0, MZ + 0.09);
+      // Filetes dorados y diamantes de referencia sobre las bandas.
+      const laton = material(0xc79d55, { metalness: 0.65, roughness: 0.28 });
+      const marfil = material(0xf7ebc8, { roughness: 0.28 });
+      const filete = (w, d, x, z) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.006, d), laton);
+        m.position.set(x, 0.07, z);
+        escena.add(m);
+      };
+      [-1, 1].forEach((s) => {
+        filete(0.009, MZ * 2 + 0.18, s * (MX + 0.118), 0);
+        [-0.82, -0.41, 0, 0.41, 0.82].forEach((z) => {
+          const d = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.002, 0.02), marfil);
+          d.position.set(s * (MX + 0.09), 0.071, z);
+          d.rotation.y = Math.PI / 4;
+          escena.add(d);
+        });
+      });
+      [-1, 1].forEach((s) => filete(MX * 2 + 0.04, 0.009, 0, s * (MZ + 0.118)));
       const banda = (w, d, x, z) => {
         const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.04, d), matBanda);
         m.position.set(x, 0.02, z);
@@ -128,6 +148,10 @@
         const b = new THREE.Mesh(new THREE.CylinderGeometry(R_BUCHACA, R_BUCHACA, 0.045, 24), new THREE.MeshBasicMaterial({ color: 0x050505 }));
         b.position.set(x, 0.002, z);
         escena.add(b);
+        const aro = new THREE.Mesh(new THREE.TorusGeometry(R_BUCHACA * 1.03, 0.006, 8, 28), laton);
+        aro.rotation.x = -Math.PI / 2;
+        aro.position.set(x, 0.029, z);
+        escena.add(aro);
       });
 
       // Bolas
@@ -161,10 +185,10 @@
           }
         });
       }
-      const geoBola = new THREE.SphereGeometry(R, 28, 20);
+      const geoBola = new THREE.SphereGeometry(R, 32, 24);
       const bolas = [];
       for (let n = 0; n <= 15; n++) {
-        const malla = new THREE.Mesh(geoBola, material(0xffffff, { map: texturaBola(n), roughness: 0.12, metalness: 0.05 }));
+        const malla = new THREE.Mesh(geoBola, material(0xffffff, { map: texturaBola(n), roughness: 0.17, metalness: 0.02 }));
         malla.castShadow = true;
         escena.add(malla);
         bolas.push({ n, x: 0, z: 0, vx: 0, vz: 0, dentro: false, malla, rot: new THREE.Quaternion() });
@@ -378,35 +402,65 @@
         const p = new THREE.Vector3();
         return M.pantallaARayo(px, py).ray.intersectPlane(planoMesa, p) ? p : null;
       }
-      let inicioJalon = null;
-      function tiroDesdeJalon(a, b) {
-        if (!a || !b) return null;
-        // jalas hacia atrás: la blanca sale hacia el lado contrario
-        let dx = a.x - b.x,
-          dz = a.z - b.z;
-        const largo = Math.hypot(dx, dz);
-        if (largo < 0.02) return null;
-        dx /= largo;
-        dz /= largo;
-        const fuerza = limitar((largo - 0.02) / 0.55, 0.03, 1);
-        return { dx, dz, fuerza, v: 0.35 + fuerza * (VEL_MAX - 0.35) };
+      const controles = document.getElementById("billar-controles");
+      const potencia = document.getElementById("billar-potencia");
+      const potenciaValor = document.getElementById("billar-potencia-valor");
+      let direccion = { dx: 0, dz: -1 };
+      let punteroActivo = null;
+      function refrescarMira() {
+        if (esperandoTiro) mostrarMira(direccion.dx, direccion.dz, Number(potencia.value) / 100);
       }
-      Arcade.deslizar(M.lienzo, {
-        puede: () => !!esperandoTiro,
-        inicio: (p) => (inicioJalon = puntoMesa(p.x, p.y)),
-        mover: (p) => {
-          const t = tiroDesdeJalon(inicioJalon, puntoMesa(p.x, p.y));
-          if (t) mostrarMira(t.dx, t.dz, t.fuerza);
-        },
-        cancelar: ocultarMira,
-        soltar: (g) => {
-          const t = tiroDesdeJalon(inicioJalon, puntoMesa(g.fin.x, g.fin.y));
-          ocultarMira();
-          if (!t || !esperandoTiro) return;
-          const r = esperandoTiro;
-          esperandoTiro = null;
-          r({ dx: +t.dx.toFixed(5), dz: +t.dz.toFixed(5), v: +t.v.toFixed(4) });
-        },
+      function apuntarPantalla(x, y) {
+        if (!esperandoTiro) return;
+        const objetivo = puntoMesa(x, y);
+        if (!objetivo) return;
+        const dx = objetivo.x - blanca.x, dz = objetivo.z - blanca.z;
+        const largo = Math.hypot(dx, dz);
+        if (largo < R * 1.5) return;
+        direccion = { dx: dx / largo, dz: dz / largo };
+        refrescarMira();
+      }
+      function mostrarControles(mostrar) {
+        controles.classList.toggle("oculto", !mostrar);
+        if (mostrar) {
+          direccion = { dx: 0, dz: -1 };
+          potencia.value = "55";
+          potenciaValor.textContent = "55%";
+          refrescarMira();
+        } else ocultarMira();
+      }
+      function disparar() {
+        if (!esperandoTiro) return;
+        const fuerza = Number(potencia.value) / 100;
+        const resolver = esperandoTiro;
+        esperandoTiro = null;
+        mostrarControles(false);
+        resolver({ dx: +direccion.dx.toFixed(5), dz: +direccion.dz.toFixed(5), v: +(0.35 + fuerza * (VEL_MAX - 0.35)).toFixed(4) });
+      }
+      M.lienzo.addEventListener("pointerdown", (e) => {
+        if (!esperandoTiro) return;
+        punteroActivo = e.pointerId;
+        M.lienzo.setPointerCapture(e.pointerId);
+        apuntarPantalla(e.clientX, e.clientY);
+      });
+      M.lienzo.addEventListener("pointermove", (e) => {
+        if (esperandoTiro && (punteroActivo === e.pointerId || e.pointerType === "mouse")) apuntarPantalla(e.clientX, e.clientY);
+      });
+      const soltarPuntero = (e) => { if (punteroActivo === e.pointerId) punteroActivo = null; };
+      M.lienzo.addEventListener("pointerup", soltarPuntero);
+      M.lienzo.addEventListener("pointercancel", soltarPuntero);
+      potencia.addEventListener("input", () => { potenciaValor.textContent = `${potencia.value}%`; refrescarMira(); });
+      document.getElementById("billar-tirar").addEventListener("click", disparar);
+      document.addEventListener("keydown", (e) => {
+        if (!esperandoTiro) return;
+        if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); disparar(); }
+        if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
+          if (e.target === potencia) return;
+          e.preventDefault();
+          const a = Math.atan2(direccion.dz, direccion.dx) + (e.code === "ArrowLeft" ? -0.025 : 0.025);
+          direccion = { dx: Math.cos(a), dz: Math.sin(a) };
+          refrescarMira();
+        }
       });
 
       // =========================================================
@@ -510,7 +564,7 @@
         cancelarSimulacion?.();
         if (esperandoTiro) { const resolver = esperandoTiro; esperandoTiro = null; resolver(null); }
         if (J.esperando) { const resolver = J.esperando.r; J.esperando = null; resolver(null); }
-        ocultarMira();
+        mostrarControles(false);
       }
 
       const ui = Arcade.ui({
@@ -521,8 +575,8 @@
         modos: ["bot", "online", "local"],
         dificultad: true,
         reglas: [
-          "Pon el dedo en la mesa y jala hacia atrás como resortera: la blanca sale hacia el otro lado.",
-          "La línea punteada te dice a dónde llega la blanca, y la amarilla hacia dónde sale la bola que golpeas.",
+          "Toca o arrastra en la mesa para apuntar; ajusta la potencia y pulsa TIRAR. En PC también puedes usar las flechas y Espacio.",
+          "La línea punteada muestra el recorrido de la blanca; la amarilla indica hacia dónde saldrá la bola golpeada.",
           "El primero que meta una bola se queda con ese grupo: lisas (1-7) o rayadas (9-15).",
           "Si metes una de las tuyas, sigues tirando. Si metes la blanca o le pegas primero a una del otro, es falta.",
           "Cuando metas todas las tuyas, mete la 8 para ganar. ¡Si metes la 8 antes, pierdes!",
@@ -600,8 +654,8 @@
           const n = J.tiroN++;
           let tiro, rival = null;
           if (soyYo(t)) {
-            ui.ayuda("👆 Jala hacia atrás desde la mesa y suelta");
-            tiro = await new Promise((r) => (esperandoTiro = r));
+            ui.ayuda("🎯 Apunta en la mesa · ajusta potencia · TIRAR");
+            tiro = await new Promise((r) => { esperandoTiro = r; mostrarControles(true); });
             if (!sesionActiva(sesion) || !tiro) return;
             ui.ayuda("");
           } else if (J.modo === "bot") {
