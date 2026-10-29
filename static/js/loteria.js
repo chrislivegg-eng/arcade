@@ -7,6 +7,7 @@
     tablaVisible = 0;
   let marcadas = [new Set(), new Set(), new Set()],
     sonido = true,
+    soloNombre = false,
     epocaAudio = 0,
     temporizador = null;
   let colaPreferencias = Promise.resolve(),
@@ -18,6 +19,7 @@
     $ = (id) => document.getElementById(id);
   try {
     sonido = localStorage.getItem("loteria_sonido") !== "0";
+    soloNombre = localStorage.getItem("loteria_solo_nombre") === "1";
   } catch (_) {}
   function detener() {
     epocaAudio++;
@@ -41,6 +43,10 @@
   function cantar(e) {
     detener();
     if (!sonido || document.hidden || e.actual == null) return;
+    if (soloNombre) {
+      hablar(e.cartas[e.actual][0]);
+      return;
+    }
     const frase = e.verso + ". " + e.cartas[e.actual][0],
       archivo = e.audios?.[e.actual];
     if (!archivo) {
@@ -152,7 +158,7 @@
     return colaPreferencias;
   }
   function controlesAudio() {
-    return `<div class="lot-audio"><button aria-pressed="${sonido}" onclick="LoteriaUI.sonido()">${sonido ? "🔊 Gritón activado" : "🔇 Activar gritón"}</button><button onclick="LoteriaUI.repetir()">↻ Repetir carta</button></div>`;
+    return `<div class="lot-audio"><button aria-pressed="${sonido}" onclick="LoteriaUI.sonido()">${sonido ? "🔊 Gritón activado" : "🔇 Activar gritón"}</button><button class="${soloNombre ? "activo" : ""}" aria-pressed="${soloNombre}" onclick="LoteriaUI.modoVoz()">🎙️ Solo nombre de la carta</button><button onclick="LoteriaUI.repetir()">↻ Repetir carta</button></div>`;
   }
   function guardarMarcas() {
     try {
@@ -273,7 +279,7 @@
       if (ultimaCantada !== ronda + ":fin") {
         ultimaCantada = ronda + ":fin";
         detener();
-        if (e.ganador_ronda)
+        if (e.ganador_ronda && !soloNombre)
           hablar("¡Lotería! ¡Que revisen esa tabla, que aquí nadie se escapa!");
       }
     }
@@ -318,7 +324,19 @@
         localStorage.setItem("loteria_sonido", sonido ? "1" : "0");
       } catch (_) {}
       detener();
-      if (sonido) hablar("¡Corre y se va corriendo!");
+      if (sonido && Fiesta.estado?.fase === "jugando" && Fiesta.estado.actual != null)
+        cantar(Fiesta.estado);
+      else if (sonido && !soloNombre) hablar("¡Corre y se va corriendo!");
+      repintar();
+    },
+    modoVoz() {
+      soloNombre = !soloNombre;
+      try {
+        localStorage.setItem("loteria_solo_nombre", soloNombre ? "1" : "0");
+      } catch (_) {}
+      detener();
+      if (Fiesta.estado?.fase === "jugando" && Fiesta.estado.actual != null)
+        cantar(Fiesta.estado);
       repintar();
     },
     repetir() {

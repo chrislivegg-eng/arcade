@@ -127,6 +127,28 @@ const base = process.env.ARCADE_URL || "http://127.0.0.1:5055";
           __cantadas.some((f) => f.includes("viva México")),
         ),
       );
+      const soloNombre = p.getByRole("button", { name: "Solo nombre de la carta" });
+      await soloNombre.click();
+      assert.equal(await soloNombre.getAttribute("aria-pressed"), "true");
+      assert.equal(
+        await p.evaluate(() => __cantadas.at(-1)),
+        await p.evaluate(() => Fiesta.estado.cartas[Fiesta.estado.actual][0]),
+      );
+      await p.locator(".lot-audio button").last().click();
+      assert.equal(
+        await p.evaluate(() => __cantadas.at(-1)),
+        await p.evaluate(() => Fiesta.estado.cartas[Fiesta.estado.actual][0]),
+      );
+      const cancionesAntes = await p.evaluate(() => __plays.length);
+      llamada = 44;
+      await p.evaluate(() => Fiesta.refrescar());
+      await p.waitForFunction(() => Fiesta.estado.actual === 44);
+      assert.equal(await p.evaluate(() => __cantadas.at(-1)), "El Venado");
+      assert.equal(await p.evaluate(() => __plays.length), cancionesAntes);
+      await p.reload();
+      await p.waitForFunction(() => Fiesta.estado?.mis_tablas?.length === 3);
+      assert.equal(await soloNombre.getAttribute("aria-pressed"), "true");
+      assert.equal(await p.locator(".lot-tablas .lot-celda").count(), 48);
       assert.equal(
         await p.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,
@@ -146,7 +168,7 @@ const base = process.env.ARCADE_URL || "http://127.0.0.1:5055";
       console.log(
         "PASS lotería:",
         movil ? "móvil" : "PC",
-        "3 tablas, colores, marcas independientes, brillo, bandera, voz y cancelación de música",
+        "3 tablas, colores, marcas independientes, brillo, bandera, voz normal y solo nombre",
       );
     }
     assert.deepEqual(errors, []);
