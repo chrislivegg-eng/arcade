@@ -111,6 +111,7 @@
   display: flex;
   justify-content: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 .lot-audio button {
   border: 1px solid #dacfea;
@@ -122,6 +123,11 @@
     800 11px Nunito,
     sans-serif;
   cursor: pointer;
+}
+.lot-audio button.activo {
+  background: var(--morado);
+  border-color: var(--morado);
+  color: white;
 }
 .lot-tablas {
   display: grid;
